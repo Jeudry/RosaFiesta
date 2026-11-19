@@ -1,16 +1,26 @@
 package com.jeudry.rosafiesta.data
 
 import android.Manifest
+import android.app.Activity
+import android.app.KeyguardManager
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.hardware.biometrics.BiometricManager
+import android.hardware.biometrics.BiometricPrompt
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -23,7 +33,9 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Base64
+import com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
+import com.jeudry.rosafiesta.domain.platform.OAuthBrowserOutcome
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
 import com.jeudry.rosafiesta.domain.platform.PlatformActions
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
@@ -34,14 +46,17 @@ import com.jeudry.rosafiesta.domain.sound.SoundEffect
 import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
 import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.security.KeyStore
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -49,6 +64,68 @@ import javax.crypto.spec.GCMParameterSpec
 
 @Volatile
 private var registeredAndroidMediaPicker: (suspend (List<String>) -> PickedMediaFile?)? = null
+
+@Volatile
+private var registeredAndroidDeviceAuthActivity: Activity? = null
+
+@Volatile
+private var registeredAndroidCredentialLauncher: ((Intent, (Boolean) -> Unit) -> Unit)? = null
+
+@Volatile
+private var pendingAndroidOAuthCallback: CompletableDeferred<OAuthBrowserOutcome>? = null
+
+@Volatile
+private var registeredAndroidPushTokenProvider: ((appVariant: String, onResult: (String?) -> Unit) -> Unit)? = null
+
+private const val ANDROID_OAUTH_REDIRECT_URI = "rosafiesta://oauth/callback"
+private const val ANDROID_PAYMENT_REDIRECT_PREFIX = "rosafiesta://payment"
+private const val ANDROID_API_URL_METADATA_KEY = "com.jeudry.rosafiesta.API_BASE_URL"
+private const val ANDROID_NOTIFICATION_CHANNEL_ID = "rosafiesta_alerts"
+private val androidNotificationIdCounter = AtomicInteger(2100)
+
+/**
+ * Registers an optional host push token SDK bridge (for example FCM in signed builds).
+ */
+public fun registerAndroidPushTokenProvider(
+    provider: ((appVariant: String, onResult: (String?) -> Unit) -> Unit)?,
+) {
+    registeredAndroidPushTokenProvider = provider
+}
+
+/**
+ * Delivers an incoming deep link URI (`rosafiesta://oauth/callback` or `rosafiesta://payment/...`)
+ * from Activity `onCreate` or `onNewIntent`.
+ */
+public fun dispatchAndroidIncomingUri(uriString: String?) {
+    val cleanUri = uriString?.trim().orEmpty()
+    if (cleanUri.isEmpty()) return
+    if (cleanUri.startsWith(ANDROID_OAUTH_REDIRECT_URI)) {
+        dispatchAndroidOAuthRedirectUri(cleanUri)
+        return
+    }
+    if (cleanUri.startsWith(ANDROID_PAYMENT_REDIRECT_PREFIX)) {
+        ExternalPaymentCallbackBridge.dispatchPaymentDeepLink(cleanUri)
+    }
+}
+
+/**
+ * Delivers an incoming `rosafiesta://oauth/callback?...` deep link URI from Activity `onCreate` or `onNewIntent`.
+ */
+public fun dispatchAndroidOAuthRedirectUri(uriString: String?) {
+    val cleanUri = uriString?.trim().orEmpty()
+    if (!cleanUri.startsWith(ANDROID_OAUTH_REDIRECT_URI)) return
+    val parsed = runCatching { Uri.parse(cleanUri) }.getOrNull() ?: return
+    val deferred = pendingAndroidOAuthCallback ?: return
+    pendingAndroidOAuthCallback = null
+    deferred.complete(
+        OAuthBrowserOutcome(
+            code = parsed.getQueryParameter("code"),
+            state = parsed.getQueryParameter("state"),
+            redirectUri = ANDROID_OAUTH_REDIRECT_URI,
+            errorCode = parsed.getQueryParameter("error"),
+        ),
+    )
+}
 
 /**
  * Registers an Activity-backed document/media picker bridge (such as `ActivityResultContracts.OpenDocument`)
@@ -58,6 +135,17 @@ public fun registerAndroidMediaPickerBridge(
     picker: (suspend (List<String>) -> PickedMediaFile?)?,
 ) {
     registeredAndroidMediaPicker = picker
+}
+
+/**
+ * Registers the foreground Android [Activity] and optional legacy credential launcher for [PlatformActions.authenticateDeviceOwner].
+ */
+public fun registerAndroidDeviceAuthBridge(
+    activity: Activity?,
+    credentialLauncher: ((Intent, (Boolean) -> Unit) -> Unit)? = null,
+) {
+    registeredAndroidDeviceAuthActivity = activity
+    registeredAndroidCredentialLauncher = credentialLauncher
 }
 
 /**
@@ -448,11 +536,34 @@ internal class AndroidPlatformActions(
         if (envOverride.isNotEmpty()) {
             return ExternalUrlBuilder.normalizeBaseUrl(envOverride)
         }
+        val manifestOverride = readManifestApiBaseUrl()
+        if (manifestOverride.isNotEmpty()) {
+            return ExternalUrlBuilder.normalizeBaseUrl(manifestOverride)
+        }
         return if (isRunningOnAndroidEmulator()) {
             "http://10.0.2.2:8788"
         } else {
             "http://localhost:8788"
         }
+    }
+
+    private fun readManifestApiBaseUrl(): String {
+        val context = contextProvider() ?: return ""
+        return runCatching {
+            val appInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.packageManager.getApplicationInfo(
+                    context.packageName,
+                    PackageManager.ApplicationInfoFlags.of(PackageManager.GET_META_DATA.toLong()),
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getApplicationInfo(
+                    context.packageName,
+                    PackageManager.GET_META_DATA,
+                )
+            }
+            appInfo.metaData?.getString(ANDROID_API_URL_METADATA_KEY)?.trim().orEmpty()
+        }.getOrDefault("")
     }
 
     override fun openExternalUrl(url: String): Boolean {
@@ -539,6 +650,112 @@ internal class AndroidPlatformActions(
         return bridge.invoke(allowedExtensions)
     }
 
+    override fun isOnWifiNetwork(): Boolean {
+        val context = contextProvider() ?: return false
+        val connectivity = context.getSystemService(ConnectivityManager::class.java) ?: return false
+        val activeNetwork = connectivity.activeNetwork ?: return false
+        val capabilities = connectivity.getNetworkCapabilities(activeNetwork) ?: return false
+        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+    }
+
+    override fun authenticateDeviceOwner(
+        promptTitle: String,
+        promptSubtitle: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        val activity = registeredAndroidDeviceAuthActivity
+        if (activity == null) {
+            onResult(false, "BIOMETRIC_UNAVAILABLE")
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            authenticateWithBiometricPrompt(activity, promptTitle, promptSubtitle, onResult)
+            return
+        }
+        authenticateWithKeyguardCredential(activity, promptTitle, promptSubtitle, onResult)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun authenticateWithBiometricPrompt(
+        activity: Activity,
+        promptTitle: String,
+        promptSubtitle: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        val builder = BiometricPrompt.Builder(activity)
+            .setTitle(promptTitle.ifBlank { "Desbloquear RosaFiesta" })
+            .setSubtitle(promptSubtitle.ifBlank { "Confirma tu identidad para continuar" })
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                BiometricManager.Authenticators.DEVICE_CREDENTIAL
+            builder.setAllowedAuthenticators(authenticators)
+        } else {
+            builder.setDeviceCredentialAllowed(true)
+        }
+        val prompt = builder.build()
+        val signal = CancellationSignal()
+        prompt.authenticate(
+            signal,
+            activity.mainExecutor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult?) {
+                    onResult(true, null)
+                }
+
+                override fun onAuthenticationFailed() {
+                    onResult(false, "BIOMETRIC_FAILED")
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
+                    val isHardwareMissing = when (errorCode) {
+                        BiometricPrompt.BIOMETRIC_ERROR_HW_NOT_PRESENT,
+                        BiometricPrompt.BIOMETRIC_ERROR_NO_BIOMETRICS,
+                        BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE,
+                        -> true
+
+                        else -> false
+                    }
+                    val reason = if (isHardwareMissing) "BIOMETRIC_UNAVAILABLE" else "BIOMETRIC_CANCELLED"
+                    onResult(false, reason)
+                }
+            },
+        )
+    }
+
+    @Suppress("DEPRECATION")
+    private fun authenticateWithKeyguardCredential(
+        activity: Activity,
+        promptTitle: String,
+        promptSubtitle: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        val keyguard = activity.getSystemService(KeyguardManager::class.java)
+        val launcher = registeredAndroidCredentialLauncher
+        val canPromptCredential = when {
+            keyguard == null -> false
+            !keyguard.isDeviceSecure -> false
+            else -> launcher != null
+        }
+        if (!canPromptCredential) {
+            onResult(false, "BIOMETRIC_UNAVAILABLE")
+            return
+        }
+        val activeKeyguard = keyguard ?: return
+        val activeLauncher = launcher ?: return
+        val confirmIntent = activeKeyguard.createConfirmDeviceCredentialIntent(
+            promptTitle.ifBlank { "Desbloquear RosaFiesta" },
+            promptSubtitle.ifBlank { "Ingresa el PIN o patrón del dispositivo" },
+        )
+        if (confirmIntent == null) {
+            onResult(false, "BIOMETRIC_UNAVAILABLE")
+            return
+        }
+        activeLauncher(confirmIntent) { succeeded ->
+            onResult(succeeded, if (succeeded) null else "BIOMETRIC_CANCELLED")
+        }
+    }
+
     private fun saveIntoMediaStoreDownloads(
         context: Context,
         safeName: String,
@@ -578,6 +795,127 @@ internal class AndroidPlatformActions(
         val hardware = Build.HARDWARE.orEmpty().lowercase()
         if (hardware.contains("ranchu")) return true
         return hardware.contains("goldfish")
+    }
+
+    override suspend fun launchOAuthBrowserFlow(
+        resolveAuthorizeUrl: suspend (redirectUri: String) -> String?,
+    ): OAuthBrowserOutcome {
+        val deferred = CompletableDeferred<OAuthBrowserOutcome>()
+        pendingAndroidOAuthCallback = deferred
+        val authorizeUrl = resolveAuthorizeUrl(ANDROID_OAUTH_REDIRECT_URI)
+        if (authorizeUrl == null) {
+            pendingAndroidOAuthCallback = null
+            return OAuthBrowserOutcome(redirectUri = ANDROID_OAUTH_REDIRECT_URI, errorCode = "OAUTH_START_FAILED")
+        }
+        val opened = openExternalUrl(authorizeUrl)
+        if (!opened) {
+            pendingAndroidOAuthCallback = null
+            return OAuthBrowserOutcome(redirectUri = ANDROID_OAUTH_REDIRECT_URI, errorCode = "OAUTH_BROWSER_UNAVAILABLE")
+        }
+        return try {
+            withTimeoutOrNull(180_000L) { deferred.await() }
+                ?: OAuthBrowserOutcome(redirectUri = ANDROID_OAUTH_REDIRECT_URI, errorCode = "OAUTH_TIMEOUT")
+        } finally {
+            pendingAndroidOAuthCallback = null
+        }
+    }
+
+    override fun registerPushNotifications(
+        appVariant: String,
+        onResult: (platform: String, token: String?) -> Unit,
+    ) {
+        val context = contextProvider()
+        if (context != null) {
+            ensureAndroidNotificationChannel(context)
+        }
+        val provider = registeredAndroidPushTokenProvider
+        if (provider != null) {
+            provider.invoke(appVariant) { token ->
+                onResult("android", token)
+            }
+            return
+        }
+        tryReadOptionalFirebaseToken(onResult)
+    }
+
+    private fun tryReadOptionalFirebaseToken(
+        onResult: (platform: String, token: String?) -> Unit,
+    ) {
+        val started = runCatching {
+            val messagingClass = Class.forName("com.google.firebase.messaging.FirebaseMessaging")
+            val getInstance = messagingClass.getMethod("getInstance")
+            val instance = getInstance.invoke(null) ?: return@runCatching false
+            val tokenTask = messagingClass.getMethod("getToken").invoke(instance) ?: return@runCatching false
+            val onCompleteClass = Class.forName("com.google.android.gms.tasks.OnCompleteListener")
+            val addListener = tokenTask.javaClass.getMethod("addOnCompleteListener", onCompleteClass)
+            val listener = java.lang.reflect.Proxy.newProxyInstance(
+                onCompleteClass.classLoader,
+                arrayOf(onCompleteClass),
+            ) { _, method, args ->
+                if (method.name == "onComplete") {
+                    val completedTask = args?.firstOrNull()
+                    val token = extractCompletedTaskResult(completedTask)
+                    onResult("android", token)
+                }
+                null
+            }
+            addListener.invoke(tokenTask, listener)
+            true
+        }.getOrDefault(false)
+        if (!started) {
+            onResult("android", null)
+        }
+    }
+
+    private fun extractCompletedTaskResult(task: Any?): String? {
+        if (task == null) return null
+        return runCatching {
+            val isSuccessful = task.javaClass.getMethod("isSuccessful").invoke(task) as? Boolean ?: false
+            if (!isSuccessful) return@runCatching null
+            (task.javaClass.getMethod("getResult").invoke(task) as? String)?.trim()?.ifEmpty { null }
+        }.getOrNull()
+    }
+
+    override fun showLocalNotification(title: String, body: String) {
+        val context = contextProvider() ?: return
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+            if (!granted) return
+        }
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        ensureAndroidNotificationChannel(context)
+        val iconRes = context.applicationInfo.icon
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(context, ANDROID_NOTIFICATION_CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(context)
+        }
+        val notification = builder
+            .setSmallIcon(if (iconRes != 0) iconRes else android.R.drawable.ic_dialog_info)
+            .setContentTitle(cleanTitle)
+            .setContentText(body.trim())
+            .setAutoCancel(true)
+            .build()
+        manager.notify(androidNotificationIdCounter.incrementAndGet(), notification)
+    }
+
+    private fun ensureAndroidNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService(NotificationManager::class.java) ?: return
+        val existing = manager.getNotificationChannel(ANDROID_NOTIFICATION_CHANNEL_ID)
+        if (existing != null) return
+        val channel = NotificationChannel(
+            ANDROID_NOTIFICATION_CHANNEL_ID,
+            "Alertas RosaFiesta",
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = "Recordatorios de pago, eventos y cotizaciones de RosaFiesta"
+        }
+        manager.createNotificationChannel(channel)
     }
 }
 

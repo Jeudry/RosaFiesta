@@ -1,12 +1,19 @@
 package com.jeudry.rosafiesta.admin.android
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import com.jeudry.rosafiesta.AdminApp
+import com.jeudry.rosafiesta.data.dispatchAndroidIncomingUri
 import com.jeudry.rosafiesta.data.initAndroidDriverContext
 import com.jeudry.rosafiesta.data.readAndroidPickedUri
+import com.jeudry.rosafiesta.data.registerAndroidDeviceAuthBridge
 import com.jeudry.rosafiesta.data.registerAndroidMediaPickerBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
@@ -19,10 +26,25 @@ import kotlin.coroutines.suspendCoroutine
  */
 class AdminMainActivity : ComponentActivity() {
     private var pendingMediaContinuation: Continuation<PickedMediaFile?>? = null
+    private var pendingCredentialCallback: ((Boolean) -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initAndroidDriverContext(applicationContext, databaseName = "rosafiesta-admin.db")
+        dispatchAndroidIncomingUri(intent?.dataString ?: intent?.getStringExtra("url"))
+        requestNotificationsPermissionIfNeeded()
+        val credentialLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val callback = pendingCredentialCallback
+            pendingCredentialCallback = null
+            callback?.invoke(result.resultCode == Activity.RESULT_OK)
+        }
+        registerAndroidDeviceAuthBridge(
+            activity = this,
+            credentialLauncher = { intent, callback ->
+                pendingCredentialCallback = callback
+                credentialLauncher.launch(intent)
+            },
+        )
         val documentLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { selectedUri ->
             val continuation = pendingMediaContinuation
             pendingMediaContinuation = null
@@ -47,8 +69,23 @@ class AdminMainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        dispatchAndroidIncomingUri(intent.dataString ?: intent.getStringExtra("url"))
+    }
+
+    private fun requestNotificationsPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val isGranted = checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        if (!isGranted) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 4002)
+        }
+    }
+
     override fun onDestroy() {
         registerAndroidMediaPickerBridge(null)
+        registerAndroidDeviceAuthBridge(null, null)
         super.onDestroy()
     }
 

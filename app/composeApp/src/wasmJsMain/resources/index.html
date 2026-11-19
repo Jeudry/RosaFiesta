@@ -15,6 +15,13 @@
         }
     </style>
     <script type="application/javascript" src="composeApp.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker.register("./sw.js").catch(function () {});
+            });
+        }
+    </script>
 </head>
 <body></body>
 </html>

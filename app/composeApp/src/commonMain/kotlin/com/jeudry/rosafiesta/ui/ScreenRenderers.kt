@@ -116,7 +116,7 @@ public fun RenderAppBottomBar(
     }
 }
 
-private fun resolvePersonalTabTarget(tab: PersonalTab, guestMode: Boolean): String = when (tab) {
+internal fun resolvePersonalTabTarget(tab: PersonalTab, guestMode: Boolean): String = when (tab) {
     PersonalTab.INICIO -> if (guestMode) "s01" else "s14"
     PersonalTab.CATALOGO -> if (guestMode) "s01" else "s18"
     PersonalTab.ROSA -> if (guestMode) "s75" else "s26"
@@ -257,6 +257,78 @@ internal fun RenderPersonalMoreOptionsPanel(
                     )
                 }
             }
+        }
+    }
+}
+
+internal fun isFloatingOverlayModalCode(code: String): Boolean = code in setOf(
+    "s75",
+    "s76",
+    "s77",
+    "s81",
+    "s84",
+    "s85",
+    "s92",
+)
+
+@Composable
+internal fun RenderFloatingModalOverlay(
+    screenCode: String,
+    viewModel: RosaFiestaViewModel? = null,
+    underlyingScreenCode: String? = null,
+    onSelectScreenCode: (String) -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxSize().testTag("screen-$screenCode")) {
+        when (screenCode) {
+            "s75" -> RenderGuestAuthModalS75(
+                viewModel = viewModel,
+                onSelectScreenCode = onSelectScreenCode,
+                underlyingScreenCode = underlyingScreenCode,
+                renderOriginBackdrop = false,
+            )
+
+            "s76" -> RenderPlanningModalS76(
+                viewModel = viewModel,
+                onSelectScreenCode = onSelectScreenCode,
+                underlyingScreenCode = underlyingScreenCode,
+                renderOriginBackdrop = false,
+            )
+
+            "s77" -> RenderEventReviewsModalS77(
+                viewModel = viewModel,
+                onSelectScreenCode = onSelectScreenCode,
+                underlyingScreenCode = underlyingScreenCode,
+                renderOriginBackdrop = false,
+            )
+
+            "s81" -> RenderCatalogFiltersModalS81(
+                viewModel = viewModel,
+                onSelectScreenCode = onSelectScreenCode,
+                underlyingScreenCode = underlyingScreenCode,
+                renderOriginBackdrop = false,
+            )
+
+            "s84" -> RenderChangeDateModalS84(
+                viewModel = viewModel,
+                onSelectScreenCode = onSelectScreenCode,
+                underlyingScreenCode = underlyingScreenCode,
+                renderOriginBackdrop = false,
+            )
+
+            "s85" -> RenderCancelEventModalS85(
+                viewModel = viewModel,
+                onSelectScreenCode = onSelectScreenCode,
+                underlyingScreenCode = underlyingScreenCode,
+                renderOriginBackdrop = false,
+            )
+
+            "s92" -> RenderPersonalSuccessStateS92(
+                viewModel = viewModel,
+                onSelectScreenCode = onSelectScreenCode,
+                underlyingScreenCode = underlyingScreenCode,
+                renderOriginBackdrop = false,
+            )
         }
     }
 }
@@ -528,6 +600,10 @@ public fun RenderScreenSpec(
                 "A37" -> RenderAdminErrorStateA37(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
                 "A38" -> RenderAdminSuccessStateA38(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+
+                "A40" -> RenderAdminCategoriesA40(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+
+                "A41" -> RenderAdminTrendsA41(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
                 "s16" -> RenderAboutScreenS16(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 

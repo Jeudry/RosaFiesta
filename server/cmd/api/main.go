@@ -75,6 +75,7 @@ func run() error {
 	}
 
 	deps := app.Dependencies{
+		Context:       ctx,
 		Pool:          pool,
 		Clock:         clock.System{},
 		Config:        cfg,

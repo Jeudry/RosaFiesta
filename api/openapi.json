@@ -116,6 +116,45 @@
         ],
         "type": "object"
       },
+      "AnalyticsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AnalyticsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "analytics": {
+            "$ref": "#/components/schemas/PaymentsAnalytics"
+          }
+        },
+        "required": [
+          "analytics"
+        ],
+        "type": "object"
+      },
+      "ApproveRefundInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ApproveRefundInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "Article": {
         "additionalProperties": false,
         "properties": {
@@ -140,6 +179,11 @@
           },
           "dailyPriceDop": {
             "description": "Daily rental or unit price in DOP.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "damagedStock": {
+            "description": "Damaged or quarantined stock units.",
             "format": "int64",
             "type": "integer"
           },
@@ -174,6 +218,10 @@
           },
           "photoKey": {
             "description": "Asset image key.",
+            "type": "string"
+          },
+          "photoUrl": {
+            "description": "Uploaded media URL.",
             "type": "string"
           },
           "totalStock": {
@@ -290,6 +338,65 @@
         ],
         "type": "object"
       },
+      "Asset": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/Asset.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "byte_size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mime_type": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "owner_role": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "owner_id",
+          "owner_role",
+          "purpose",
+          "filename",
+          "mime_type",
+          "byte_size",
+          "sha256",
+          "url",
+          "created_at"
+        ],
+        "type": "object"
+      },
       "AuditLog": {
         "additionalProperties": false,
         "properties": {
@@ -354,6 +461,79 @@
         },
         "required": [
           "logs"
+        ],
+        "type": "object"
+      },
+      "AvailabilityCheckResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AvailabilityCheckResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "conflicts": {
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityConflict"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "eventDateIso": {
+            "type": "string"
+          },
+          "pickupDateIso": {
+            "type": "string"
+          },
+          "returnDateIso": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "eventDateIso",
+          "pickupDateIso",
+          "returnDateIso",
+          "conflicts"
+        ],
+        "type": "object"
+      },
+      "AvailabilityConflict": {
+        "additionalProperties": false,
+        "properties": {
+          "articleId": {
+            "type": "string"
+          },
+          "articleName": {
+            "type": "string"
+          },
+          "available": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "dateRange": {
+            "type": "string"
+          },
+          "requested": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articleId",
+          "articleName",
+          "requested",
+          "available",
+          "dateRange"
         ],
         "type": "object"
       },
@@ -698,6 +878,24 @@
         ],
         "type": "object"
       },
+      "CancelEventInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CancelEventInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CancelEventOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -720,6 +918,47 @@
         "required": [
           "event",
           "refund"
+        ],
+        "type": "object"
+      },
+      "CardSessionOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CardSessionOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "session": {
+            "$ref": "#/components/schemas/CardSessionResult"
+          }
+        },
+        "required": [
+          "session"
+        ],
+        "type": "object"
+      },
+      "CardSessionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "checkoutUrl": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionId",
+          "checkoutUrl",
+          "provider"
         ],
         "type": "object"
       },
@@ -780,6 +1019,49 @@
         ],
         "type": "object"
       },
+      "CategoryCountPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "count"
+        ],
+        "type": "object"
+      },
+      "CategoryOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CategoryOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category",
+            "description": "Catalog category record."
+          }
+        },
+        "required": [
+          "category"
+        ],
+        "type": "object"
+      },
       "ChangePasswordInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -811,6 +1093,9 @@
         "additionalProperties": false,
         "properties": {
           "attachmentName": {
+            "type": "string"
+          },
+          "attachmentUrl": {
             "type": "string"
           },
           "body": {
@@ -1055,6 +1340,24 @@
         ],
         "type": "object"
       },
+      "CloseoutEventInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CloseoutEventInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CreateArticleInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1091,6 +1394,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "damagedStock": {
+            "description": "Units quarantined due to damage.",
+            "format": "int64",
+            "type": "integer"
+          },
           "description": {
             "description": "Article description.",
             "type": "string"
@@ -1124,6 +1432,10 @@
             "description": "Photo asset key.",
             "type": "string"
           },
+          "photoUrl": {
+            "description": "Uploaded media URL.",
+            "type": "string"
+          },
           "totalStock": {
             "description": "Total warehouse stock.",
             "format": "int64",
@@ -1138,6 +1450,46 @@
           "name",
           "dailyPriceDop",
           "totalStock"
+        ],
+        "type": "object"
+      },
+      "CreateCardSessionInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/CreateCardSessionInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "amountRD": {
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "clientRnc": {
+            "type": "string"
+          },
+          "eventId": {
+            "minLength": 2,
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "ncfType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId",
+          "amountRD"
         ],
         "type": "object"
       },
@@ -1171,6 +1523,9 @@
           "daysUntilEvent": {
             "format": "int64",
             "type": "integer"
+          },
+          "eventDateIso": {
+            "type": "string"
           },
           "eventType": {
             "type": "string"
@@ -1298,6 +1653,9 @@
             "minimum": 0,
             "type": "integer"
           },
+          "eventDateIso": {
+            "type": "string"
+          },
           "eventDateLabel": {
             "minLength": 2,
             "type": "string"
@@ -1322,6 +1680,15 @@
               "array",
               "null"
             ]
+          },
+          "notes": {
+            "type": "string"
+          },
+          "packageId": {
+            "type": "string"
+          },
+          "sendImmediately": {
+            "type": "boolean"
           },
           "venue": {
             "minLength": 2,
@@ -1377,6 +1744,30 @@
         ],
         "type": "object"
       },
+      "DGII607OutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DGII607OutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "csv": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "csv"
+        ],
+        "type": "object"
+      },
       "DamageReport": {
         "additionalProperties": false,
         "properties": {
@@ -1384,6 +1775,9 @@
             "type": "string"
           },
           "articleName": {
+            "type": "string"
+          },
+          "chargePaymentId": {
             "type": "string"
           },
           "damagedUnits": {
@@ -1403,9 +1797,18 @@
           "notes": {
             "type": "string"
           },
+          "photoUrl": {
+            "type": "string"
+          },
           "replacementRD": {
             "format": "int64",
             "type": "integer"
+          },
+          "resolutionNotes": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
           }
         },
         "required": [
@@ -1574,6 +1977,71 @@
         ],
         "type": "object"
       },
+      "DeleteArticleOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeleteArticleOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deletedId": {
+            "description": "Deleted article identifier.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deletedId"
+        ],
+        "type": "object"
+      },
+      "DeleteCategoryOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeleteCategoryOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deletedId": {
+            "description": "Deleted category identifier.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deletedId"
+        ],
+        "type": "object"
+      },
+      "DeletePushTokenOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeletePushTokenOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "disabled"
+        ],
+        "type": "object"
+      },
       "DeleteScheduleBlockOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -1592,6 +2060,28 @@
         },
         "required": [
           "deleted"
+        ],
+        "type": "object"
+      },
+      "DeleteTrendOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeleteTrendOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deletedId": {
+            "description": "Deleted trend identifier.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deletedId"
         ],
         "type": "object"
       },
@@ -1622,6 +2112,71 @@
           "feeDop",
           "etaMinutes",
           "active"
+        ],
+        "type": "object"
+      },
+      "DevicePushToken": {
+        "additionalProperties": false,
+        "properties": {
+          "appVariant": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "platform",
+          "token",
+          "appVariant",
+          "enabled",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "EnqueueOfflineMutationCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "ActionLabel": {
+            "type": "string"
+          },
+          "EntityCode": {
+            "type": "string"
+          },
+          "IdempotencyKey": {
+            "type": "string"
+          },
+          "OperationType": {
+            "type": "string"
+          },
+          "PayloadJSON": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ActionLabel",
+          "EntityCode",
+          "OperationType",
+          "PayloadJSON",
+          "IdempotencyKey"
         ],
         "type": "object"
       },
@@ -1731,6 +2286,12 @@
           "clientName": {
             "type": "string"
           },
+          "closeoutCompleted": {
+            "type": "boolean"
+          },
+          "closeoutNotes": {
+            "type": "string"
+          },
           "code": {
             "type": "string"
           },
@@ -1744,6 +2305,9 @@
           "daysUntilEvent": {
             "format": "int64",
             "type": "integer"
+          },
+          "eventDateIso": {
+            "type": "string"
           },
           "eventType": {
             "type": "string"
@@ -1764,9 +2328,24 @@
               "null"
             ]
           },
+          "lastPaymentReminderAt": {
+            "type": "string"
+          },
+          "lastPaymentReminderChannel": {
+            "type": "string"
+          },
           "paidDepositRD": {
             "format": "int64",
             "type": "integer"
+          },
+          "pickupDateIso": {
+            "type": "string"
+          },
+          "quoteId": {
+            "type": "string"
+          },
+          "returnDateIso": {
+            "type": "string"
           },
           "sketchJson": {
             "type": "string"
@@ -2264,6 +2843,10 @@
             "description": "Staff member full name.",
             "type": "string"
           },
+          "initialPassword": {
+            "description": "Optional initial password for immediate login.",
+            "type": "string"
+          },
           "password": {
             "description": "Optional initial password.",
             "type": "string"
@@ -2436,6 +3019,15 @@
             "description": "Bearer token for authenticated requests.",
             "type": "string"
           },
+          "expiresIn": {
+            "description": "Access token lifetime in seconds.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "refreshToken": {
+            "description": "Rotating refresh token used to obtain a fresh access token.",
+            "type": "string"
+          },
           "user": {
             "$ref": "#/components/schemas/User",
             "description": "Authenticated user and active view."
@@ -2466,6 +3058,37 @@
         },
         "required": [
           "loggedOut"
+        ],
+        "type": "object"
+      },
+      "MonthlyAnalyticsPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "eventsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expensesRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "monthKey": {
+            "type": "string"
+          },
+          "revenueRD": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "monthKey",
+          "label",
+          "revenueRD",
+          "expensesRD",
+          "eventsCount"
         ],
         "type": "object"
       },
@@ -2559,6 +3182,82 @@
         ],
         "type": "object"
       },
+      "OAuthConfigResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OAuthConfigResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "appleClientId": {
+            "description": "Configured Apple OAuth client identifier.",
+            "type": "string"
+          },
+          "appleEnabled": {
+            "description": "Indicates whether Apple Sign-In is configured on the server.",
+            "type": "boolean"
+          },
+          "googleClientId": {
+            "description": "Configured Google OAuth client identifier.",
+            "type": "string"
+          },
+          "googleEnabled": {
+            "description": "Indicates whether Google OAuth is configured on the server.",
+            "type": "boolean"
+          },
+          "webPushVapidPublicKey": {
+            "description": "Public VAPID key for Web Push subscription.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "googleEnabled",
+          "appleEnabled"
+        ],
+        "type": "object"
+      },
+      "OAuthExchangeInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OAuthExchangeInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "code": {
+            "description": "Authorization code returned to the redirect URI.",
+            "type": "string"
+          },
+          "codeVerifier": {
+            "description": "PKCE code verifier matching the authorization challenge.",
+            "type": "string"
+          },
+          "provider": {
+            "description": "OAuth identity provider (google or apple).",
+            "type": "string"
+          },
+          "redirectUri": {
+            "description": "Callback URI used during authorization start.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "code",
+          "codeVerifier",
+          "redirectUri"
+        ],
+        "type": "object"
+      },
       "OAuthLoginInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -2583,6 +3282,35 @@
         "required": [
           "provider",
           "idToken"
+        ],
+        "type": "object"
+      },
+      "OAuthStartResult": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/OAuthStartResult.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "authorizeUrl": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "authorizeUrl",
+          "state"
         ],
         "type": "object"
       },
@@ -2715,6 +3443,15 @@
           "id": {
             "type": "string"
           },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "operationType": {
+            "type": "string"
+          },
+          "payloadJson": {
+            "type": "string"
+          },
           "synced": {
             "type": "boolean"
           }
@@ -2818,6 +3555,10 @@
           },
           "photoKey": {
             "description": "Package photo key.",
+            "type": "string"
+          },
+          "photoUrl": {
+            "description": "Uploaded media URL.",
             "type": "string"
           },
           "totalPriceDop": {
@@ -2963,19 +3704,38 @@
           "clientName": {
             "type": "string"
           },
+          "clientRnc": {
+            "type": "string"
+          },
           "eventId": {
             "type": "string"
           },
           "eventTitle": {
             "type": "string"
           },
+          "gatewayPaymentIntentId": {
+            "type": "string"
+          },
+          "gatewaySessionId": {
+            "type": "string"
+          },
           "id": {
             "type": "string"
+          },
+          "itbisDop": {
+            "format": "int64",
+            "type": "integer"
           },
           "kind": {
             "type": "string"
           },
           "method": {
+            "type": "string"
+          },
+          "ncfNumber": {
+            "type": "string"
+          },
+          "ncfType": {
             "type": "string"
           },
           "paidDateLabel": {
@@ -2987,7 +3747,30 @@
           "referenceCode": {
             "type": "string"
           },
+          "referenceNumber": {
+            "type": "string"
+          },
+          "rejectionReason": {
+            "type": "string"
+          },
+          "securityDepositDop": {
+            "format": "int64",
+            "type": "integer"
+          },
           "status": {
+            "type": "string"
+          },
+          "subtotalDop": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "verifiedAtIso": {
+            "type": "string"
+          },
+          "verifiedBy": {
+            "type": "string"
+          },
+          "voucherUrl": {
             "type": "string"
           }
         },
@@ -3024,6 +3807,143 @@
         },
         "required": [
           "payment"
+        ],
+        "type": "object"
+      },
+      "PaymentReminderInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PaymentReminderInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PaymentReminderOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PaymentReminderOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "event": {
+            "$ref": "#/components/schemas/Event"
+          },
+          "sent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "event",
+          "sent",
+          "channel"
+        ],
+        "type": "object"
+      },
+      "PaymentsAnalytics": {
+        "additionalProperties": false,
+        "properties": {
+          "cancelledEventsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "collectionRatePercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "completedEventsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "confirmedEventsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventTypesBreakdown": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryCountPoint"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "monthlySeries": {
+            "items": {
+              "$ref": "#/components/schemas/MonthlyAnalyticsPoint"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "netMarginPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pendingEventsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "range": {
+            "type": "string"
+          },
+          "repeatClientsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalEventsCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalExpensesRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalRevenueRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uniqueClientsCount": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "range",
+          "monthlySeries",
+          "totalRevenueRD",
+          "totalExpensesRD",
+          "netMarginPercent",
+          "totalEventsCount",
+          "confirmedEventsCount",
+          "pendingEventsCount",
+          "completedEventsCount",
+          "cancelledEventsCount",
+          "eventTypesBreakdown",
+          "uniqueClientsCount",
+          "repeatClientsCount",
+          "collectionRatePercent"
         ],
         "type": "object"
       },
@@ -3067,6 +3987,9 @@
             "type": "string"
           },
           "attachmentName": {
+            "type": "string"
+          },
+          "attachmentUrl": {
             "type": "string"
           },
           "body": {
@@ -3167,6 +4090,62 @@
         ],
         "type": "object"
       },
+      "PushTokenInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PushTokenInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "appVariant": {
+            "description": "Application variant (personal or admin).",
+            "type": "string"
+          },
+          "platform": {
+            "description": "Client platform (android, ios, web, desktop).",
+            "type": "string"
+          },
+          "token": {
+            "description": "Device or browser push registration token.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform",
+          "token"
+        ],
+        "type": "object"
+      },
+      "PushTokenOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PushTokenOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "device": {
+            "$ref": "#/components/schemas/DevicePushToken"
+          },
+          "registered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "registered",
+          "device"
+        ],
+        "type": "object"
+      },
       "Quote": {
         "additionalProperties": false,
         "properties": {
@@ -3186,6 +4165,9 @@
           "code": {
             "type": "string"
           },
+          "contractPdfUrl": {
+            "type": "string"
+          },
           "deliveryFeeRD": {
             "format": "int64",
             "type": "integer"
@@ -3201,6 +4183,9 @@
           "discountRD": {
             "format": "int64",
             "type": "integer"
+          },
+          "eventDateIso": {
+            "type": "string"
           },
           "eventDateLabel": {
             "type": "string"
@@ -3227,10 +4212,19 @@
               "null"
             ]
           },
+          "notes": {
+            "type": "string"
+          },
+          "packageId": {
+            "type": "string"
+          },
           "rejectionReason": {
             "type": "string"
           },
           "signatureSvg": {
+            "type": "string"
+          },
+          "signedAtIso": {
             "type": "string"
           },
           "signedByName": {
@@ -3340,6 +4334,76 @@
         ],
         "type": "object"
       },
+      "RecoverUsernameInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RecoverUsernameInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "identifier": {
+            "description": "Registered email, phone, or full name.",
+            "minLength": 3,
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier"
+        ],
+        "type": "object"
+      },
+      "RecoverUsernameOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RecoverUsernameOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "sent": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sent",
+          "message"
+        ],
+        "type": "object"
+      },
+      "RefreshTokenInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RefreshTokenInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "refreshToken": {
+            "description": "Rotating refresh token obtained at sign-in.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object"
+      },
       "Refund": {
         "additionalProperties": false,
         "properties": {
@@ -3356,6 +4420,12 @@
             "type": "string"
           },
           "eventTitle": {
+            "type": "string"
+          },
+          "gatewayRefundId": {
+            "type": "string"
+          },
+          "gatewayStatus": {
             "type": "string"
           },
           "id": {
@@ -3540,6 +4610,9 @@
             "minLength": 2,
             "type": "string"
           },
+          "clientRnc": {
+            "type": "string"
+          },
           "eventId": {
             "minLength": 2,
             "type": "string"
@@ -3555,7 +4628,21 @@
             "minLength": 2,
             "type": "string"
           },
+          "ncfType": {
+            "type": "string"
+          },
           "referenceCode": {
+            "type": "string"
+          },
+          "referenceNumber": {
+            "type": "string"
+          },
+          "securityDepositDop": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "voucherUrl": {
             "type": "string"
           }
         },
@@ -3596,6 +4683,24 @@
         "required": [
           "users"
         ],
+        "type": "object"
+      },
+      "RejectPaymentInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RejectPaymentInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "ReplyReviewInputBody": {
@@ -3651,6 +4756,9 @@
             "type": "integer"
           },
           "notes": {
+            "type": "string"
+          },
+          "photoUrl": {
             "type": "string"
           },
           "replacementRD": {
@@ -3823,6 +4931,27 @@
         ],
         "type": "object"
       },
+      "ResolveDamageInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/ResolveDamageInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "resolutionNotes": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "Review": {
         "additionalProperties": false,
         "properties": {
@@ -3966,11 +5095,26 @@
           "intent": {
             "type": "string"
           },
+          "model": {
+            "type": "string"
+          },
           "proposal": {
             "$ref": "#/components/schemas/RosaMoodboardProposal"
           },
+          "provider": {
+            "type": "string"
+          },
           "reply": {
             "type": "string"
+          },
+          "suggestedItems": {
+            "items": {
+              "$ref": "#/components/schemas/RosaSuggestedItem"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "required": [
@@ -4175,6 +5319,139 @@
         ],
         "type": "object"
       },
+      "RosaSketchElement": {
+        "additionalProperties": false,
+        "properties": {
+          "capacity": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "xRatio": {
+            "format": "double",
+            "type": "number"
+          },
+          "yRatio": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "xRatio",
+          "yRatio",
+          "capacity"
+        ],
+        "type": "object"
+      },
+      "RosaSketchInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RosaSketchInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "eventType": {
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "prompt": {
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "RosaSketchResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/RosaSketchResponse.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "elements": {
+            "items": {
+              "$ref": "#/components/schemas/RosaSketchElement"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "eventDepthMeters": {
+            "format": "double",
+            "type": "number"
+          },
+          "eventWidthMeters": {
+            "format": "double",
+            "type": "number"
+          },
+          "model": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "reply": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reply",
+          "elements",
+          "eventWidthMeters",
+          "eventDepthMeters",
+          "provider",
+          "model"
+        ],
+        "type": "object"
+      },
+      "RosaSuggestedItem": {
+        "additionalProperties": false,
+        "properties": {
+          "articleCode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "articleCode",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "RosaTranscribeInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -4270,6 +5547,36 @@
         ],
         "type": "object"
       },
+      "SaveCategoryInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SaveCategoryInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "description": "Optional category slug identifier.",
+            "type": "string"
+          },
+          "illoKey": {
+            "description": "Illustration or icon key.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Category display name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "SavePackageInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -4317,6 +5624,10 @@
             "description": "Photo key.",
             "type": "string"
           },
+          "photoUrl": {
+            "description": "Uploaded media URL.",
+            "type": "string"
+          },
           "totalPriceDop": {
             "description": "Total package price in DOP.",
             "format": "int64",
@@ -4331,6 +5642,104 @@
           "name",
           "totalPriceDop",
           "guestCapacity"
+        ],
+        "type": "object"
+      },
+      "SaveSeasonBannerInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SaveSeasonBannerInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active": {
+            "description": "Whether banner is published in Home.",
+            "type": "boolean"
+          },
+          "badgeLabel": {
+            "description": "Upper seasonal badge label.",
+            "type": "string"
+          },
+          "ctaLabel": {
+            "description": "Action button label.",
+            "type": "string"
+          },
+          "targetScreenCode": {
+            "description": "Target screen code.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Main hero headline.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "active"
+        ],
+        "type": "object"
+      },
+      "SaveTrendInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SaveTrendInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active": {
+            "description": "Visibility toggle.",
+            "type": "boolean"
+          },
+          "eventsLabel": {
+            "description": "Secondary label or event count badge.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Optional trend slug identifier.",
+            "type": "string"
+          },
+          "linkedCategory": {
+            "description": "Optional category filter on tap.",
+            "type": "string"
+          },
+          "linkedPackageId": {
+            "description": "Optional package identifier on tap.",
+            "type": "string"
+          },
+          "photoBgHex": {
+            "description": "Background tint hex color.",
+            "type": "string"
+          },
+          "photoKey": {
+            "description": "Fallback catalog photo key.",
+            "type": "string"
+          },
+          "photoUrl": {
+            "description": "Optional uploaded media URL.",
+            "type": "string"
+          },
+          "sortOrder": {
+            "description": "Display sort priority.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "Trend display title.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
         ],
         "type": "object"
       },
@@ -4416,6 +5825,145 @@
         },
         "required": [
           "blocks"
+        ],
+        "type": "object"
+      },
+      "SeasonBanner": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "description": "Whether the banner is published in Personal Home.",
+            "type": "boolean"
+          },
+          "badgeLabel": {
+            "description": "Upper seasonal badge text.",
+            "type": "string"
+          },
+          "ctaLabel": {
+            "description": "Action button label.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Banner identifier ('default').",
+            "type": "string"
+          },
+          "targetScreenCode": {
+            "description": "Target personal screen code on CTA click.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Main hero headline.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "badgeLabel",
+          "title",
+          "ctaLabel",
+          "targetScreenCode",
+          "active"
+        ],
+        "type": "object"
+      },
+      "SeasonBannerOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SeasonBannerOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "banner": {
+            "$ref": "#/components/schemas/SeasonBanner",
+            "description": "Seasonal hero banner configuration."
+          }
+        },
+        "required": [
+          "banner"
+        ],
+        "type": "object"
+      },
+      "SendQuoteInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SendQuoteInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deliveryFeeRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "discountRD": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "eventDateIso": {
+            "type": "string"
+          },
+          "eventDateLabel": {
+            "type": "string"
+          },
+          "eventTitle": {
+            "type": "string"
+          },
+          "guests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteLine"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SendWhatsAppReplyInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SendWhatsAppReplyInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "recipientPhone": {
+            "type": "string"
+          },
+          "threadId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
         ],
         "type": "object"
       },
@@ -4579,6 +6127,31 @@
         ],
         "type": "object"
       },
+      "StreamHealthOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/StreamHealthOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "path"
+        ],
+        "type": "object"
+      },
       "Supplier": {
         "additionalProperties": false,
         "properties": {
@@ -4717,6 +6290,30 @@
         ],
         "type": "object"
       },
+      "SyncOfflineQueueInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/SyncOfflineQueueInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "mutations": {
+            "items": {
+              "$ref": "#/components/schemas/EnqueueOfflineMutationCommand"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "TemplatesOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -4818,6 +6415,112 @@
         ],
         "type": "object"
       },
+      "Trend": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "description": "Whether the trend is visible in Personal Home.",
+            "type": "boolean"
+          },
+          "eventsLabel": {
+            "description": "Secondary label or event count metric.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Trend identifier.",
+            "type": "string"
+          },
+          "linkedCategory": {
+            "description": "Optional category filter on click.",
+            "type": "string"
+          },
+          "linkedPackageId": {
+            "description": "Optional package identifier on click.",
+            "type": "string"
+          },
+          "photoBgHex": {
+            "description": "Background tint hex for the card image.",
+            "type": "string"
+          },
+          "photoKey": {
+            "description": "Fallback catalog illustration/photo key.",
+            "type": "string"
+          },
+          "photoUrl": {
+            "description": "Optional uploaded media URL.",
+            "type": "string"
+          },
+          "sortOrder": {
+            "description": "Display sort priority.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "Trend title.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "eventsLabel",
+          "photoKey",
+          "photoBgHex",
+          "sortOrder",
+          "active"
+        ],
+        "type": "object"
+      },
+      "TrendOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TrendOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "trend": {
+            "$ref": "#/components/schemas/Trend",
+            "description": "Catalog trend record."
+          }
+        },
+        "required": [
+          "trend"
+        ],
+        "type": "object"
+      },
+      "TrendsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TrendsOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "trends": {
+            "description": "Catalog trends.",
+            "items": {
+              "$ref": "#/components/schemas/Trend"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "trends"
+        ],
+        "type": "object"
+      },
       "UpdateArticleInputBody": {
         "additionalProperties": false,
         "properties": {
@@ -4851,6 +6554,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "damagedStock": {
+            "description": "Updated damaged stock count.",
+            "format": "int64",
+            "type": "integer"
+          },
           "description": {
             "description": "Updated description.",
             "type": "string"
@@ -4874,6 +6582,10 @@
           },
           "photoKey": {
             "description": "Updated photo key.",
+            "type": "string"
+          },
+          "photoUrl": {
+            "description": "Updated uploaded media URL.",
             "type": "string"
           },
           "totalStock": {
@@ -4910,6 +6622,32 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "UpdateCategoryInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateCategoryInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "illoKey": {
+            "description": "Updated illustration or icon key.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Updated category display name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
         "type": "object"
       },
       "UpdateClientInputBody": {
@@ -4964,6 +6702,9 @@
           "daysUntilEvent": {
             "format": "int64",
             "type": "integer"
+          },
+          "eventDateIso": {
+            "type": "string"
           },
           "guests": {
             "format": "int64",
@@ -5088,6 +6829,10 @@
             "description": "Photo key.",
             "type": "string"
           },
+          "photoUrl": {
+            "description": "Uploaded media URL.",
+            "type": "string"
+          },
           "totalPriceDop": {
             "description": "Total package price in DOP.",
             "format": "int64",
@@ -5103,6 +6848,36 @@
           "totalPriceDop",
           "guestCapacity"
         ],
+        "type": "object"
+      },
+      "UpdatePreferencesInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdatePreferencesInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "autoSyncWifiOnly": {
+            "type": "boolean"
+          },
+          "biometricLockEnabled": {
+            "type": "boolean"
+          },
+          "emailReceiptsEnabled": {
+            "type": "boolean"
+          },
+          "pushNotificationsEnabled": {
+            "type": "boolean"
+          },
+          "whatsappAlertsEnabled": {
+            "type": "boolean"
+          }
+        },
         "type": "object"
       },
       "UpdateProfileInputBody": {
@@ -5239,6 +7014,96 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "UpdateTrendInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateTrendInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "active": {
+            "description": "Visibility toggle.",
+            "type": "boolean"
+          },
+          "eventsLabel": {
+            "description": "Secondary label or event count badge.",
+            "type": "string"
+          },
+          "linkedCategory": {
+            "description": "Optional category filter on tap.",
+            "type": "string"
+          },
+          "linkedPackageId": {
+            "description": "Optional package identifier on tap.",
+            "type": "string"
+          },
+          "photoBgHex": {
+            "description": "Background tint hex color.",
+            "type": "string"
+          },
+          "photoKey": {
+            "description": "Fallback catalog photo key.",
+            "type": "string"
+          },
+          "photoUrl": {
+            "description": "Optional uploaded media URL.",
+            "type": "string"
+          },
+          "sortOrder": {
+            "description": "Display sort priority.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "Trend display title.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "UploadMediaInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UploadMediaInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "data_base64": {
+            "description": "Contenido binario codificado en Base64",
+            "type": "string"
+          },
+          "filename": {
+            "description": "Nombre del archivo original",
+            "type": "string"
+          },
+          "mime_type": {
+            "description": "Tipo MIME declarado",
+            "type": "string"
+          },
+          "purpose": {
+            "description": "Propósito (catalog, voucher, chat, damage, avatar)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "data_base64"
+        ],
         "type": "object"
       },
       "UpsertBotFAQInputBody": {
@@ -5401,6 +7266,9 @@
           "phone": {
             "type": "string"
           },
+          "preferences": {
+            "$ref": "#/components/schemas/UserPreferences"
+          },
           "role": {
             "type": "string"
           },
@@ -5418,7 +7286,78 @@
           "role",
           "permissions",
           "activeView",
+          "preferences",
           "createdAt"
+        ],
+        "type": "object"
+      },
+      "UserPreferences": {
+        "additionalProperties": false,
+        "properties": {
+          "autoSyncWifiOnly": {
+            "type": "boolean"
+          },
+          "biometricLockEnabled": {
+            "type": "boolean"
+          },
+          "emailReceiptsEnabled": {
+            "type": "boolean"
+          },
+          "pushNotificationsEnabled": {
+            "type": "boolean"
+          },
+          "whatsappAlertsEnabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pushNotificationsEnabled",
+          "whatsappAlertsEnabled",
+          "emailReceiptsEnabled",
+          "biometricLockEnabled",
+          "autoSyncWifiOnly"
+        ],
+        "type": "object"
+      },
+      "VerifyPaymentInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/VerifyPaymentInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "WhatsAppWebhookAckOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/WhatsAppWebhookAckOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "received": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "received"
         ],
         "type": "object"
       }
@@ -5858,6 +7797,17 @@
     "/v1/auth/logout": {
       "post": {
         "operationId": "auth-logout",
+        "parameters": [
+          {
+            "description": "Optional refresh token family to revoke on logout.",
+            "in": "header",
+            "name": "X-Refresh-Token",
+            "schema": {
+              "description": "Optional refresh token family to revoke on logout.",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -5971,6 +7921,52 @@
         ]
       }
     },
+    "/v1/auth/me/preferences": {
+      "patch": {
+        "operationId": "auth-update-preferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePreferencesInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SwitchViewOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update authenticated user notification, security, and sync preferences",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
     "/v1/auth/oauth": {
       "post": {
         "operationId": "auth-oauth",
@@ -6007,6 +8003,151 @@
           }
         },
         "summary": "Authenticate with OAuth provider identity token",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/oauth/config": {
+      "get": {
+        "operationId": "auth-oauth-config",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthConfigResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Return configured OAuth providers and client identifiers",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/oauth/exchange": {
+      "post": {
+        "operationId": "auth-oauth-exchange",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthExchangeInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Exchange OAuth authorization code with PKCE verifier and verify RS256 ID token",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/oauth/{provider}/start": {
+      "get": {
+        "operationId": "auth-oauth-start",
+        "parameters": [
+          {
+            "description": "OAuth identity provider (google or apple).",
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "description": "OAuth identity provider (google or apple).",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Callback URI registered for the OAuth client.",
+            "explode": false,
+            "in": "query",
+            "name": "redirectUri",
+            "schema": {
+              "description": "Callback URI registered for the OAuth client.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "PKCE S256 code challenge.",
+            "explode": false,
+            "in": "query",
+            "name": "codeChallenge",
+            "schema": {
+              "description": "PKCE S256 code challenge.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional opaque CSRF state token.",
+            "explode": false,
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "description": "Optional opaque CSRF state token.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthStartResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Build OAuth PKCE authorization URL for external browser login",
         "tags": [
           "Identity"
         ]
@@ -6089,6 +8230,88 @@
           }
         },
         "summary": "Verify OTP code and issue a single-use password reset token",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/recover-username": {
+      "post": {
+        "operationId": "auth-recover-username",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoverUsernameInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoverUsernameOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Dispatch username recovery instructions via configured SMTP",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "operationId": "auth-refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Rotate refresh token and issue a fresh JWT access token",
         "tags": [
           "Identity"
         ]
@@ -6258,6 +8481,52 @@
         ]
       }
     },
+    "/v1/bot/whatsapp/send": {
+      "post": {
+        "operationId": "operations-whatsapp-send",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendWhatsAppReplyInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotThreadOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send outbound reply through Meta WhatsApp Cloud API",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
     "/v1/catalog/articles": {
       "get": {
         "operationId": "catalog-list-articles",
@@ -6366,6 +8635,52 @@
       }
     },
     "/v1/catalog/articles/{id}": {
+      "delete": {
+        "operationId": "catalog-delete-article",
+        "parameters": [
+          {
+            "description": "Article identifier to delete.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Article identifier to delete.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteArticleOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an unused catalog article",
+        "tags": [
+          "Catalog"
+        ]
+      },
       "patch": {
         "operationId": "catalog-update-article",
         "parameters": [
@@ -6476,6 +8791,80 @@
         ]
       }
     },
+    "/v1/catalog/availability-check": {
+      "get": {
+        "operationId": "catalog-availability-check",
+        "parameters": [
+          {
+            "description": "Target event date in YYYY-MM-DD or readable format.",
+            "explode": false,
+            "in": "query",
+            "name": "date",
+            "schema": {
+              "description": "Target event date in YYYY-MM-DD or readable format.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Article identifier or name to validate.",
+            "explode": false,
+            "in": "query",
+            "name": "articleId",
+            "schema": {
+              "description": "Article identifier or name to validate.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Requested quantity.",
+            "explode": false,
+            "in": "query",
+            "name": "quantity",
+            "schema": {
+              "description": "Requested quantity.",
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Optional event identifier excluded during edits.",
+            "explode": false,
+            "in": "query",
+            "name": "excludeEventId",
+            "schema": {
+              "description": "Optional event identifier excluded during edits.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityCheckResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Check date-range turnaround availability for an article and quantity",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
     "/v1/catalog/balloons": {
       "get": {
         "operationId": "catalog-list-balloons",
@@ -6533,6 +8922,154 @@
           }
         },
         "summary": "List catalog categories",
+        "tags": [
+          "Catalog"
+        ]
+      },
+      "post": {
+        "operationId": "catalog-create-category",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCategoryInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new catalog category",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/categories/{id}": {
+      "delete": {
+        "operationId": "catalog-delete-category",
+        "parameters": [
+          {
+            "description": "Category identifier to delete.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Category identifier to delete.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteCategoryOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an unused catalog category",
+        "tags": [
+          "Catalog"
+        ]
+      },
+      "patch": {
+        "operationId": "catalog-update-category",
+        "parameters": [
+          {
+            "description": "Category identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Category identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an existing catalog category",
         "tags": [
           "Catalog"
         ]
@@ -6666,6 +9203,272 @@
           }
         ],
         "summary": "Update an existing themed event package",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/season-banner": {
+      "get": {
+        "operationId": "catalog-get-season-banner",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonBannerOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get Personal Home seasonal hero banner",
+        "tags": [
+          "Catalog"
+        ]
+      },
+      "put": {
+        "operationId": "catalog-save-season-banner",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSeasonBannerInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeasonBannerOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update the Personal Home seasonal hero banner",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/trends": {
+      "get": {
+        "operationId": "catalog-list-trends",
+        "parameters": [
+          {
+            "description": "Include hidden trends.",
+            "explode": false,
+            "in": "query",
+            "name": "includeInactive",
+            "schema": {
+              "description": "Include hidden trends.",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List catalog seasonal trends",
+        "tags": [
+          "Catalog"
+        ]
+      },
+      "post": {
+        "operationId": "catalog-create-trend",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTrendInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new catalog trend card",
+        "tags": [
+          "Catalog"
+        ]
+      }
+    },
+    "/v1/catalog/trends/{id}": {
+      "delete": {
+        "operationId": "catalog-delete-trend",
+        "parameters": [
+          {
+            "description": "Trend identifier to delete.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Trend identifier to delete.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteTrendOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a catalog trend card",
+        "tags": [
+          "Catalog"
+        ]
+      },
+      "put": {
+        "operationId": "catalog-update-trend",
+        "parameters": [
+          {
+            "description": "Trend identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Trend identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTrendInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an existing catalog trend card",
         "tags": [
           "Catalog"
         ]
@@ -6808,6 +9611,98 @@
         "summary": "Persist a new message in a chat thread",
         "tags": [
           "Events"
+        ]
+      }
+    },
+    "/v1/devices/push-token": {
+      "delete": {
+        "operationId": "devices-unregister-push-token",
+        "parameters": [
+          {
+            "description": "Optional push token to disable; disables all tokens for user if omitted.",
+            "explode": false,
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "description": "Optional push token to disable; disables all tokens for user if omitted.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePushTokenOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Disable one or all registered device push tokens for the authenticated user",
+        "tags": [
+          "Identity"
+        ]
+      },
+      "post": {
+        "operationId": "devices-register-push-token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushTokenInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTokenOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Register or refresh a device push notification token for the authenticated user",
+        "tags": [
+          "Identity"
         ]
       }
     },
@@ -7055,15 +9950,12 @@
         ],
         "requestBody": {
           "content": {
-            "application/octet-stream": {
+            "application/json": {
               "schema": {
-                "contentMediaType": "application/octet-stream",
-                "format": "binary",
-                "type": "string"
+                "$ref": "#/components/schemas/CancelEventInputBody"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -7093,6 +9985,64 @@
           }
         ],
         "summary": "Cancel an event, persist reason, and record refund",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}/closeout": {
+      "post": {
+        "operationId": "events-closeout",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseoutEventInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDetailOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Complete administrative closeout and release reserved inventory",
         "tags": [
           "Events"
         ]
@@ -7376,6 +10326,63 @@
         ]
       }
     },
+    "/v1/events/{id}/payment-reminder": {
+      "post": {
+        "operationId": "events-payment-reminder",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentReminderInputBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentReminderOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dispatch and audit a client payment reminder for an event",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
     "/v1/events/{id}/schedule": {
       "get": {
         "operationId": "events-list-schedule",
@@ -7535,6 +10542,52 @@
         "summary": "Remove a schedule block from an event",
         "tags": [
           "Events"
+        ]
+      }
+    },
+    "/v1/media": {
+      "post": {
+        "operationId": "upload-media-asset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadMediaInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Asset"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Subir imagen o PDF al almacenamiento del servidor",
+        "tags": [
+          "Media"
         ]
       }
     },
@@ -7907,6 +10960,63 @@
           }
         ],
         "summary": "Pause or resume WhatsApp bot and assign a human agent",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/damage/{id}/resolve": {
+      "post": {
+        "operationId": "operations-resolve-damage",
+        "parameters": [
+          {
+            "description": "Damage incident identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Damage incident identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDamageInputBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDamageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resolve a damage incident and restore repaired inventory stock",
         "tags": [
           "Operations"
         ]
@@ -8359,6 +11469,15 @@
     "/v1/operations/offline-queue/sync": {
       "post": {
         "operationId": "operations-sync-offline-queue",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncOfflineQueueInputBody"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -8723,6 +11842,197 @@
         ]
       }
     },
+    "/v1/payments/analytics": {
+      "get": {
+        "operationId": "payments-analytics",
+        "parameters": [
+          {
+            "description": "Range filter: 7d, 30d, 90d, 365d, or all.",
+            "explode": false,
+            "in": "query",
+            "name": "range",
+            "schema": {
+              "description": "Range filter: 7d, 30d, 90d, 365d, or all.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get period-filtered financial and event analytics from live database",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/v1/payments/card-session": {
+      "post": {
+        "operationId": "payments-create-card-session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCardSessionInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardSessionOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an online card checkout session",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/v1/payments/card-session/{sessionId}/confirm": {
+      "post": {
+        "operationId": "payments-confirm-card-session",
+        "parameters": [
+          {
+            "description": "Stripe checkout session identifier.",
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "description": "Stripe checkout session identifier.",
+              "minLength": 4,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify a Stripe checkout session and confirm the payment idempotently",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/v1/payments/dgii-607": {
+      "get": {
+        "operationId": "payments-export-dgii-607",
+        "parameters": [
+          {
+            "description": "Optional period filter (YYYY-MM or month label).",
+            "explode": false,
+            "in": "query",
+            "name": "period",
+            "schema": {
+              "description": "Optional period filter (YYYY-MM or month label).",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DGII607OutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export DGII Form 607 CSV for verified NCF payments",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
     "/v1/payments/summary": {
       "get": {
         "operationId": "payments-finance-summary",
@@ -8754,6 +12064,120 @@
           }
         ],
         "summary": "Get live monthly financial summary metrics",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/v1/payments/{id}/reject": {
+      "post": {
+        "operationId": "payments-reject-transfer",
+        "parameters": [
+          {
+            "description": "Payment identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Payment identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectPaymentInputBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject a pending bank transfer payment with reason",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/v1/payments/{id}/verify": {
+      "post": {
+        "operationId": "payments-verify-transfer",
+        "parameters": [
+          {
+            "description": "Payment identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Payment identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyPaymentInputBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify a pending transfer payment and issue sequential NCF",
         "tags": [
           "Payments"
         ]
@@ -8887,6 +12311,47 @@
           }
         },
         "summary": "Generate Rosa AI moodboard and live SKU quote proposal",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/v1/quotes/rosa/sketch": {
+      "post": {
+        "operationId": "rosa-sketch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RosaSketchInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RosaSketchResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Generate spatial layout elements for event sketch using configured AI provider",
         "tags": [
           "Quotes"
         ]
@@ -9046,6 +12511,64 @@
         ]
       }
     },
+    "/v1/quotes/{id}/send": {
+      "post": {
+        "operationId": "quotes-send",
+        "parameters": [
+          {
+            "description": "Quote identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Quote identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendQuoteInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Admin enriches, approves and sends a quote to the client",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
     "/v1/quotes/{id}/sign": {
       "post": {
         "operationId": "quotes-sign-contract",
@@ -9157,15 +12680,12 @@
         ],
         "requestBody": {
           "content": {
-            "application/octet-stream": {
+            "application/json": {
               "schema": {
-                "contentMediaType": "application/octet-stream",
-                "format": "binary",
-                "type": "string"
+                "$ref": "#/components/schemas/ApproveRefundInputBody"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -9482,6 +13002,148 @@
         "summary": "Analyze and transcribe voice notes for Rosa AI",
         "tags": [
           "Quotes"
+        ]
+      }
+    },
+    "/v1/stream/status": {
+      "get": {
+        "operationId": "get-stream-status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamHealthOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Estado del canal de eventos en tiempo real (SSE)",
+        "tags": [
+          "Realtime"
+        ]
+      }
+    },
+    "/v1/webhooks/whatsapp": {
+      "get": {
+        "operationId": "operations-whatsapp-webhook-verify",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "hub.mode",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "hub.verify_token",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "hub.challenge",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Verify Meta WhatsApp Cloud API webhook challenge",
+        "tags": [
+          "Operations"
+        ]
+      },
+      "post": {
+        "operationId": "operations-whatsapp-webhook-ingest",
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsAppWebhookAckOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Ingest inbound Meta WhatsApp webhook messages",
+        "tags": [
+          "Operations"
         ]
       }
     }

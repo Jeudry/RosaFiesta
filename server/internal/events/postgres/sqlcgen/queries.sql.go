@@ -39,40 +39,49 @@ func (q *Queries) DeleteScheduleBlock(ctx context.Context, arg DeleteScheduleBlo
 
 const getEventByID = `-- name: GetEventByID :one
 SELECT id, code, client_id, client_name, client_email, title, event_type, photo_key, venue, zone,
-       event_date_label, days_until, guests_count, articles_count, total_dop, deposit_dop,
-       paid_dop, paid_deposit_dop, balance_dop, balance_due_label, status, date_changes_count,
-       assigned_lead, sketch_json, cancellation_reason, created_at
+       event_date_label, event_date_iso, pickup_date_iso, return_date_iso, days_until, guests_count,
+       articles_count, total_dop, deposit_dop, paid_dop, paid_deposit_dop, balance_dop, balance_due_label,
+       status, date_changes_count, assigned_lead, sketch_json, cancellation_reason, quote_id,
+       closeout_completed, closeout_notes, last_payment_reminder_at, last_payment_reminder_channel, created_at
 FROM events
 WHERE id = $1
 `
 
 type GetEventByIDRow struct {
-	ID                 string
-	Code               string
-	ClientID           uuid.UUID
-	ClientName         string
-	ClientEmail        string
-	Title              string
-	EventType          string
-	PhotoKey           string
-	Venue              string
-	Zone               string
-	EventDateLabel     string
-	DaysUntil          int
-	GuestsCount        int
-	ArticlesCount      int
-	TotalDop           int
-	DepositDop         int
-	PaidDop            int
-	PaidDepositDop     int
-	BalanceDop         int
-	BalanceDueLabel    string
-	Status             string
-	DateChangesCount   int
-	AssignedLead       string
-	SketchJson         string
-	CancellationReason string
-	CreatedAt          time.Time
+	ID                         string
+	Code                       string
+	ClientID                   uuid.UUID
+	ClientName                 string
+	ClientEmail                string
+	Title                      string
+	EventType                  string
+	PhotoKey                   string
+	Venue                      string
+	Zone                       string
+	EventDateLabel             string
+	EventDateIso               string
+	PickupDateIso              string
+	ReturnDateIso              string
+	DaysUntil                  int
+	GuestsCount                int
+	ArticlesCount              int
+	TotalDop                   int
+	DepositDop                 int
+	PaidDop                    int
+	PaidDepositDop             int
+	BalanceDop                 int
+	BalanceDueLabel            string
+	Status                     string
+	DateChangesCount           int
+	AssignedLead               string
+	SketchJson                 string
+	CancellationReason         string
+	QuoteID                    string
+	CloseoutCompleted          bool
+	CloseoutNotes              string
+	LastPaymentReminderAt      string
+	LastPaymentReminderChannel string
+	CreatedAt                  time.Time
 }
 
 func (q *Queries) GetEventByID(ctx context.Context, id string) (GetEventByIDRow, error) {
@@ -90,6 +99,9 @@ func (q *Queries) GetEventByID(ctx context.Context, id string) (GetEventByIDRow,
 		&i.Venue,
 		&i.Zone,
 		&i.EventDateLabel,
+		&i.EventDateIso,
+		&i.PickupDateIso,
+		&i.ReturnDateIso,
 		&i.DaysUntil,
 		&i.GuestsCount,
 		&i.ArticlesCount,
@@ -104,6 +116,11 @@ func (q *Queries) GetEventByID(ctx context.Context, id string) (GetEventByIDRow,
 		&i.AssignedLead,
 		&i.SketchJson,
 		&i.CancellationReason,
+		&i.QuoteID,
+		&i.CloseoutCompleted,
+		&i.CloseoutNotes,
+		&i.LastPaymentReminderAt,
+		&i.LastPaymentReminderChannel,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -111,20 +128,36 @@ func (q *Queries) GetEventByID(ctx context.Context, id string) (GetEventByIDRow,
 
 const listAllChatMessages = `-- name: ListAllChatMessages :many
 SELECT id, thread_id, event_id, event_title, sender_id, sender_name,
-       sender_role, recipient_label, body, attachment_name, unread, created_at
+       sender_role, recipient_label, body, attachment_name, attachment_url, unread, created_at
 FROM chat_messages
 ORDER BY created_at ASC, id ASC
 `
 
-func (q *Queries) ListAllChatMessages(ctx context.Context) ([]ChatMessage, error) {
+type ListAllChatMessagesRow struct {
+	ID             string
+	ThreadID       string
+	EventID        string
+	EventTitle     string
+	SenderID       string
+	SenderName     string
+	SenderRole     string
+	RecipientLabel string
+	Body           string
+	AttachmentName string
+	AttachmentUrl  string
+	Unread         bool
+	CreatedAt      time.Time
+}
+
+func (q *Queries) ListAllChatMessages(ctx context.Context) ([]ListAllChatMessagesRow, error) {
 	rows, err := q.db.Query(ctx, listAllChatMessages)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ChatMessage
+	var items []ListAllChatMessagesRow
 	for rows.Next() {
-		var i ChatMessage
+		var i ListAllChatMessagesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ThreadID,
@@ -136,6 +169,7 @@ func (q *Queries) ListAllChatMessages(ctx context.Context) ([]ChatMessage, error
 			&i.RecipientLabel,
 			&i.Body,
 			&i.AttachmentName,
+			&i.AttachmentUrl,
 			&i.Unread,
 			&i.CreatedAt,
 		); err != nil {
@@ -183,21 +217,37 @@ func (q *Queries) ListAllEventItems(ctx context.Context) ([]EventItem, error) {
 
 const listChatMessagesByThread = `-- name: ListChatMessagesByThread :many
 SELECT id, thread_id, event_id, event_title, sender_id, sender_name,
-       sender_role, recipient_label, body, attachment_name, unread, created_at
+       sender_role, recipient_label, body, attachment_name, attachment_url, unread, created_at
 FROM chat_messages
 WHERE thread_id = $1
 ORDER BY created_at ASC, id ASC
 `
 
-func (q *Queries) ListChatMessagesByThread(ctx context.Context, threadID string) ([]ChatMessage, error) {
+type ListChatMessagesByThreadRow struct {
+	ID             string
+	ThreadID       string
+	EventID        string
+	EventTitle     string
+	SenderID       string
+	SenderName     string
+	SenderRole     string
+	RecipientLabel string
+	Body           string
+	AttachmentName string
+	AttachmentUrl  string
+	Unread         bool
+	CreatedAt      time.Time
+}
+
+func (q *Queries) ListChatMessagesByThread(ctx context.Context, threadID string) ([]ListChatMessagesByThreadRow, error) {
 	rows, err := q.db.Query(ctx, listChatMessagesByThread, threadID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ChatMessage
+	var items []ListChatMessagesByThreadRow
 	for rows.Next() {
-		var i ChatMessage
+		var i ListChatMessagesByThreadRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ThreadID,
@@ -209,6 +259,7 @@ func (q *Queries) ListChatMessagesByThread(ctx context.Context, threadID string)
 			&i.RecipientLabel,
 			&i.Body,
 			&i.AttachmentName,
+			&i.AttachmentUrl,
 			&i.Unread,
 			&i.CreatedAt,
 		); err != nil {
@@ -259,40 +310,49 @@ func (q *Queries) ListEventGuests(ctx context.Context, eventID string) ([]EventG
 
 const listEvents = `-- name: ListEvents :many
 SELECT id, code, client_id, client_name, client_email, title, event_type, photo_key, venue, zone,
-       event_date_label, days_until, guests_count, articles_count, total_dop, deposit_dop,
-       paid_dop, paid_deposit_dop, balance_dop, balance_due_label, status, date_changes_count,
-       assigned_lead, sketch_json, cancellation_reason, created_at
+       event_date_label, event_date_iso, pickup_date_iso, return_date_iso, days_until, guests_count,
+       articles_count, total_dop, deposit_dop, paid_dop, paid_deposit_dop, balance_dop, balance_due_label,
+       status, date_changes_count, assigned_lead, sketch_json, cancellation_reason, quote_id,
+       closeout_completed, closeout_notes, last_payment_reminder_at, last_payment_reminder_channel, created_at
 FROM events
 ORDER BY created_at, id
 `
 
 type ListEventsRow struct {
-	ID                 string
-	Code               string
-	ClientID           uuid.UUID
-	ClientName         string
-	ClientEmail        string
-	Title              string
-	EventType          string
-	PhotoKey           string
-	Venue              string
-	Zone               string
-	EventDateLabel     string
-	DaysUntil          int
-	GuestsCount        int
-	ArticlesCount      int
-	TotalDop           int
-	DepositDop         int
-	PaidDop            int
-	PaidDepositDop     int
-	BalanceDop         int
-	BalanceDueLabel    string
-	Status             string
-	DateChangesCount   int
-	AssignedLead       string
-	SketchJson         string
-	CancellationReason string
-	CreatedAt          time.Time
+	ID                         string
+	Code                       string
+	ClientID                   uuid.UUID
+	ClientName                 string
+	ClientEmail                string
+	Title                      string
+	EventType                  string
+	PhotoKey                   string
+	Venue                      string
+	Zone                       string
+	EventDateLabel             string
+	EventDateIso               string
+	PickupDateIso              string
+	ReturnDateIso              string
+	DaysUntil                  int
+	GuestsCount                int
+	ArticlesCount              int
+	TotalDop                   int
+	DepositDop                 int
+	PaidDop                    int
+	PaidDepositDop             int
+	BalanceDop                 int
+	BalanceDueLabel            string
+	Status                     string
+	DateChangesCount           int
+	AssignedLead               string
+	SketchJson                 string
+	CancellationReason         string
+	QuoteID                    string
+	CloseoutCompleted          bool
+	CloseoutNotes              string
+	LastPaymentReminderAt      string
+	LastPaymentReminderChannel string
+	CreatedAt                  time.Time
 }
 
 func (q *Queries) ListEvents(ctx context.Context) ([]ListEventsRow, error) {
@@ -316,6 +376,9 @@ func (q *Queries) ListEvents(ctx context.Context) ([]ListEventsRow, error) {
 			&i.Venue,
 			&i.Zone,
 			&i.EventDateLabel,
+			&i.EventDateIso,
+			&i.PickupDateIso,
+			&i.ReturnDateIso,
 			&i.DaysUntil,
 			&i.GuestsCount,
 			&i.ArticlesCount,
@@ -330,6 +393,11 @@ func (q *Queries) ListEvents(ctx context.Context) ([]ListEventsRow, error) {
 			&i.AssignedLead,
 			&i.SketchJson,
 			&i.CancellationReason,
+			&i.QuoteID,
+			&i.CloseoutCompleted,
+			&i.CloseoutNotes,
+			&i.LastPaymentReminderAt,
+			&i.LastPaymentReminderChannel,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -380,16 +448,22 @@ func (q *Queries) ListScheduleBlocks(ctx context.Context, eventID string) ([]Eve
 const updateEventDate = `-- name: UpdateEventDate :exec
 UPDATE events
 SET event_date_label = $2,
-    days_until = $3,
-    date_changes_count = $4,
-    total_dop = $5,
-    balance_dop = $6
+    event_date_iso = $3,
+    pickup_date_iso = $4,
+    return_date_iso = $5,
+    days_until = $6,
+    date_changes_count = $7,
+    total_dop = $8,
+    balance_dop = $9
 WHERE id = $1
 `
 
 type UpdateEventDateParams struct {
 	ID               string
 	EventDateLabel   string
+	EventDateIso     string
+	PickupDateIso    string
+	ReturnDateIso    string
 	DaysUntil        int
 	DateChangesCount int
 	TotalDop         int
@@ -400,6 +474,9 @@ func (q *Queries) UpdateEventDate(ctx context.Context, arg UpdateEventDateParams
 	_, err := q.db.Exec(ctx, updateEventDate,
 		arg.ID,
 		arg.EventDateLabel,
+		arg.EventDateIso,
+		arg.PickupDateIso,
+		arg.ReturnDateIso,
 		arg.DaysUntil,
 		arg.DateChangesCount,
 		arg.TotalDop,
@@ -429,13 +506,14 @@ func (q *Queries) UpdateEventStatusAndReason(ctx context.Context, arg UpdateEven
 const upsertChatMessage = `-- name: UpsertChatMessage :exec
 INSERT INTO chat_messages (
     id, thread_id, event_id, event_title, sender_id, sender_name,
-    sender_role, recipient_label, body, attachment_name, unread, created_at
+    sender_role, recipient_label, body, attachment_name, attachment_url, unread, created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6,
-    $7, $8, $9, $10, $11, $12
+    $7, $8, $9, $10, $11, $12, $13
 )
 ON CONFLICT (id) DO UPDATE SET
     body = EXCLUDED.body,
+    attachment_url = EXCLUDED.attachment_url,
     unread = EXCLUDED.unread
 `
 
@@ -450,6 +528,7 @@ type UpsertChatMessageParams struct {
 	RecipientLabel string
 	Body           string
 	AttachmentName string
+	AttachmentUrl  string
 	Unread         bool
 	CreatedAt      time.Time
 }
@@ -466,6 +545,7 @@ func (q *Queries) UpsertChatMessage(ctx context.Context, arg UpsertChatMessagePa
 		arg.RecipientLabel,
 		arg.Body,
 		arg.AttachmentName,
+		arg.AttachmentUrl,
 		arg.Unread,
 		arg.CreatedAt,
 	)
@@ -475,14 +555,16 @@ func (q *Queries) UpsertChatMessage(ctx context.Context, arg UpsertChatMessagePa
 const upsertEvent = `-- name: UpsertEvent :exec
 INSERT INTO events (
     id, code, client_id, client_name, client_email, title, event_type, photo_key, venue, zone,
-    event_date_label, days_until, guests_count, articles_count, total_dop, deposit_dop,
-    paid_dop, paid_deposit_dop, balance_dop, balance_due_label, status, date_changes_count,
-    assigned_lead, sketch_json, cancellation_reason, created_at
+    event_date_label, event_date_iso, pickup_date_iso, return_date_iso, days_until, guests_count,
+    articles_count, total_dop, deposit_dop, paid_dop, paid_deposit_dop, balance_dop, balance_due_label,
+    status, date_changes_count, assigned_lead, sketch_json, cancellation_reason, quote_id,
+    closeout_completed, closeout_notes, last_payment_reminder_at, last_payment_reminder_channel, created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
     $11, $12, $13, $14, $15, $16,
-    $17, $18, $19, $20, $21, $22,
-    $23, $24, $25, $26
+    $17, $18, $19, $20, $21, $22, $23,
+    $24, $25, $26, $27, $28, $29,
+    $30, $31, $32, $33, $34
 )
 ON CONFLICT (id) DO UPDATE SET
     code = EXCLUDED.code,
@@ -495,6 +577,9 @@ ON CONFLICT (id) DO UPDATE SET
     venue = EXCLUDED.venue,
     zone = EXCLUDED.zone,
     event_date_label = EXCLUDED.event_date_label,
+    event_date_iso = EXCLUDED.event_date_iso,
+    pickup_date_iso = EXCLUDED.pickup_date_iso,
+    return_date_iso = EXCLUDED.return_date_iso,
     days_until = EXCLUDED.days_until,
     guests_count = EXCLUDED.guests_count,
     articles_count = EXCLUDED.articles_count,
@@ -508,36 +593,49 @@ ON CONFLICT (id) DO UPDATE SET
     date_changes_count = EXCLUDED.date_changes_count,
     assigned_lead = EXCLUDED.assigned_lead,
     sketch_json = EXCLUDED.sketch_json,
-    cancellation_reason = EXCLUDED.cancellation_reason
+    cancellation_reason = EXCLUDED.cancellation_reason,
+    quote_id = EXCLUDED.quote_id,
+    closeout_completed = EXCLUDED.closeout_completed,
+    closeout_notes = EXCLUDED.closeout_notes,
+    last_payment_reminder_at = EXCLUDED.last_payment_reminder_at,
+    last_payment_reminder_channel = EXCLUDED.last_payment_reminder_channel
 `
 
 type UpsertEventParams struct {
-	ID                 string
-	Code               string
-	ClientID           uuid.UUID
-	ClientName         string
-	ClientEmail        string
-	Title              string
-	EventType          string
-	PhotoKey           string
-	Venue              string
-	Zone               string
-	EventDateLabel     string
-	DaysUntil          int
-	GuestsCount        int
-	ArticlesCount      int
-	TotalDop           int
-	DepositDop         int
-	PaidDop            int
-	PaidDepositDop     int
-	BalanceDop         int
-	BalanceDueLabel    string
-	Status             string
-	DateChangesCount   int
-	AssignedLead       string
-	SketchJson         string
-	CancellationReason string
-	CreatedAt          time.Time
+	ID                         string
+	Code                       string
+	ClientID                   uuid.UUID
+	ClientName                 string
+	ClientEmail                string
+	Title                      string
+	EventType                  string
+	PhotoKey                   string
+	Venue                      string
+	Zone                       string
+	EventDateLabel             string
+	EventDateIso               string
+	PickupDateIso              string
+	ReturnDateIso              string
+	DaysUntil                  int
+	GuestsCount                int
+	ArticlesCount              int
+	TotalDop                   int
+	DepositDop                 int
+	PaidDop                    int
+	PaidDepositDop             int
+	BalanceDop                 int
+	BalanceDueLabel            string
+	Status                     string
+	DateChangesCount           int
+	AssignedLead               string
+	SketchJson                 string
+	CancellationReason         string
+	QuoteID                    string
+	CloseoutCompleted          bool
+	CloseoutNotes              string
+	LastPaymentReminderAt      string
+	LastPaymentReminderChannel string
+	CreatedAt                  time.Time
 }
 
 func (q *Queries) UpsertEvent(ctx context.Context, arg UpsertEventParams) error {
@@ -553,6 +651,9 @@ func (q *Queries) UpsertEvent(ctx context.Context, arg UpsertEventParams) error 
 		arg.Venue,
 		arg.Zone,
 		arg.EventDateLabel,
+		arg.EventDateIso,
+		arg.PickupDateIso,
+		arg.ReturnDateIso,
 		arg.DaysUntil,
 		arg.GuestsCount,
 		arg.ArticlesCount,
@@ -567,6 +668,11 @@ func (q *Queries) UpsertEvent(ctx context.Context, arg UpsertEventParams) error 
 		arg.AssignedLead,
 		arg.SketchJson,
 		arg.CancellationReason,
+		arg.QuoteID,
+		arg.CloseoutCompleted,
+		arg.CloseoutNotes,
+		arg.LastPaymentReminderAt,
+		arg.LastPaymentReminderChannel,
 		arg.CreatedAt,
 	)
 	return err

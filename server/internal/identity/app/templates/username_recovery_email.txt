@@ -1,0 +1,6 @@
+Hola {{FULL_NAME}},
+
+Recibimos una solicitud de recuperacion de usuario para tu cuenta RosaFiesta.
+Tu nombre de usuario asociado al correo {{EMAIL}} es: {{USERNAME}}
+
+Si no solicitaste esta recuperacion, puedes ignorar este mensaje.

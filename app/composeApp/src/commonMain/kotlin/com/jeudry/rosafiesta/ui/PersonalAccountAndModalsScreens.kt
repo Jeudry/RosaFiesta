@@ -842,6 +842,8 @@ internal fun RenderPersonalSearchS80(
                 val photoKey = resolveArticlePhotoKey80(article.photo.key)
                 SearchResultCard80(
                     photoKey = photoKey,
+                    photoUrl = article.photoUrl,
+                    viewModel = viewModel,
                     title = article.name,
                     subtitle = article.description,
                     availability = if (lowStock) "Quedan $freeCount" else "Disponible · $freeCount libres",
@@ -855,7 +857,6 @@ internal fun RenderPersonalSearchS80(
                     },
                     onAddClick = {
                         viewModel?.adjustDraftQuantity(article.id, 1)
-                        onSelectScreenCode("s25")
                     },
                 )
             }
@@ -898,6 +899,8 @@ private fun SearchFilterChip80(
 @Composable
 private fun SearchResultCard80(
     photoKey: RfPhotoKey,
+    photoUrl: String = "",
+    viewModel: RosaFiestaViewModel? = null,
     title: String,
     subtitle: String,
     availability: String,
@@ -921,9 +924,11 @@ private fun SearchResultCard80(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        RfPhoto(
-            photoKey = photoKey,
+        RfUploadedOrCatalogPhoto(
+            photoUrl = photoUrl,
+            fallbackPhotoKey = photoKey,
             contentDescription = title,
+            viewModel = viewModel,
             modifier = Modifier.size(88.dp),
             cornerRadius = 14.dp,
         )
@@ -960,7 +965,7 @@ private fun SearchResultCard80(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     RfGradientPriceText(
                         text = price,
                         style = TextStyle(
@@ -969,10 +974,12 @@ private fun SearchResultCard80(
                             fontSize = 19.sp,
                             lineHeight = 21.sp,
                         ),
+                        modifier = Modifier.alignByBaseline(),
                     )
                     BasicText(
                         text = "RD$/día",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFB54BD6)),
+                        modifier = Modifier.alignByBaseline(),
                     )
                 }
                 Box(
@@ -1558,6 +1565,57 @@ private fun ReceiptRow82(
     }
 }
 
+private enum class PersonalSettingsSection(
+    val icon: RfIconKind,
+    val titleEs: String,
+    val titleEn: String,
+    val subtitleEs: String,
+    val subtitleEn: String,
+) {
+    PREFERENCES(
+        icon = RfIconKind.SPARKLE,
+        titleEs = "Preferencias",
+        titleEn = "Preferences",
+        subtitleEs = "Tema, idioma y recordatorios",
+        subtitleEn = "Theme, language and reminders",
+    ),
+    AUDIO(
+        icon = RfIconKind.BELL,
+        titleEs = "Audio y efectos de sonido",
+        titleEn = "Audio & sound effects",
+        subtitleEs = "Volumen, tono y categorías",
+        subtitleEn = "Volume, tone and categories",
+    ),
+    ACCOUNT(
+        icon = RfIconKind.USER,
+        titleEs = "Cuenta y seguridad",
+        titleEn = "Security & account",
+        subtitleEs = "Datos personales, contraseña, pagos y dirección",
+        subtitleEn = "Profile, password, payments and address",
+    ),
+    NOTIFICATIONS(
+        icon = RfIconKind.MAIL,
+        titleEs = "Avisos",
+        titleEn = "Notifications",
+        subtitleEs = "Notificaciones push, WhatsApp y recibos",
+        subtitleEn = "Push notifications, WhatsApp and receipts",
+    ),
+    SECURITY_SYNC(
+        icon = RfIconKind.SHIELD,
+        titleEs = "Seguridad y sincronización",
+        titleEn = "Security & sync",
+        subtitleEs = "Bloqueo biométrico y sincronización Wi‑Fi",
+        subtitleEn = "Biometric lock and Wi‑Fi sync",
+    ),
+    LEGAL(
+        icon = RfIconKind.NOTE,
+        titleEs = "Privacidad y legal",
+        titleEn = "Privacy & legal",
+        subtitleEs = "Términos, condiciones y privacidad",
+        subtitleEn = "Terms, conditions and privacy",
+    ),
+}
+
 @Composable
 internal fun RenderAccountSettingsS86(
     viewModel: RosaFiestaViewModel? = null,
@@ -1571,6 +1629,10 @@ internal fun RenderAccountSettingsS86(
     val vmPushEnabled = viewModel?.pushNotificationsEnabled?.collectAsState()?.value ?: true
     val vmWhatsappEnabled = viewModel?.whatsappAlertsEnabled?.collectAsState()?.value ?: true
     val vmEmailReceipts = viewModel?.emailReceiptsEnabled?.collectAsState()?.value ?: true
+    val vmBiometricLock = viewModel?.biometricLockEnabled?.collectAsState()?.value ?: false
+    val vmAutoSyncWifiOnly = viewModel?.autoSyncWifiOnly?.collectAsState()?.value ?: false
+    val wifiSyncBlockedNotice = viewModel?.wifiSyncBlockedNotice?.collectAsState()?.value
+    val isWifiConnected = viewModel?.isOnWifiConnection() ?: true
     val vmProfileZone = viewModel?.profileZone?.collectAsState()?.value ?: "Piantini, Santo Domingo"
     val savedPaymentMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Transferencia Banreservas"
     val vmFormError = viewModel?.formError?.collectAsState()?.value
@@ -1581,6 +1643,8 @@ internal fun RenderAccountSettingsS86(
     var localPush by remember(vmPushEnabled) { mutableStateOf(vmPushEnabled) }
     var localWhatsapp by remember(vmWhatsappEnabled) { mutableStateOf(vmWhatsappEnabled) }
     var localEmailReceipts by remember(vmEmailReceipts) { mutableStateOf(vmEmailReceipts) }
+    var localBiometricLock by remember(vmBiometricLock) { mutableStateOf(vmBiometricLock) }
+    var localAutoSyncWifi by remember(vmAutoSyncWifiOnly) { mutableStateOf(vmAutoSyncWifiOnly) }
     var draftEventAddress by remember(vmProfileZone) { mutableStateOf(vmProfileZone) }
     var hasInteractedAddress by remember { mutableStateOf(false) }
     var forceShowAddressError by remember { mutableStateOf(false) }
@@ -1628,12 +1692,11 @@ internal fun RenderAccountSettingsS86(
         val addressLabel = if (isEnglish) "The address" else "La dirección"
         InputValidator.validateAddress(value, fieldLabel = addressLabel, isRequired = true)
     }
+    var selectedSection by remember { mutableStateOf<PersonalSettingsSection?>(null) }
     val screenTitle = if (isEnglish) "Settings" else "Ajustes"
-    val preferencesHeader = if (isEnglish) "PREFERENCES" else "PREFERENCIAS"
-    val audioHeader = if (isEnglish) "AUDIO & SOUND EFFECTS" else "AUDIO Y EFECTOS DE SONIDO"
-    val accountHeader = if (isEnglish) "SECURITY & ACCOUNT" else "CUENTA Y SEGURIDAD"
-    val notificationsHeader = if (isEnglish) "NOTIFICATIONS" else "AVISOS"
-    val legalHeader = if (isEnglish) "PRIVACY & LEGAL" else "PRIVACIDAD Y LEGAL"
+    val activeSectionTitle = selectedSection?.let { section ->
+        if (isEnglish) section.titleEn else section.titleEs
+    } ?: screenTitle
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -1649,451 +1712,563 @@ internal fun RenderAccountSettingsS86(
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(palette.surface)
-                        .clickable { onSelectScreenCode("BACK:s14") },
+                        .testTag("settings-back-button")
+                        .clickable {
+                            if (selectedSection != null) {
+                                selectedSection = null
+                            } else {
+                                onSelectScreenCode("BACK:s14")
+                            }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
                 }
                 BasicText(
-                    screenTitle,
+                    activeSectionTitle,
                     modifier = Modifier.weight(1f),
                     style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = palette.ink),
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            SettingsCaption86(preferencesHeader)
-            Spacer(modifier = Modifier.height(8.dp))
-            SettingsGroup86 {
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    RfIcon(kind = RfIconKind.MOON, tint = palette.ink, size = 20.dp)
-                    BasicText(
-                        if (isEnglish) "Theme" else "Tema",
-                        modifier = Modifier.weight(1f),
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
-                    )
-                    val lightSelected = !localDarkTheme
-                    val darkSelected = localDarkTheme
-                    Row(
-                        modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(palette.chipBg).padding(3.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .height(30.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (lightSelected) {
-                                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                    } else {
-                                        SolidColor(Color.Transparent)
-                                    },
-                                )
-                                .clickable {
-                                    localDarkTheme = false
-                                    viewModel?.setDarkTheme(false)
-                                }
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText(
-                                if (isEnglish) "Light" else "Claro",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = if (lightSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                    fontSize = 13.sp,
-                                    color = if (lightSelected) Color.White else palette.muted,
-                                ),
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .height(30.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (darkSelected) {
-                                        Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                                    } else {
-                                        SolidColor(Color.Transparent)
-                                    },
-                                )
-                                .clickable {
-                                    localDarkTheme = true
-                                    viewModel?.setDarkTheme(true)
-                                }
-                                .padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText(
-                                if (isEnglish) "Dark" else "Oscuro",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = if (darkSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                    fontSize = 13.sp,
-                                    color = if (darkSelected) Color.White else palette.muted,
-                                ),
-                            )
-                        }
-                    }
-                }
-                SettingsDivider86()
-                SettingsRow86(
-                    label = if (isEnglish) "Language" else "Idioma",
-                    icon = RfIconKind.GLOBE,
-                    onClick = {
-                        localLanguage = if (isEnglish) "Español" else "English"
-                        viewModel?.togglePreferredLanguage()
-                    },
-                ) {
-                    BasicText(localLanguage, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
-                }
-                SettingsDivider86()
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 20.dp)
-                    Column(modifier = Modifier.weight(1f)) {
-                        BasicText(if (isEnglish) "Event reminders" else "Recordatorios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink))
-                        BasicText(if (isEnglish) "Before and after each event" else "Antes y después de cada evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
-                    }
-                    SettingsSwitch86(
-                        checked = localReminders,
-                        onToggle = {
-                            localReminders = !localReminders
-                            viewModel?.toggleRemindersEnabled()
-                        },
-                    )
-                }
-            }
-
             Spacer(modifier = Modifier.height(14.dp))
-            SettingsCaption86(audioHeader)
-            Spacer(modifier = Modifier.height(8.dp))
-            AppAudioSettingsCard(
-                viewModel = viewModel,
-                isEnglish = isEnglish,
-                isAdminSurface = false,
-                horizontalMargin = 20.dp,
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-            SettingsCaption86(accountHeader)
-            Spacer(modifier = Modifier.height(8.dp))
-            SettingsGroup86 {
-                SettingsRow86(
-                    label = if (isEnglish) "Personal profile" else "Datos personales",
-                    icon = RfIconKind.USER,
-                    onClick = { onSelectScreenCode("s54") },
-                )
-                SettingsDivider86()
-                SettingsRow86(
-                    label = if (isEnglish) "Change password" else "Cambiar contraseña",
-                    icon = RfIconKind.LOCK,
-                    onClick = {
-                        showPasswordEditor = !showPasswordEditor
-                        passwordErrorBanner = null
-                        passwordSuccessBanner = null
-                        hasInteractedCurrentPassword = false
-                        hasInteractedNewPassword = false
-                        hasInteractedConfirmPassword = false
-                        forceShowPasswordErrors = false
-                    },
-                )
-                if (showPasswordEditor) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(palette.chipBg.copy(alpha = 0.45f))
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        SettingsInlineInputField86(
-                            placeholder = if (isEnglish) "Current password" else "Contraseña actual",
-                            value = currentPasswordInput,
-                            isPassword = true,
-                            maxLength = InputValidator.MAX_PASSWORD_LENGTH,
-                            isError = visibleCurrentPasswordError != null,
-                            errorMessage = visibleCurrentPasswordError,
-                            onValueChange = { updated ->
-                                currentPasswordInput = updated.take(InputValidator.MAX_PASSWORD_LENGTH)
-                                hasInteractedCurrentPassword = true
-                                passwordErrorBanner = null
-                                passwordSuccessBanner = null
-                            },
-                        )
-                        SettingsInlineInputField86(
-                            placeholder = if (isEnglish) "New password (6 to 64 chars)" else "Nueva contraseña (6 a 64 caracteres)",
-                            value = newPasswordInput,
-                            isPassword = true,
-                            maxLength = InputValidator.MAX_PASSWORD_LENGTH,
-                            isError = visibleNewPasswordError != null,
-                            errorMessage = visibleNewPasswordError,
-                            onValueChange = { updated ->
-                                newPasswordInput = updated.take(InputValidator.MAX_PASSWORD_LENGTH)
-                                hasInteractedNewPassword = true
-                                passwordErrorBanner = null
-                                passwordSuccessBanner = null
-                            },
-                        )
-                        SettingsInlineInputField86(
-                            placeholder = if (isEnglish) "Confirm new password" else "Confirmar nueva contraseña",
-                            value = confirmPasswordInput,
-                            isPassword = true,
-                            maxLength = InputValidator.MAX_PASSWORD_LENGTH,
-                            isError = visibleConfirmPasswordError != null,
-                            errorMessage = visibleConfirmPasswordError,
-                            onValueChange = { updated ->
-                                confirmPasswordInput = updated.take(InputValidator.MAX_PASSWORD_LENGTH)
-                                hasInteractedConfirmPassword = true
-                                passwordErrorBanner = null
-                                passwordSuccessBanner = null
-                            },
-                        )
-                        val activePasswordError = passwordErrorBanner ?: vmFormError
-                        if (!activePasswordError.isNullOrBlank()) {
-                            BasicText(
-                                activePasswordError,
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = RfColors.Error),
-                            )
-                        }
-                        if (!passwordSuccessBanner.isNullOrBlank()) {
-                            BasicText(
-                                passwordSuccessBanner ?: "",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFF3F560C)),
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(
+            when (selectedSection) {
+                null -> {
+                    SettingsGroup86 {
+                        PersonalSettingsSection.entries.forEachIndexed { index, section ->
+                            if (index > 0) {
+                                SettingsDivider86()
+                            }
+                            val sectionLabel = if (isEnglish) section.titleEn else section.titleEs
+                            val sectionSubtitle = if (isEnglish) section.subtitleEn else section.subtitleEs
+                            Row(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(38.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(RosaButtonGradient)
-                                    .clickable {
-                                        forceShowPasswordErrors = true
-                                        val firstError = InputValidator.validatePassword(currentPasswordInput)
-                                            ?: InputValidator.validatePassword(newPasswordInput)
-                                            ?: InputValidator.validatePasswordConfirmation(newPasswordInput, confirmPasswordInput)
-                                        if (firstError != null) {
-                                            passwordErrorBanner = firstError
-                                            passwordSuccessBanner = null
-                                            viewModel?.soundPlayer?.playAlertError()
-                                            return@clickable
-                                        }
-                                        val changed = if (viewModel != null) {
-                                            viewModel.changeCurrentPassword(
-                                                currentPassword = currentPasswordInput,
-                                                newPassword = newPasswordInput,
-                                                confirmPassword = confirmPasswordInput,
-                                            )
-                                        } else {
-                                            validateInlinePasswordChange86(currentPasswordInput, newPasswordInput, confirmPasswordInput)
-                                        }
-                                        if (changed) {
-                                            currentPasswordInput = ""
-                                            newPasswordInput = ""
-                                            confirmPasswordInput = ""
-                                            hasInteractedCurrentPassword = false
-                                            hasInteractedNewPassword = false
-                                            hasInteractedConfirmPassword = false
-                                            forceShowPasswordErrors = false
-                                            passwordErrorBanner = null
-                                            passwordSuccessBanner = if (isEnglish) "Password updated successfully." else "Contraseña actualizada correctamente."
-                                        } else if (viewModel == null) {
-                                            passwordErrorBanner = if (isEnglish) {
-                                                "Verify your current password, 6+ characters, and matching confirmation."
-                                            } else {
-                                                "Verifica tu contraseña actual, mínimo 6 caracteres y confirmación igual."
-                                            }
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center,
+                                    .fillMaxWidth()
+                                    .heightIn(min = 60.dp)
+                                    .testTag("personal-settings-menu-${section.name.lowercase()}")
+                                    .clickable { selectedSection = section }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                BasicText(
-                                    if (isEnglish) "Save password" else "Actualizar contraseña",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                                RfIcon(kind = section.icon, tint = palette.ink, size = 20.dp)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    BasicText(
+                                        sectionLabel,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = palette.ink),
+                                    )
+                                    BasicText(
+                                        sectionSubtitle,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted),
+                                    )
+                                }
+                                RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    SettingsGroup86 {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).clickable { onSelectScreenCode("s88") }.padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 20.dp)
+                            BasicText(
+                                if (isEnglish) "Delete account" else "Eliminar cuenta",
+                                modifier = Modifier.weight(1f),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFFB42345)),
+                            )
+                            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFFB42345), size = 16.dp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    BasicText(
+                        "RosaFiesta SRL · versión 2.4.0",
+                        modifier = Modifier.fillMaxWidth(),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, textAlign = TextAlign.Center, color = RfThemeState.currentPalette.muted),
+                    )
+                }
+
+                PersonalSettingsSection.PREFERENCES -> {
+                    SettingsGroup86 {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.MOON, tint = palette.ink, size = 20.dp)
+                            BasicText(
+                                if (isEnglish) "Theme" else "Tema",
+                                modifier = Modifier.weight(1f),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
+                            )
+                            val lightSelected = !localDarkTheme
+                            val darkSelected = localDarkTheme
+                            Row(
+                                modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(palette.chipBg).padding(3.dp),
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .height(30.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (lightSelected) {
+                                                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                            } else {
+                                                SolidColor(Color.Transparent)
+                                            },
+                                        )
+                                        .clickable {
+                                            localDarkTheme = false
+                                            viewModel?.setDarkTheme(false)
+                                        }
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    BasicText(
+                                        if (isEnglish) "Light" else "Claro",
+                                        style = TextStyle(
+                                            fontFamily = typo.bodyFamily,
+                                            fontWeight = if (lightSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                            fontSize = 13.sp,
+                                            color = if (lightSelected) Color.White else palette.muted,
+                                        ),
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .height(30.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            if (darkSelected) {
+                                                Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                            } else {
+                                                SolidColor(Color.Transparent)
+                                            },
+                                        )
+                                        .clickable {
+                                            localDarkTheme = true
+                                            viewModel?.setDarkTheme(true)
+                                        }
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    BasicText(
+                                        if (isEnglish) "Dark" else "Oscuro",
+                                        style = TextStyle(
+                                            fontFamily = typo.bodyFamily,
+                                            fontWeight = if (darkSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                            fontSize = 13.sp,
+                                            color = if (darkSelected) Color.White else palette.muted,
+                                        ),
+                                    )
+                                }
+                            }
+                        }
+                        SettingsDivider86()
+                        SettingsRow86(
+                            label = if (isEnglish) "Language" else "Idioma",
+                            icon = RfIconKind.GLOBE,
+                            onClick = {
+                                localLanguage = if (isEnglish) "Español" else "English"
+                                viewModel?.togglePreferredLanguage()
+                            },
+                        ) {
+                            BasicText(localLanguage, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                        }
+                        SettingsDivider86()
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 20.dp)
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText(if (isEnglish) "Event reminders" else "Recordatorios", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink))
+                                BasicText(if (isEnglish) "Before and after each event" else "Antes y después de cada evento", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
+                            }
+                            SettingsSwitch86(
+                                checked = localReminders,
+                                onToggle = {
+                                    localReminders = !localReminders
+                                    viewModel?.toggleRemindersEnabled()
+                                },
+                            )
+                        }
+                    }
+                }
+
+                PersonalSettingsSection.AUDIO -> {
+                    AppAudioSettingsCard(
+                        viewModel = viewModel,
+                        isEnglish = isEnglish,
+                        isAdminSurface = false,
+                        horizontalMargin = 20.dp,
+                    )
+                }
+
+                PersonalSettingsSection.ACCOUNT -> {
+                    SettingsGroup86 {
+                        SettingsRow86(
+                            label = if (isEnglish) "Personal profile" else "Datos personales",
+                            icon = RfIconKind.USER,
+                            onClick = { onSelectScreenCode("s54") },
+                        )
+                        SettingsDivider86()
+                        SettingsRow86(
+                            label = if (isEnglish) "Change password" else "Cambiar contraseña",
+                            icon = RfIconKind.LOCK,
+                            onClick = {
+                                showPasswordEditor = !showPasswordEditor
+                                passwordErrorBanner = null
+                                passwordSuccessBanner = null
+                                hasInteractedCurrentPassword = false
+                                hasInteractedNewPassword = false
+                                hasInteractedConfirmPassword = false
+                                forceShowPasswordErrors = false
+                            },
+                        )
+                        if (showPasswordEditor) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(palette.chipBg.copy(alpha = 0.45f))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                SettingsInlineInputField86(
+                                    placeholder = if (isEnglish) "Current password" else "Contraseña actual",
+                                    value = currentPasswordInput,
+                                    isPassword = true,
+                                    maxLength = InputValidator.MAX_PASSWORD_LENGTH,
+                                    isError = visibleCurrentPasswordError != null,
+                                    errorMessage = visibleCurrentPasswordError,
+                                    onValueChange = { updated ->
+                                        currentPasswordInput = updated.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                        hasInteractedCurrentPassword = true
+                                        passwordErrorBanner = null
+                                        passwordSuccessBanner = null
+                                    },
                                 )
+                                SettingsInlineInputField86(
+                                    placeholder = if (isEnglish) "New password (6 to 64 chars)" else "Nueva contraseña (6 a 64 caracteres)",
+                                    value = newPasswordInput,
+                                    isPassword = true,
+                                    maxLength = InputValidator.MAX_PASSWORD_LENGTH,
+                                    isError = visibleNewPasswordError != null,
+                                    errorMessage = visibleNewPasswordError,
+                                    onValueChange = { updated ->
+                                        newPasswordInput = updated.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                        hasInteractedNewPassword = true
+                                        passwordErrorBanner = null
+                                        passwordSuccessBanner = null
+                                    },
+                                )
+                                SettingsInlineInputField86(
+                                    placeholder = if (isEnglish) "Confirm new password" else "Confirmar nueva contraseña",
+                                    value = confirmPasswordInput,
+                                    isPassword = true,
+                                    maxLength = InputValidator.MAX_PASSWORD_LENGTH,
+                                    isError = visibleConfirmPasswordError != null,
+                                    errorMessage = visibleConfirmPasswordError,
+                                    onValueChange = { updated ->
+                                        confirmPasswordInput = updated.take(InputValidator.MAX_PASSWORD_LENGTH)
+                                        hasInteractedConfirmPassword = true
+                                        passwordErrorBanner = null
+                                        passwordSuccessBanner = null
+                                    },
+                                )
+                                val activePasswordError = passwordErrorBanner ?: vmFormError
+                                if (!activePasswordError.isNullOrBlank()) {
+                                    BasicText(
+                                        activePasswordError,
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = RfColors.Error),
+                                    )
+                                }
+                                if (!passwordSuccessBanner.isNullOrBlank()) {
+                                    BasicText(
+                                        passwordSuccessBanner ?: "",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFF3F560C)),
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(38.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(RosaButtonGradient)
+                                            .clickable {
+                                                forceShowPasswordErrors = true
+                                                val firstError = InputValidator.validatePassword(currentPasswordInput)
+                                                    ?: InputValidator.validatePassword(newPasswordInput)
+                                                    ?: InputValidator.validatePasswordConfirmation(newPasswordInput, confirmPasswordInput)
+                                                if (firstError != null) {
+                                                    passwordErrorBanner = firstError
+                                                    passwordSuccessBanner = null
+                                                    viewModel?.soundPlayer?.playAlertError()
+                                                    return@clickable
+                                                }
+                                                val changed = if (viewModel != null) {
+                                                    viewModel.changeCurrentPassword(
+                                                        currentPassword = currentPasswordInput,
+                                                        newPassword = newPasswordInput,
+                                                        confirmPassword = confirmPasswordInput,
+                                                    )
+                                                } else {
+                                                    validateInlinePasswordChange86(currentPasswordInput, newPasswordInput, confirmPasswordInput)
+                                                }
+                                                if (changed) {
+                                                    currentPasswordInput = ""
+                                                    newPasswordInput = ""
+                                                    confirmPasswordInput = ""
+                                                    hasInteractedCurrentPassword = false
+                                                    hasInteractedNewPassword = false
+                                                    hasInteractedConfirmPassword = false
+                                                    forceShowPasswordErrors = false
+                                                    passwordErrorBanner = null
+                                                    passwordSuccessBanner = if (isEnglish) "Password updated successfully." else "Contraseña actualizada correctamente."
+                                                } else if (viewModel == null) {
+                                                    passwordErrorBanner = if (isEnglish) {
+                                                        "Verify your current password, 6+ characters, and matching confirmation."
+                                                    } else {
+                                                        "Verifica tu contraseña actual, mínimo 6 caracteres y confirmación igual."
+                                                    }
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        BasicText(
+                                            if (isEnglish) "Save password" else "Actualizar contraseña",
+                                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        SettingsDivider86()
+                        SettingsRow86(
+                            label = if (isEnglish) "Payment methods" else "Métodos de pago",
+                            icon = RfIconKind.RECEIPT,
+                            onClick = { onSelectScreenCode("s82") },
+                        ) {
+                            BasicText(savedPaymentMethod.substringBefore(" ·"), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                        }
+                        SettingsDivider86()
+                        SettingsRow86(
+                            label = if (isEnglish) "Default event address" else "Dirección habitual de eventos",
+                            icon = RfIconKind.LOCATION,
+                            onClick = {
+                                showAddressEditor = !showAddressEditor
+                                addressSuccessBanner = null
+                                hasInteractedAddress = false
+                                forceShowAddressError = false
+                            },
+                        ) {
+                            BasicText(
+                                draftEventAddress.ifBlank { "Santo Domingo" },
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.widthIn(max = 135.dp),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
+                            )
+                        }
+                        if (showAddressEditor) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(palette.chipBg.copy(alpha = 0.45f))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                SettingsInlineInputField86(
+                                    placeholder = if (isEnglish) "Sector, street & venue reference" else "Sector, calle y referencia de entrega",
+                                    value = draftEventAddress,
+                                    maxLength = InputValidator.MAX_ADDRESS_LENGTH,
+                                    isError = visibleAddressError != null,
+                                    errorMessage = visibleAddressError,
+                                    onValueChange = { updated ->
+                                        draftEventAddress = updated.take(InputValidator.MAX_ADDRESS_LENGTH)
+                                        hasInteractedAddress = true
+                                        addressSuccessBanner = null
+                                    },
+                                )
+                                if (!addressSuccessBanner.isNullOrBlank()) {
+                                    BasicText(
+                                        addressSuccessBanner ?: "",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFF3F560C)),
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(38.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(RosaButtonGradient)
+                                        .clickable {
+                                            forceShowAddressError = true
+                                            val cleanZone = draftEventAddress.trim()
+                                            val addressLabel = if (isEnglish) "The address" else "La dirección"
+                                            val addressError = InputValidator.validateAddress(
+                                                rawValue = cleanZone,
+                                                fieldLabel = addressLabel,
+                                                isRequired = true,
+                                            )
+                                            if (addressError == null) {
+                                                viewModel?.setProfileZone(cleanZone)
+                                                addressSuccessBanner = if (isEnglish) "Default event address saved." else "Dirección guardada correctamente."
+                                                hasInteractedAddress = false
+                                                forceShowAddressError = false
+                                                showAddressEditor = false
+                                            } else {
+                                                addressSuccessBanner = null
+                                                viewModel?.postFeedback(addressError)
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    BasicText(
+                                        if (isEnglish) "Save address" else "Guardar dirección",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                                    )
+                                }
                             }
                         }
                     }
                 }
-                SettingsDivider86()
-                SettingsRow86(
-                    label = if (isEnglish) "Payment methods" else "Métodos de pago",
-                    icon = RfIconKind.RECEIPT,
-                    onClick = { onSelectScreenCode("s82") },
-                ) {
-                    BasicText(savedPaymentMethod.substringBefore(" ·"), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
-                }
-                SettingsDivider86()
-                SettingsRow86(
-                    label = if (isEnglish) "Default event address" else "Dirección habitual de eventos",
-                    icon = RfIconKind.LOCATION,
-                    onClick = {
-                        showAddressEditor = !showAddressEditor
-                        addressSuccessBanner = null
-                        hasInteractedAddress = false
-                        forceShowAddressError = false
-                    },
-                ) {
-                    BasicText(
-                        draftEventAddress.ifBlank { "Santo Domingo" },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 135.dp),
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
-                    )
-                }
-                if (showAddressEditor) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(palette.chipBg.copy(alpha = 0.45f))
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        SettingsInlineInputField86(
-                            placeholder = if (isEnglish) "Sector, street & venue reference" else "Sector, calle y referencia de entrega",
-                            value = draftEventAddress,
-                            maxLength = InputValidator.MAX_ADDRESS_LENGTH,
-                            isError = visibleAddressError != null,
-                            errorMessage = visibleAddressError,
-                            onValueChange = { updated ->
-                                draftEventAddress = updated.take(InputValidator.MAX_ADDRESS_LENGTH)
-                                hasInteractedAddress = true
-                                addressSuccessBanner = null
-                            },
-                        )
-                        if (!addressSuccessBanner.isNullOrBlank()) {
-                            BasicText(
-                                addressSuccessBanner ?: "",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp, color = Color(0xFF3F560C)),
+
+                PersonalSettingsSection.NOTIFICATIONS -> {
+                    SettingsGroup86 {
+                        SettingsRow86(if (isEnglish) "Push notifications" else "Notificaciones push", RfIconKind.BELL) {
+                            SettingsSwitch86(
+                                checked = localPush,
+                                onToggle = {
+                                    localPush = !localPush
+                                    viewModel?.togglePushNotifications()
+                                },
                             )
                         }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(38.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(RosaButtonGradient)
-                                .clickable {
-                                    forceShowAddressError = true
-                                    val cleanZone = draftEventAddress.trim()
-                                    val addressLabel = if (isEnglish) "The address" else "La dirección"
-                                    val addressError = InputValidator.validateAddress(
-                                        rawValue = cleanZone,
-                                        fieldLabel = addressLabel,
-                                        isRequired = true,
-                                    )
-                                    if (addressError == null) {
-                                        viewModel?.setProfileZone(cleanZone)
-                                        addressSuccessBanner = if (isEnglish) "Default event address saved." else "Dirección guardada correctamente."
-                                        hasInteractedAddress = false
-                                        forceShowAddressError = false
-                                        showAddressEditor = false
-                                    } else {
-                                        addressSuccessBanner = null
-                                        viewModel?.postFeedback(addressError)
-                                    }
+                        SettingsDivider86()
+                        SettingsRow86(if (isEnglish) "WhatsApp alerts" else "Mensajes por WhatsApp", RfIconKind.WHATSAPP) {
+                            SettingsSwitch86(
+                                checked = localWhatsapp,
+                                onToggle = {
+                                    localWhatsapp = !localWhatsapp
+                                    viewModel?.toggleWhatsappAlerts()
                                 },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText(
-                                if (isEnglish) "Save address" else "Guardar dirección",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                            )
+                        }
+                        SettingsDivider86()
+                        SettingsRow86(if (isEnglish) "Email receipts" else "Recibos por correo", RfIconKind.MAIL) {
+                            SettingsSwitch86(
+                                checked = localEmailReceipts,
+                                onToggle = {
+                                    localEmailReceipts = !localEmailReceipts
+                                    viewModel?.toggleEmailReceipts()
+                                },
                             )
                         }
                     }
                 }
+
+                PersonalSettingsSection.SECURITY_SYNC -> {
+                    SettingsGroup86 {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.SHIELD, tint = palette.ink, size = 20.dp)
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText(
+                                    if (isEnglish) "Biometric app lock" else "Bloqueo biométrico",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
+                                )
+                                BasicText(
+                                    if (isEnglish) "Require Face ID / Touch ID / password on open" else "Protege tus eventos y pagos al abrir la app",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted),
+                                )
+                            }
+                            SettingsSwitch86(
+                                checked = localBiometricLock,
+                                onToggle = {
+                                    localBiometricLock = !localBiometricLock
+                                    viewModel?.toggleBiometricLock()
+                                },
+                            )
+                        }
+                        SettingsDivider86()
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.REFRESH, tint = palette.ink, size = 20.dp)
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText(
+                                    if (isEnglish) "Sync on Wi‑Fi only" else "Sincronizar solo con Wi‑Fi",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
+                                )
+                                val syncStatusSubtext = when {
+                                    !wifiSyncBlockedNotice.isNullOrBlank() -> wifiSyncBlockedNotice
+                                    isWifiConnected -> if (isEnglish) "Wi‑Fi connected · auto sync active" else "Wi‑Fi conectado · sincronización activa"
+                                    else -> if (isEnglish) "No Wi‑Fi · background sync paused" else "Sin Wi‑Fi · sincronización pausada"
+                                }
+                                BasicText(
+                                    syncStatusSubtext,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted),
+                                )
+                            }
+                            SettingsSwitch86(
+                                checked = localAutoSyncWifi,
+                                onToggle = {
+                                    localAutoSyncWifi = !localAutoSyncWifi
+                                    viewModel?.toggleAutoSyncWifiOnly()
+                                },
+                            )
+                        }
+                        if (localBiometricLock) {
+                            SettingsDivider86()
+                            SettingsRow86(
+                                label = if (isEnglish) "Lock session now" else "Bloquear sesión ahora",
+                                icon = RfIconKind.LOCK,
+                                onClick = { viewModel?.lockAppIfProtected() },
+                            )
+                        }
+                    }
+                }
+
+                PersonalSettingsSection.LEGAL -> {
+                    SettingsGroup86 {
+                        SettingsRow86(
+                            if (isEnglish) "Terms & conditions" else "Términos y condiciones",
+                            RfIconKind.NOTE,
+                            onClick = {
+                                pendingTermsSegmentIndex87 = 0
+                                onSelectScreenCode("s87")
+                            },
+                        )
+                        SettingsDivider86()
+                        SettingsRow86(
+                            if (isEnglish) "Privacy policy" else "Política de privacidad",
+                            RfIconKind.SHIELD,
+                            onClick = {
+                                pendingTermsSegmentIndex87 = 1
+                                onSelectScreenCode("s87")
+                            },
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
-            SettingsCaption86(notificationsHeader)
-            Spacer(modifier = Modifier.height(8.dp))
-            SettingsGroup86 {
-                SettingsRow86(if (isEnglish) "Push notifications" else "Notificaciones push", RfIconKind.BELL) {
-                    SettingsSwitch86(
-                        checked = localPush,
-                        onToggle = {
-                            localPush = !localPush
-                            viewModel?.togglePushNotifications()
-                        },
-                    )
-                }
-                SettingsDivider86()
-                SettingsRow86(if (isEnglish) "WhatsApp alerts" else "Mensajes por WhatsApp", RfIconKind.WHATSAPP) {
-                    SettingsSwitch86(
-                        checked = localWhatsapp,
-                        onToggle = {
-                            localWhatsapp = !localWhatsapp
-                            viewModel?.toggleWhatsappAlerts()
-                        },
-                    )
-                }
-                SettingsDivider86()
-                SettingsRow86(if (isEnglish) "Email receipts" else "Recibos por correo", RfIconKind.MAIL) {
-                    SettingsSwitch86(
-                        checked = localEmailReceipts,
-                        onToggle = {
-                            localEmailReceipts = !localEmailReceipts
-                            viewModel?.toggleEmailReceipts()
-                        },
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            SettingsCaption86(legalHeader)
-            Spacer(modifier = Modifier.height(8.dp))
-            SettingsGroup86 {
-                SettingsRow86(
-                    if (isEnglish) "Terms & conditions" else "Términos y condiciones",
-                    RfIconKind.NOTE,
-                    onClick = {
-                        pendingTermsSegmentIndex87 = 0
-                        onSelectScreenCode("s87")
-                    },
-                )
-                SettingsDivider86()
-                SettingsRow86(
-                    if (isEnglish) "Privacy policy" else "Política de privacidad",
-                    RfIconKind.SHIELD,
-                    onClick = {
-                        pendingTermsSegmentIndex87 = 1
-                        onSelectScreenCode("s87")
-                    },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            SettingsGroup86 {
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp).clickable { onSelectScreenCode("s88") }.padding(horizontal = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 20.dp)
-                    BasicText(
-                        if (isEnglish) "Delete account" else "Eliminar cuenta",
-                        modifier = Modifier.weight(1f),
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFFB42345)),
-                    )
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFFB42345), size = 16.dp)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            BasicText(
-                "RosaFiesta SRL · versión 2.4.0",
-                modifier = Modifier.fillMaxWidth(),
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, textAlign = TextAlign.Center, color = RfThemeState.currentPalette.muted),
-            )
             Spacer(modifier = Modifier.height(RfDimens.BottomBarContentClearance))
         }
     }
@@ -2604,12 +2779,13 @@ internal fun RenderTermsS87(
     val companyAddress = businessSettings?.address ?: "Av. Winston Churchill 1099, Piantini, Santo Domingo"
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 108.dp),
+                    .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Row(
@@ -2718,18 +2894,29 @@ internal fun RenderTermsS87(
                 }
             }
 
-            Box(
+            Column(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, bottom = 36.dp),
+                    .background(RfThemeState.currentPalette.surface),
             ) {
-                RfButton(
-                    label = "Entendido",
-                    onClick = { onSelectScreenCode("BACK:s86") },
-                    modifier = Modifier.fillMaxWidth(),
-                    style = RfButtonStyle.PRIMARY,
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(RfThemeState.currentPalette.line),
                 )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                ) {
+                    RfButton(
+                        label = "Entendido",
+                        onClick = { onSelectScreenCode("BACK:s86") },
+                        modifier = Modifier.fillMaxWidth(),
+                        style = RfButtonStyle.PRIMARY,
+                    )
+                }
             }
         }
     }
@@ -2840,238 +3027,252 @@ internal fun RenderDeleteAccountS88(
     val canConfirmDeletion = if (matchesDeleteKeyword) hasZeroActiveEvents else false
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 140.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK") },
-                    contentAlignment = Alignment.Center,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.surface)
+                            .clickable { onSelectScreenCode("BACK") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                    }
+
+                    BasicText(
+                        text = "Eliminar cuenta",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = RfThemeState.currentPalette.ink),
+                        modifier = Modifier.weight(1f),
+                    )
                 }
 
-                BasicText(
-                    text = "Eliminar cuenta",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = RfThemeState.currentPalette.ink),
-                    modifier = Modifier.weight(1f),
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 2.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(84.dp)
+                            .border(10.dp, Color(0xFFFDF1F3), CircleShape)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFCE3E8)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 36.dp)
+                    }
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    BasicText(
+                        text = "¿Eliminar tu cuenta?",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = RfThemeState.currentPalette.ink),
+                    )
+
+                    BasicText(
+                        text = "Esta acción es permanente. Si eliminas tu cuenta:",
+                        modifier = Modifier.widthIn(max = 310.dp),
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 14.5.sp,
+                            lineHeight = 21.75.sp,
+                            color = RfThemeState.currentPalette.muted,
+                            textAlign = TextAlign.Center,
+                        ),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
+                            BasicText("Perderás tus eventos, cotizaciones y bocetos.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.ink))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
+                            BasicText("Se borrarán tus favoritos y conversaciones con Rosa.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.ink))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
+                            BasicText("Tus recibos se conservan 5 años por ley y te los enviamos por correo.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.ink))
+                        }
+                    }
+                }
+
+                if (activeEventsCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFFFF2C9))
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                            RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFF5E4300), size = 18.dp)
+                            BasicText(
+                                text = buildAnnotatedString {
+                                    append("Tienes ")
+                                    val eventLabel = if (activeEventsCount == 1) "1 evento activo" else "$activeEventsCount eventos activos"
+                                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(eventLabel) }
+                                    append(". Cancélalos o espera a que terminen antes de poder eliminar tu cuenta.")
+                                },
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 18.9.sp, color = Color(0xFF5E4300)),
+                            )
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFEEF6D6))
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF3F560C), size = 18.dp)
+                            BasicText(
+                                text = "No tienes eventos activos pendientes. Escribe ELIMINAR en mayúsculas para confirmar.",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 18.9.sp, color = Color(0xFF3F560C)),
+                            )
+                        }
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    BasicText("Escribe ELIMINAR para confirmar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                    val confirmationBorderColor = if (visibleConfirmationError != null) RfColors.Error else RfThemeState.currentPalette.line
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, confirmationBorderColor, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (confirmationText.isEmpty()) {
+                            BasicText("ELIMINAR", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                        }
+                        BasicTextField(
+                            value = confirmationText,
+                            onValueChange = { updatedText ->
+                                confirmationText = updatedText.take(20)
+                                hasInteractedConfirmation = true
+                                deletionErrorText = null
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                            cursorBrush = SolidColor(Color(0xFFB42345)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    val displayedError = visibleConfirmationError ?: deletionErrorText ?: vmFormError
+                    RfValidationErrorText(errorMessage = displayedError)
+                }
             }
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 2.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                    .background(RfThemeState.currentPalette.surface),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(84.dp)
-                        .border(10.dp, Color(0xFFFDF1F3), CircleShape)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFCE3E8)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 36.dp)
-                }
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                BasicText(
-                    text = "¿Eliminar tu cuenta?",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = RfThemeState.currentPalette.ink),
-                )
-
-                BasicText(
-                    text = "Esta acción es permanente. Si eliminas tu cuenta:",
-                    modifier = Modifier.widthIn(max = 310.dp),
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontSize = 14.5.sp,
-                        lineHeight = 21.75.sp,
-                        color = RfThemeState.currentPalette.muted,
-                        textAlign = TextAlign.Center,
-                    ),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
-                        BasicText("Perderás tus eventos, cotizaciones y bocetos.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.ink))
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
-                        BasicText("Se borrarán tus favoritos y conversaciones con Rosa.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.ink))
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
-                        BasicText("Tus recibos se conservan 5 años por ley y te los enviamos por correo.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.ink))
-                    }
-                }
-            }
-
-            if (activeEventsCount > 0) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFFFF2C9))
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                        .height(1.dp)
+                        .background(RfThemeState.currentPalette.line),
+                )
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                        RfIcon(kind = RfIconKind.WARNING, tint = Color(0xFF5E4300), size = 18.dp)
-                        BasicText(
-                            text = buildAnnotatedString {
-                                append("Tienes ")
-                                val eventLabel = if (activeEventsCount == 1) "1 evento activo" else "$activeEventsCount eventos activos"
-                                withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(eventLabel) }
-                                append(". Cancélalos o espera a que terminen antes de poder eliminar tu cuenta.")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .then(
+                                if (canConfirmDeletion) {
+                                    Modifier.rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                                } else {
+                                    Modifier
+                                },
+                            )
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (canConfirmDeletion) Color(0xFFB42345) else Color(0xFFF1D5DB))
+                            .clickable {
+                                forceShowConfirmationError = true
+                                val confirmationError = validateDeleteConfirmation88(confirmationText)
+                                if (confirmationError != null) {
+                                    deletionErrorText = confirmationError
+                                    viewModel?.soundPlayer?.playAlertError()
+                                    return@clickable
+                                }
+                                if (!hasZeroActiveEvents) {
+                                    deletionErrorText = "Cancela tus eventos activos antes de eliminar tu cuenta."
+                                    viewModel?.soundPlayer?.playAlertError()
+                                    return@clickable
+                                }
+                                val deleted = if (viewModel != null) {
+                                    viewModel.deleteCurrentUserAccount()
+                                } else {
+                                    true
+                                }
+                                if (deleted) {
+                                    onSelectScreenCode("s06")
+                                } else {
+                                    deletionErrorText = "No fue posible eliminar la cuenta activa."
+                                }
                             },
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 18.9.sp, color = Color(0xFF5E4300)),
-                        )
-                    }
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFEEF6D6))
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-                        RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF3F560C), size = 18.dp)
+                        contentAlignment = Alignment.Center,
+                    ) {
                         BasicText(
-                            text = "No tienes eventos activos pendientes. Escribe ELIMINAR en mayúsculas para confirmar.",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 18.9.sp, color = Color(0xFF3F560C)),
+                            "Eliminar cuenta",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = if (canConfirmDeletion) Color.White else Color.White.copy(alpha = 0.78f),
+                            ),
                         )
                     }
-                }
-            }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                BasicText("Escribe ELIMINAR para confirmar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
-                val confirmationBorderColor = if (visibleConfirmationError != null) RfColors.Error else RfThemeState.currentPalette.line
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, confirmationBorderColor, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    if (confirmationText.isEmpty()) {
-                        BasicText("ELIMINAR", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clickable { onSelectScreenCode("BACK:s54") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText("Mantener mi cuenta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
                     }
-                    BasicTextField(
-                        value = confirmationText,
-                        onValueChange = { updatedText ->
-                            confirmationText = updatedText.take(20)
-                            hasInteractedConfirmation = true
-                            deletionErrorText = null
-                        },
-                        singleLine = true,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                        cursorBrush = SolidColor(Color(0xFFB42345)),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
                 }
-                val displayedError = visibleConfirmationError ?: deletionErrorText ?: vmFormError
-                RfValidationErrorText(errorMessage = displayedError)
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 30.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .then(
-                        if (canConfirmDeletion) {
-                            Modifier.rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (canConfirmDeletion) Color(0xFFB42345) else Color(0xFFF1D5DB))
-                    .clickable {
-                        forceShowConfirmationError = true
-                        val confirmationError = validateDeleteConfirmation88(confirmationText)
-                        if (confirmationError != null) {
-                            deletionErrorText = confirmationError
-                            viewModel?.soundPlayer?.playAlertError()
-                            return@clickable
-                        }
-                        if (!hasZeroActiveEvents) {
-                            deletionErrorText = "Cancela tus eventos activos antes de eliminar tu cuenta."
-                            viewModel?.soundPlayer?.playAlertError()
-                            return@clickable
-                        }
-                        val deleted = if (viewModel != null) {
-                            viewModel.deleteCurrentUserAccount()
-                        } else {
-                            true
-                        }
-                        if (deleted) {
-                            onSelectScreenCode("s06")
-                        } else {
-                            deletionErrorText = "No fue posible eliminar la cuenta activa."
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText(
-                    "Eliminar cuenta",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = if (canConfirmDeletion) Color.White else Color.White.copy(alpha = 0.78f),
-                    ),
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clickable { onSelectScreenCode("BACK:s54") },
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText("Mantener mi cuenta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
             }
         }
     }
@@ -3084,7 +3285,12 @@ internal fun RenderPersonalEmptyStateS89(
 ) {
     val typo = LocalRfTypography.current
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val suggestedCategories = listOf("Mobiliario", "Arcos y globos", "Diseño floral", "Mesas de dulces")
+    val vmCategories = viewModel?.catalogCategories?.collectAsState()?.value
+    val suggestedCategories = if (vmCategories != null) {
+        vmCategories.map { category -> category.name.trim() }.filter { name -> name.isNotEmpty() }
+    } else {
+        listOf("Mobiliario", "Arcos y globos", "Diseño floral", "Mesas de dulces")
+    }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -3124,7 +3330,7 @@ internal fun RenderPersonalEmptyStateS89(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                BalloonsIllustration89(modifier = Modifier.size(180.dp))
+                BalloonsIllustration89(modifier = Modifier.size(138.dp))
 
                 BasicText(
                     text = if (selectedTabIndex == 0) "Aún no tienes eventos próximos" else "Sin eventos pasados",
@@ -3475,7 +3681,7 @@ private fun CatalogProductSkeletonCardS90(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(128.dp)
+                .height(100.dp)
                 .background(skGradient),
         )
         Column(
@@ -3626,10 +3832,11 @@ internal fun RenderGuestAuthModalS75(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
     underlyingScreenCode: String? = null,
+    renderOriginBackdrop: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val sheetSlideModifier = rememberModalSheetSlideModifier()
-    val originScreenCode = remember(underlyingScreenCode) {
+    val originScreenCode = remember {
         resolveModalOriginScreenCode(
             underlyingScreenCode = underlyingScreenCode,
             defaultOrigin = "s01",
@@ -3639,16 +3846,19 @@ internal fun RenderGuestAuthModalS75(
     val dismissRoute = remember(originScreenCode) {
         resolveModalDismissRoute(originScreenCode)
     }
+    val rootModifier = if (renderOriginBackdrop) {
+        Modifier.fillMaxSize().background(RfThemeState.currentPalette.bg)
+    } else {
+        Modifier.fillMaxSize()
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
-    ) {
-        RenderModalOriginBackdrop(
-            originScreenCode = originScreenCode,
-            viewModel = viewModel,
-        )
+    Box(modifier = rootModifier) {
+        if (renderOriginBackdrop) {
+            RenderModalOriginBackdrop(
+                originScreenCode = originScreenCode,
+                viewModel = viewModel,
+            )
+        }
         RenderModalSheetScrim(
             onDismiss = { onSelectScreenCode(dismissRoute) },
         )
@@ -3844,10 +4054,11 @@ internal fun RenderPlanningModalS76(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
     underlyingScreenCode: String? = null,
+    renderOriginBackdrop: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val sheetSlideModifier = rememberModalSheetSlideModifier()
-    val originScreenCode = remember(underlyingScreenCode) {
+    val originScreenCode = remember {
         resolveModalOriginScreenCode(
             underlyingScreenCode = underlyingScreenCode,
             defaultOrigin = "s14",
@@ -3857,16 +4068,19 @@ internal fun RenderPlanningModalS76(
     val dismissRoute = remember(originScreenCode) {
         resolveModalDismissRoute(originScreenCode)
     }
+    val rootModifier = if (renderOriginBackdrop) {
+        Modifier.fillMaxSize().background(RfThemeState.currentPalette.bg)
+    } else {
+        Modifier.fillMaxSize()
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
-    ) {
-        RenderModalOriginBackdrop(
-            originScreenCode = originScreenCode,
-            viewModel = viewModel,
-        )
+    Box(modifier = rootModifier) {
+        if (renderOriginBackdrop) {
+            RenderModalOriginBackdrop(
+                originScreenCode = originScreenCode,
+                viewModel = viewModel,
+            )
+        }
         RenderModalSheetScrim(
             onDismiss = { onSelectScreenCode(dismissRoute) },
         )
@@ -4170,10 +4384,11 @@ internal fun RenderEventReviewsModalS77(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
     underlyingScreenCode: String? = null,
+    renderOriginBackdrop: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val sheetSlideModifier = rememberModalSheetSlideModifier()
-    val originScreenCode = remember(underlyingScreenCode) {
+    val originScreenCode = remember {
         resolveModalOriginScreenCode(
             underlyingScreenCode = underlyingScreenCode,
             defaultOrigin = "s37",
@@ -4205,16 +4420,19 @@ internal fun RenderEventReviewsModalS77(
             maxLength = InputValidator.MAX_NOTES_LENGTH,
         )
     }
+    val rootModifier = if (renderOriginBackdrop) {
+        Modifier.fillMaxSize().background(RfThemeState.currentPalette.bg)
+    } else {
+        Modifier.fillMaxSize()
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
-    ) {
-        RenderModalOriginBackdrop(
-            originScreenCode = originScreenCode,
-            viewModel = viewModel,
-        )
+    Box(modifier = rootModifier) {
+        if (renderOriginBackdrop) {
+            RenderModalOriginBackdrop(
+                originScreenCode = originScreenCode,
+                viewModel = viewModel,
+            )
+        }
         RenderModalSheetScrim(
             onDismiss = { onSelectScreenCode(dismissRoute) },
         )
@@ -4453,70 +4671,83 @@ internal fun RenderEventReviewsModalS77(
                     }
                 }
 
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RosaButtonGradient)
-                        .clickable {
-                            if (!showComposer) {
-                                showComposer = true
-                                hasInteractedComment = false
-                                forceShowCommentError = false
-                                validationError = null
-                            } else {
-                                forceShowCommentError = true
-                                val trimmedComment = draftComment.trim()
-                                val commentError = InputValidator.validateNotes(
-                                    rawValue = trimmedComment,
-                                    fieldLabel = "Tu reseña",
-                                    isRequired = true,
-                                    minLength = 6,
-                                    maxLength = InputValidator.MAX_NOTES_LENGTH,
-                                )
-                                if (commentError != null) {
-                                    validationError = commentError
-                                    viewModel?.soundPlayer?.playAlertError()
+                val canWriteReview = viewModel?.hasCompletedOrUsedRental() ?: false
+                if (!canWriteReview) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        BasicText(
+                            text = "Solo puedes escribir una reseña después de alquilar o usar un producto.",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                        )
+                    }
+                } else {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RosaButtonGradient)
+                            .clickable {
+                                if (!showComposer) {
+                                    showComposer = true
+                                    hasInteractedComment = false
+                                    forceShowCommentError = false
+                                    validationError = null
                                 } else {
-                                    val savedReview = if (viewModel != null) {
-                                        viewModel.submitCompanyReview(
+                                    forceShowCommentError = true
+                                    val trimmedComment = draftComment.trim()
+                                    val commentError = InputValidator.validateNotes(
+                                        rawValue = trimmedComment,
+                                        fieldLabel = "Tu reseña",
+                                        isRequired = true,
+                                        minLength = 6,
+                                        maxLength = InputValidator.MAX_NOTES_LENGTH,
+                                    )
+                                    if (commentError != null) {
+                                        validationError = commentError
+                                        viewModel.soundPlayer.playAlertError()
+                                    } else {
+                                        val savedReview = viewModel.submitCompanyReview(
                                             comment = trimmedComment,
                                             rating = selectedStars,
                                         )
-                                    } else {
-                                        true
-                                    }
-                                    if (savedReview) {
-                                        showComposer = false
-                                        draftComment = ""
-                                        hasInteractedComment = false
-                                        forceShowCommentError = false
-                                        validationError = null
-                                        onSelectScreenCode(dismissRoute)
-                                    } else {
-                                        validationError = "No fue posible publicar la reseña. Revisa tu comentario."
+                                        if (savedReview) {
+                                            showComposer = false
+                                            draftComment = ""
+                                            hasInteractedComment = false
+                                            forceShowCommentError = false
+                                            validationError = null
+                                            onSelectScreenCode(dismissRoute)
+                                        } else {
+                                            validationError = "No fue posible publicar la reseña. Revisa tu comentario."
+                                        }
                                     }
                                 }
-                            }
-                        },
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            },
                     ) {
-                        RfIcon(kind = RfIconKind.EDIT, tint = Color.White, size = 20.dp)
-                        BasicText(
-                            if (showComposer) "Publicar reseña" else "Escribir reseña",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = Color.White,
-                            ),
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            RfIcon(kind = RfIconKind.EDIT, tint = Color.White, size = 20.dp)
+                            BasicText(
+                                if (showComposer) "Publicar reseña" else "Escribir reseña",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = Color.White,
+                                ),
+                            )
+                        }
                     }
                 }
             }
@@ -4554,10 +4785,11 @@ internal fun RenderCatalogFiltersModalS81(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
     underlyingScreenCode: String? = null,
+    renderOriginBackdrop: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val density = LocalDensity.current
-    val originScreenCode = remember(underlyingScreenCode) {
+    val originScreenCode = remember {
         resolveModalOriginScreenCode(
             underlyingScreenCode = underlyingScreenCode,
             defaultOrigin = "s18",
@@ -4581,16 +4813,19 @@ internal fun RenderCatalogFiltersModalS81(
     var selectedSortOption by remember(normalizedInitialSort) { mutableStateOf(normalizedInitialSort) }
     var selectedMaxPrice by remember(vmMaxPrice) { mutableStateOf(vmMaxPrice.coerceIn(0, 5000)) }
     var sliderWidthPx by remember { mutableStateOf(0f) }
+    val rootModifier = if (renderOriginBackdrop) {
+        Modifier.fillMaxSize().background(RfThemeState.currentPalette.bg)
+    } else {
+        Modifier.fillMaxSize()
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
-    ) {
-        RenderModalOriginBackdrop(
-            originScreenCode = originScreenCode,
-            viewModel = viewModel,
-        )
+    Box(modifier = rootModifier) {
+        if (renderOriginBackdrop) {
+            RenderModalOriginBackdrop(
+                originScreenCode = originScreenCode,
+                viewModel = viewModel,
+            )
+        }
         RenderModalSheetScrim(
             onDismiss = { onSelectScreenCode(dismissRoute) },
         )
@@ -4658,10 +4893,15 @@ internal fun RenderCatalogFiltersModalS81(
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     BasicText("Categoría", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
-                    val categoryRows = listOf(
-                        listOf("Todos", "Mobiliario", "Diseño floral"),
-                        listOf("Arcos y globos", "Mesas de dulces", "Mantelería"),
-                    )
+                    val vmCategories = viewModel?.catalogCategories?.collectAsState()?.value
+                    val categoryLabels = if (vmCategories != null) {
+                        listOf("Todos") + vmCategories.map { category -> category.name.trim() }
+                            .filter { name -> name.isNotEmpty() }
+                            .distinctBy { name -> name.lowercase() }
+                    } else {
+                        listOf("Todos", "Mobiliario", "Diseño floral", "Arcos y globos", "Mesas de dulces", "Mantelería")
+                    }
+                    val categoryRows = categoryLabels.chunked(3)
                     categoryRows.forEach { rowItems ->
                         Row(
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -4998,10 +5238,11 @@ internal fun RenderChangeDateModalS84(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
     underlyingScreenCode: String? = null,
+    renderOriginBackdrop: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val sheetSlideModifier = rememberModalSheetSlideModifier()
-    val originScreenCode = remember(underlyingScreenCode) {
+    val originScreenCode = remember {
         resolveModalOriginScreenCode(
             underlyingScreenCode = underlyingScreenCode,
             defaultOrigin = "s40",
@@ -5039,16 +5280,19 @@ internal fun RenderChangeDateModalS84(
     val formattedSelection = "$weekdayShort $selectedDayInt $monthShort $displayedYear · $selectedTimeSlot"
     val selectedDaysUntil = DomainClockFormatter.computeDaysUntilEvent("$selectedDayInt $monthShort $displayedYear")
     val sheetInteractionSource = remember { MutableInteractionSource() }
+    val rootModifier = if (renderOriginBackdrop) {
+        Modifier.fillMaxSize().background(RfThemeState.currentPalette.bg)
+    } else {
+        Modifier.fillMaxSize()
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
-    ) {
-        RenderModalOriginBackdrop(
-            originScreenCode = originScreenCode,
-            viewModel = viewModel,
-        )
+    Box(modifier = rootModifier) {
+        if (renderOriginBackdrop) {
+            RenderModalOriginBackdrop(
+                originScreenCode = originScreenCode,
+                viewModel = viewModel,
+            )
+        }
         RenderModalSheetScrim(
             onDismiss = { onSelectScreenCode(dismissRoute) },
         )
@@ -5431,10 +5675,11 @@ internal fun RenderCancelEventModalS85(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
     underlyingScreenCode: String? = null,
+    renderOriginBackdrop: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val sheetSlideModifier = rememberModalSheetSlideModifier()
-    val originScreenCode = remember(underlyingScreenCode) {
+    val originScreenCode = remember {
         resolveModalOriginScreenCode(
             underlyingScreenCode = underlyingScreenCode,
             defaultOrigin = "s40",
@@ -5485,16 +5730,19 @@ internal fun RenderCancelEventModalS85(
         }
     }
     val sheetInteractionSource = remember { MutableInteractionSource() }
+    val rootModifier = if (renderOriginBackdrop) {
+        Modifier.fillMaxSize().background(RfThemeState.currentPalette.bg)
+    } else {
+        Modifier.fillMaxSize()
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
-    ) {
-        RenderModalOriginBackdrop(
-            originScreenCode = originScreenCode,
-            viewModel = viewModel,
-        )
+    Box(modifier = rootModifier) {
+        if (renderOriginBackdrop) {
+            RenderModalOriginBackdrop(
+                originScreenCode = originScreenCode,
+                viewModel = viewModel,
+            )
+        }
         RenderModalSheetScrim(
             onDismiss = { onSelectScreenCode(dismissRoute) },
         )
@@ -5915,7 +6163,7 @@ internal fun RenderPersonalOfflineStateS91(
         ) {
             Box(
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(96.dp)
                     .shadow(12.dp, CircleShape, spotColor = Color(0x80FDE6F2))
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(Color(0xFFFDE6F2), Color(0xFFEFE8FD)))),
@@ -6010,9 +6258,10 @@ internal fun RenderPersonalSuccessStateS92(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
     underlyingScreenCode: String? = null,
+    renderOriginBackdrop: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
-    val originScreenCode = remember(underlyingScreenCode) {
+    val originScreenCode = remember {
         resolveModalOriginScreenCode(
             underlyingScreenCode = underlyingScreenCode,
             defaultOrigin = "s18",
@@ -6029,17 +6278,20 @@ internal fun RenderPersonalSuccessStateS92(
     } else {
         "Artículo agregado a tu lista"
     }
+    val rootModifier = if (renderOriginBackdrop) {
+        Modifier.fillMaxSize().background(RfThemeState.currentPalette.bg)
+    } else {
+        Modifier.fillMaxSize()
+    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
-    ) {
-        RenderModalOriginBackdrop(
-            originScreenCode = originScreenCode,
-            viewModel = viewModel,
-            onOverlayInteraction = onSelectScreenCode,
-        )
+    Box(modifier = rootModifier) {
+        if (renderOriginBackdrop) {
+            RenderModalOriginBackdrop(
+                originScreenCode = originScreenCode,
+                viewModel = viewModel,
+                onOverlayInteraction = onSelectScreenCode,
+            )
+        }
 
         Box(
             modifier = Modifier

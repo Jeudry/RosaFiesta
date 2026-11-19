@@ -981,6 +981,7 @@ public fun RfField(
     helperOrError: String? = null,
     isError: Boolean = false,
     placeholder: String = "",
+    onFocusChanged: ((Boolean) -> Unit)? = null,
     onValueChange: ((String) -> Unit)? = null,
 ) {
     val palette = LocalRfPalette.current
@@ -1007,13 +1008,18 @@ public fun RfField(
         ) {
             if (onValueChange != null) {
                 val showPlaceholder = if (value.isEmpty()) placeholder.isNotEmpty() else false
+                val focusOwnerKey = remember(label) { Any() }
                 BasicTextField(
                     value = value,
                     onValueChange = onValueChange,
                     singleLine = true,
                     textStyle = typo.body.copy(color = palette.ink),
                     cursorBrush = SolidColor(palette.primaryAccent),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfTrackValidationFocus(focusKey = focusOwnerKey) { isFocused ->
+                            onFocusChanged?.invoke(isFocused)
+                        },
                     decorationBox = { innerTextField ->
                         Box(
                             contentAlignment = Alignment.CenterStart,
@@ -1914,7 +1920,7 @@ public fun RfPhoneFrame(
         RfRadialBackgroundBox(
             modifier = frameModifier,
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize().rfClearFocusOnOutsidePress()) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     content = content,

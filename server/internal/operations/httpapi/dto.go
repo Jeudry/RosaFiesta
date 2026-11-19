@@ -1,8 +1,10 @@
+// Package httpapi expone las rutas HTTP de operaciones, logística, incidencias, CRM y bot WhatsApp.
 package httpapi
 
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/Jeudry/rosafiesta/server/internal/operations/app"
 	"github.com/Jeudry/rosafiesta/server/internal/operations/domain"
@@ -42,6 +44,7 @@ type RouteStopsOutput struct {
 	}
 }
 
+// ReportDamageInput recibe los datos de daño o faltante post-evento incluyendo foto opcional.
 type ReportDamageInput struct {
 	EventID string `path:"eventId" doc:"Event identifier."`
 	Body    struct {
@@ -51,7 +54,58 @@ type ReportDamageInput struct {
 		MissingUnits  int    `json:"missingUnits" minimum:"0"`
 		ReplacementRD int    `json:"replacementRD" minimum:"0"`
 		Notes         string `json:"notes"`
+		PhotoURL      string `json:"photoUrl,omitempty"`
 	}
+}
+
+// ToCommand convierte el payload HTTP de daño al comando de aplicación.
+func (in *ReportDamageInput) ToCommand() app.ReportDamageCommand {
+	return app.ReportDamageCommand{
+		EventID:       in.EventID,
+		ArticleCode:   in.Body.ArticleCode,
+		ArticleName:   in.Body.ArticleName,
+		DamagedUnits:  in.Body.DamagedUnits,
+		MissingUnits:  in.Body.MissingUnits,
+		ReplacementRD: in.Body.ReplacementRD,
+		Notes:         in.Body.Notes,
+		PhotoURL:      in.Body.PhotoURL,
+	}
+}
+
+// ResolveDamageInput recibe el identificador de la incidencia y notas de resolución opcionales.
+type ResolveDamageInput struct {
+	ID   string `path:"id" doc:"Damage incident identifier."`
+	Body *struct {
+		Notes           string `json:"notes,omitempty"`
+		ResolutionNotes string `json:"resolutionNotes,omitempty"`
+	}
+}
+
+// Notes extrae notas de resolución desde el cuerpo JSON opcional.
+func (in *ResolveDamageInput) Notes() string {
+	if in.Body == nil {
+		return ""
+	}
+	clean := strings.TrimSpace(in.Body.ResolutionNotes)
+	if clean != "" {
+		return clean
+	}
+	return strings.TrimSpace(in.Body.Notes)
+}
+
+// SyncOfflineQueueInput acepta un lote opcional de mutaciones fuera de línea a sincronizar.
+type SyncOfflineQueueInput struct {
+	Body *struct {
+		Mutations []app.EnqueueOfflineMutationCommand `json:"mutations,omitempty"`
+	}
+}
+
+// Mutations extrae mutaciones entrantes desde un cuerpo JSON opcional.
+func (in *SyncOfflineQueueInput) Mutations() []app.EnqueueOfflineMutationCommand {
+	if in.Body == nil {
+		return nil
+	}
+	return in.Body.Mutations
 }
 
 type ReportDamageOutput struct {
@@ -401,7 +455,58 @@ type ReportExportOutput struct {
 	}
 }
 
+// SendWhatsAppReplyInput solicita enviar un mensaje saliente por WhatsApp Cloud API.
+type SendWhatsAppReplyInput struct {
+	Body struct {
+		ThreadID       string `json:"threadId,omitempty"`
+		RecipientPhone string `json:"recipientPhone,omitempty"`
+		Message        string `json:"message" minLength:"1"`
+	}
+}
+
+// VerifyWhatsAppWebhookInput captura los parámetros de verificación de Meta Cloud API.
+type VerifyWhatsAppWebhookInput struct {
+	Mode      string `query:"hub.mode"`
+	Token     string `query:"hub.verify_token"`
+	Challenge string `query:"hub.challenge"`
+}
+
+// PlainTextOutput devuelve el challenge en texto plano esperado por Meta Webhook.
+type PlainTextOutput struct {
+	ContentType string `header:"Content-Type"`
+	Body        []byte
+}
+
+// IngestWhatsAppWebhookInput recibe la carga cruda del webhook de Meta WhatsApp.
+type IngestWhatsAppWebhookInput struct {
+	RawBody []byte
+}
+
+// WhatsAppWebhookAckOutput confirma la recepción del webhook de WhatsApp.
+type WhatsAppWebhookAckOutput struct {
+	Body struct {
+		Received bool `json:"received"`
+	}
+}
+
+type operationsErrorSpec struct {
+	target error
+	status int
+	code   string
+	policy string
+}
+
+var operationsErrorSpecs = []operationsErrorSpec{
+	{domain.ErrWhatsAppNotConfigured, http.StatusServiceUnavailable, "WHATSAPP_PROVIDER_NOT_CONFIGURED", "WhatsAppCloudAPIConfiguration"},
+	{domain.ErrWhatsAppVerifyFailed, http.StatusForbidden, "WHATSAPP_WEBHOOK_FORBIDDEN", "WhatsAppWebhookTokenVerification"},
+}
+
 func mapOperationsError(err error, endpoint, defaultCode, policy string, defaultStatus int) *platformhttp.APIError {
+	for _, spec := range operationsErrorSpecs {
+		if errors.Is(err, spec.target) {
+			return platformhttp.NewAPIError(spec.status, spec.code, err.Error(), endpoint, spec.policy, err.Error())
+		}
+	}
 	if isOperationsNotFound(err) {
 		return platformhttp.NewAPIError(
 			http.StatusNotFound,
@@ -427,6 +532,9 @@ func isOperationsNotFound(err error) bool {
 		return true
 	}
 	if errors.Is(err, domain.ErrChecklistNotFound) {
+		return true
+	}
+	if errors.Is(err, domain.ErrDamageIncidentNotFound) {
 		return true
 	}
 	if errors.Is(err, domain.ErrReviewNotFound) {

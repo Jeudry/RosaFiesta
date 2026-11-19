@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/Jeudry/rosafiesta/server/internal/platform/clock"
 	"github.com/Jeudry/rosafiesta/server/internal/platform/config"
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
+	"github.com/Jeudry/rosafiesta/server/internal/platform/mailer"
 )
 
 const defaultSessionTTL = 30 * 24 * time.Hour
@@ -42,17 +44,39 @@ type UpdateProfileCommand struct {
 	AvatarKey *string
 }
 
+type UpdatePreferencesCommand struct {
+	PushNotificationsEnabled *bool
+	WhatsAppAlertsEnabled    *bool
+	EmailReceiptsEnabled     *bool
+	BiometricLockEnabled     *bool
+	AutoSyncWifiOnly         *bool
+}
+
+// Options define las dependencias y políticas de autenticación del servicio de identidad.
 type Options struct {
-	Env            config.Environment
-	JWTSecret      string
-	SMTPHost       string
-	SMTPPort       int
-	SMTPFrom       string
-	SMTPUsername   string
-	SMTPPassword   string
-	GoogleClientID string
-	AppleClientID  string
-	Notifier       OTPNotifier
+	Env                   config.Environment
+	JWTSecret             string
+	SMTPHost              string
+	SMTPPort              int
+	SMTPFrom              string
+	SMTPUsername          string
+	SMTPPassword          string
+	RequireConfiguredSMTP bool
+	EmailSender           mailer.Sender
+	GoogleClientID        string
+	GoogleClientSecret    string
+	AppleClientID         string
+	AppleClientSecret     string
+	AppleTeamID           string
+	AppleKeyID            string
+	ApplePrivateKey       string
+	GoogleJWKSURL         string
+	AppleJWKSURL          string
+	GoogleTokenURL        string
+	AppleTokenURL         string
+	WebPushVAPIDPublicKey string
+	OAuthHTTPClient       *http.Client
+	Notifier              OTPNotifier
 }
 
 type Store interface {
@@ -66,6 +90,7 @@ type Store interface {
 	DeleteSession(ctx context.Context, rawSessionToken string) error
 	DeleteSessionsByUser(ctx context.Context, userID uuid.UUID) error
 	UpdateActiveView(ctx context.Context, userID uuid.UUID, view domain.AppView) error
+	UpdateUserPreferences(ctx context.Context, userID uuid.UUID, prefs domain.UserPreferences) error
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
 	UpsertOTP(ctx context.Context, record domain.OTPRecord) error
 	GetOTP(ctx context.Context, email string) (domain.OTPRecord, error)
@@ -76,6 +101,17 @@ type Store interface {
 	UpsertAdminClient(ctx context.Context, client domain.AdminClient) error
 	ListStaffMembers(ctx context.Context) ([]domain.StaffRecord, error)
 	UpsertStaffMember(ctx context.Context, staff domain.StaffRecord) error
+	UpsertDevicePushToken(ctx context.Context, record domain.DevicePushToken) error
+	DisableDevicePushToken(ctx context.Context, userID uuid.UUID, token string, updatedAt time.Time) error
+	DisableAllUserPushTokens(ctx context.Context, userID uuid.UUID, updatedAt time.Time) error
+	ListActivePushTokensForUser(ctx context.Context, userID uuid.UUID) ([]domain.DevicePushToken, error)
+	ListActiveAdminPushTokens(ctx context.Context) ([]domain.DevicePushToken, error)
+	SaveRefreshToken(ctx context.Context, record domain.RefreshTokenRecord) error
+	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (domain.RefreshTokenRecord, error)
+	RevokeRefreshToken(ctx context.Context, tokenHash string, updatedAt time.Time) error
+	RevokeRefreshTokenFamily(ctx context.Context, familyID uuid.UUID, updatedAt time.Time) error
+	RevokeRefreshTokensByUser(ctx context.Context, userID uuid.UUID, updatedAt time.Time) error
+	DeleteExpiredRefreshTokens(ctx context.Context, expiresBefore, revokedUpdatedBefore time.Time) (int64, error)
 }
 
 type sessionEntry struct {
@@ -84,19 +120,23 @@ type sessionEntry struct {
 }
 
 type Service struct {
-	mu            sync.RWMutex
-	clock         clock.Clock
-	checker       ActiveEventsChecker
-	store         Store
-	opts          Options
-	tokenMgr      domain.TokenManager
-	notifier      OTPNotifier
-	users         map[uuid.UUID]domain.User
-	sessionHashes map[string]sessionEntry
-	revokedHashes map[string]struct{}
-	otps          map[string]domain.OTPRecord
-	clients       []domain.AdminClient
-	staff         []domain.StaffRecord
+	mu                     sync.RWMutex
+	clock                  clock.Clock
+	checker                ActiveEventsChecker
+	store                  Store
+	opts                   Options
+	tokenMgr               domain.TokenManager
+	notifier               OTPNotifier
+	customNotifierProvided bool
+	users                  map[uuid.UUID]domain.User
+	sessionHashes          map[string]sessionEntry
+	revokedHashes          map[string]struct{}
+	refreshTokens          map[string]domain.RefreshTokenRecord
+	otps                   map[string]domain.OTPRecord
+	pushTokens             map[string]domain.DevicePushToken
+	clients                []domain.AdminClient
+	staff                  []domain.StaffRecord
+	jwksCache              *jwksKeyCache
 }
 
 var (
@@ -122,16 +162,19 @@ func NewServiceWithOptions(clk clock.Clock, checker ActiveEventsChecker, opts Op
 		resolvedEnv = config.EnvDevelopment
 	}
 	opts.Env = resolvedEnv
+	customNotifier := opts.Notifier != nil
 	notifier := opts.Notifier
 	if notifier == nil {
 		notifier = newDefaultOTPNotifier(opts)
 	}
 	svc := &Service{
-		clock:    clk,
-		checker:  checker,
-		opts:     opts,
-		tokenMgr: domain.NewTokenManager(opts.JWTSecret),
-		notifier: notifier,
+		clock:                  clk,
+		checker:                checker,
+		opts:                   opts,
+		tokenMgr:               domain.NewTokenManager(opts.JWTSecret),
+		notifier:               notifier,
+		customNotifierProvided: customNotifier,
+		jwksCache:              newJWKSKeyCache(opts.OAuthHTTPClient),
 	}
 	svc.Reset(context.Background())
 	return svc
@@ -148,7 +191,9 @@ func (s *Service) Reset(_ context.Context) {
 	s.users = users
 	s.sessionHashes = sessions
 	s.revokedHashes = make(map[string]struct{})
+	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
 	s.otps = make(map[string]domain.OTPRecord)
+	s.pushTokens = make(map[string]domain.DevicePushToken)
 	s.clients = defaultClients(now)
 	s.staff = defaultStaff(now)
 	s.mu.Unlock()
@@ -165,7 +210,9 @@ func (s *Service) ResetAdminOnly(_ context.Context) {
 	s.users = users
 	s.sessionHashes = sessions
 	s.revokedHashes = make(map[string]struct{})
+	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
 	s.otps = make(map[string]domain.OTPRecord)
+	s.pushTokens = make(map[string]domain.DevicePushToken)
 	s.clients = nil
 	s.staff = defaultAdminStaff(now)
 	s.mu.Unlock()
@@ -269,77 +316,19 @@ func (s *Service) ListRegisteredUsers(ctx context.Context) []domain.User {
 }
 
 func (s *Service) Login(ctx context.Context, identifier, password string) (domain.User, string, error) {
-	cleanPass := strings.TrimSpace(password)
-	trimmedIdentifier := strings.TrimSpace(identifier)
-	cleanIdentifier := strings.ToLower(trimmedIdentifier)
-	if cleanIdentifier == "" {
-		return domain.User{}, "", domain.ErrInvalidCredentials
+	session, err := s.LoginWithSession(ctx, identifier, password)
+	if err != nil {
+		return domain.User{}, "", err
 	}
-	if cleanPass == "" {
-		return domain.User{}, "", domain.ErrInvalidCredentials
-	}
-	s.syncUsersFromStore(ctx)
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	user, found := s.findUserLocked(cleanIdentifier)
-	if !found {
-		return domain.User{}, "", domain.ErrInvalidCredentials
-	}
-	validPassword := domain.VerifyPassword(user.PasswordHash, cleanPass)
-	if !validPassword {
-		return domain.User{}, "", domain.ErrInvalidCredentials
-	}
-	token := s.issueAndPersistSessionLocked(ctx, user)
-	return user, token, nil
+	return session.User, session.AccessToken, nil
 }
 
 func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (domain.User, string, error) {
-	normalizedEmail, err := domain.NormalizeEmail(cmd.Email)
+	session, err := s.RegisterWithSession(ctx, cmd)
 	if err != nil {
-		return domain.User{}, "", domain.ErrInvalidInput
-	}
-	fullName := strings.TrimSpace(cmd.FullName)
-	if fullName == "" {
-		return domain.User{}, "", domain.ErrInvalidInput
-	}
-	passwordHash, err := domain.HashPassword(cmd.Password)
-	if err != nil {
-		return domain.User{}, "", domain.ErrInvalidInput
-	}
-	trimmedUsername := strings.TrimSpace(cmd.Username)
-	username := strings.ToLower(trimmedUsername)
-	if username == "" {
-		emailParts := strings.Split(normalizedEmail, "@")
-		username = emailParts[0]
-	}
-
-	s.syncUsersFromStore(ctx)
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if err := s.ensureUniqueEmailAndUsernameLocked(uuid.Nil, normalizedEmail, username); err != nil {
 		return domain.User{}, "", err
 	}
-
-	now := s.clock.Now()
-	newUser := domain.User{
-		ID:           uuid.New(),
-		Username:     username,
-		FullName:     fullName,
-		Email:        normalizedEmail,
-		Phone:        strings.TrimSpace(cmd.Phone),
-		BirthDate:    strings.TrimSpace(cmd.BirthDate),
-		Role:         domain.RoleClient,
-		Permissions:  []string{},
-		ActiveView:   domain.ViewPersonal,
-		CreatedAt:    now,
-		PasswordHash: passwordHash,
-	}
-	s.users[newUser.ID] = newUser
-	token := s.issueAndPersistSessionLocked(ctx, newUser)
-	return newUser, token, nil
+	return session.User, session.AccessToken, nil
 }
 
 func (s *Service) Logout(ctx context.Context, rawToken string) error {
@@ -381,6 +370,79 @@ func (s *Service) UpdateProfile(ctx context.Context, userID uuid.UUID, cmd Updat
 	return updated, nil
 }
 
+func (s *Service) UpdatePreferences(
+	ctx context.Context,
+	userID uuid.UUID,
+	cmd UpdatePreferencesCommand,
+) (domain.User, error) {
+	s.syncUsersFromStore(ctx)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	user, ok := s.users[userID]
+	if !ok {
+		return domain.User{}, domain.ErrUserNotFound
+	}
+	user.Preferences = mergeUserPreferences(user.Preferences, cmd)
+	s.users[userID] = user
+	pushDisabled := !user.Preferences.PushNotificationsEnabled
+	if pushDisabled {
+		s.disableAllUserPushTokensLocked(userID)
+	}
+	store := s.store
+	if store != nil {
+		if store.Enabled() {
+			_ = store.UpdateUserPreferences(ctx, userID, user.Preferences)
+			if pushDisabled {
+				_ = store.DisableAllUserPushTokens(ctx, userID, s.clock.Now())
+			}
+		}
+	}
+	return user, nil
+}
+
+func (s *Service) PreferencesForAccount(ctx context.Context, userID uuid.UUID, email string) domain.UserPreferences {
+	s.syncUsersFromStore(ctx)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if userID != uuid.Nil {
+		if user, ok := s.users[userID]; ok {
+			return user.Preferences
+		}
+	}
+	cleanEmail := strings.ToLower(strings.TrimSpace(email))
+	if cleanEmail != "" {
+		if user, found := s.findUserLocked(cleanEmail); found {
+			return user.Preferences
+		}
+	}
+	return domain.DefaultUserPreferences()
+}
+
+func mergeUserPreferences(
+	current domain.UserPreferences,
+	cmd UpdatePreferencesCommand,
+) domain.UserPreferences {
+	updated := current
+	if cmd.PushNotificationsEnabled != nil {
+		updated.PushNotificationsEnabled = *cmd.PushNotificationsEnabled
+	}
+	if cmd.WhatsAppAlertsEnabled != nil {
+		updated.WhatsAppAlertsEnabled = *cmd.WhatsAppAlertsEnabled
+	}
+	if cmd.EmailReceiptsEnabled != nil {
+		updated.EmailReceiptsEnabled = *cmd.EmailReceiptsEnabled
+	}
+	if cmd.BiometricLockEnabled != nil {
+		updated.BiometricLockEnabled = *cmd.BiometricLockEnabled
+	}
+	if cmd.AutoSyncWifiOnly != nil {
+		updated.AutoSyncWifiOnly = *cmd.AutoSyncWifiOnly
+	}
+	return updated
+}
+
 func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword string) error {
 	s.syncUsersFromStore(ctx)
 	s.mu.Lock()
@@ -401,11 +463,8 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, currentP
 	}
 	user.PasswordHash = newHash
 	s.users[userID] = user
-	if s.store != nil {
-		if s.store.Enabled() {
-			_ = s.store.UpdatePassword(ctx, user.Email, newHash)
-		}
-	}
+	s.updatePasswordInStoreLocked(ctx, user.Email, newHash)
+	s.revokeUserRefreshTokensLocked(ctx, userID, s.clock.Now())
 	return nil
 }
 
@@ -462,6 +521,7 @@ func (s *Service) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
 		return err
 	}
 	delete(s.users, userID)
+	s.revokeUserRefreshTokensLocked(ctx, userID, s.clock.Now())
 	for hash, entry := range s.sessionHashes {
 		if entry.UserID == userID {
 			delete(s.sessionHashes, hash)
@@ -526,23 +586,6 @@ func (s *Service) ensureUniqueEmailAndUsernameLocked(excludeID uuid.UUID, email,
 		}
 	}
 	return nil
-}
-
-func (s *Service) issueAndPersistSessionLocked(ctx context.Context, user domain.User) string {
-	now := s.clock.Now()
-	expiresAt := now.Add(defaultSessionTTL)
-	jwtToken := s.tokenMgr.Issue(user, now)
-	tokenHash := domain.HashToken(jwtToken)
-	s.sessionHashes[tokenHash] = sessionEntry{
-		UserID:    user.ID,
-		ExpiresAt: expiresAt,
-	}
-	if s.store != nil {
-		if s.store.Enabled() {
-			_ = s.store.UpsertUser(ctx, user, jwtToken, expiresAt)
-		}
-	}
-	return jwtToken
 }
 
 func (s *Service) persistUserOnlyLocked(ctx context.Context, user domain.User) {

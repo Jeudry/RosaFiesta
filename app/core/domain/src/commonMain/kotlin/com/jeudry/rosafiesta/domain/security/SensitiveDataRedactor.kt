@@ -106,6 +106,20 @@ public object SensitiveDataRedactor {
             "PAYMENT_VALIDATION_FAILED" -> "Verifica el monto en RD$ y el código de referencia bancaria antes de registrar el pago."
             "DAMAGE_REPORT_INVALID" -> "Completa el artículo, las unidades afectadas y el monto de reposición."
             "RATE_LIMIT_EXCEEDED" -> "Demasiados intentos seguidos. Espera un minuto antes de volver a intentarlo."
+            "SMTP_PROVIDER_NOT_CONFIGURED" -> "El servidor de correo SMTP no está configurado en este entorno."
+            "OAUTH_PROVIDER_NOT_CONFIGURED" -> "El proveedor de inicio de sesión Google o Apple no está configurado en este servidor."
+            "AI_PROVIDER_NOT_CONFIGURED" -> "El proveedor de inteligencia artificial de Rosa no está configurado en el servidor."
+            "STT_PROVIDER_NOT_CONFIGURED" -> "La transcripción automática de audio no está configurada en el servidor; escribe tu mensaje manualmente."
+            "CARD_GATEWAY_NOT_CONFIGURED" -> "La pasarela de pagos con tarjeta no está configurada; utiliza transferencia bancaria o efectivo."
+            "WHATSAPP_PROVIDER_NOT_CONFIGURED" -> "El proveedor de mensajería WhatsApp no está configurado en el servidor."
+            "STOCK_INSUFFICIENT_FOR_DATE" -> "No hay inventario suficiente disponible para la ventana logística de esta fecha."
+            "ROSA_AUDIO_TOO_LONG" -> "El audio supera el límite permitido. Envía una nota de voz más corta o escribe tu solicitud."
+            "ROSA_RATE_LIMITED" -> "Rosa recibió demasiadas solicitudes seguidas. Espera unos segundos antes de volver a intentarlo."
+            "INVALID_FISCAL_RNC" -> "El RNC o Cédula ingresado no es válido para comprobante fiscal B01 (requiere 9 u 11 dígitos)."
+            "PAYMENT_NOT_PENDING" -> "Este pago ya fue procesado anteriormente y no se encuentra pendiente de verificación."
+            "MEDIA_TOO_LARGE" -> "El archivo supera el tamaño máximo permitido de 10 MB."
+            "MEDIA_UNSUPPORTED_MIME" -> "Formato de archivo no compatible. Usa imágenes PNG, JPEG, WebP o PDF."
+            "EVENT_CLOSEOUT_REJECTED" -> "Este evento ya completó su cierre operativo o no puede cerrarse en este estado."
             else -> null
         }
         if (mapped != null) return mapped

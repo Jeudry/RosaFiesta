@@ -1,4 +1,4 @@
-# HTTPS automático (Let's Encrypt) para el dominio de la API RosaFiesta.
+# HTTPS automático (Let's Encrypt) para API y frontend Web WasmJS de RosaFiesta.
 {$API_DOMAIN} {
 	encode zstd gzip
 	reverse_proxy api:8788
@@ -6,6 +6,37 @@
 		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+{$WEB_DOMAIN} {
+	encode zstd gzip
+	root * /srv/web
+
+	@service_worker path /sw.js
+	header @service_worker {
+		Cache-Control "no-cache"
+		Service-Worker-Allowed "/"
+	}
+
+	@wasm_assets path *.wasm *.js
+	header @wasm_assets {
+		Cache-Control "public, max-age=3600"
+	}
+
+	try_files {path} /index.html
+	file_server
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 	}

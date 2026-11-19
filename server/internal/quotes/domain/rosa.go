@@ -55,11 +55,50 @@ type RosaAdminSnapshot struct {
 	LowStockItems      []string
 }
 
+// RosaSuggestedItem representa un artículo sugerido por Rosa dentro de una respuesta de chat.
+type RosaSuggestedItem struct {
+	ArticleCode string `json:"articleCode"`
+	Name        string `json:"name,omitempty"`
+	Quantity    int    `json:"quantity"`
+}
+
+// RosaChatReply representa la salida estructurada generada por el proveedor de IA configurado.
+type RosaChatReply struct {
+	Reply          string              `json:"reply"`
+	SuggestedItems []RosaSuggestedItem `json:"suggestedItems,omitempty"`
+	Provider       string              `json:"provider"`
+	Model          string              `json:"model"`
+}
+
+// RosaChatResponse define la respuesta HTTP del asistente Rosa preservando campos legacy y estructurados.
 type RosaChatResponse struct {
-	Reply      string                 `json:"reply"`
-	Intent     string                 `json:"intent"`
-	ActionCode string                 `json:"actionCode,omitempty"`
-	Proposal   *RosaMoodboardProposal `json:"proposal,omitempty"`
+	Reply          string                 `json:"reply"`
+	Intent         string                 `json:"intent"`
+	ActionCode     string                 `json:"actionCode,omitempty"`
+	Proposal       *RosaMoodboardProposal `json:"proposal,omitempty"`
+	SuggestedItems []RosaSuggestedItem    `json:"suggestedItems,omitempty"`
+	Provider       string                 `json:"provider,omitempty"`
+	Model          string                 `json:"model,omitempty"`
+}
+
+// RosaSketchElement representa un elemento posicionado en el plano interactivo del salón.
+type RosaSketchElement struct {
+	ID       string  `json:"id"`
+	Kind     string  `json:"kind"`
+	Label    string  `json:"label"`
+	XRatio   float64 `json:"xRatio"`
+	YRatio   float64 `json:"yRatio"`
+	Capacity int     `json:"capacity"`
+}
+
+// RosaSketchResponse devuelve la propuesta espacial IA generada para el plano de decoración.
+type RosaSketchResponse struct {
+	Reply       string              `json:"reply"`
+	Elements    []RosaSketchElement `json:"elements"`
+	EventWidthM float64             `json:"eventWidthMeters"`
+	EventDepthM float64             `json:"eventDepthMeters"`
+	Provider    string              `json:"provider"`
+	Model       string              `json:"model"`
 }
 
 func DefaultCatalogSKUs() []CatalogSKU {

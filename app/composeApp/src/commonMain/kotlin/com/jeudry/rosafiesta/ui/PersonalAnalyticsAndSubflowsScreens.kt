@@ -66,6 +66,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -87,7 +88,9 @@ import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfTrackValidationFocus
 import com.jeudry.rosafiesta.domain.ArticleAvailabilityCalendar
+import com.jeudry.rosafiesta.domain.ArticleAvailabilityDay
 import com.jeudry.rosafiesta.domain.AuditLogRecord
 import com.jeudry.rosafiesta.domain.BotFaqRecord
 import com.jeudry.rosafiesta.domain.BotKeywordRecord
@@ -103,6 +106,7 @@ import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.ReviewRecord
 import com.jeudry.rosafiesta.domain.validation.InputValidator
+import com.jeudry.rosafiesta.domain.validation.MaskedTextCursorResult
 import kotlin.math.roundToInt
 
 @Composable
@@ -681,7 +685,7 @@ internal fun RenderAboutScreenS16(
                     MapIllustrationS16(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
+                            .height(96.dp)
                             .clickable { viewModel?.openMapsSearch(settings.address) },
                     )
 
@@ -857,16 +861,21 @@ internal fun RenderCompanyReviewsS17(
     val averageRatingValue = remember(reviews) {
         computeAverageRatingValue(reviews)
     }
-    val avgRatingText = remember(reviews, uiReviews) {
+    val avgRatingText = remember(reviews) {
         if (reviews.isNotEmpty()) {
             formatAverageRatingTenths(averageRatingValue)
         } else {
-            viewModel?.companyAverageRatingFormatted() ?: "5.0"
+            "0.0"
         }
     }
-    val filledSummaryStars = remember(averageRatingValue) {
-        averageRatingValue.roundToInt().coerceIn(1, 5)
+    val filledSummaryStars = remember(reviews, averageRatingValue) {
+        if (reviews.isNotEmpty()) {
+            averageRatingValue.roundToInt().coerceIn(1, 5)
+        } else {
+            0
+        }
     }
+    val canWriteReview = viewModel?.hasCompletedOrUsedRental() ?: false
     val verifiedCount = remember(reviews) { reviews.count { reviewItem -> reviewItem.isVerified } }
     val filteredReviews = remember(reviews, selectedFilter) {
         if (selectedFilter == 1) {
@@ -962,9 +971,9 @@ internal fun RenderCompanyReviewsS17(
                             style = TextStyle(
                                 fontFamily = typo.displayFamily,
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 48.sp,
+                                fontSize = 34.sp,
                                 letterSpacing = (-1).sp,
-                                lineHeight = 44.sp,
+                                lineHeight = 32.sp,
                                 color = palette.ink,
                             ),
                         )
@@ -1097,31 +1106,47 @@ internal fun RenderCompanyReviewsS17(
                 )
                 .padding(start = 20.dp, end = 20.dp, bottom = 36.dp, top = 16.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
-                    .clickable {
-                        localReviewError = null
-                        showWriteReviewModal = true
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+            if (canWriteReview) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0xB3C846B4), ambientColor = Color.Transparent)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFFB754CB), Color(0xFF865DEC))))
+                        .clickable {
+                            localReviewError = null
+                            showWriteReviewModal = true
+                        },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    CustomSvgIcon(
-                        pathData = "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
-                        size = 20.dp,
-                        tint = Color.White,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CustomSvgIcon(
+                            pathData = "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
+                            size = 20.dp,
+                            tint = Color.White,
+                        )
+                        BasicText(
+                            text = "Escribir una reseña",
+                            style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
+                    }
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(palette.chipBg)
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
                     BasicText(
-                        text = "Escribir una reseña",
-                        style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        text = "Solo puedes escribir una reseña después de alquilar o usar un producto.",
+                        style = typo.body.copy(fontSize = 13.sp, color = palette.muted, textAlign = TextAlign.Center),
                     )
                 }
             }
@@ -3124,27 +3149,16 @@ internal fun RenderInventoryCalendarS63(
     val resolvedTotalStock = (availability?.totalStock ?: activeArticle.totalStock).coerceAtLeast(1)
     val halfStockThreshold = (resolvedTotalStock + 1) / 2
 
-    val dayRecordsByNumber = remember(availability, activeArticle, calendarYear, calendarMonthOneBased, daysInMonth, resolvedTotalStock) {
-        val mapped = mutableMapOf<Int, Pair<Int, Int>>()
-        val existingDays = availability?.days.orEmpty()
-        for (dayNumber in 1..daysInMonth) {
-            val paddedDay = dayNumber.toString().padStart(2, '0')
-            val targetIso = "$monthIso-$paddedDay"
-            val matchedDay = existingDays.firstOrNull { dayEntry -> dayEntry.dateIso == targetIso }
-            if (matchedDay != null) {
-                mapped[dayNumber] = matchedDay.availableUnits to matchedDay.reservedUnits
-            } else {
-                val simulatedReserved = when {
-                    dayNumber == 23 -> (resolvedTotalStock - activeArticle.availableOct23).coerceAtLeast(0)
-                    dayNumber % 9 == 0 -> (resolvedTotalStock * 6) / 10
-                    dayNumber % 6 == 0 -> (resolvedTotalStock * 3) / 10
-                    else -> 0
-                }
-                val simulatedAvailable = (resolvedTotalStock - simulatedReserved).coerceAtLeast(0)
-                mapped[dayNumber] = simulatedAvailable to simulatedReserved
-            }
-        }
-        mapped
+    val isPreviewMode = viewModel == null
+    val dayRecordsByNumber = remember(availability, activeArticle, calendarYear, calendarMonthOneBased, daysInMonth, resolvedTotalStock, isPreviewMode) {
+        buildCalendarDayAvailabilityMap(
+            daysInMonth = daysInMonth,
+            monthIso = monthIso,
+            existingDays = availability?.days.orEmpty(),
+            resolvedTotalStock = resolvedTotalStock,
+            previewOct23Available = activeArticle.availableOct23,
+            includePreviewSimulation = isPreviewMode,
+        )
     }
 
     val calendarCells = remember(mondayFirstOffset, daysInMonth, dayRecordsByNumber, halfStockThreshold) {
@@ -3403,6 +3417,39 @@ private fun CalendarLegend63(label: String, color: Color) {
     }
 }
 
+private fun buildCalendarDayAvailabilityMap(
+    daysInMonth: Int,
+    monthIso: String,
+    existingDays: List<ArticleAvailabilityDay>,
+    resolvedTotalStock: Int,
+    previewOct23Available: Int,
+    includePreviewSimulation: Boolean,
+): Map<Int, Pair<Int, Int>> {
+    val mapped = mutableMapOf<Int, Pair<Int, Int>>()
+    for (dayNumber in 1..daysInMonth) {
+        val paddedDay = dayNumber.toString().padStart(2, '0')
+        val targetIso = "$monthIso-$paddedDay"
+        val matchedDay = existingDays.firstOrNull { dayEntry -> dayEntry.dateIso == targetIso }
+        if (matchedDay != null) {
+            mapped[dayNumber] = matchedDay.availableUnits to matchedDay.reservedUnits
+            continue
+        }
+        if (!includePreviewSimulation) {
+            mapped[dayNumber] = resolvedTotalStock to 0
+            continue
+        }
+        val previewReserved = when {
+            dayNumber == 23 -> (resolvedTotalStock - previewOct23Available).coerceAtLeast(0)
+            dayNumber % 9 == 0 -> (resolvedTotalStock * 6) / 10
+            dayNumber % 6 == 0 -> (resolvedTotalStock * 3) / 10
+            else -> 0
+        }
+        val previewAvailable = (resolvedTotalStock - previewReserved).coerceAtLeast(0)
+        mapped[dayNumber] = previewAvailable to previewReserved
+    }
+    return mapped
+}
+
 @Composable
 internal fun RenderLeadsPipelineS64(
     viewModel: RosaFiestaViewModel? = null,
@@ -3611,9 +3658,9 @@ private fun NewCommercialLeadModal(
     val typo = LocalRfTypography.current
     var clientNameInput by remember { mutableStateOf("") }
     var phoneInput by remember { mutableStateOf("") }
-    var eventTypeInput by remember { mutableStateOf("Boda") }
-    var guestsInput by remember { mutableStateOf("80") }
-    var budgetDopInput by remember { mutableStateOf("4500") }
+    var eventTypeInput by remember { mutableStateOf("") }
+    var guestsInput by remember { mutableStateOf("") }
+    var budgetDopInput by remember { mutableStateOf("") }
     var followUpNoteInput by remember { mutableStateOf("") }
     var localErrorText by remember { mutableStateOf<String?>(null) }
 
@@ -3731,8 +3778,10 @@ private fun NewCommercialLeadModal(
             placeholder = "809-555-0199",
             isError = debouncedPhoneError != null,
             errorMessage = debouncedPhoneError,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            cursorMask = InputValidator::filterPhoneInputWithCursor,
         ) { updatedValue ->
-            phoneInput = InputValidator.filterPhoneInput(updatedValue)
+            phoneInput = updatedValue
             hasInteractedPhone = true
             localErrorText = null
         }
@@ -3879,6 +3928,9 @@ internal fun AdminModalLabeledField(
     placeholder: String,
     isError: Boolean = false,
     errorMessage: String? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    cursorMask: ((previousFormatted: String, newRawText: String, newSelectionEnd: Int) -> MaskedTextCursorResult)? = null,
+    onFocusChanged: ((Boolean) -> Unit)? = null,
     onValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -3908,14 +3960,38 @@ internal fun AdminModalLabeledField(
                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF8C90A4)),
                 )
             }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF151729)),
-                cursorBrush = SolidColor(Color(0xFF5B6CF0)),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (cursorMask != null) {
+                val maskKey = remember { Any() }
+                RfMaskedDigitBasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    maskTransform = cursorMask,
+                    singleLine = true,
+                    keyboardOptions = keyboardOptions,
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF151729)),
+                    cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfTrackValidationFocus(focusKey = maskKey) { isFocused ->
+                            onFocusChanged?.invoke(isFocused)
+                        },
+                )
+            } else {
+                val plainKey = remember { Any() }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    keyboardOptions = keyboardOptions,
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF151729)),
+                    cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfTrackValidationFocus(focusKey = plainKey) { isFocused ->
+                            onFocusChanged?.invoke(isFocused)
+                        },
+                )
+            }
         }
         RfValidationErrorText(errorMessage = errorMessage)
     }
@@ -4286,7 +4362,7 @@ internal fun RenderLeadsStatsS66(
                 Column {
                     BasicText("Tasa de conversión", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 13.sp))
                     Spacer(Modifier.height(8.dp))
-                    BasicText(conversionPercentLabel, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, lineHeight = 46.sp, color = Color.White))
+                    BasicText(conversionPercentLabel, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp, lineHeight = 34.sp, color = Color.White))
                 }
                 BasicText(
                     "$effectiveWonCount de ${leadsList.size} leads\nganados (${quotesList.size} cotiz.)",
@@ -4314,6 +4390,24 @@ private val ReportGradient = Brush.linearGradient(
     listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)),
 )
 
+private fun mapReportPeriodToAnalyticsRange(periodCode: String): String = when {
+    periodCode.contains("09") -> "30d"
+    periodCode.contains("10") -> "90d"
+    periodCode.contains("all", ignoreCase = true) -> "all"
+    else -> "365d"
+}
+
+private fun isDecorLineItemTitle(lowerTitle: String): Boolean {
+    if (lowerTitle.contains("decor")) return true
+    if (lowerTitle.contains("flor")) return true
+    return lowerTitle.contains("arco")
+}
+
+private fun isRentalLineItemTitle(lowerTitle: String): Boolean {
+    if (isDecorLineItemTitle(lowerTitle)) return false
+    return !lowerTitle.contains("transporte")
+}
+
 @Composable
 internal fun RenderReportsIncomeS67(
     onSelectScreenCode: (String) -> Unit = {},
@@ -4322,28 +4416,63 @@ internal fun RenderReportsIncomeS67(
     val typo = LocalRfTypography.current
     val paymentsList = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
     val metricsSnapshot = viewModel?.metrics?.collectAsState()?.value ?: CanonicalSampleData.businessMetrics
+    val analyticsSummary = viewModel?.analyticsSummary?.collectAsState()?.value
     val feedbackMessage = viewModel?.formFeedback?.collectAsState()?.value
     var periodIndex by remember { mutableStateOf(1) }
     val activePeriodPair = ReportPeriodOptions[periodIndex]
     val activePeriodLabel = activePeriodPair.first
     val activePeriodCode = activePeriodPair.second
 
-    val baseRevenue = paymentsList.sumOf { paymentItem -> paymentItem.amountDop }.coerceAtLeast(metricsSnapshot.octoberRevenueDop)
-    val periodRevenueDop = when (periodIndex) {
-        0 -> (baseRevenue * 85) / 100
-        1 -> baseRevenue
-        else -> (baseRevenue * 185) / 100
+    LaunchedEffect(periodIndex, viewModel) {
+        val rangeKey = mapReportPeriodToAnalyticsRange(activePeriodCode)
+        viewModel?.loadAnalytics(rangeKey)
     }
-    val periodExpensesDop = (periodRevenueDop * 28) / 100
-    val netProfitDop = periodRevenueDop - periodExpensesDop
+
+    val verifiedPaymentsSum = paymentsList
+        .filter { paymentItem -> paymentItem.verified }
+        .sumOf { paymentItem -> paymentItem.amountDop }
+    val fallbackRevenue = if (verifiedPaymentsSum > 0) verifiedPaymentsSum else metricsSnapshot.octoberRevenueDop
+    val serverRevenueDop = analyticsSummary?.totalRevenueDop ?: 0
+    val periodRevenueDop = if (serverRevenueDop > 0) serverRevenueDop else fallbackRevenue
+    val periodExpensesDop = (analyticsSummary?.totalExpensesDop ?: 0).coerceAtLeast(0)
+    val netProfitDop = (periodRevenueDop - periodExpensesDop).coerceAtLeast(0)
 
     val formattedNetProfit = RosaFiestaEngine.formatDop(netProfitDop)
     val formattedRevenue = RosaFiestaEngine.formatDop(periodRevenueDop)
     val formattedExpenses = RosaFiestaEngine.formatDop(periodExpensesDop)
 
-    val rentalShareDop = (periodRevenueDop * 63) / 100
-    val decorShareDop = (periodRevenueDop * 27) / 100
-    val extraServicesDop = (periodRevenueDop - rentalShareDop - decorShareDop).coerceAtLeast(0)
+    val allEventsList = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val realRentalShareDop = allEventsList.flatMap { event -> event.items }
+        .filter { item -> isRentalLineItemTitle(item.name.lowercase()) }
+        .sumOf { item -> item.quantity * item.unitPriceDop }
+    val realDecorShareDop = allEventsList.flatMap { event -> event.items }
+        .filter { item -> isDecorLineItemTitle(item.name.lowercase()) }
+        .sumOf { item -> item.quantity * item.unitPriceDop }
+    val realExtraServicesDop = allEventsList.sumOf { event ->
+        val itemsSubtotal = event.items.sumOf { item -> item.quantity * item.unitPriceDop }
+        (event.totalDop - itemsSubtotal).coerceAtLeast(0)
+    }
+    val rawCategorizedSum = realRentalShareDop + realDecorShareDop + realExtraServicesDop
+    val hasCategorizedLines = rawCategorizedSum > 0
+    val totalCategorizedDop = rawCategorizedSum.coerceAtLeast(1)
+    val rentalShareDop = if (hasCategorizedLines) realRentalShareDop else (periodRevenueDop * 63) / 100
+    val decorShareDop = if (hasCategorizedLines) realDecorShareDop else (periodRevenueDop * 27) / 100
+    val extraServicesDop = if (hasCategorizedLines) realExtraServicesDop else (periodRevenueDop - rentalShareDop - decorShareDop).coerceAtLeast(0)
+    val rentalFraction = if (hasCategorizedLines) {
+        (realRentalShareDop.toFloat() / totalCategorizedDop.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0.63f
+    }
+    val decorFraction = if (hasCategorizedLines) {
+        (realDecorShareDop.toFloat() / totalCategorizedDop.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0.27f
+    }
+    val extraFraction = if (hasCategorizedLines) {
+        (realExtraServicesDop.toFloat() / totalCategorizedDop.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0.10f
+    }
 
     val monthLabelsForPeriod = when (periodIndex) {
         0 -> listOf("Ene", "Feb", "Mar", "Abr", "May", "Jun")
@@ -4383,7 +4512,7 @@ internal fun RenderReportsIncomeS67(
         ) {
             Column {
                 BasicText("Ganancia neta · $activePeriodLabel", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 13.sp))
-                BasicText(formattedNetProfit, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 38.sp, color = Color.White))
+                BasicText(formattedNetProfit, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, lineHeight = 28.sp, color = Color.White))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 ReportMetric("Ingresos", formattedRevenue)
@@ -4458,9 +4587,9 @@ internal fun RenderReportsIncomeS67(
             val formattedDecorShare = RosaFiestaEngine.formatDop(decorShareDop)
             val formattedExtraShare = RosaFiestaEngine.formatDop(extraServicesDop)
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                BreakdownBar("Alquiler de equipos", formattedRentalShare, 0.63f, Color(0xFFD63F98))
-                BreakdownBar("Decoración", formattedDecorShare, 0.27f, Color(0xFF865DEC))
-                BreakdownBar("Servicios adicionales", formattedExtraShare, 0.10f, Color(0xFF8DB52C))
+                BreakdownBar("Alquiler de equipos", formattedRentalShare, rentalFraction, Color(0xFFD63F98))
+                BreakdownBar("Decoración", formattedDecorShare, decorFraction, Color(0xFF865DEC))
+                BreakdownBar("Logística y entregas", formattedExtraShare, extraFraction, Color(0xFF8DB52C))
             }
         }
     }
@@ -4641,11 +4770,16 @@ internal fun RenderReportsEventsS68(
 ) {
     val typo = LocalRfTypography.current
     val allEvents = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
+    val analyticsSummary = viewModel?.analyticsSummary?.collectAsState()?.value
     val feedbackMessage = viewModel?.formFeedback?.collectAsState()?.value
     var periodIndex by remember { mutableStateOf(1) }
     val activePeriodPair = ReportPeriodOptions[periodIndex]
     val activePeriodLabel = activePeriodPair.first
     val activePeriodCode = activePeriodPair.second
+
+    LaunchedEffect(periodIndex, viewModel) {
+        viewModel?.loadAnalytics(mapReportPeriodToAnalyticsRange(activePeriodCode))
+    }
 
     val periodEvents = remember(allEvents, periodIndex) {
         when (periodIndex) {
@@ -4659,32 +4793,37 @@ internal fun RenderReportsEventsS68(
                     lowerDate.contains("dic")
                 }
                 !isSecondHalf
-            }.ifEmpty { allEvents.take(2) }
-
-            1 -> allEvents
+            }
 
             else -> allEvents
         }
     }
 
-    val periodScaleMultiplier = if (periodIndex == 2) 2 else 1
-    val totalCount = (periodEvents.size * periodScaleMultiplier).coerceAtLeast(1)
-    val completadosCount = periodEvents.count { eventItem -> eventItem.status == EventStatus.COMPLETED } * periodScaleMultiplier
-    val canceladosCount = periodEvents.count { eventItem -> eventItem.status == EventStatus.CANCELLED } * periodScaleMultiplier
-    val enProcesoCount = (totalCount - completadosCount - canceladosCount).coerceAtLeast(0)
+    val serverTotalEvents = analyticsSummary?.totalEventsCount ?: 0
+    val isAllHistoryPeriod = periodIndex == 2
+    val useServerTotalEvents = if (isAllHistoryPeriod) serverTotalEvents > 0 else false
+    val totalCount = if (useServerTotalEvents) {
+        serverTotalEvents
+    } else {
+        periodEvents.size
+    }
+    val safeDivisor = totalCount.coerceAtLeast(1)
+    val completadosCount = periodEvents.count { eventItem -> eventItem.status == EventStatus.COMPLETED }
+    val canceladosCount = periodEvents.count { eventItem -> eventItem.status == EventStatus.CANCELLED }
+    val enProcesoCount = (periodEvents.size - completadosCount - canceladosCount).coerceAtLeast(0)
 
-    val weddingsCount = periodEvents.count { eventItem -> eventItem.eventType.lowercase().contains("boda") } * periodScaleMultiplier
+    val weddingsCount = periodEvents.count { eventItem -> eventItem.eventType.lowercase().contains("boda") }
     val birthdaysCount = periodEvents.count { eventItem ->
         val lowerType = eventItem.eventType.lowercase()
         if (lowerType.contains("cumple")) true else lowerType.contains("quince")
-    } * periodScaleMultiplier
-    val corporateCount = periodEvents.count { eventItem -> eventItem.eventType.lowercase().contains("corporat") } * periodScaleMultiplier
-    val otherEventsCount = (totalCount - weddingsCount - birthdaysCount - corporateCount).coerceAtLeast(0)
+    }
+    val corporateCount = periodEvents.count { eventItem -> eventItem.eventType.lowercase().contains("corporat") }
+    val otherEventsCount = (periodEvents.size - weddingsCount - birthdaysCount - corporateCount).coerceAtLeast(0)
 
-    val weddingsFraction = (weddingsCount.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f)
-    val birthdaysFraction = (birthdaysCount.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f)
-    val otherFraction = (otherEventsCount.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f)
-    val corporateFraction = (corporateCount.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f)
+    val weddingsFraction = (weddingsCount.toFloat() / safeDivisor.toFloat()).coerceIn(0f, 1f)
+    val birthdaysFraction = (birthdaysCount.toFloat() / safeDivisor.toFloat()).coerceIn(0f, 1f)
+    val otherFraction = (otherEventsCount.toFloat() / safeDivisor.toFloat()).coerceIn(0f, 1f)
+    val corporateFraction = (corporateCount.toFloat() / safeDivisor.toFloat()).coerceIn(0f, 1f)
 
     AdminSubScaffold(
         title = "Reportes",
@@ -4720,7 +4859,7 @@ internal fun RenderReportsEventsS68(
         ) {
             Column {
                 BasicText("Eventos · $activePeriodLabel", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 13.sp))
-                BasicText("$totalCount", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 44.sp, lineHeight = 44.sp, color = Color(0xFF151729)))
+                BasicText("$totalCount", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp, lineHeight = 32.sp, color = Color(0xFF151729)))
             }
             EventRingIllustration68(size = 96.dp)
         }
@@ -4817,22 +4956,13 @@ internal fun RenderReportsClientsS69(
     val activePeriodLabel = activePeriodPair.first
     val activePeriodCode = activePeriodPair.second
 
-    val sortedTopClients = remember(clientsList, periodIndex) {
-        val ranked = clientsList.sortedByDescending { clientItem -> clientItem.totalContractedDop }
-        when (periodIndex) {
-            0 -> ranked.reversed()
-            else -> ranked
-        }
+    val sortedTopClients = remember(clientsList) {
+        clientsList.sortedByDescending { clientItem -> clientItem.totalContractedDop }
     }
-    val totalClientsDisplayed = when (periodIndex) {
-        0 -> (clientsList.size - 1).coerceAtLeast(1)
-        1 -> clientsList.size
-        else -> clientsList.size + leadsList.size
-    }
-    val newClientsInPeriod = when (periodIndex) {
-        0 -> 1
-        1 -> leadsList.size
-        else -> clientsList.size
+    val totalClientsDisplayed = clientsList.size
+    val newClientsInPeriod = leadsList.count { lead ->
+        val upperStage = lead.stage.uppercase()
+        if (upperStage == "NUEVO") true else upperStage == "CONTACTADO"
     }
 
     val totalClientsSafe = clientsList.size.coerceAtLeast(1)
@@ -4844,9 +4974,9 @@ internal fun RenderReportsClientsS69(
     }
     val firstTimeCount = (clientsList.size - vipCount - recurringCount).coerceAtLeast(0)
 
-    val firstTimePct = ((firstTimeCount * 100f) / totalClientsSafe.toFloat()).roundToInt()
-    val recurringPct = ((recurringCount * 100f) / totalClientsSafe.toFloat()).roundToInt()
-    val vipPct = (100 - firstTimePct - recurringPct).coerceAtLeast(0)
+    val firstTimePct = if (clientsList.isEmpty()) 0 else ((firstTimeCount * 100f) / totalClientsSafe.toFloat()).roundToInt()
+    val recurringPct = if (clientsList.isEmpty()) 0 else ((recurringCount * 100f) / totalClientsSafe.toFloat()).roundToInt()
+    val vipPct = if (clientsList.isEmpty()) 0 else (100 - firstTimePct - recurringPct).coerceAtLeast(0)
 
     AdminSubScaffold(
         title = "Reportes",
@@ -4879,7 +5009,7 @@ internal fun RenderReportsClientsS69(
                     .padding(16.dp),
             ) {
                 BasicText("Clientes · $activePeriodLabel", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFFF6EAFB), fontSize = 13.sp))
-                BasicText("$totalClientsDisplayed", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 40.sp, color = Color.White))
+                BasicText("$totalClientsDisplayed", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, lineHeight = 28.sp, color = Color.White))
             }
             Column(
                 modifier = Modifier
@@ -4891,7 +5021,7 @@ internal fun RenderReportsClientsS69(
                     .padding(16.dp),
             ) {
                 BasicText("Nuevos en periodo", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 13.sp))
-                BasicText("+$newClientsInPeriod", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 40.sp, color = Color(0xFF4E6A10)))
+                BasicText("+$newClientsInPeriod", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, lineHeight = 28.sp, color = Color(0xFF4E6A10)))
             }
         }
 
@@ -4919,8 +5049,7 @@ internal fun RenderReportsClientsS69(
                     1 -> Color(0xFF5F6377)
                     else -> Color(0xFF4B47D6)
                 }
-                val periodScaledLtv = if (periodIndex == 2) clientItem.totalContractedDop else (clientItem.totalContractedDop * 80) / 100
-                val formattedLtv = RosaFiestaEngine.formatDop(periodScaledLtv)
+                val formattedLtv = RosaFiestaEngine.formatDop(clientItem.totalContractedDop)
                 TopClientRow69(
                     rank = "${rankIndex + 1}",
                     name = clientItem.fullName,
@@ -4940,13 +5069,23 @@ internal fun RenderReportsClientsS69(
         ReportCard(contentPadding = PaddingValues(16.dp)) {
             BasicText("Retención de cartera", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
             Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp)),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Box(Modifier.weight(firstTimePct.coerceAtLeast(5).toFloat()).fillMaxSize().background(Color(0xFFEA4EA9)))
-                Box(Modifier.weight(recurringPct.coerceAtLeast(5).toFloat()).fillMaxSize().background(Color(0xFF8DB52C)))
-                Box(Modifier.weight(vipPct.coerceAtLeast(5).toFloat()).fillMaxSize().background(Color(0xFFF7B500)))
+            if (clientsList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(14.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(Color(0xFFECECF5)),
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp)),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Box(Modifier.weight(firstTimePct.coerceAtLeast(5).toFloat()).fillMaxSize().background(Color(0xFFEA4EA9)))
+                    Box(Modifier.weight(recurringPct.coerceAtLeast(5).toFloat()).fillMaxSize().background(Color(0xFF8DB52C)))
+                    Box(Modifier.weight(vipPct.coerceAtLeast(5).toFloat()).fillMaxSize().background(Color(0xFFF7B500)))
+                }
             }
             Spacer(Modifier.height(12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -5107,9 +5246,17 @@ internal fun RenderReportsInventoryS70(
                 BasicText("$utilizationPercent%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF151729)))
             }
             Column {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    BasicText("$activeReservedUnits ", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, lineHeight = 30.sp, color = Color(0xFF151729)))
-                    BasicText("de $totalUnitsInWarehouse", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF5F6377)))
+                Row {
+                    BasicText(
+                        "$activeReservedUnits ",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, lineHeight = 24.sp, color = Color(0xFF151729)),
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                    BasicText(
+                        "de $totalUnitsInWarehouse",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF5F6377)),
+                        modifier = Modifier.alignByBaseline(),
+                    )
                 }
                 Spacer(Modifier.height(4.dp))
                 BasicText("unidades reservadas · $activePeriodLabel", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = Color(0xFF5F6377)))
@@ -6554,11 +6701,20 @@ internal fun RenderBotConversationsS74(
             if (dialogThread != null) {
                 BotConversationHandoffModal(
                     threadItem = dialogThread,
+                    errorMessage = viewModel?.formError?.collectAsState()?.value,
                     onDismiss = { selectedThreadId = null },
                     onToggleBotPause = {
                         val nextPausedState = !dialogThread.botPaused
                         val nextAssignedAgent = if (nextPausedState) "María" else ""
                         viewModel?.toggleBotThreadPause(dialogThread.id, nextPausedState, nextAssignedAgent)
+                    },
+                    onSendLiveReply = { replyText, onSuccess ->
+                        viewModel?.sendBotThreadReply(
+                            threadId = dialogThread.id,
+                            phone = dialogThread.phone,
+                            message = replyText,
+                            onSent = onSuccess,
+                        )
                     },
                     onOpenAdminChat = {
                         viewModel?.selectChatThreadForContact(dialogThread.customerName)
@@ -6590,12 +6746,15 @@ private fun buildContactInitials(rawFullName: String): String {
 @Composable
 private fun BotConversationHandoffModal(
     threadItem: BotThreadRecord,
+    errorMessage: String? = null,
     onDismiss: () -> Unit,
     onToggleBotPause: () -> Unit,
+    onSendLiveReply: (String, () -> Unit) -> Unit,
     onOpenAdminChat: () -> Unit,
     onOpenWhatsApp: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    var liveReplyText by remember(threadItem.id) { mutableStateOf("") }
     val statusDescription = if (threadItem.botPaused) {
         val agentLabel = threadItem.assignedAgent.ifBlank { "María" }
         "Pausado · Atendido por $agentLabel"
@@ -6667,6 +6826,70 @@ private fun BotConversationHandoffModal(
             checked = threadItem.botPaused,
             onToggle = onToggleBotPause,
         )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF6F6FB))
+                    .border(1.dp, Color(0xFFE3E3EF), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (liveReplyText.isEmpty()) {
+                    BasicText(
+                        text = "Responder directo por WhatsApp...",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF8C90A4)),
+                    )
+                }
+                BasicTextField(
+                    value = liveReplyText,
+                    onValueChange = { nextReply -> liveReplyText = nextReply.take(InputValidator.MAX_CHAT_MESSAGE_LENGTH) },
+                    singleLine = true,
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF151729)),
+                    cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(ReportGradient)
+                    .clickable {
+                        onSendLiveReply(liveReplyText) {
+                            liveReplyText = ""
+                        }
+                    }
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(
+                    text = "Enviar",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
+                )
+            }
+        }
+        if (!errorMessage.isNullOrBlank()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFFFFEEF1))
+                    .padding(10.dp),
+            ) {
+                BasicText(
+                    text = errorMessage,
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                )
+            }
+        }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Box(

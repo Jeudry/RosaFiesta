@@ -399,4 +399,92 @@ class DefaultRosaFiestaRepositoryTest {
         assertFalse(invalidLogin.success)
         assertEquals("AUTH_INVALID_CREDENTIALS", invalidLogin.errorCode)
     }
+
+    @Test
+    fun `renueva access token automaticamente ante 401 y limpia sesion si el refresh es rechazado`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        var refreshStage = 0
+        var expiredCallbackCalled = false
+        var refreshedPair: Pair<String, String>? = null
+
+        val mockEngine = MockEngine { request ->
+            val path = request.url.encodedPath
+            when (path) {
+                "/v1/auth/me" -> {
+                    val authHeader = request.headers[HttpHeaders.Authorization].orEmpty()
+                    if (authHeader == "Bearer rotated-access-jwt") {
+                        respond(
+                            content = """{"user":{"id":"usr-1","username":"maria","fullName":"María Demo","email":"maria@rosafiesta.do","role":"admin","activeView":"admin"}}""",
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                        )
+                    } else {
+                        respond(
+                            content = """{"code":"AUTH_UNAUTHORIZED","message":"Token expirado"}""",
+                            status = HttpStatusCode.Unauthorized,
+                            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                        )
+                    }
+                }
+
+                "/v1/auth/refresh" -> {
+                    refreshStage += 1
+                    if (refreshStage == 1) {
+                        respond(
+                            content = """{"accessToken":"rotated-access-jwt","refreshToken":"rotated-refresh-2","expiresIn":900,"user":{"id":"usr-1","username":"maria","fullName":"María Demo","email":"maria@rosafiesta.do","role":"admin","activeView":"admin"}}""",
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                        )
+                    } else {
+                        respond(
+                            content = """{"code":"AUTH_REFRESH_REUSE","message":"Sesión revocada por reutilización"}""",
+                            status = HttpStatusCode.Unauthorized,
+                            headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                        )
+                    }
+                }
+
+                else -> respond(
+                    content = """{"googleEnabled":true,"appleEnabled":false,"webPushVapidPublicKey":"BTestVapidKey123"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+        apiClient.setSessionLifecycleCallbacks(
+            onTokensRefreshed = { access, refresh ->
+                refreshedPair = access to refresh
+            },
+            onSessionExpired = {
+                expiredCallbackCalled = true
+            },
+        )
+        apiClient.setAccessToken("expired-access-jwt")
+        apiClient.setRefreshToken("initial-refresh-1")
+
+        val profileOutput = apiClient.fetchCurrentUser()
+        assertEquals("maria@rosafiesta.do", profileOutput.user.email)
+        assertEquals("rotated-access-jwt" to "rotated-refresh-2", refreshedPair)
+        assertEquals("rotated-refresh-2", apiClient.currentRefreshToken())
+
+        val oauthConfig = RosaFiestaBackendMappers.toOAuthProviderConfig(apiClient.getOAuthConfig())
+        assertEquals("BTestVapidKey123", oauthConfig.webPushVapidPublicKey)
+
+        apiClient.setAccessToken("stale-revoked-jwt")
+        val failedRefresh = runCatching { apiClient.fetchCurrentUser() }
+        assertTrue(failedRefresh.isFailure)
+        assertTrue(expiredCallbackCalled)
+        assertEquals(null, apiClient.currentAccessToken())
+        assertEquals(null, apiClient.currentRefreshToken())
+    }
 }

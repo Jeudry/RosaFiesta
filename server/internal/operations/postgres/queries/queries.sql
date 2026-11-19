@@ -16,39 +16,47 @@ ORDER BY id;
 -- name: UpsertDamageIncident :exec
 INSERT INTO damage_incidents (
     id, event_id, article_code, article_name, damaged_units,
-    missing_units, replacement_dop, notes, status, created_at
+    missing_units, replacement_dop, notes, photo_url, resolution_notes, charge_payment_id, status, created_at
 ) VALUES (
     $1, $2, $3, $4, $5,
-    $6, $7, $8, $9, $10
+    $6, $7, $8, $9, $10, $11, $12, $13
 )
 ON CONFLICT (id) DO UPDATE SET
     damaged_units = EXCLUDED.damaged_units,
     missing_units = EXCLUDED.missing_units,
     replacement_dop = EXCLUDED.replacement_dop,
     notes = EXCLUDED.notes,
+    photo_url = EXCLUDED.photo_url,
+    resolution_notes = EXCLUDED.resolution_notes,
+    charge_payment_id = EXCLUDED.charge_payment_id,
     status = EXCLUDED.status;
 
 -- name: ListDamageIncidents :many
 SELECT id, event_id, article_code, article_name, damaged_units,
-       missing_units, replacement_dop, notes, status, created_at
+       missing_units, replacement_dop, notes, photo_url, resolution_notes, charge_payment_id, status, created_at
 FROM damage_incidents
 ORDER BY created_at DESC, id ASC;
 
 -- name: ListDamageIncidentsByEvent :many
 SELECT id, event_id, article_code, article_name, damaged_units,
-       missing_units, replacement_dop, notes, status, created_at
+       missing_units, replacement_dop, notes, photo_url, resolution_notes, charge_payment_id, status, created_at
 FROM damage_incidents
 WHERE event_id = $1
 ORDER BY created_at ASC, id ASC;
 
 -- name: UpsertOfflineMutation :exec
-INSERT INTO offline_queue (id, action_label, entity_code, created_at_label, synced, created_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO offline_queue (
+    id, action_label, entity_code, operation_type, payload_json, idempotency_key, created_at_label, synced, created_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
 ON CONFLICT (id) DO UPDATE SET
-    synced = EXCLUDED.synced;
+    synced = EXCLUDED.synced,
+    operation_type = EXCLUDED.operation_type,
+    payload_json = EXCLUDED.payload_json;
 
 -- name: ListOfflineMutations :many
-SELECT id, action_label, entity_code, created_at_label, synced, created_at
+SELECT id, action_label, entity_code, operation_type, payload_json, idempotency_key, created_at_label, synced, created_at
 FROM offline_queue
 ORDER BY created_at ASC, id ASC;
 
@@ -237,3 +245,39 @@ ON CONFLICT (id) DO UPDATE SET
 SELECT id, customer_name, phone, last_message, bot_paused, assigned_agent, updated_at_label
 FROM bot_threads
 ORDER BY id ASC;
+
+-- name: UpsertEventLogistics :exec
+INSERT INTO event_logistics (event_id, event_title, zone, window_label, driver_name, vehicle, status, updated_at_label)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (event_id) DO UPDATE SET
+    event_title = EXCLUDED.event_title,
+    zone = EXCLUDED.zone,
+    window_label = EXCLUDED.window_label,
+    driver_name = EXCLUDED.driver_name,
+    vehicle = EXCLUDED.vehicle,
+    status = EXCLUDED.status,
+    updated_at_label = EXCLUDED.updated_at_label;
+
+-- name: ListEventLogistics :many
+SELECT event_id, event_title, zone, window_label, driver_name, vehicle, status, updated_at_label
+FROM event_logistics
+ORDER BY event_id ASC;
+
+-- name: DeleteDeliveryStopsByEvent :exec
+DELETE FROM delivery_stops
+WHERE event_id = $1;
+
+-- name: UpsertDeliveryStop :exec
+INSERT INTO delivery_stops (id, event_id, stop_order, title, address, time_label, completed)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (id) DO UPDATE SET
+    stop_order = EXCLUDED.stop_order,
+    title = EXCLUDED.title,
+    address = EXCLUDED.address,
+    time_label = EXCLUDED.time_label,
+    completed = EXCLUDED.completed;
+
+-- name: ListAllDeliveryStops :many
+SELECT id, event_id, stop_order, title, address, time_label, completed
+FROM delivery_stops
+ORDER BY event_id ASC, stop_order ASC;

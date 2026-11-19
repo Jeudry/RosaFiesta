@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.sqldelight) apply false
     alias(libs.plugins.spotless)
+    alias(libs.plugins.googleServices) apply false
 }
 
 // Formato y estilo de todo el código Kotlin del proyecto (ktlint, reglas en .editorconfig).

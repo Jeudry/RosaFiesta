@@ -6,6 +6,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
@@ -76,6 +77,12 @@ class ContractTest {
             "OTPVerifyInputBody" to OtpVerifyInputDto.serializer().descriptor,
             "OTPVerifyResult" to OtpVerifyResultDto.serializer().descriptor,
             "OAuthLoginInputBody" to OAuthLoginInputDto.serializer().descriptor,
+            "OAuthStartResult" to OAuthStartResultDto.serializer().descriptor,
+            "OAuthExchangeInputBody" to OAuthExchangeInputDto.serializer().descriptor,
+            "PushTokenInputBody" to PushTokenInputDto.serializer().descriptor,
+            "DevicePushToken" to DevicePushTokenDto.serializer().descriptor,
+            "PushTokenOutputBody" to PushTokenOutputDto.serializer().descriptor,
+            "DeletePushTokenOutputBody" to DeletePushTokenOutputDto.serializer().descriptor,
             "SwitchViewInputBody" to SwitchViewInputDto.serializer().descriptor,
             "SwitchViewOutputBody" to SwitchViewOutputDto.serializer().descriptor,
             "AdminClient" to ClientSummaryDto.serializer().descriptor,
@@ -92,11 +99,16 @@ class ContractTest {
             "ArticlesOutputBody" to ArticlesOutputDto.serializer().descriptor,
             "CreateArticleInputBody" to CreateArticleInputDto.serializer().descriptor,
             "UpdateArticleInputBody" to UpdateArticleInputDto.serializer().descriptor,
+            "DeleteArticleOutputBody" to DeleteArticleOutputDto.serializer().descriptor,
             "AvailabilityDay" to AvailabilityDayDto.serializer().descriptor,
             "ArticleAvailability" to ArticleAvailabilityDto.serializer().descriptor,
             "AvailabilityOutputBody" to AvailabilityOutputDto.serializer().descriptor,
             "Category" to CategoryDto.serializer().descriptor,
             "CategoriesOutputBody" to CategoriesOutputDto.serializer().descriptor,
+            "CategoryOutputBody" to CategoryOutputDto.serializer().descriptor,
+            "SaveCategoryInputBody" to SaveCategoryInputDto.serializer().descriptor,
+            "UpdateCategoryInputBody" to UpdateCategoryInputDto.serializer().descriptor,
+            "DeleteCategoryOutputBody" to DeleteCategoryOutputDto.serializer().descriptor,
             "PackageItem" to PackageItemDto.serializer().descriptor,
             "PackageBundle" to PackageBundleDto.serializer().descriptor,
             "PackageOutputBody" to PackageOutputDto.serializer().descriptor,
@@ -210,6 +222,16 @@ class ContractTest {
             "ReportPoint" to ReportPointDto.serializer().descriptor,
             "ReportExport" to ReportExportDto.serializer().descriptor,
             "ReportExportOutputBody" to ReportExportOutputDto.serializer().descriptor,
+            "Asset" to MediaAssetDto.serializer().descriptor,
+            "UploadMediaInputBody" to MediaUploadInputDto.serializer().descriptor,
+            "AvailabilityConflict" to AvailabilityConflictDto.serializer().descriptor,
+            "AvailabilityCheckResult" to AvailabilityCheckOutputDto.serializer().descriptor,
+            "CloseoutEventInputBody" to CloseoutEventInputDto.serializer().descriptor,
+            "CreateCardSessionInputBody" to CreateCardSessionInputDto.serializer().descriptor,
+            "CardSessionResult" to CardSessionResultDto.serializer().descriptor,
+            "CardSessionOutputBody" to CardSessionOutputDto.serializer().descriptor,
+            "DGII607OutputBody" to DGII607OutputDto.serializer().descriptor,
+            "SendWhatsAppReplyInputBody" to SendWhatsAppReplyInputDto.serializer().descriptor,
         )
 
         mappings.forEach { (schemaName, descriptor) ->
@@ -259,6 +281,32 @@ class ContractTest {
                     status = HttpStatusCode.OK,
                     headers = jsonHeaders,
                 )
+
+                "/v1/auth/oauth/google/start" -> respond(
+                    content = """{"provider":"google","authorizeUrl":"https://accounts.google.com/o/oauth2/v2/auth?state=state-1","state":"state-1"}""",
+                    status = HttpStatusCode.OK,
+                    headers = jsonHeaders,
+                )
+
+                "/v1/auth/oauth/exchange" -> respond(
+                    content = """{"accessToken":"oauth-jwt-token","expiresIn":86400,"user":{"id":"usr-1","fullName":"Yulissa Marte","email":"yuli@rosafiesta.do","role":"CLIENT","activeView":"personal","phone":"+1 809-555-0142"}}""",
+                    status = HttpStatusCode.OK,
+                    headers = jsonHeaders,
+                )
+
+                "/v1/devices/push-token" -> if (request.method == HttpMethod.Delete) {
+                    respond(
+                        content = """{"disabled":true}""",
+                        status = HttpStatusCode.OK,
+                        headers = jsonHeaders,
+                    )
+                } else {
+                    respond(
+                        content = """{"registered":true,"device":{"id":"dev-1","userId":"usr-1","platform":"android","token":"fcm-token-123","appVariant":"personal","enabled":true,"updatedAt":"2026-11-15T16:00:00Z"}}""",
+                        status = HttpStatusCode.OK,
+                        headers = jsonHeaders,
+                    )
+                }
 
                 else -> respond(
                     content = """{"articles":[{"id":"silla-tiffany","name":"Silla Tiffany dorada","categoryId":"mobiliario","photoKey":"silla-tiffany","dailyPriceDop":4,"totalStock":240,"availableStock":120,"lowStockThreshold":20,"description":"Silla dorada","visible":true}]}""",
@@ -312,5 +360,40 @@ class ContractTest {
         val articles = api.listArticles("silla")
         assertTrue(articles.articles!!.isNotEmpty())
         assertEquals(4L, articles.articles.first().dailyPriceDop)
+
+        val oauthStart = api.startOAuthAuthorization(
+            provider = "google",
+            redirectUri = "http://127.0.0.1:43123/callback",
+            codeChallenge = "challenge-abc",
+            state = "state-1",
+        )
+        assertEquals("google", oauthStart.provider)
+        assertEquals("state-1", oauthStart.state)
+
+        val oauthSession = api.exchangeOAuthCode(
+            OAuthExchangeInputDto(
+                provider = "google",
+                code = "auth-code-123",
+                codeVerifier = "verifier-xyz",
+                redirectUri = "http://127.0.0.1:43123/callback",
+            ),
+        )
+        assertEquals("oauth-jwt-token", oauthSession.accessToken)
+        assertEquals("yuli@rosafiesta.do", oauthSession.user.email)
+
+        api.setAccessToken("explicit-session-token")
+        val pushRegistered = api.registerDevicePushToken(
+            PushTokenInputDto(
+                platform = "android",
+                token = "fcm-token-123",
+                appVariant = "personal",
+            ),
+        )
+        assertTrue(pushRegistered.registered)
+        assertEquals("fcm-token-123", pushRegistered.device.token)
+        assertEquals("Bearer explicit-session-token", capturedAuthHeaders["/v1/devices/push-token"])
+
+        val pushDisabled = api.unregisterDevicePushToken("fcm-token-123")
+        assertTrue(pushDisabled.disabled)
     }
 }

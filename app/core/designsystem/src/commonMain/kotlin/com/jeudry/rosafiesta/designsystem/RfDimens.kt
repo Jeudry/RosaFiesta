@@ -18,52 +18,52 @@ public object RfDimens {
     public val Space24: Dp = 24.dp
     public val Space32: Dp = 32.dp
 
-    // Márgenes de pantalla: 20 px a los lados; contenido desde y = 54 (debajo de la barra de estado)
-    public val ScreenHorizontalPadding: Dp = 20.dp
-    public val StatusBarHeight: Dp = 54.dp
-    public val BlockSpacing: Dp = 12.dp
+    // Márgenes de pantalla: 16 px a los lados; contenido desde y = 44 (debajo de la barra de estado)
+    public val ScreenHorizontalPadding: Dp = 16.dp
+    public val StatusBarHeight: Dp = 44.dp
+    public val BlockSpacing: Dp = 10.dp
 
-    // Tarjeta: radio 20
-    public val CardRadius: Dp = 20.dp
-    public val HeroCardRadius: Dp = 20.dp
+    // Tarjeta: radio 16
+    public val CardRadius: Dp = 16.dp
+    public val HeroCardRadius: Dp = 16.dp
 
-    // Botón: alto 54, radio 16, texto 16 / 700
-    public val ButtonRadius: Dp = 16.dp
-    public val ButtonHeight: Dp = 54.dp
-    public val BottomFixedButtonSideMargin: Dp = 20.dp
-    public val BottomFixedButtonBottomMargin: Dp = 36.dp
+    // Botón: alto 46, radio 14, texto 14.5 / 700
+    public val ButtonRadius: Dp = 14.dp
+    public val ButtonHeight: Dp = 46.dp
+    public val BottomFixedButtonSideMargin: Dp = 16.dp
+    public val BottomFixedButtonBottomMargin: Dp = 24.dp
 
-    // Botón icono (ib): círculo de 44, fondo blanco
-    public val IconButtonSize: Dp = 44.dp
+    // Botón icono (ib): círculo de 38, fondo blanco
+    public val IconButtonSize: Dp = 38.dp
 
-    // Chip: alto 36, radio completo
-    public val ChipHeight: Dp = 36.dp
+    // Chip: alto 32, radio completo
+    public val ChipHeight: Dp = 32.dp
 
-    // Campo: alto 50–52, radio 14–16
-    public val FieldHeight: Dp = 51.dp
-    public val InputRadius: Dp = 15.dp
+    // Campo: alto 44, radio 13
+    public val FieldHeight: Dp = 44.dp
+    public val InputRadius: Dp = 13.dp
 
-    // Mosaico de icono (ti): 40 × 40, radio 12, fondo de color suave
-    public val IconTileSize: Dp = 40.dp
-    public val IconTileRadius: Dp = 12.dp
+    // Mosaico de icono (ti): 34 × 34, radio 10, fondo de color suave
+    public val IconTileSize: Dp = 34.dp
+    public val IconTileRadius: Dp = 10.dp
 
-    // Etiqueta (tag): alto 24, radio completo, 12 / 700
-    public val TagHeight: Dp = 24.dp
+    // Etiqueta (tag): alto 22, radio completo, 11.5 / 700
+    public val TagHeight: Dp = 22.dp
 
-    // Hoja inferior: radio 28 arriba, asa de 40 × 5, fondo atenuado rgba(30,20,50,.45)
-    public val BottomSheetRadius: Dp = 28.dp
-    public val BottomSheetHandleWidth: Dp = 40.dp
-    public val BottomSheetHandleHeight: Dp = 5.dp
+    // Hoja inferior: radio 24 arriba, asa de 36 × 4, fondo atenuado rgba(30,20,50,.45)
+    public val BottomSheetRadius: Dp = 24.dp
+    public val BottomSheetHandleWidth: Dp = 36.dp
+    public val BottomSheetHandleHeight: Dp = 4.dp
 
-    // Barra inferior: alto 76; Rosa de 56 px en el centro, sobresaliendo 26 px
-    public val BottomBarHeight: Dp = 76.dp
-    public val BottomBarContentClearance: Dp = 108.dp
-    public val RosaCenterButtonSize: Dp = 56.dp
-    public val RosaCenterProtrusion: Dp = 26.dp
+    // Barra inferior: alto 64; Rosa de 48 px en el centro, sobresaliendo 20 px
+    public val BottomBarHeight: Dp = 64.dp
+    public val BottomBarContentClearance: Dp = 90.dp
+    public val RosaCenterButtonSize: Dp = 48.dp
+    public val RosaCenterProtrusion: Dp = 20.dp
 
-    // Interruptor: 46 × 28
-    public val SwitchWidth: Dp = 46.dp
-    public val SwitchHeight: Dp = 28.dp
+    // Interruptor: 42 × 24
+    public val SwitchWidth: Dp = 42.dp
+    public val SwitchHeight: Dp = 24.dp
 
     public val PhoneOuterRadius: Dp = 44.dp
     public val PhoneInnerRadius: Dp = 34.dp

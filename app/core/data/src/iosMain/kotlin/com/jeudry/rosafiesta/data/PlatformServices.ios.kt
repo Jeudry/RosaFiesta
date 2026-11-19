@@ -2,7 +2,9 @@
 
 package com.jeudry.rosafiesta.data
 
+import com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
+import com.jeudry.rosafiesta.domain.platform.OAuthBrowserOutcome
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
 import com.jeudry.rosafiesta.domain.platform.PlatformActions
 import com.jeudry.rosafiesta.domain.security.SecureStorage
@@ -13,6 +15,7 @@ import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
 import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import com.jeudry.rosafiesta.domain.sound.WavPcmEncoder
+import kotlinx.cinterop.ObjCObjectVar
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.convert
@@ -36,6 +39,9 @@ import platform.AVFAudio.AVAudioSessionCategoryPlayAndRecord
 import platform.AVFAudio.AVAudioSessionModeMeasurement
 import platform.AVFAudio.AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation
 import platform.AVFAudio.setActive
+import platform.AuthenticationServices.ASPresentationAnchor
+import platform.AuthenticationServices.ASWebAuthenticationPresentationContextProvidingProtocol
+import platform.AuthenticationServices.ASWebAuthenticationSession
 import platform.CoreFoundation.CFDataCreate
 import platform.CoreFoundation.CFDataGetBytePtr
 import platform.CoreFoundation.CFDataGetLength
@@ -55,15 +61,29 @@ import platform.CoreFoundation.kCFTypeDictionaryValueCallBacks
 import platform.Foundation.NSBundle
 import platform.Foundation.NSData
 import platform.Foundation.NSDocumentDirectory
+import platform.Foundation.NSError
 import platform.Foundation.NSLocale
 import platform.Foundation.NSProcessInfo
 import platform.Foundation.NSSearchPathForDirectoriesInDomains
 import platform.Foundation.NSTemporaryDirectory
 import platform.Foundation.NSURL
+import platform.Foundation.NSURLComponents
+import platform.Foundation.NSUUID
 import platform.Foundation.NSUserDomainMask
 import platform.Foundation.create
 import platform.Foundation.dataWithContentsOfURL
 import platform.Foundation.writeToFile
+import platform.LocalAuthentication.LAContext
+import platform.LocalAuthentication.LAPolicyDeviceOwnerAuthentication
+import platform.Network.nw_interface_type_wifi
+import platform.Network.nw_interface_type_wired
+import platform.Network.nw_path_get_status
+import platform.Network.nw_path_monitor_create
+import platform.Network.nw_path_monitor_set_queue
+import platform.Network.nw_path_monitor_set_update_handler
+import platform.Network.nw_path_monitor_start
+import platform.Network.nw_path_status_satisfied
+import platform.Network.nw_path_uses_interface_type
 import platform.Security.SecItemAdd
 import platform.Security.SecItemCopyMatching
 import platform.Security.SecItemDelete
@@ -94,13 +114,45 @@ import platform.UIKit.UIImpactFeedbackStyle
 import platform.UIKit.UIViewController
 import platform.UIKit.UIWindow
 import platform.UIKit.popoverPresentationController
+import platform.UIKit.registerForRemoteNotifications
+import platform.UserNotifications.UNAuthorizationOptionAlert
+import platform.UserNotifications.UNAuthorizationOptionBadge
+import platform.UserNotifications.UNAuthorizationOptionSound
+import platform.UserNotifications.UNMutableNotificationContent
+import platform.UserNotifications.UNNotificationRequest
+import platform.UserNotifications.UNUserNotificationCenter
 import platform.darwin.NSObject
 import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_global_queue
 import platform.darwin.dispatch_get_main_queue
 import kotlin.coroutines.resume
 import kotlin.math.sqrt
 
 private var registeredIosMediaPicker: (suspend (List<String>) -> PickedMediaFile?)? = null
+private var registeredIosApnsToken: String? = null
+private var pendingIosPushRegistrationCallback: ((platform: String, token: String?) -> Unit)? = null
+private var retainedOAuthSession: ASWebAuthenticationSession? = null
+private var retainedPresentationContext: ASWebAuthenticationPresentationContextProvidingProtocol? = null
+
+/**
+ * Registers the real APNs device token hex string obtained by `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)`.
+ */
+public fun registerIosApnsDeviceToken(tokenHex: String?) {
+    val cleanToken = tokenHex?.trim()?.ifEmpty { null }
+    registeredIosApnsToken = cleanToken
+    val pendingCallback = pendingIosPushRegistrationCallback
+    pendingIosPushRegistrationCallback = null
+    pendingCallback?.invoke("ios", cleanToken)
+}
+
+/**
+ * Handles incoming iOS custom scheme deep links (`rosafiesta://payment/...`) opened from Safari or Stripe Checkout.
+ */
+public fun handleIosIncomingDeepLinkUrl(urlString: String?): Boolean {
+    val cleanUrl = urlString?.trim().orEmpty()
+    if (cleanUrl.isEmpty()) return false
+    return ExternalPaymentCallbackBridge.dispatchPaymentDeepLink(cleanUrl)
+}
 
 /**
  * Registers an optional custom iOS media picker handler if a host `UIViewController` overrides the default
@@ -525,11 +577,58 @@ internal class IosVoiceInputMonitor : VoiceInputMonitor {
 
 internal class IosPlatformActions : PlatformActions {
     private var retainedDocumentDelegate: NSObject? = null
+    private var lastObservedUnmeteredNetwork: Boolean = true
+    private val pathMonitor = nw_path_monitor_create().also { monitor ->
+        nw_path_monitor_set_update_handler(monitor) { path ->
+            if (path != null) {
+                val satisfied = nw_path_get_status(path) == nw_path_status_satisfied
+                val usesWifi = nw_path_uses_interface_type(path, nw_interface_type_wifi)
+                val usesWired = nw_path_uses_interface_type(path, nw_interface_type_wired)
+                val unmetered = if (usesWifi) true else usesWired
+                lastObservedUnmeteredNetwork = if (satisfied) unmetered else false
+            }
+        }
+        nw_path_monitor_set_queue(monitor, dispatch_get_global_queue(0L, 0u))
+        nw_path_monitor_start(monitor)
+    }
+
+    override fun isOnWifiNetwork(): Boolean = lastObservedUnmeteredNetwork
+
+    override fun authenticateDeviceOwner(
+        promptTitle: String,
+        promptSubtitle: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        val context = LAContext()
+        val canEvaluate = memScoped {
+            val errorPtr = alloc<ObjCObjectVar<NSError?>>()
+            context.canEvaluatePolicy(LAPolicyDeviceOwnerAuthentication, errorPtr.ptr)
+        }
+        if (!canEvaluate) {
+            onResult(false, "BIOMETRIC_UNAVAILABLE")
+            return
+        }
+        val reason = promptSubtitle.ifBlank { promptTitle.ifBlank { "Desbloquear RosaFiesta" } }
+        context.evaluatePolicy(
+            policy = LAPolicyDeviceOwnerAuthentication,
+            localizedReason = reason,
+        ) { success, _ ->
+            dispatch_async(dispatch_get_main_queue()) {
+                onResult(success, if (success) null else "BIOMETRIC_FAILED")
+            }
+        }
+    }
 
     override fun defaultApiBaseUrl(): String {
         val envMap = NSProcessInfo.processInfo.environment
-        val envValue = envMap["ROSAFIESTA_API_URL"] as? String
-        return ExternalUrlBuilder.normalizeBaseUrl(envValue)
+        val envValue = (envMap["ROSAFIESTA_API_URL"] as? String)?.trim().orEmpty()
+        if (envValue.isNotEmpty()) {
+            return ExternalUrlBuilder.normalizeBaseUrl(envValue)
+        }
+        val plistValue = (NSBundle.mainBundle.objectForInfoDictionaryKey("RosaFiestaApiUrl") as? String)
+            ?.trim()
+            .orEmpty()
+        return ExternalUrlBuilder.normalizeBaseUrl(plistValue.ifEmpty { null })
     }
 
     override fun openExternalUrl(url: String): Boolean {
@@ -685,6 +784,8 @@ internal class IosPlatformActions : PlatformActions {
             when (ext.trim().trimStart('.').lowercase()) {
                 "jpg", "jpeg" -> "public.jpeg"
                 "png" -> "public.png"
+                "webp" -> "org.webmproject.webp"
+                "svg" -> "public.svg-image"
                 "pdf" -> "com.adobe.pdf"
                 else -> null
             }
@@ -713,6 +814,121 @@ internal class IosPlatformActions : PlatformActions {
             current = presented
         }
         return current
+    }
+
+    override suspend fun launchOAuthBrowserFlow(
+        resolveAuthorizeUrl: suspend (redirectUri: String) -> String?,
+    ): OAuthBrowserOutcome {
+        val redirectUri = "rosafiesta://oauth/callback"
+        val authorizeUrl = resolveAuthorizeUrl(redirectUri)
+            ?: return OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_START_FAILED")
+        val nsUrl = NSURL.URLWithString(authorizeUrl)
+            ?: return OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_INVALID_URL")
+
+        return suspendCancellableCoroutine { continuation ->
+            dispatch_async(dispatch_get_main_queue()) {
+                val contextProvider = object : NSObject(), ASWebAuthenticationPresentationContextProvidingProtocol {
+                    override fun presentationAnchorForWebAuthenticationSession(
+                        session: ASWebAuthenticationSession,
+                    ): ASPresentationAnchor {
+                        @Suppress("DEPRECATION")
+                        val windows = UIApplication.sharedApplication.windows
+                        val keyWindow = windows.firstOrNull { win -> (win as? UIWindow)?.isKeyWindow() == true } as? UIWindow
+                        return keyWindow ?: UIWindow()
+                    }
+                }
+                val session = ASWebAuthenticationSession(
+                    uRL = nsUrl,
+                    callbackURLScheme = "rosafiesta",
+                    completionHandler = { callbackUrl, error ->
+                        retainedOAuthSession = null
+                        retainedPresentationContext = null
+                        if (!continuation.isActive) return@ASWebAuthenticationSession
+                        if (error != null) {
+                            continuation.resume(OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_CANCELLED"))
+                            return@ASWebAuthenticationSession
+                        }
+                        val resolvedCallbackUrl = callbackUrl
+                        if (resolvedCallbackUrl == null) {
+                            continuation.resume(OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_CANCELLED"))
+                            return@ASWebAuthenticationSession
+                        }
+                        continuation.resume(parseIosOAuthCallbackUrl(resolvedCallbackUrl, redirectUri))
+                    },
+                )
+                retainedOAuthSession = session
+                retainedPresentationContext = contextProvider
+                session.presentationContextProvider = contextProvider
+                session.prefersEphemeralWebBrowserSession = false
+                if (!session.start()) {
+                    retainedOAuthSession = null
+                    retainedPresentationContext = null
+                    if (continuation.isActive) {
+                        continuation.resume(OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_BROWSER_UNAVAILABLE"))
+                    }
+                }
+            }
+        }
+    }
+
+    override fun registerPushNotifications(
+        appVariant: String,
+        onResult: (platform: String, token: String?) -> Unit,
+    ) {
+        pendingIosPushRegistrationCallback = onResult
+        val existingToken = registeredIosApnsToken
+        val center = UNUserNotificationCenter.currentNotificationCenter()
+        val options = UNAuthorizationOptionAlert or UNAuthorizationOptionSound or UNAuthorizationOptionBadge
+        center.requestAuthorizationWithOptions(options) { granted, _ ->
+            if (!granted) {
+                pendingIosPushRegistrationCallback = null
+                onResult("ios", null)
+                return@requestAuthorizationWithOptions
+            }
+            dispatch_async(dispatch_get_main_queue()) {
+                UIApplication.sharedApplication.registerForRemoteNotifications()
+            }
+            if (!existingToken.isNullOrBlank()) {
+                pendingIosPushRegistrationCallback = null
+                onResult("ios", existingToken)
+            }
+        }
+    }
+
+    override fun showLocalNotification(title: String, body: String) {
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty()) return
+        val content = UNMutableNotificationContent().apply {
+            setTitle(cleanTitle)
+            setBody(body.trim())
+        }
+        val identifier = NSUUID().UUIDString()
+        val request = UNNotificationRequest.requestWithIdentifier(identifier, content = content, trigger = null)
+        UNUserNotificationCenter.currentNotificationCenter().addNotificationRequest(request, withCompletionHandler = null)
+    }
+
+    private fun parseIosOAuthCallbackUrl(callbackUrl: NSURL, redirectUri: String): OAuthBrowserOutcome {
+        val components = NSURLComponents.componentsWithURL(callbackUrl, resolvingAgainstBaseURL = false)
+        var code: String? = null
+        var state: String? = null
+        var errorCode: String? = null
+        val queryItems = components?.queryItems.orEmpty()
+        for (rawItem in queryItems) {
+            val queryItem = rawItem as? platform.Foundation.NSURLQueryItem ?: continue
+            val itemName = queryItem.name
+            val itemValue = queryItem.value
+            when (itemName) {
+                "code" -> code = itemValue
+                "state" -> state = itemValue
+                "error" -> errorCode = itemValue
+            }
+        }
+        return OAuthBrowserOutcome(
+            code = code,
+            state = state,
+            redirectUri = redirectUri,
+            errorCode = errorCode,
+        )
     }
 }
 

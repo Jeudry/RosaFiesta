@@ -10,6 +10,16 @@ import (
 	"time"
 )
 
+const deleteDeliveryStopsByEvent = `-- name: DeleteDeliveryStopsByEvent :exec
+DELETE FROM delivery_stops
+WHERE event_id = $1
+`
+
+func (q *Queries) DeleteDeliveryStopsByEvent(ctx context.Context, eventID string) error {
+	_, err := q.db.Exec(ctx, deleteDeliveryStopsByEvent, eventID)
+	return err
+}
+
 const getBusinessSettings = `-- name: GetBusinessSettings :one
 SELECT id, company_name, rnc, address, phone, whatsapp, email,
        instagram, facebook, business_hours, itbis_percent, deposit_percent, updated_at
@@ -36,6 +46,40 @@ func (q *Queries) GetBusinessSettings(ctx context.Context) (BusinessSetting, err
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const listAllDeliveryStops = `-- name: ListAllDeliveryStops :many
+SELECT id, event_id, stop_order, title, address, time_label, completed
+FROM delivery_stops
+ORDER BY event_id ASC, stop_order ASC
+`
+
+func (q *Queries) ListAllDeliveryStops(ctx context.Context) ([]DeliveryStop, error) {
+	rows, err := q.db.Query(ctx, listAllDeliveryStops)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DeliveryStop
+	for rows.Next() {
+		var i DeliveryStop
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventID,
+			&i.StopOrder,
+			&i.Title,
+			&i.Address,
+			&i.TimeLabel,
+			&i.Completed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAuditLogs = `-- name: ListAuditLogs :many
@@ -218,20 +262,36 @@ func (q *Queries) ListChecklistTasksByEvent(ctx context.Context, eventID string)
 
 const listDamageIncidents = `-- name: ListDamageIncidents :many
 SELECT id, event_id, article_code, article_name, damaged_units,
-       missing_units, replacement_dop, notes, status, created_at
+       missing_units, replacement_dop, notes, photo_url, resolution_notes, charge_payment_id, status, created_at
 FROM damage_incidents
 ORDER BY created_at DESC, id ASC
 `
 
-func (q *Queries) ListDamageIncidents(ctx context.Context) ([]DamageIncident, error) {
+type ListDamageIncidentsRow struct {
+	ID              string
+	EventID         string
+	ArticleCode     string
+	ArticleName     string
+	DamagedUnits    int
+	MissingUnits    int
+	ReplacementDop  int
+	Notes           string
+	PhotoUrl        string
+	ResolutionNotes string
+	ChargePaymentID string
+	Status          string
+	CreatedAt       time.Time
+}
+
+func (q *Queries) ListDamageIncidents(ctx context.Context) ([]ListDamageIncidentsRow, error) {
 	rows, err := q.db.Query(ctx, listDamageIncidents)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []DamageIncident
+	var items []ListDamageIncidentsRow
 	for rows.Next() {
-		var i DamageIncident
+		var i ListDamageIncidentsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.EventID,
@@ -241,6 +301,9 @@ func (q *Queries) ListDamageIncidents(ctx context.Context) ([]DamageIncident, er
 			&i.MissingUnits,
 			&i.ReplacementDop,
 			&i.Notes,
+			&i.PhotoUrl,
+			&i.ResolutionNotes,
+			&i.ChargePaymentID,
 			&i.Status,
 			&i.CreatedAt,
 		); err != nil {
@@ -256,21 +319,37 @@ func (q *Queries) ListDamageIncidents(ctx context.Context) ([]DamageIncident, er
 
 const listDamageIncidentsByEvent = `-- name: ListDamageIncidentsByEvent :many
 SELECT id, event_id, article_code, article_name, damaged_units,
-       missing_units, replacement_dop, notes, status, created_at
+       missing_units, replacement_dop, notes, photo_url, resolution_notes, charge_payment_id, status, created_at
 FROM damage_incidents
 WHERE event_id = $1
 ORDER BY created_at ASC, id ASC
 `
 
-func (q *Queries) ListDamageIncidentsByEvent(ctx context.Context, eventID string) ([]DamageIncident, error) {
+type ListDamageIncidentsByEventRow struct {
+	ID              string
+	EventID         string
+	ArticleCode     string
+	ArticleName     string
+	DamagedUnits    int
+	MissingUnits    int
+	ReplacementDop  int
+	Notes           string
+	PhotoUrl        string
+	ResolutionNotes string
+	ChargePaymentID string
+	Status          string
+	CreatedAt       time.Time
+}
+
+func (q *Queries) ListDamageIncidentsByEvent(ctx context.Context, eventID string) ([]ListDamageIncidentsByEventRow, error) {
 	rows, err := q.db.Query(ctx, listDamageIncidentsByEvent, eventID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []DamageIncident
+	var items []ListDamageIncidentsByEventRow
 	for rows.Next() {
-		var i DamageIncident
+		var i ListDamageIncidentsByEventRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.EventID,
@@ -280,6 +359,9 @@ func (q *Queries) ListDamageIncidentsByEvent(ctx context.Context, eventID string
 			&i.MissingUnits,
 			&i.ReplacementDop,
 			&i.Notes,
+			&i.PhotoUrl,
+			&i.ResolutionNotes,
+			&i.ChargePaymentID,
 			&i.Status,
 			&i.CreatedAt,
 		); err != nil {
@@ -314,6 +396,41 @@ func (q *Queries) ListDeliveryZones(ctx context.Context) ([]DeliveryZone, error)
 			&i.FeeDop,
 			&i.EtaMinutes,
 			&i.Active,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEventLogistics = `-- name: ListEventLogistics :many
+SELECT event_id, event_title, zone, window_label, driver_name, vehicle, status, updated_at_label
+FROM event_logistics
+ORDER BY event_id ASC
+`
+
+func (q *Queries) ListEventLogistics(ctx context.Context) ([]EventLogistic, error) {
+	rows, err := q.db.Query(ctx, listEventLogistics)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventLogistic
+	for rows.Next() {
+		var i EventLogistic
+		if err := rows.Scan(
+			&i.EventID,
+			&i.EventTitle,
+			&i.Zone,
+			&i.WindowLabel,
+			&i.DriverName,
+			&i.Vehicle,
+			&i.Status,
+			&i.UpdatedAtLabel,
 		); err != nil {
 			return nil, err
 		}
@@ -449,24 +566,39 @@ func (q *Queries) ListNotifications(ctx context.Context) ([]Notification, error)
 }
 
 const listOfflineMutations = `-- name: ListOfflineMutations :many
-SELECT id, action_label, entity_code, created_at_label, synced, created_at
+SELECT id, action_label, entity_code, operation_type, payload_json, idempotency_key, created_at_label, synced, created_at
 FROM offline_queue
 ORDER BY created_at ASC, id ASC
 `
 
-func (q *Queries) ListOfflineMutations(ctx context.Context) ([]OfflineQueue, error) {
+type ListOfflineMutationsRow struct {
+	ID             string
+	ActionLabel    string
+	EntityCode     string
+	OperationType  string
+	PayloadJson    []byte
+	IdempotencyKey string
+	CreatedAtLabel string
+	Synced         bool
+	CreatedAt      time.Time
+}
+
+func (q *Queries) ListOfflineMutations(ctx context.Context) ([]ListOfflineMutationsRow, error) {
 	rows, err := q.db.Query(ctx, listOfflineMutations)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []OfflineQueue
+	var items []ListOfflineMutationsRow
 	for rows.Next() {
-		var i OfflineQueue
+		var i ListOfflineMutationsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ActionLabel,
 			&i.EntityCode,
+			&i.OperationType,
+			&i.PayloadJson,
+			&i.IdempotencyKey,
 			&i.CreatedAtLabel,
 			&i.Synced,
 			&i.CreatedAt,
@@ -813,30 +945,36 @@ func (q *Queries) UpsertChecklistTask(ctx context.Context, arg UpsertChecklistTa
 const upsertDamageIncident = `-- name: UpsertDamageIncident :exec
 INSERT INTO damage_incidents (
     id, event_id, article_code, article_name, damaged_units,
-    missing_units, replacement_dop, notes, status, created_at
+    missing_units, replacement_dop, notes, photo_url, resolution_notes, charge_payment_id, status, created_at
 ) VALUES (
     $1, $2, $3, $4, $5,
-    $6, $7, $8, $9, $10
+    $6, $7, $8, $9, $10, $11, $12, $13
 )
 ON CONFLICT (id) DO UPDATE SET
     damaged_units = EXCLUDED.damaged_units,
     missing_units = EXCLUDED.missing_units,
     replacement_dop = EXCLUDED.replacement_dop,
     notes = EXCLUDED.notes,
+    photo_url = EXCLUDED.photo_url,
+    resolution_notes = EXCLUDED.resolution_notes,
+    charge_payment_id = EXCLUDED.charge_payment_id,
     status = EXCLUDED.status
 `
 
 type UpsertDamageIncidentParams struct {
-	ID             string
-	EventID        string
-	ArticleCode    string
-	ArticleName    string
-	DamagedUnits   int
-	MissingUnits   int
-	ReplacementDop int
-	Notes          string
-	Status         string
-	CreatedAt      time.Time
+	ID              string
+	EventID         string
+	ArticleCode     string
+	ArticleName     string
+	DamagedUnits    int
+	MissingUnits    int
+	ReplacementDop  int
+	Notes           string
+	PhotoUrl        string
+	ResolutionNotes string
+	ChargePaymentID string
+	Status          string
+	CreatedAt       time.Time
 }
 
 func (q *Queries) UpsertDamageIncident(ctx context.Context, arg UpsertDamageIncidentParams) error {
@@ -849,8 +987,45 @@ func (q *Queries) UpsertDamageIncident(ctx context.Context, arg UpsertDamageInci
 		arg.MissingUnits,
 		arg.ReplacementDop,
 		arg.Notes,
+		arg.PhotoUrl,
+		arg.ResolutionNotes,
+		arg.ChargePaymentID,
 		arg.Status,
 		arg.CreatedAt,
+	)
+	return err
+}
+
+const upsertDeliveryStop = `-- name: UpsertDeliveryStop :exec
+INSERT INTO delivery_stops (id, event_id, stop_order, title, address, time_label, completed)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+ON CONFLICT (id) DO UPDATE SET
+    stop_order = EXCLUDED.stop_order,
+    title = EXCLUDED.title,
+    address = EXCLUDED.address,
+    time_label = EXCLUDED.time_label,
+    completed = EXCLUDED.completed
+`
+
+type UpsertDeliveryStopParams struct {
+	ID        string
+	EventID   string
+	StopOrder int
+	Title     string
+	Address   string
+	TimeLabel string
+	Completed bool
+}
+
+func (q *Queries) UpsertDeliveryStop(ctx context.Context, arg UpsertDeliveryStopParams) error {
+	_, err := q.db.Exec(ctx, upsertDeliveryStop,
+		arg.ID,
+		arg.EventID,
+		arg.StopOrder,
+		arg.Title,
+		arg.Address,
+		arg.TimeLabel,
+		arg.Completed,
 	)
 	return err
 }
@@ -880,6 +1055,44 @@ func (q *Queries) UpsertDeliveryZone(ctx context.Context, arg UpsertDeliveryZone
 		arg.FeeDop,
 		arg.EtaMinutes,
 		arg.Active,
+	)
+	return err
+}
+
+const upsertEventLogistics = `-- name: UpsertEventLogistics :exec
+INSERT INTO event_logistics (event_id, event_title, zone, window_label, driver_name, vehicle, status, updated_at_label)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (event_id) DO UPDATE SET
+    event_title = EXCLUDED.event_title,
+    zone = EXCLUDED.zone,
+    window_label = EXCLUDED.window_label,
+    driver_name = EXCLUDED.driver_name,
+    vehicle = EXCLUDED.vehicle,
+    status = EXCLUDED.status,
+    updated_at_label = EXCLUDED.updated_at_label
+`
+
+type UpsertEventLogisticsParams struct {
+	EventID        string
+	EventTitle     string
+	Zone           string
+	WindowLabel    string
+	DriverName     string
+	Vehicle        string
+	Status         string
+	UpdatedAtLabel string
+}
+
+func (q *Queries) UpsertEventLogistics(ctx context.Context, arg UpsertEventLogisticsParams) error {
+	_, err := q.db.Exec(ctx, upsertEventLogistics,
+		arg.EventID,
+		arg.EventTitle,
+		arg.Zone,
+		arg.WindowLabel,
+		arg.DriverName,
+		arg.Vehicle,
+		arg.Status,
+		arg.UpdatedAtLabel,
 	)
 	return err
 }
@@ -1002,16 +1215,24 @@ func (q *Queries) UpsertNotification(ctx context.Context, arg UpsertNotification
 }
 
 const upsertOfflineMutation = `-- name: UpsertOfflineMutation :exec
-INSERT INTO offline_queue (id, action_label, entity_code, created_at_label, synced, created_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO offline_queue (
+    id, action_label, entity_code, operation_type, payload_json, idempotency_key, created_at_label, synced, created_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
 ON CONFLICT (id) DO UPDATE SET
-    synced = EXCLUDED.synced
+    synced = EXCLUDED.synced,
+    operation_type = EXCLUDED.operation_type,
+    payload_json = EXCLUDED.payload_json
 `
 
 type UpsertOfflineMutationParams struct {
 	ID             string
 	ActionLabel    string
 	EntityCode     string
+	OperationType  string
+	PayloadJson    []byte
+	IdempotencyKey string
 	CreatedAtLabel string
 	Synced         bool
 	CreatedAt      time.Time
@@ -1022,6 +1243,9 @@ func (q *Queries) UpsertOfflineMutation(ctx context.Context, arg UpsertOfflineMu
 		arg.ID,
 		arg.ActionLabel,
 		arg.EntityCode,
+		arg.OperationType,
+		arg.PayloadJson,
+		arg.IdempotencyKey,
 		arg.CreatedAtLabel,
 		arg.Synced,
 		arg.CreatedAt,

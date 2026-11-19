@@ -25,14 +25,20 @@ public actual class DriverFactory(
     private val context: Context,
     private val databaseName: String = "rosafiesta.db",
 ) {
-    public actual fun createDriver(): SqlDriver = AndroidSqliteDriver(
-        schema = RosaFiestaDatabase.Schema,
-        context = context,
-        name = databaseName,
-    )
+    public actual fun createDriver(): SqlDriver {
+        val driver = AndroidSqliteDriver(
+            schema = RosaFiestaDatabase.Schema,
+            context = context,
+            name = databaseName,
+        )
+        RosaFiestaSchemaUpgrade.applySafeColumnUpgrades(driver)
+        return driver
+    }
 }
 
 public actual fun createDefaultSqlDriverOrNull(): SqlDriver? {
     val ctx = androidApplicationContext ?: return null
     return DriverFactory(context = ctx, databaseName = androidDatabaseName).createDriver()
 }
+
+public actual fun createDefaultLocalSnapshotCacheOrNull(): LocalSnapshotCache? = null

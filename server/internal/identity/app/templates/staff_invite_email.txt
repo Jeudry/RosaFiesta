@@ -1,0 +1,6 @@
+Hola {{NAME}},
+
+Has sido invitado al equipo operativo de RosaFiesta con el rol "{{ROLE_LABEL}}".
+Puedes iniciar sesión en la plataforma con tu correo {{EMAIL}} y la contraseña temporal configurada por administración.
+
+Equipo RosaFiesta

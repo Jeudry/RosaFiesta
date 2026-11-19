@@ -2,7 +2,9 @@
 
 package com.jeudry.rosafiesta.data
 
+import com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
+import com.jeudry.rosafiesta.domain.platform.OAuthBrowserOutcome
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
 import com.jeudry.rosafiesta.domain.platform.PlatformActions
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
@@ -20,6 +22,25 @@ import kotlin.coroutines.resume
 
 @JsFun("() => { try { return typeof window !== 'undefined' && !!window.localStorage; } catch (err) { return false; } }")
 private external fun jsHasBrowserLocalStorage(): Boolean
+
+@JsFun(
+    """() => {
+        try {
+            if (typeof navigator === 'undefined') return true;
+            if (navigator.onLine === false) return false;
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            if (!conn) return true;
+            if (conn.saveData === true) return false;
+            const netType = String(conn.type || '').toLowerCase();
+            const isBlockedNetwork = ['cellular', 'bluetooth', 'none'].includes(netType);
+            if (isBlockedNetwork) return false;
+            return true;
+        } catch (err) {
+            return true;
+        }
+    }""",
+)
+private external fun jsIsWifiOrUnmeteredOnline(): Boolean
 
 @JsFun("(key) => { try { return window.localStorage.getItem(key); } catch (err) { return null; } }")
 private external fun jsLocalStorageGetItem(key: String): String?
@@ -186,6 +207,234 @@ private external fun jsReadConfiguredApiBaseUrl(): String
     }""",
 )
 private external fun jsOpenExternalWindow(url: String): Boolean
+
+@JsFun(
+    """() => {
+        try {
+            if (typeof window === 'undefined' || !window.location) return 'https://app.rosafiesta.do/oauth-callback.html';
+            const basePath = window.location.pathname.replace(/\/[^/]*$/, '/');
+            return window.location.origin + basePath + 'oauth-callback.html';
+        } catch (err) {
+            return 'https://app.rosafiesta.do/oauth-callback.html';
+        }
+    }""",
+)
+private external fun jsCurrentBrowserOAuthRedirectUri(): String
+
+@JsFun(
+    """(authorizeUrl, expectedApiOrigin, onComplete) => {
+        try {
+            if (typeof window === 'undefined' || !window.open) {
+                onComplete('', '', 'OAUTH_BROWSER_UNAVAILABLE');
+                return;
+            }
+            const popup = window.open(authorizeUrl, 'rosafiesta_oauth', 'width=520,height=680');
+            if (!popup) {
+                onComplete('', '', 'OAUTH_BROWSER_UNAVAILABLE');
+                return;
+            }
+            let settled = false;
+            let timer = 0;
+            const cleanup = () => {
+                if (timer) window.clearInterval(timer);
+                window.removeEventListener('message', onMessage);
+            };
+            const finish = (code, state, oauthErr) => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                try { popup.close(); } catch (err) {}
+                onComplete(code || '', state || '', oauthErr || '');
+            };
+            const onMessage = (event) => {
+                if (!event || !event.data || event.data.type !== 'rosafiesta-oauth-callback') return;
+                const sameOrigin = event.origin === window.location.origin;
+                const apiOrigin = expectedApiOrigin && event.origin === expectedApiOrigin;
+                if (!sameOrigin && !apiOrigin) return;
+                finish(event.data.code || '', event.data.state || '', event.data.error || '');
+            };
+            window.addEventListener('message', onMessage);
+            let ticks = 0;
+            const maxTicks = 720;
+            timer = window.setInterval(() => {
+                ticks += 1;
+                if (ticks >= maxTicks) {
+                    finish('', '', 'OAUTH_TIMEOUT');
+                    return;
+                }
+                if (popup.closed) {
+                    finish('', '', 'OAUTH_CANCELLED');
+                    return;
+                }
+                try {
+                    if (popup.location && popup.location.origin === window.location.origin) {
+                        const params = new URLSearchParams(popup.location.search || '');
+                        const code = params.get('code') || '';
+                        const state = params.get('state') || '';
+                        const oauthErr = params.get('error') || '';
+                        if (code.length > 0 || oauthErr.length > 0) {
+                            finish(code, state, oauthErr);
+                        }
+                    }
+                } catch (crossOriginWait) {}
+            }, 250);
+        } catch (err) {
+            onComplete('', '', 'OAUTH_BROWSER_UNAVAILABLE');
+        }
+    }""",
+)
+private external fun jsLaunchOAuthPopup(
+    authorizeUrl: String,
+    expectedApiOrigin: String,
+    onComplete: (String, String, String) -> Unit,
+)
+
+@JsFun(
+    """(promptTitle, onDone) => {
+        try {
+            if (typeof window === 'undefined' || !window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) {
+                onDone(false, 'DEVICE_AUTH_UNAVAILABLE');
+                return;
+            }
+            window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                .then((available) => {
+                    if (!available) {
+                        onDone(false, 'DEVICE_AUTH_UNAVAILABLE');
+                        return;
+                    }
+                    const challenge = new Uint8Array(32);
+                    crypto.getRandomValues(challenge);
+                    const userId = new Uint8Array(16);
+                    crypto.getRandomValues(userId);
+                    navigator.credentials.create({
+                        publicKey: {
+                            challenge: challenge,
+                            rp: { name: 'RosaFiesta' },
+                            user: { id: userId, name: 'owner@rosafiesta.do', displayName: promptTitle || 'RosaFiesta' },
+                            pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+                            authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+                            timeout: 30000
+                        }
+                    }).then(() => {
+                        onDone(true, '');
+                    }).catch(() => {
+                        onDone(false, 'DEVICE_AUTH_CANCELLED');
+                    });
+                })
+                .catch(() => onDone(false, 'DEVICE_AUTH_UNAVAILABLE'));
+        } catch (err) {
+            onDone(false, 'DEVICE_AUTH_UNAVAILABLE');
+        }
+    }""",
+)
+private external fun jsAuthenticateWebAuthnDeviceOwner(
+    promptTitle: String,
+    onDone: (Boolean, String) -> Unit,
+)
+
+@JsFun(
+    """(vapidPublicKey, onDone) => {
+        const decodeVapidKey = (base64Url) => {
+            const padded = base64Url + '='.repeat((4 - (base64Url.length % 4)) % 4);
+            const raw = window.atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+            const out = new Uint8Array(raw.length);
+            for (let index = 0; index < raw.length; index += 1) {
+                out[index] = raw.charCodeAt(index);
+            }
+            return out;
+        };
+        try {
+            if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+                onDone('');
+                return;
+            }
+            Notification.requestPermission().then((perm) => {
+                if (perm !== 'granted' || !navigator.serviceWorker) {
+                    onDone('');
+                    return;
+                }
+                navigator.serviceWorker.register('./sw.js').catch(() => null);
+                navigator.serviceWorker.ready.then((reg) => {
+                    if (!reg || !reg.pushManager) {
+                        onDone('');
+                        return;
+                    }
+                    reg.pushManager.getSubscription().then((existing) => {
+                        if (existing) {
+                            onDone(JSON.stringify(existing));
+                            return;
+                        }
+                        const cleanKey = (vapidPublicKey || '').trim();
+                        if (!cleanKey) {
+                            onDone('');
+                            return;
+                        }
+                        reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: decodeVapidKey(cleanKey)
+                        }).then((created) => {
+                            onDone(created ? JSON.stringify(created) : '');
+                        }).catch(() => onDone(''));
+                    }).catch(() => onDone(''));
+                }).catch(() => onDone(''));
+            }).catch(() => onDone(''));
+        } catch (err) {
+            onDone('');
+        }
+    }""",
+)
+private external fun jsRequestWebNotificationsAndPush(
+    vapidPublicKey: String,
+    onDone: (String) -> Unit,
+)
+
+@JsFun(
+    """(expectedApiOrigin, onPaymentReturn) => {
+        try {
+            if (typeof window === 'undefined') return;
+            if (!window.__rfPaymentListenerAttached) {
+                window.__rfPaymentListenerAttached = true;
+                window.addEventListener('message', (event) => {
+                    if (!event || !event.data || event.data.type !== 'rosafiesta-payment-callback') return;
+                    const sameOrigin = event.origin === window.location.origin;
+                    const apiOrigin = expectedApiOrigin && event.origin === expectedApiOrigin;
+                    if (!sameOrigin && !apiOrigin) return;
+                    onPaymentReturn(
+                        String(event.data.sessionId || ''),
+                        String(event.data.eventId || ''),
+                        Boolean(event.data.cancelled)
+                    );
+                });
+            }
+            if (window.location && window.location.search) {
+                const params = new URLSearchParams(window.location.search);
+                const sessionId = params.get('session_id') || '';
+                const eventId = params.get('event_id') || '';
+                const cancelled = params.get('cancelled') === '1';
+                if (sessionId || cancelled) {
+                    try {
+                        window.history.replaceState(null, '', window.location.pathname + (window.location.hash || ''));
+                    } catch (historyErr) {}
+                    onPaymentReturn(sessionId, eventId, cancelled);
+                }
+            }
+        } catch (err) {}
+    }""",
+)
+private external fun jsInstallPaymentReturnListener(
+    expectedApiOrigin: String,
+    onPaymentReturn: (String, String, Boolean) -> Unit,
+)
+
+@JsFun(
+    """(title, body) => {
+        try {
+            if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+            new Notification(title, { body: body });
+        } catch (err) {}
+    }""",
+)
+private external fun jsShowWebNotification(title: String, body: String)
 
 @JsFun(
     """(fileName, mimeType, base64Payload) => {
@@ -426,6 +675,24 @@ internal class WasmVoiceInputMonitor : VoiceInputMonitor {
 }
 
 internal class WasmPlatformActions : PlatformActions {
+    init {
+        val apiOrigin = extractOrigin(defaultApiBaseUrl())
+        jsInstallPaymentReturnListener(apiOrigin) { sessionId, eventId, cancelled ->
+            ExternalPaymentCallbackBridge.dispatchPaymentPayload(
+                sessionId = sessionId,
+                eventId = eventId,
+                cancelled = cancelled,
+            )
+        }
+    }
+
+    private fun extractOrigin(rawUrl: String): String {
+        val schemeIdx = rawUrl.indexOf("://")
+        if (schemeIdx < 0) return ""
+        val slashAfterHost = rawUrl.indexOf('/', startIndex = schemeIdx + 3)
+        return if (slashAfterHost > 0) rawUrl.substring(0, slashAfterHost) else rawUrl
+    }
+
     override fun defaultApiBaseUrl(): String {
         val configured = jsReadConfiguredApiBaseUrl()
         return ExternalUrlBuilder.normalizeBaseUrl(configured)
@@ -497,6 +764,63 @@ internal class WasmPlatformActions : PlatformActions {
                 },
             )
         }
+    }
+
+    override fun isOnWifiNetwork(): Boolean = jsIsWifiOrUnmeteredOnline()
+
+    override fun authenticateDeviceOwner(
+        promptTitle: String,
+        promptSubtitle: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        jsAuthenticateWebAuthnDeviceOwner(promptTitle) { ok, errCode ->
+            onResult(ok, errCode.ifEmpty { null })
+        }
+    }
+
+    override suspend fun launchOAuthBrowserFlow(
+        resolveAuthorizeUrl: suspend (redirectUri: String) -> String?,
+    ): OAuthBrowserOutcome {
+        val redirectUri = jsCurrentBrowserOAuthRedirectUri()
+        val authorizeUrl = resolveAuthorizeUrl(redirectUri)
+            ?: return OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_START_FAILED")
+        val apiOrigin = extractOrigin(defaultApiBaseUrl())
+        return suspendCancellableCoroutine { continuation ->
+            jsLaunchOAuthPopup(authorizeUrl, apiOrigin) { code, state, errorCode ->
+                if (!continuation.isActive) return@jsLaunchOAuthPopup
+                continuation.resume(
+                    OAuthBrowserOutcome(
+                        code = code.ifEmpty { null },
+                        state = state.ifEmpty { null },
+                        redirectUri = redirectUri,
+                        errorCode = errorCode.ifEmpty { null },
+                    ),
+                )
+            }
+        }
+    }
+
+    override fun registerPushNotifications(
+        appVariant: String,
+        onResult: (platform: String, token: String?) -> Unit,
+    ) {
+        registerPushNotificationsWithConfig(appVariant, "", onResult)
+    }
+
+    override fun registerPushNotificationsWithConfig(
+        appVariant: String,
+        vapidPublicKey: String,
+        onResult: (platform: String, token: String?) -> Unit,
+    ) {
+        jsRequestWebNotificationsAndPush(vapidPublicKey.trim()) { rawSubscription ->
+            onResult("web", rawSubscription.trim().ifEmpty { null })
+        }
+    }
+
+    override fun showLocalNotification(title: String, body: String) {
+        val cleanTitle = title.trim()
+        if (cleanTitle.isEmpty()) return
+        jsShowWebNotification(cleanTitle, body.trim())
     }
 
     private fun standardBase64Encode(bytes: ByteArray): String {

@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -52,6 +51,7 @@ type CreateEventInput struct {
 		ClientName     string             `json:"clientName,omitempty"`
 		ClientEmail    string             `json:"clientEmail,omitempty"`
 		DateLabel      string             `json:"dateLabel"`
+		EventDateISO   string             `json:"eventDateIso,omitempty"`
 		DaysUntilEvent int                `json:"daysUntilEvent,omitempty"`
 		Venue          string             `json:"venue"`
 		Zone           string             `json:"zone,omitempty"`
@@ -72,6 +72,7 @@ func (in *CreateEventInput) ToCommand() app.CreateEventCommand {
 		ClientName:     in.Body.ClientName,
 		ClientEmail:    in.Body.ClientEmail,
 		DateLabel:      in.Body.DateLabel,
+		EventDateISO:   in.Body.EventDateISO,
 		DaysUntilEvent: in.Body.DaysUntilEvent,
 		Venue:          in.Body.Venue,
 		Zone:           in.Body.Zone,
@@ -92,6 +93,7 @@ type UpdateEventInput struct {
 		Venue          *string             `json:"venue,omitempty"`
 		Zone           *string             `json:"zone,omitempty"`
 		DateLabel      *string             `json:"dateLabel,omitempty"`
+		EventDateISO   *string             `json:"eventDateIso,omitempty"`
 		DaysUntilEvent *int                `json:"daysUntilEvent,omitempty"`
 		Guests         *int                `json:"guests,omitempty"`
 		Status         *string             `json:"status,omitempty"`
@@ -107,6 +109,7 @@ func (in *UpdateEventInput) ToCommand() app.UpdateEventCommand {
 		Venue:          in.Body.Venue,
 		Zone:           in.Body.Zone,
 		DateLabel:      in.Body.DateLabel,
+		EventDateISO:   in.Body.EventDateISO,
 		DaysUntilEvent: in.Body.DaysUntilEvent,
 		Guests:         in.Body.Guests,
 		Status:         in.Body.Status,
@@ -132,23 +135,17 @@ type DateChangeOutput struct {
 }
 
 type CancelEventInput struct {
-	ID      string `path:"id" doc:"Event identifier."`
-	RawBody []byte
+	ID   string `path:"id" doc:"Event identifier."`
+	Body *struct {
+		Reason string `json:"reason,omitempty"`
+	}
 }
 
 func (in *CancelEventInput) Reason() string {
-	rawText := string(in.RawBody)
-	trimmed := strings.TrimSpace(rawText)
-	if trimmed == "" {
+	if in.Body == nil {
 		return ""
 	}
-	var payload struct {
-		Reason string `json:"reason"`
-	}
-	if err := json.Unmarshal(in.RawBody, &payload); err != nil {
-		return ""
-	}
-	return strings.TrimSpace(payload.Reason)
+	return strings.TrimSpace(in.Body.Reason)
 }
 
 type CancelEventOutput struct {
@@ -283,6 +280,7 @@ type PostChatMessageInput struct {
 		RecipientLabel string `json:"recipientLabel,omitempty"`
 		Body           string `json:"body"`
 		AttachmentName string `json:"attachmentName,omitempty"`
+		AttachmentURL  string `json:"attachmentUrl,omitempty"`
 	}
 }
 
@@ -293,6 +291,49 @@ func (in *PostChatMessageInput) ToCommand() app.PostChatMessageCommand {
 		RecipientLabel: in.Body.RecipientLabel,
 		Body:           in.Body.Body,
 		AttachmentName: in.Body.AttachmentName,
+		AttachmentURL:  in.Body.AttachmentURL,
+	}
+}
+
+// CloseoutEventInput encapsula la solicitud para cerrar operativamente un evento.
+type CloseoutEventInput struct {
+	ID   string `path:"id" doc:"Event identifier."`
+	Body struct {
+		Notes string `json:"notes,omitempty"`
+	}
+}
+
+// PaymentReminderInput solicita enviar un recordatorio real de pago para un evento.
+type PaymentReminderInput struct {
+	ID   string `path:"id" doc:"Event identifier."`
+	Body *struct {
+		Channel string `json:"channel,omitempty"`
+		Message string `json:"message,omitempty"`
+	}
+}
+
+func (in *PaymentReminderInput) ChannelOrDefault() string {
+	if in.Body != nil {
+		clean := strings.TrimSpace(in.Body.Channel)
+		if clean != "" {
+			return clean
+		}
+	}
+	return "email"
+}
+
+func (in *PaymentReminderInput) CustomMessage() string {
+	if in.Body == nil {
+		return ""
+	}
+	return strings.TrimSpace(in.Body.Message)
+}
+
+type PaymentReminderOutput struct {
+	Body struct {
+		Event   domain.Event `json:"event"`
+		Sent    bool         `json:"sent"`
+		Channel string       `json:"channel"`
 	}
 }
 
@@ -304,6 +345,26 @@ func mapEventError(err error, endpoint, defaultCode, policy string, defaultStatu
 			err.Error(),
 			endpoint,
 			"ClientEventIsolation",
+			err.Error(),
+		)
+	}
+	if errors.Is(err, domain.ErrInsufficientStock) {
+		return platformhttp.NewAPIError(
+			http.StatusConflict,
+			"STOCK_INSUFFICIENT_FOR_DATE",
+			err.Error(),
+			endpoint,
+			"CheckDateAvailability",
+			err.Error(),
+		)
+	}
+	if errors.Is(err, domain.ErrAlreadyClosedOut) {
+		return platformhttp.NewAPIError(
+			http.StatusConflict,
+			"EVENT_ALREADY_CLOSED_OUT",
+			err.Error(),
+			endpoint,
+			"CompleteEventCloseout",
 			err.Error(),
 		)
 	}

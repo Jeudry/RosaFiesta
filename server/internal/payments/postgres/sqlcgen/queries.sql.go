@@ -10,30 +10,66 @@ import (
 	"time"
 )
 
+const allocateNextNCF = `-- name: AllocateNextNCF :one
+UPDATE ncf_sequences
+SET last_number = last_number + 1
+WHERE ncf_type = $1
+  AND last_number < max_number
+RETURNING prefix, last_number
+`
+
+type AllocateNextNCFRow struct {
+	Prefix     string
+	LastNumber int64
+}
+
+func (q *Queries) AllocateNextNCF(ctx context.Context, ncfType string) (AllocateNextNCFRow, error) {
+	row := q.db.QueryRow(ctx, allocateNextNCF, ncfType)
+	var i AllocateNextNCFRow
+	err := row.Scan(&i.Prefix, &i.LastNumber)
+	return i, err
+}
+
 const listPayments = `-- name: ListPayments :many
 SELECT id, receipt_number, idempotency_key, event_id, event_title, client_id,
        client_email, client_name, amount_dop, method, kind, bank_name,
-       paid_date_label, status, created_at
+       paid_date_label, status, voucher_url, reference_number, verified_by,
+       verified_at_iso, rejection_reason, ncf_type, ncf_number, client_rnc,
+       subtotal_dop, itbis_dop, security_deposit_dop, gateway_session_id,
+       gateway_payment_intent_id, created_at
 FROM payments
 ORDER BY created_at, id
 `
 
 type ListPaymentsRow struct {
-	ID             string
-	ReceiptNumber  string
-	IdempotencyKey string
-	EventID        string
-	EventTitle     string
-	ClientID       string
-	ClientEmail    string
-	ClientName     string
-	AmountDop      int
-	Method         string
-	Kind           string
-	BankName       string
-	PaidDateLabel  string
-	Status         string
-	CreatedAt      time.Time
+	ID                     string
+	ReceiptNumber          string
+	IdempotencyKey         string
+	EventID                string
+	EventTitle             string
+	ClientID               string
+	ClientEmail            string
+	ClientName             string
+	AmountDop              int
+	Method                 string
+	Kind                   string
+	BankName               string
+	PaidDateLabel          string
+	Status                 string
+	VoucherUrl             string
+	ReferenceNumber        string
+	VerifiedBy             string
+	VerifiedAtIso          string
+	RejectionReason        string
+	NcfType                string
+	NcfNumber              string
+	ClientRnc              string
+	SubtotalDop            int
+	ItbisDop               int
+	SecurityDepositDop     int
+	GatewaySessionID       string
+	GatewayPaymentIntentID string
+	CreatedAt              time.Time
 }
 
 func (q *Queries) ListPayments(ctx context.Context) ([]ListPaymentsRow, error) {
@@ -60,6 +96,19 @@ func (q *Queries) ListPayments(ctx context.Context) ([]ListPaymentsRow, error) {
 			&i.BankName,
 			&i.PaidDateLabel,
 			&i.Status,
+			&i.VoucherUrl,
+			&i.ReferenceNumber,
+			&i.VerifiedBy,
+			&i.VerifiedAtIso,
+			&i.RejectionReason,
+			&i.NcfType,
+			&i.NcfNumber,
+			&i.ClientRnc,
+			&i.SubtotalDop,
+			&i.ItbisDop,
+			&i.SecurityDepositDop,
+			&i.GatewaySessionID,
+			&i.GatewayPaymentIntentID,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -74,7 +123,8 @@ func (q *Queries) ListPayments(ctx context.Context) ([]ListPaymentsRow, error) {
 
 const listRefunds = `-- name: ListRefunds :many
 SELECT id, idempotency_key, event_id, event_title, client_name, paid_dop,
-       refund_percent, refund_dop, reason, status, approved_by, approved_at_label, created_at
+       refund_percent, refund_dop, reason, status, approved_by, approved_at_label,
+       gateway_refund_id, gateway_status, created_at
 FROM refunds
 ORDER BY created_at DESC, id ASC
 `
@@ -92,6 +142,8 @@ type ListRefundsRow struct {
 	Status          string
 	ApprovedBy      string
 	ApprovedAtLabel string
+	GatewayRefundID string
+	GatewayStatus   string
 	CreatedAt       time.Time
 }
 
@@ -117,6 +169,8 @@ func (q *Queries) ListRefunds(ctx context.Context) ([]ListRefundsRow, error) {
 			&i.Status,
 			&i.ApprovedBy,
 			&i.ApprovedAtLabel,
+			&i.GatewayRefundID,
+			&i.GatewayStatus,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -133,36 +187,68 @@ const upsertPayment = `-- name: UpsertPayment :exec
 INSERT INTO payments (
     id, receipt_number, idempotency_key, event_id, event_title, client_id,
     client_email, client_name, amount_dop, method, kind, bank_name,
-    paid_date_label, status, created_at
+    paid_date_label, status, voucher_url, reference_number, verified_by,
+    verified_at_iso, rejection_reason, ncf_type, ncf_number, client_rnc,
+    subtotal_dop, itbis_dop, security_deposit_dop, gateway_session_id,
+    gateway_payment_intent_id, created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6,
     $7, $8, $9, $10, $11, $12,
-    $13, $14, $15
+    $13, $14, $15, $16, $17,
+    $18, $19, $20, $21, $22,
+    $23, $24, $25, $26,
+    $27, $28
 )
 ON CONFLICT (idempotency_key) DO UPDATE SET
     status = EXCLUDED.status,
     bank_name = EXCLUDED.bank_name,
     receipt_number = EXCLUDED.receipt_number,
     event_title = EXCLUDED.event_title,
-    kind = EXCLUDED.kind
+    kind = EXCLUDED.kind,
+    voucher_url = EXCLUDED.voucher_url,
+    reference_number = EXCLUDED.reference_number,
+    verified_by = EXCLUDED.verified_by,
+    verified_at_iso = EXCLUDED.verified_at_iso,
+    rejection_reason = EXCLUDED.rejection_reason,
+    ncf_type = EXCLUDED.ncf_type,
+    ncf_number = EXCLUDED.ncf_number,
+    client_rnc = EXCLUDED.client_rnc,
+    subtotal_dop = EXCLUDED.subtotal_dop,
+    itbis_dop = EXCLUDED.itbis_dop,
+    security_deposit_dop = EXCLUDED.security_deposit_dop,
+    gateway_session_id = EXCLUDED.gateway_session_id,
+    gateway_payment_intent_id = EXCLUDED.gateway_payment_intent_id
 `
 
 type UpsertPaymentParams struct {
-	ID             string
-	ReceiptNumber  string
-	IdempotencyKey string
-	EventID        string
-	EventTitle     string
-	ClientID       string
-	ClientEmail    string
-	ClientName     string
-	AmountDop      int
-	Method         string
-	Kind           string
-	BankName       string
-	PaidDateLabel  string
-	Status         string
-	CreatedAt      time.Time
+	ID                     string
+	ReceiptNumber          string
+	IdempotencyKey         string
+	EventID                string
+	EventTitle             string
+	ClientID               string
+	ClientEmail            string
+	ClientName             string
+	AmountDop              int
+	Method                 string
+	Kind                   string
+	BankName               string
+	PaidDateLabel          string
+	Status                 string
+	VoucherUrl             string
+	ReferenceNumber        string
+	VerifiedBy             string
+	VerifiedAtIso          string
+	RejectionReason        string
+	NcfType                string
+	NcfNumber              string
+	ClientRnc              string
+	SubtotalDop            int
+	ItbisDop               int
+	SecurityDepositDop     int
+	GatewaySessionID       string
+	GatewayPaymentIntentID string
+	CreatedAt              time.Time
 }
 
 func (q *Queries) UpsertPayment(ctx context.Context, arg UpsertPaymentParams) error {
@@ -181,6 +267,19 @@ func (q *Queries) UpsertPayment(ctx context.Context, arg UpsertPaymentParams) er
 		arg.BankName,
 		arg.PaidDateLabel,
 		arg.Status,
+		arg.VoucherUrl,
+		arg.ReferenceNumber,
+		arg.VerifiedBy,
+		arg.VerifiedAtIso,
+		arg.RejectionReason,
+		arg.NcfType,
+		arg.NcfNumber,
+		arg.ClientRnc,
+		arg.SubtotalDop,
+		arg.ItbisDop,
+		arg.SecurityDepositDop,
+		arg.GatewaySessionID,
+		arg.GatewayPaymentIntentID,
 		arg.CreatedAt,
 	)
 	return err
@@ -189,15 +288,19 @@ func (q *Queries) UpsertPayment(ctx context.Context, arg UpsertPaymentParams) er
 const upsertRefund = `-- name: UpsertRefund :exec
 INSERT INTO refunds (
     id, idempotency_key, event_id, event_title, client_name, paid_dop,
-    refund_percent, refund_dop, reason, status, approved_by, approved_at_label, created_at
+    refund_percent, refund_dop, reason, status, approved_by, approved_at_label,
+    gateway_refund_id, gateway_status, created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6,
-    $7, $8, $9, $10, $11, $12, $13
+    $7, $8, $9, $10, $11, $12,
+    $13, $14, $15
 )
 ON CONFLICT (id) DO UPDATE SET
     status = EXCLUDED.status,
     approved_by = EXCLUDED.approved_by,
     approved_at_label = EXCLUDED.approved_at_label,
+    gateway_refund_id = EXCLUDED.gateway_refund_id,
+    gateway_status = EXCLUDED.gateway_status,
     reason = EXCLUDED.reason
 `
 
@@ -214,6 +317,8 @@ type UpsertRefundParams struct {
 	Status          string
 	ApprovedBy      string
 	ApprovedAtLabel string
+	GatewayRefundID string
+	GatewayStatus   string
 	CreatedAt       time.Time
 }
 
@@ -231,6 +336,8 @@ func (q *Queries) UpsertRefund(ctx context.Context, arg UpsertRefundParams) erro
 		arg.Status,
 		arg.ApprovedBy,
 		arg.ApprovedAtLabel,
+		arg.GatewayRefundID,
+		arg.GatewayStatus,
 		arg.CreatedAt,
 	)
 	return err

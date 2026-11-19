@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"embed"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/smtp"
@@ -12,14 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/Jeudry/rosafiesta/server/internal/identity/domain"
 	"github.com/Jeudry/rosafiesta/server/internal/platform/config"
 	"github.com/Jeudry/rosafiesta/server/internal/platform/redact"
 )
 
-//go:embed templates/otp_email.txt
+//go:embed templates/*.txt
 var emailTemplates embed.FS
 
 const (
@@ -107,6 +103,9 @@ func (s *Service) RequestOTP(ctx context.Context, rawEmail string) (OTPRequestRe
 	if err != nil {
 		return OTPRequestResult{}, domain.ErrInvalidInput
 	}
+	if s.requiresConfiguredSMTPBlock() {
+		return OTPRequestResult{}, domain.ErrSMTPNotConfigured
+	}
 	s.syncUsersFromStore(ctx)
 	s.mu.RLock()
 	_, found := s.findUserLocked(normalizedEmail)
@@ -132,8 +131,8 @@ func (s *Service) RequestOTP(ctx context.Context, rawEmail string) (OTPRequestRe
 		CreatedAt:      now,
 	}
 	s.saveOTPRecord(ctx, record)
-	if err := s.notifier.SendOTP(ctx, normalizedEmail, code, otpValidityTTL); err != nil {
-		return OTPRequestResult{}, err
+	if dispatchErr := s.dispatchOTPCode(ctx, normalizedEmail, code); dispatchErr != nil {
+		return OTPRequestResult{}, dispatchErr
 	}
 	result := OTPRequestResult{
 		Sent:             true,
@@ -143,6 +142,146 @@ func (s *Service) RequestOTP(ctx context.Context, rawEmail string) (OTPRequestRe
 		result.DevCode = code
 	}
 	return result, nil
+}
+
+func (s *Service) requiresConfiguredSMTPBlock() bool {
+	if !s.opts.RequireConfiguredSMTP {
+		return false
+	}
+	if strings.TrimSpace(s.opts.SMTPHost) != "" {
+		return false
+	}
+	if s.customNotifierProvided {
+		return false
+	}
+	if s.opts.EmailSender != nil {
+		if s.opts.EmailSender.IsConfigured() {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Service) dispatchOTPCode(ctx context.Context, recipientEmail, code string) error {
+	if s.opts.EmailSender != nil {
+		if s.opts.EmailSender.IsConfigured() {
+			body, err := renderOTPEmailBody(code, otpValidityTTL)
+			if err != nil {
+				return err
+			}
+			if mailErr := s.opts.EmailSender.SendEmail(ctx, recipientEmail, "RosaFiesta Verification Code", body); mailErr != nil {
+				return mailErr
+			}
+			if !s.customNotifierProvided {
+				return nil
+			}
+		}
+	}
+	return s.notifier.SendOTP(ctx, recipientEmail, code, otpValidityTTL)
+}
+
+type OAuthConfigResult struct {
+	GoogleEnabled         bool   `json:"googleEnabled" doc:"Indicates whether Google OAuth is configured on the server."`
+	AppleEnabled          bool   `json:"appleEnabled" doc:"Indicates whether Apple Sign-In is configured on the server."`
+	GoogleClientID        string `json:"googleClientId,omitempty" doc:"Configured Google OAuth client identifier."`
+	AppleClientID         string `json:"appleClientId,omitempty" doc:"Configured Apple OAuth client identifier."`
+	WebPushVAPIDPublicKey string `json:"webPushVapidPublicKey,omitempty" doc:"Public VAPID key for Web Push subscription."`
+}
+
+func (s *Service) OAuthConfig() OAuthConfigResult {
+	googleID := strings.TrimSpace(s.opts.GoogleClientID)
+	appleID := strings.TrimSpace(s.opts.AppleClientID)
+	vapidPublic := strings.TrimSpace(s.opts.WebPushVAPIDPublicKey)
+	return OAuthConfigResult{
+		GoogleEnabled:         googleID != "",
+		AppleEnabled:          appleID != "",
+		GoogleClientID:        googleID,
+		AppleClientID:         appleID,
+		WebPushVAPIDPublicKey: vapidPublic,
+	}
+}
+
+func (s *Service) RecoverUsername(ctx context.Context, rawIdentifier string) (bool, error) {
+	cleaned := strings.TrimSpace(rawIdentifier)
+	if cleaned == "" {
+		return false, domain.ErrInvalidInput
+	}
+	if s.requiresConfiguredSMTPBlock() {
+		return false, domain.ErrSMTPNotConfigured
+	}
+	s.syncUsersFromStore(ctx)
+	user, found := s.findUserByRecoveryIdentifier(cleaned)
+	if !found {
+		return true, nil
+	}
+	if err := s.dispatchUsernameRecoveryEmail(ctx, user); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *Service) findUserByRecoveryIdentifier(rawIdentifier string) (domain.User, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if user, ok := s.findUserLocked(rawIdentifier); ok {
+		return user, true
+	}
+	targetDigits := onlyDigits(rawIdentifier)
+	for _, user := range s.users {
+		if strings.EqualFold(strings.TrimSpace(user.FullName), rawIdentifier) {
+			return user, true
+		}
+		if targetDigits != "" {
+			if onlyDigits(user.Phone) == targetDigits {
+				return user, true
+			}
+		}
+	}
+	return domain.User{}, false
+}
+
+func (s *Service) dispatchUsernameRecoveryEmail(ctx context.Context, user domain.User) error {
+	body, err := renderUsernameRecoveryEmailBody(user)
+	if err != nil {
+		return err
+	}
+	if s.opts.EmailSender != nil {
+		if s.opts.EmailSender.IsConfigured() {
+			return s.opts.EmailSender.SendEmail(ctx, user.Email, "Recuperación de usuario RosaFiesta", body)
+		}
+	}
+	slog.InfoContext(ctx, "rosafiesta username recovery queued without smtp", slog.String("email", redact.Email(user.Email)))
+	return nil
+}
+
+func renderUsernameRecoveryEmailBody(user domain.User) (string, error) {
+	rawTemplate, err := emailTemplates.ReadFile("templates/username_recovery_email.txt")
+	if err != nil {
+		return "", err
+	}
+	res := strings.ReplaceAll(string(rawTemplate), "{{FULL_NAME}}", user.FullName)
+	res = strings.ReplaceAll(res, "{{EMAIL}}", user.Email)
+	return strings.ReplaceAll(res, "{{USERNAME}}", user.Username), nil
+}
+
+func onlyDigits(raw string) string {
+	var b strings.Builder
+	for _, ch := range raw {
+		if ch >= '0' && ch <= '9' {
+			b.WriteRune(ch)
+		}
+	}
+	return b.String()
+}
+
+func renderOTPEmailBody(code string, ttl time.Duration) (string, error) {
+	rawTemplate, err := emailTemplates.ReadFile("templates/otp_email.txt")
+	if err != nil {
+		return "", err
+	}
+	minutesLabel := strconv.Itoa(int(ttl.Minutes()))
+	withCode := strings.ReplaceAll(string(rawTemplate), "{{CODE}}", code)
+	return strings.ReplaceAll(withCode, "{{TTL_MINUTES}}", minutesLabel), nil
 }
 
 func (s *Service) VerifyOTP(ctx context.Context, rawEmail, rawCode string) (OTPVerifyResult, error) {
@@ -182,54 +321,19 @@ func (s *Service) VerifyOTP(ctx context.Context, rawEmail, rawCode string) (OTPV
 }
 
 func (s *Service) ResetPassword(ctx context.Context, cmd ResetPasswordCommand) (domain.User, string, error) {
-	passwordHash, err := domain.HashPassword(cmd.NewPassword)
+	session, err := s.ResetPasswordWithSession(ctx, cmd)
 	if err != nil {
-		return domain.User{}, "", domain.ErrInvalidInput
-	}
-	lookup := strings.TrimSpace(cmd.Email)
-	if lookup == "" {
-		lookup = strings.TrimSpace(cmd.Identifier)
-	}
-	lowerLookup := strings.ToLower(lookup)
-	if lowerLookup == "" {
-		return domain.User{}, "", domain.ErrInvalidInput
-	}
-	s.syncUsersFromStore(ctx)
-	s.mu.RLock()
-	user, found := s.findUserLocked(lowerLookup)
-	s.mu.RUnlock()
-	if !found {
-		return domain.User{}, "", domain.ErrInvalidCredentials
-	}
-	if err := s.authorizePasswordReset(ctx, user.Email, cmd.ResetToken, cmd.OTPCode); err != nil {
 		return domain.User{}, "", err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	user.PasswordHash = passwordHash
-	s.users[user.ID] = user
-	if s.store != nil {
-		if s.store.Enabled() {
-			_ = s.store.UpdatePassword(ctx, user.Email, passwordHash)
-		}
-	}
-	token := s.issueAndPersistSessionLocked(ctx, user)
-	return user, token, nil
+	return session.User, session.AccessToken, nil
 }
 
 func (s *Service) OAuthLogin(ctx context.Context, provider, idToken string) (domain.User, string, error) {
-	trimmedProvider := strings.TrimSpace(provider)
-	normalizedProvider := strings.ToLower(trimmedProvider)
-	clientID, err := s.configuredOAuthClientID(normalizedProvider)
+	session, err := s.OAuthLoginWithSession(ctx, provider, idToken)
 	if err != nil {
 		return domain.User{}, "", err
 	}
-	now := s.clock.Now()
-	claims, err := parseVerifiedOAuthClaims(idToken, clientID, now)
-	if err != nil {
-		return domain.User{}, "", err
-	}
-	return s.upsertOAuthUser(ctx, claims.Email, claims.Name)
+	return session.User, session.AccessToken, nil
 }
 
 func (s *Service) configuredOAuthClientID(provider string) (string, error) {
@@ -246,78 +350,6 @@ func (s *Service) configuredOAuthClientID(provider string) (string, error) {
 		return s.opts.AppleClientID, nil
 	}
 	return "", domain.ErrInvalidInput
-}
-
-type oauthTokenClaims struct {
-	Audience  string `json:"aud"`
-	Email     string `json:"email"`
-	Name      string `json:"name"`
-	ExpiresAt int64  `json:"exp"`
-}
-
-func parseVerifiedOAuthClaims(idToken, expectedAudience string, now time.Time) (oauthTokenClaims, error) {
-	trimmed := strings.TrimSpace(idToken)
-	parts := strings.Split(trimmed, ".")
-	if len(parts) != 3 {
-		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
-	}
-	if strings.TrimSpace(parts[2]) == "" {
-		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
-	}
-	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
-	}
-	var claims oauthTokenClaims
-	if err := json.Unmarshal(payloadBytes, &claims); err != nil {
-		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
-	}
-	if claims.Audience != expectedAudience {
-		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
-	}
-	if now.Unix() >= claims.ExpiresAt {
-		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
-	}
-	normalizedEmail, err := domain.NormalizeEmail(claims.Email)
-	if err != nil {
-		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
-	}
-	claims.Email = normalizedEmail
-	return claims, nil
-}
-
-func (s *Service) upsertOAuthUser(ctx context.Context, email, displayName string) (domain.User, string, error) {
-	s.syncUsersFromStore(ctx)
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	existing, found := s.findUserLocked(email)
-	if found {
-		token := s.issueAndPersistSessionLocked(ctx, existing)
-		return existing, token, nil
-	}
-	fullName := strings.TrimSpace(displayName)
-	if fullName == "" {
-		emailParts := strings.Split(email, "@")
-		fullName = emailParts[0]
-	}
-	emailParts := strings.Split(email, "@")
-	randomPass, _ := domain.GenerateRandomHex(16)
-	passHash, _ := domain.HashPassword(randomPass)
-	now := s.clock.Now()
-	created := domain.User{
-		ID:           uuid.New(),
-		Username:     emailParts[0],
-		FullName:     fullName,
-		Email:        email,
-		Role:         domain.RoleClient,
-		Permissions:  []string{},
-		ActiveView:   domain.ViewPersonal,
-		CreatedAt:    now,
-		PasswordHash: passHash,
-	}
-	s.users[created.ID] = created
-	token := s.issueAndPersistSessionLocked(ctx, created)
-	return created, token, nil
 }
 
 func (s *Service) authorizePasswordReset(ctx context.Context, email, rawResetToken, rawOTPCode string) error {

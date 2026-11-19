@@ -9,6 +9,7 @@ import com.jeudry.rosafiesta.core.engine.UserRole
 import com.jeudry.rosafiesta.data.db.RosaFiestaDatabase
 import com.jeudry.rosafiesta.domain.ArticleAvailabilityCalendar
 import com.jeudry.rosafiesta.domain.AuditLogRecord
+import com.jeudry.rosafiesta.domain.AvailabilityRangeCheck
 import com.jeudry.rosafiesta.domain.BalloonProduct
 import com.jeudry.rosafiesta.domain.BotFaqRecord
 import com.jeudry.rosafiesta.domain.BotKeywordRecord
@@ -16,7 +17,10 @@ import com.jeudry.rosafiesta.domain.BotThreadRecord
 import com.jeudry.rosafiesta.domain.BusinessMetrics
 import com.jeudry.rosafiesta.domain.BusinessSettings
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.CardSessionResult
 import com.jeudry.rosafiesta.domain.CatalogArticle
+import com.jeudry.rosafiesta.domain.CatalogCategory
+import com.jeudry.rosafiesta.domain.CatalogTrend
 import com.jeudry.rosafiesta.domain.ChatMessageRecord
 import com.jeudry.rosafiesta.domain.ChatThread
 import com.jeudry.rosafiesta.domain.ChecklistStep
@@ -33,17 +37,24 @@ import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.EventTypeTemplate
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
 import com.jeudry.rosafiesta.domain.LeadRecord
+import com.jeudry.rosafiesta.domain.MediaUploadAsset
 import com.jeudry.rosafiesta.domain.NotificationRecord
+import com.jeudry.rosafiesta.domain.OAuthProviderConfig
 import com.jeudry.rosafiesta.domain.OfflineQueueItem
 import com.jeudry.rosafiesta.domain.OtpChallengeOutcome
 import com.jeudry.rosafiesta.domain.PaymentRecord
+import com.jeudry.rosafiesta.domain.PaymentReminderOutcome
+import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
+import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReportExportResult
 import com.jeudry.rosafiesta.domain.ReviewRecord
 import com.jeudry.rosafiesta.domain.RosaChatReply
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
+import com.jeudry.rosafiesta.domain.RosaSketchProposal
+import com.jeudry.rosafiesta.domain.SeasonBanner
 import com.jeudry.rosafiesta.domain.StaffMember
 import com.jeudry.rosafiesta.domain.SupplierRecord
 import com.jeudry.rosafiesta.domain.VoiceTranscriptionOutcome
@@ -51,11 +62,13 @@ import com.jeudry.rosafiesta.domain.security.AuthOutcome
 import com.jeudry.rosafiesta.domain.security.JwtAuthManager
 import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
+import com.jeudry.rosafiesta.domain.security.UserPreferences
 import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,6 +77,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /**
  * Persistent SQLDelight-backed implementation of [RosaFiestaRepository] synchronized with [RosaFiestaApiClient].
@@ -167,6 +183,12 @@ public class SqlRosaFiestaRepository(
         seedDemoData = seedDemoData,
     )
 
+    override val catalogCategories: StateFlow<List<CatalogCategory>>
+        get() = submodules.catalogCategories
+    override val catalogTrends: StateFlow<List<CatalogTrend>>
+        get() = submodules.catalogTrends
+    override val seasonBanner: StateFlow<SeasonBanner>
+        get() = submodules.seasonBanner
     override val packages: StateFlow<List<EventPackage>>
         get() = submodules.packages
     override val templates: StateFlow<List<EventTypeTemplate>>
@@ -226,22 +248,31 @@ public class SqlRosaFiestaRepository(
 
     override suspend fun syncFromBackendAsync(): Boolean = submodules.syncFromBackendAsync()
 
+    private fun upsertUserAccountRow(account: RegisteredUserAccount) {
+        queries.upsertUserAccount(
+            id = account.id,
+            username = account.username,
+            email = account.email,
+            fullName = account.fullName,
+            passwordHash = account.passwordHash,
+            salt = account.salt,
+            birthDate = account.birthDate,
+            phone = account.phone,
+            role = account.role,
+            pushNotificationsEnabled = if (account.preferences.pushNotificationsEnabled) 1L else 0L,
+            whatsappAlertsEnabled = if (account.preferences.whatsappAlertsEnabled) 1L else 0L,
+            emailReceiptsEnabled = if (account.preferences.emailReceiptsEnabled) 1L else 0L,
+            biometricLockEnabled = if (account.preferences.biometricLockEnabled) 1L else 0L,
+            autoSyncWifiOnly = if (account.preferences.autoSyncWifiOnly) 1L else 0L,
+        )
+    }
+
     private suspend fun persistAccountAndSessionInSql(
         account: RegisteredUserAccount,
         accessToken: String,
     ) {
         sqlMutex.withLock {
-            queries.upsertUserAccount(
-                id = account.id,
-                username = account.username,
-                email = account.email,
-                fullName = account.fullName,
-                passwordHash = account.passwordHash,
-                salt = account.salt,
-                birthDate = account.birthDate,
-                phone = account.phone,
-                role = account.role,
-            )
+            upsertUserAccountRow(account)
             queries.upsertActiveSession(
                 userId = account.id,
                 accessToken = accessToken,
@@ -250,71 +281,24 @@ public class SqlRosaFiestaRepository(
         }
     }
 
+    private val sqlJsonCodec: Json = Json { ignoreUnknownKeys = true }
+
     private suspend fun persistInMemoryCoreFlowsToSql() {
+        val submoduleSnapshot = submodules.snapshotForPersistence()
         sqlMutex.withLock {
             database.transaction {
+                queries.deleteAllArticles()
                 _articles.value.forEach { article ->
-                    queries.upsertArticle(
-                        id = article.id,
-                        code = article.code,
-                        name = article.name,
-                        category = article.category,
-                        description = article.description,
-                        pricePerDayDop = article.pricePerDayDop.toLong(),
-                        totalStock = article.totalStock.toLong(),
-                        availableOct23 = article.availableOct23.toLong(),
-                        photoKey = article.photo.key,
-                    )
+                    upsertArticleRow(article)
                 }
                 _events.value.forEachIndexed { index, evt ->
-                    queries.upsertEvent(
-                        id = evt.id,
-                        code = evt.code,
-                        title = evt.title,
-                        clientName = evt.clientName,
-                        eventType = evt.eventType,
-                        dateLabel = evt.dateLabel,
-                        daysUntilEvent = evt.daysUntilEvent.toLong(),
-                        venue = evt.venue,
-                        zone = evt.zone,
-                        guests = evt.guests.toLong(),
-                        articleCount = evt.articleCount.toLong(),
-                        totalDop = evt.totalDop.toLong(),
-                        paidDepositDop = evt.paidDepositDop.toLong(),
-                        depositMethodLabel = evt.depositMethodLabel,
-                        depositDateLabel = evt.depositDateLabel,
-                        balanceDueDateLabel = evt.balanceDueDateLabel,
-                        status = evt.status.name,
-                        leadStaffName = evt.leadStaffName,
-                        photoKey = evt.photo.key,
-                        priorChangesCount = evt.priorChangesCount.toLong(),
-                        sortOrder = index.toLong(),
-                    )
+                    upsertEventRow(evt, index)
                 }
                 _payments.value.forEachIndexed { index, payment ->
-                    queries.upsertPayment(
-                        id = payment.id,
-                        receiptNumber = payment.receiptNumber,
-                        eventId = payment.eventId,
-                        eventTitle = payment.eventTitle,
-                        clientName = payment.clientName,
-                        amountDop = payment.amountDop.toLong(),
-                        methodLabel = payment.methodLabel,
-                        kindLabel = payment.kindLabel,
-                        dateLabel = payment.dateLabel,
-                        referenceCode = payment.referenceCode,
-                        verified = if (payment.verified) 1L else 0L,
-                        sortOrder = index.toLong(),
-                    )
+                    upsertPaymentRow(payment, index)
                 }
                 _offlineQueue.value.forEach { mutation ->
-                    queries.upsertOfflineMutation(
-                        id = mutation.id,
-                        actionLabel = mutation.actionLabel,
-                        entityCode = mutation.entityCode,
-                        timeAgo = mutation.timeAgo,
-                        synced = if (mutation.synced) 1L else 0L,
-                    )
+                    upsertOfflineMutationRow(mutation)
                 }
                 _staffMembers.value.forEachIndexed { index, member ->
                     queries.upsertStaffPermission(
@@ -328,7 +312,176 @@ public class SqlRosaFiestaRepository(
                         sortOrder = index.toLong(),
                     )
                 }
+                persistSubmoduleSnapshotRows(submoduleSnapshot)
             }
+        }
+    }
+
+    private fun upsertArticleRow(article: CatalogArticle) {
+        queries.upsertArticle(
+            id = article.id,
+            code = article.code,
+            name = article.name,
+            category = article.category,
+            description = article.description,
+            pricePerDayDop = article.pricePerDayDop.toLong(),
+            totalStock = article.totalStock.toLong(),
+            availableOct23 = article.availableOct23.toLong(),
+            photoKey = article.photo.key,
+            photoUrl = article.photoUrl,
+            damagedStock = article.damagedStock.toLong(),
+        )
+    }
+
+    private fun upsertEventRow(evt: ClientEvent, sortIndex: Int) {
+        queries.upsertEvent(
+            id = evt.id,
+            code = evt.code,
+            title = evt.title,
+            clientName = evt.clientName,
+            eventType = evt.eventType,
+            dateLabel = evt.dateLabel,
+            daysUntilEvent = evt.daysUntilEvent.toLong(),
+            venue = evt.venue,
+            zone = evt.zone,
+            guests = evt.guests.toLong(),
+            articleCount = evt.articleCount.toLong(),
+            totalDop = evt.totalDop.toLong(),
+            paidDepositDop = evt.paidDepositDop.toLong(),
+            depositMethodLabel = evt.depositMethodLabel,
+            depositDateLabel = evt.depositDateLabel,
+            balanceDueDateLabel = evt.balanceDueDateLabel,
+            status = evt.status.name,
+            leadStaffName = evt.leadStaffName,
+            photoKey = evt.photo.key,
+            priorChangesCount = evt.priorChangesCount.toLong(),
+            sortOrder = sortIndex.toLong(),
+            eventDateIso = evt.eventDateIso,
+            pickupDateIso = evt.pickupDateIso,
+            returnDateIso = evt.returnDateIso,
+            quoteId = evt.quoteId,
+            closeoutCompleted = if (evt.closeoutCompleted) 1L else 0L,
+            closeoutNotes = evt.closeoutNotes,
+            sketchJson = evt.sketchJson,
+            lastPaymentReminderAt = evt.lastPaymentReminderAt,
+            lastPaymentReminderChannel = evt.lastPaymentReminderChannel,
+        )
+    }
+
+    private fun upsertPaymentRow(payment: PaymentRecord, sortIndex: Int) {
+        queries.upsertPayment(
+            id = payment.id,
+            receiptNumber = payment.receiptNumber,
+            eventId = payment.eventId,
+            eventTitle = payment.eventTitle,
+            clientName = payment.clientName,
+            amountDop = payment.amountDop.toLong(),
+            methodLabel = payment.methodLabel,
+            kindLabel = payment.kindLabel,
+            dateLabel = payment.dateLabel,
+            referenceCode = payment.referenceCode,
+            verified = if (payment.verified) 1L else 0L,
+            sortOrder = sortIndex.toLong(),
+            voucherUrl = payment.voucherUrl,
+            ncfType = payment.ncfType,
+            ncfNumber = payment.ncfNumber,
+            clientRnc = payment.clientRnc,
+            subtotalDop = payment.subtotalDop.toLong(),
+            itbisDop = payment.itbisDop.toLong(),
+            securityDepositDop = payment.securityDepositDop.toLong(),
+            rejectionReason = payment.rejectionReason,
+        )
+    }
+
+    private fun upsertOfflineMutationRow(mutation: OfflineQueueItem) {
+        queries.upsertOfflineMutation(
+            id = mutation.id,
+            actionLabel = mutation.actionLabel,
+            entityCode = mutation.entityCode,
+            timeAgo = mutation.timeAgo,
+            synced = if (mutation.synced) 1L else 0L,
+            operationType = mutation.operationType,
+            payloadJson = mutation.payloadJson.ifBlank { "{}" },
+            idempotencyKey = mutation.idempotencyKey,
+        )
+    }
+
+    private fun persistSubmoduleSnapshotRows(snapshot: PersistedSubmoduleSnapshot) {
+        snapshot.quotes.forEachIndexed { index, quote ->
+            val dtoLines = quote.lines.map { line ->
+                QuoteLineDto(
+                    articleCode = line.articleCode,
+                    name = line.name,
+                    quantity = line.quantity.toLong(),
+                    unitPriceRD = line.unitPriceDop.toLong(),
+                )
+            }
+            queries.upsertQuote(
+                id = quote.id,
+                code = quote.code,
+                eventId = quote.eventId,
+                eventTitle = quote.eventTitle,
+                clientName = quote.clientName,
+                clientEmail = quote.clientEmail,
+                venue = quote.venue,
+                dateLabel = quote.dateLabel,
+                guests = quote.guests.toLong(),
+                status = quote.status,
+                linesJson = sqlJsonCodec.encodeToString(dtoLines),
+                deliveryFeeDop = quote.deliveryFeeDop.toLong(),
+                discountDop = quote.discountDop.toLong(),
+                totalDop = quote.totalDop.toLong(),
+                signatureSvg = quote.signatureSvg,
+                depositPercent = quote.depositPercent.toLong(),
+                depositDop = quote.depositDop.toLong(),
+                signedByName = quote.signedByName,
+                rejectionReason = quote.rejectionReason,
+                eventDateIso = quote.eventDateIso,
+                packageId = quote.packageId,
+                contractPdfUrl = quote.contractPdfUrl,
+                signedAtIso = quote.signedAtIso,
+                sortOrder = index.toLong(),
+            )
+        }
+        queries.clearDeliveryStops()
+        snapshot.deliveryStops.forEach { stop ->
+            queries.upsertDeliveryStop(
+                stopOrder = stop.order.toLong(),
+                eventId = stop.eventId,
+                eventTitle = stop.eventTitle,
+                venue = stop.venue,
+                windowLabel = stop.windowLabel,
+                vehicleAndCrew = stop.vehicleAndCrew,
+                statusLabel = stop.statusLabel,
+            )
+        }
+        snapshot.damageIncidents.forEach { incident ->
+            queries.upsertDamageIncident(
+                id = incident.id,
+                eventId = incident.eventId,
+                eventTitle = incident.eventTitle,
+                articleCode = incident.articleCode,
+                articleName = incident.articleName,
+                damagedUnits = incident.damagedUnits.toLong(),
+                missingUnits = incident.missingUnits.toLong(),
+                replacementDop = incident.replacementDop.toLong(),
+                notes = incident.notes,
+                photoUrl = incident.photoUrl,
+                resolutionNotes = incident.resolutionNotes,
+                chargePaymentId = incident.chargePaymentId,
+            )
+        }
+        snapshot.notifications.forEach { notification ->
+            queries.upsertNotification(
+                id = notification.id,
+                title = notification.title,
+                body = notification.body,
+                category = notification.category,
+                createdAtLabel = notification.createdAtLabel,
+                isRead = if (notification.isRead) 1L else 0L,
+                recipientRole = notification.recipientRole,
+                actionPath = notification.actionPath,
+            )
         }
     }
 
@@ -342,17 +495,7 @@ public class SqlRosaFiestaRepository(
         if (existingArticles.isEmpty()) {
             database.transaction {
                 CanonicalSampleData.articles.forEach { art ->
-                    queries.upsertArticle(
-                        id = art.id,
-                        code = art.code,
-                        name = art.name,
-                        category = art.category,
-                        description = art.description,
-                        pricePerDayDop = art.pricePerDayDop.toLong(),
-                        totalStock = art.totalStock.toLong(),
-                        availableOct23 = art.availableOct23.toLong(),
-                        photoKey = art.photo.key,
-                    )
+                    upsertArticleRow(art)
                 }
                 CanonicalSampleData.bodaChecklist.forEach { step ->
                     checklistEventIdsByStepId[step.id] = step.eventId
@@ -366,54 +509,13 @@ public class SqlRosaFiestaRepository(
                     )
                 }
                 CanonicalSampleData.offlineQueue.forEach { item ->
-                    queries.upsertOfflineMutation(
-                        id = item.id,
-                        actionLabel = item.actionLabel,
-                        entityCode = item.entityCode,
-                        timeAgo = item.timeAgo,
-                        synced = if (item.synced) 1L else 0L,
-                    )
+                    upsertOfflineMutationRow(item)
                 }
                 CanonicalSampleData.events.forEachIndexed { index, evt ->
-                    queries.upsertEvent(
-                        id = evt.id,
-                        code = evt.code,
-                        title = evt.title,
-                        clientName = evt.clientName,
-                        eventType = evt.eventType,
-                        dateLabel = evt.dateLabel,
-                        daysUntilEvent = evt.daysUntilEvent.toLong(),
-                        venue = evt.venue,
-                        zone = evt.zone,
-                        guests = evt.guests.toLong(),
-                        articleCount = evt.articleCount.toLong(),
-                        totalDop = evt.totalDop.toLong(),
-                        paidDepositDop = evt.paidDepositDop.toLong(),
-                        depositMethodLabel = evt.depositMethodLabel,
-                        depositDateLabel = evt.depositDateLabel,
-                        balanceDueDateLabel = evt.balanceDueDateLabel,
-                        status = evt.status.name,
-                        leadStaffName = evt.leadStaffName,
-                        photoKey = evt.photo.key,
-                        priorChangesCount = evt.priorChangesCount.toLong(),
-                        sortOrder = index.toLong(),
-                    )
+                    upsertEventRow(evt, index)
                 }
                 CanonicalSampleData.payments.forEachIndexed { index, pay ->
-                    queries.upsertPayment(
-                        id = pay.id,
-                        receiptNumber = pay.receiptNumber,
-                        eventId = pay.eventId,
-                        eventTitle = pay.eventTitle,
-                        clientName = pay.clientName,
-                        amountDop = pay.amountDop.toLong(),
-                        methodLabel = pay.methodLabel,
-                        kindLabel = pay.kindLabel,
-                        dateLabel = pay.dateLabel,
-                        referenceCode = pay.referenceCode,
-                        verified = if (pay.verified) 1L else 0L,
-                        sortOrder = index.toLong(),
-                    )
+                    upsertPaymentRow(pay, index)
                 }
                 CanonicalSampleData.initialFavorites.forEach { favId ->
                     queries.insertFavorite(favId)
@@ -434,17 +536,7 @@ public class SqlRosaFiestaRepository(
                     queries.insertChatMessage(msg)
                 }
                 JwtAuthManager.defaultSeedAccounts.forEach { account ->
-                    queries.upsertUserAccount(
-                        id = account.id,
-                        username = account.username,
-                        email = account.email,
-                        fullName = account.fullName,
-                        passwordHash = account.passwordHash,
-                        salt = account.salt,
-                        birthDate = account.birthDate,
-                        phone = account.phone,
-                        role = account.role,
-                    )
+                    upsertUserAccountRow(account)
                 }
             }
         }
@@ -452,17 +544,7 @@ public class SqlRosaFiestaRepository(
         if (existingUsers.isEmpty()) {
             database.transaction {
                 JwtAuthManager.defaultSeedAccounts.forEach { account ->
-                    queries.upsertUserAccount(
-                        id = account.id,
-                        username = account.username,
-                        email = account.email,
-                        fullName = account.fullName,
-                        passwordHash = account.passwordHash,
-                        salt = account.salt,
-                        birthDate = account.birthDate,
-                        phone = account.phone,
-                        role = account.role,
-                    )
+                    upsertUserAccountRow(account)
                 }
             }
         }
@@ -495,17 +577,7 @@ public class SqlRosaFiestaRepository(
             }
             if (needsUsers) {
                 JwtAuthManager.defaultAdminSeedAccounts.forEach { account ->
-                    queries.upsertUserAccount(
-                        id = account.id,
-                        username = account.username,
-                        email = account.email,
-                        fullName = account.fullName,
-                        passwordHash = account.passwordHash,
-                        salt = account.salt,
-                        birthDate = account.birthDate,
-                        phone = account.phone,
-                        role = account.role,
-                    )
+                    upsertUserAccountRow(account)
                 }
             }
         }
@@ -521,6 +593,96 @@ public class SqlRosaFiestaRepository(
         reloadStaffFromSql()
         reloadChatFromSql()
         reloadUserAccountsFromSql()
+        reloadExtendedSubmodulesFromSql()
+    }
+
+    private fun reloadExtendedSubmodulesFromSql() {
+        val loadedQuotes = queries.selectAllQuotes().executeAsList().map { row ->
+            val dtoLines = runCatching {
+                sqlJsonCodec.decodeFromString<List<QuoteLineDto>>(row.linesJson)
+            }.getOrDefault(emptyList())
+            val domainLines = dtoLines.map { line ->
+                EventLineItem(
+                    articleCode = line.articleCode,
+                    name = line.name,
+                    quantity = line.quantity.toInt(),
+                    unitPriceDop = line.unitPriceRD.toInt(),
+                    photo = RosaFiestaBackendMappers.selectPhotoForArticle("", line.name),
+                )
+            }
+            QuoteRecord(
+                id = row.id,
+                code = row.code,
+                eventId = row.eventId,
+                eventTitle = row.eventTitle,
+                clientName = row.clientName,
+                clientEmail = row.clientEmail,
+                venue = row.venue,
+                dateLabel = row.dateLabel,
+                guests = row.guests.toInt(),
+                status = row.status,
+                lines = domainLines,
+                deliveryFeeDop = row.deliveryFeeDop.toInt(),
+                discountDop = row.discountDop.toInt(),
+                totalDop = row.totalDop.toInt(),
+                signatureSvg = row.signatureSvg,
+                depositPercent = row.depositPercent.toInt(),
+                depositDop = row.depositDop.toInt(),
+                signedByName = row.signedByName,
+                rejectionReason = row.rejectionReason,
+                eventDateIso = row.eventDateIso,
+                packageId = row.packageId,
+                contractPdfUrl = row.contractPdfUrl,
+                signedAtIso = row.signedAtIso,
+            )
+        }
+        val loadedStops = queries.selectAllDeliveryStops().executeAsList().map { row ->
+            DeliveryStop(
+                order = row.stopOrder.toInt(),
+                eventTitle = row.eventTitle,
+                venue = row.venue,
+                windowLabel = row.windowLabel,
+                vehicleAndCrew = row.vehicleAndCrew,
+                statusLabel = row.statusLabel,
+                eventId = row.eventId,
+            )
+        }
+        val loadedDamages = queries.selectAllDamageIncidents().executeAsList().map { row ->
+            DamageIncident(
+                id = row.id,
+                eventTitle = row.eventTitle,
+                articleName = row.articleName,
+                damagedUnits = row.damagedUnits.toInt(),
+                missingUnits = row.missingUnits.toInt(),
+                replacementDop = row.replacementDop.toInt(),
+                notes = row.notes,
+                eventId = row.eventId,
+                articleCode = row.articleCode,
+                photoUrl = row.photoUrl,
+                resolutionNotes = row.resolutionNotes,
+                chargePaymentId = row.chargePaymentId,
+            )
+        }
+        val loadedNotifications = queries.selectAllNotifications().executeAsList().map { row ->
+            NotificationRecord(
+                id = row.id,
+                title = row.title,
+                body = row.body,
+                category = row.category,
+                createdAtLabel = row.createdAtLabel,
+                isRead = row.isRead != 0L,
+                recipientRole = row.recipientRole,
+                actionPath = row.actionPath,
+            )
+        }
+        submodules.restoreFromPersistence(
+            PersistedSubmoduleSnapshot(
+                quotes = loadedQuotes,
+                deliveryStops = loadedStops,
+                damageIncidents = loadedDamages,
+                notifications = loadedNotifications,
+            ),
+        )
     }
 
     private fun reloadUserAccountsFromSql() {
@@ -535,6 +697,13 @@ public class SqlRosaFiestaRepository(
                 birthDate = row.birthDate,
                 phone = row.phone,
                 role = row.role,
+                preferences = UserPreferences(
+                    pushNotificationsEnabled = row.pushNotificationsEnabled != 0L,
+                    whatsappAlertsEnabled = row.whatsappAlertsEnabled != 0L,
+                    emailReceiptsEnabled = row.emailReceiptsEnabled != 0L,
+                    biometricLockEnabled = row.biometricLockEnabled != 0L,
+                    autoSyncWifiOnly = row.autoSyncWifiOnly != 0L,
+                ),
             )
         }
         if (loadedUsers.isNotEmpty()) {
@@ -586,16 +755,32 @@ public class SqlRosaFiestaRepository(
                             remote.role.trim().isNotEmpty() -> remote.role.trim()
                             else -> "client"
                         }
-                        queries.upsertUserAccount(
-                            id = existing?.id ?: remote.id,
-                            username = existing?.username?.ifEmpty { resolvedUsername } ?: resolvedUsername,
-                            email = normalizedEmail,
-                            fullName = remote.fullName.trim().ifEmpty { resolvedUsername },
-                            passwordHash = existing?.passwordHash.orEmpty(),
-                            salt = existing?.salt?.ifEmpty { remoteSalt } ?: remoteSalt,
-                            birthDate = remote.birthDate.trim().ifEmpty { existing?.birthDate.orEmpty() },
-                            phone = remote.phone.trim().ifEmpty { existing?.phone.orEmpty() },
-                            role = resolvedRole,
+                        val resolvedPrefs = if (remote.preferences != null) {
+                            RosaFiestaBackendMappers.toUserPreferences(remote.preferences)
+                        } else if (existing != null) {
+                            UserPreferences(
+                                pushNotificationsEnabled = existing.pushNotificationsEnabled != 0L,
+                                whatsappAlertsEnabled = existing.whatsappAlertsEnabled != 0L,
+                                emailReceiptsEnabled = existing.emailReceiptsEnabled != 0L,
+                                biometricLockEnabled = existing.biometricLockEnabled != 0L,
+                                autoSyncWifiOnly = existing.autoSyncWifiOnly != 0L,
+                            )
+                        } else {
+                            UserPreferences()
+                        }
+                        upsertUserAccountRow(
+                            RegisteredUserAccount(
+                                id = existing?.id ?: remote.id,
+                                username = existing?.username?.ifEmpty { resolvedUsername } ?: resolvedUsername,
+                                email = normalizedEmail,
+                                fullName = remote.fullName.trim().ifEmpty { resolvedUsername },
+                                passwordHash = existing?.passwordHash.orEmpty(),
+                                salt = existing?.salt?.ifEmpty { remoteSalt } ?: remoteSalt,
+                                birthDate = remote.birthDate.trim().ifEmpty { existing?.birthDate.orEmpty() },
+                                phone = remote.phone.trim().ifEmpty { existing?.phone.orEmpty() },
+                                role = resolvedRole,
+                                preferences = resolvedPrefs,
+                            ),
                         )
                     }
                 }
@@ -622,10 +807,12 @@ public class SqlRosaFiestaRepository(
                 totalStock = row.totalStock.toInt(),
                 availableOct23 = row.availableOct23.toInt(),
                 photo = photoAsset,
-                variants = currentInMemory?.variants ?: canonical?.variants ?: listOf("Estándar"),
-                dimensions = currentInMemory?.dimensions ?: canonical?.dimensions ?: "Estándar",
-                material = currentInMemory?.material ?: canonical?.material ?: "Resina y acabado premium",
+                variants = currentInMemory?.variants ?: canonical?.variants ?: emptyList(),
+                dimensions = currentInMemory?.dimensions ?: canonical?.dimensions ?: "",
+                material = currentInMemory?.material ?: canonical?.material ?: "",
                 visibleInCatalog = currentInMemory?.visibleInCatalog ?: canonical?.visibleInCatalog ?: true,
+                photoUrl = row.photoUrl.ifBlank { currentInMemory?.photoUrl.orEmpty() },
+                damagedStock = row.damagedStock.toInt(),
             )
         }
     }
@@ -654,6 +841,9 @@ public class SqlRosaFiestaRepository(
                 entityCode = row.entityCode,
                 timeAgo = row.timeAgo,
                 synced = row.synced != 0L,
+                operationType = row.operationType,
+                payloadJson = row.payloadJson,
+                idempotencyKey = row.idempotencyKey,
             )
         }
     }
@@ -694,7 +884,15 @@ public class SqlRosaFiestaRepository(
                 priorChangesCount = row.priorChangesCount.toInt(),
                 clientEmail = currentInMemory?.clientEmail.orEmpty(),
                 cancellationReason = currentInMemory?.cancellationReason.orEmpty(),
-                sketchJson = currentInMemory?.sketchJson.orEmpty(),
+                sketchJson = row.sketchJson.ifBlank { currentInMemory?.sketchJson.orEmpty() },
+                eventDateIso = row.eventDateIso.ifBlank { currentInMemory?.eventDateIso.orEmpty() },
+                pickupDateIso = row.pickupDateIso.ifBlank { currentInMemory?.pickupDateIso.orEmpty() },
+                returnDateIso = row.returnDateIso.ifBlank { currentInMemory?.returnDateIso.orEmpty() },
+                quoteId = row.quoteId.ifBlank { currentInMemory?.quoteId.orEmpty() },
+                closeoutCompleted = row.closeoutCompleted != 0L,
+                closeoutNotes = row.closeoutNotes.ifBlank { currentInMemory?.closeoutNotes.orEmpty() },
+                lastPaymentReminderAt = row.lastPaymentReminderAt.ifBlank { currentInMemory?.lastPaymentReminderAt.orEmpty() },
+                lastPaymentReminderChannel = row.lastPaymentReminderChannel.ifBlank { currentInMemory?.lastPaymentReminderChannel.orEmpty() },
             )
         }
         val shouldApplyEvents = if (loadedEvents.isNotEmpty()) true else !seedDemoData
@@ -718,6 +916,14 @@ public class SqlRosaFiestaRepository(
                 dateLabel = row.dateLabel,
                 referenceCode = row.referenceCode,
                 verified = row.verified != 0L,
+                voucherUrl = row.voucherUrl,
+                ncfType = row.ncfType,
+                ncfNumber = row.ncfNumber,
+                clientRnc = row.clientRnc,
+                subtotalDop = row.subtotalDop.toInt(),
+                itbisDop = row.itbisDop.toInt(),
+                securityDepositDop = row.securityDepositDop.toInt(),
+                rejectionReason = row.rejectionReason,
             )
         }
         val shouldApplyPayments = if (loadedPayments.isNotEmpty()) true else !seedDemoData
@@ -841,11 +1047,42 @@ public class SqlRosaFiestaRepository(
      * Marks all offline mutations as synchronized in SQLite and flushes the remote offline queue.
      */
     public suspend fun syncOfflineQueueAsync(): Unit = withContext(ioDispatcher) {
-        runCatching {
-            apiClient?.syncOfflineQueue()
+        val pendingRows = sqlMutex.withLock {
+            queries.selectPendingOfflineMutations().executeAsList()
+        }
+        val structuredPending = pendingRows.filter { row -> row.operationType.isNotBlank() }
+        val legacyPending = pendingRows.filter { row -> row.operationType.isBlank() }
+        val client = apiClient
+        var remoteSucceeded = client == null
+        if (client != null) {
+            val replayResult = runCatching {
+                if (structuredPending.isNotEmpty()) {
+                    val items = structuredPending.map { row ->
+                        OfflineMutationSyncItemDto(
+                            actionLabel = row.actionLabel,
+                            entityCode = row.entityCode,
+                            operationType = row.operationType,
+                            payloadJson = row.payloadJson,
+                            idempotencyKey = row.idempotencyKey.ifBlank { "idem-${row.id}" },
+                        )
+                    }
+                    client.syncOfflineQueue(items)
+                } else {
+                    client.syncOfflineQueue()
+                }
+            }
+            remoteSucceeded = replayResult.isSuccess
         }
         sqlMutex.withLock {
-            queries.markAllOfflineMutationsSynced()
+            if (remoteSucceeded) {
+                pendingRows.forEach { row ->
+                    queries.markOfflineMutationSyncedById(row.id)
+                }
+            } else {
+                legacyPending.forEach { row ->
+                    queries.markOfflineMutationSyncedById(row.id)
+                }
+            }
             reloadOfflineQueueFromSql()
         }
     }
@@ -974,10 +1211,13 @@ public class SqlRosaFiestaRepository(
         category: String,
         pricePerDayDop: Int,
         totalStock: Int,
+        photoUrl: String = "",
     ): Unit = withContext(ioDispatcher) {
         val cleanCode = code.trim()
         val cleanName = name.trim()
-        val cleanCategory = category.trim().ifEmpty { "Mobiliario" }
+        val cleanCategory = category.trim()
+        val resolvedCategoryId = submodules.resolveCategoryWireId(cleanCategory)
+        val cleanPhotoUrl = photoUrl.trim()
         if (cleanCode.isEmpty()) return@withContext
         if (cleanName.isEmpty()) return@withContext
         if (pricePerDayDop <= 0) return@withContext
@@ -986,18 +1226,21 @@ public class SqlRosaFiestaRepository(
         val articleId = "art-${cleanCode.lowercase()}"
         val description = "$cleanName para eventos y celebraciones en Santo Domingo."
         val photo = RosaFiestaBackendMappers.selectPhotoForArticle(cleanCategory, cleanName)
+        val created = CatalogArticle(
+            id = articleId,
+            code = cleanCode,
+            name = cleanName,
+            category = cleanCategory,
+            description = description,
+            pricePerDayDop = pricePerDayDop,
+            totalStock = totalStock,
+            availableOct23 = totalStock,
+            photo = photo,
+            variants = emptyList(),
+            photoUrl = cleanPhotoUrl,
+        )
         sqlMutex.withLock {
-            queries.upsertArticle(
-                id = articleId,
-                code = cleanCode,
-                name = cleanName,
-                category = cleanCategory,
-                description = description,
-                pricePerDayDop = pricePerDayDop.toLong(),
-                totalStock = totalStock.toLong(),
-                availableOct23 = totalStock.toLong(),
-                photoKey = photo.key,
-            )
+            upsertArticleRow(created)
             reloadArticlesFromSql()
         }
         runCatching {
@@ -1005,13 +1248,14 @@ public class SqlRosaFiestaRepository(
                 CreateArticleInputDto(
                     id = articleId,
                     name = cleanName,
-                    categoryId = cleanCategory,
+                    categoryId = resolvedCategoryId,
                     photoKey = photo.key,
                     dailyPriceDop = pricePerDayDop.toLong(),
                     totalStock = totalStock.toLong(),
                     availableStock = totalStock.toLong(),
                     description = description,
                     visible = true,
+                    photoUrl = cleanPhotoUrl.ifBlank { null },
                 ),
             )
         }
@@ -1036,9 +1280,10 @@ public class SqlRosaFiestaRepository(
         if (cleanClient.isEmpty()) return@withContext
         if (cleanDate.isEmpty()) return@withContext
         if (cleanVenue.isEmpty()) return@withContext
-        if (guests <= 0) return@withContext
+        if (guests < 0) return@withContext
 
-        val proposal = RosaFiestaEngine.buildRosaProposal(cleanTitle, guests)
+        val safeProposalGuests = guests.coerceAtLeast(10)
+        val proposal = RosaFiestaEngine.buildRosaProposal(cleanTitle, safeProposalGuests)
         val deliveryFeeDop = RosaFiestaBackendMappers.resolveDeliveryFeeDop(cleanVenue, businessSettings.value)
         val linesSubtotal = proposal.lines.sumOf { line -> line.subtotalDop }
         val consistentTotalDop = linesSubtotal + deliveryFeeDop
@@ -1056,29 +1301,34 @@ public class SqlRosaFiestaRepository(
             resolvedEventId = preassignedEventId ?: "evt-$seq"
             val code = "RF-2026-$seq"
             assignedLead = RosaFiestaBackendMappers.selectLeastLoadedStaffLead(_staffMembers.value, _events.value)
-            queries.upsertEvent(
+            val turnaround = RosaFiestaEngine.computeTurnaroundWindow(cleanDate)
+            val createdEvt = ClientEvent(
                 id = resolvedEventId,
                 code = code,
                 title = cleanTitle,
                 clientName = cleanClient,
                 eventType = "Evento",
                 dateLabel = cleanDate,
-                daysUntilEvent = computedDaysUntil.toLong(),
+                daysUntilEvent = computedDaysUntil,
                 venue = cleanVenue,
                 zone = "Santo Domingo DN",
-                guests = guests.toLong(),
-                articleCount = proposal.lines.sumOf { line -> line.quantity }.toLong(),
-                totalDop = consistentTotalDop.toLong(),
-                paidDepositDop = 0L,
+                guests = guests,
+                articleCount = proposal.lines.sumOf { line -> line.quantity },
+                totalDop = consistentTotalDop,
+                paidDepositDop = 0,
                 depositMethodLabel = "Pendiente de anticipo",
                 depositDateLabel = "—",
                 balanceDueDateLabel = cleanDate,
-                status = EventStatus.PENDING_QUOTE.name,
+                status = EventStatus.PENDING_QUOTE,
                 leadStaffName = assignedLead,
-                photoKey = PhotoAsset.BODA.key,
-                priorChangesCount = 0L,
-                sortOrder = sortIndex.toLong(),
+                photo = PhotoAsset.BODA,
+                items = emptyList(),
+                priorChangesCount = 0,
+                eventDateIso = turnaround?.eventDateIso.orEmpty(),
+                pickupDateIso = turnaround?.pickupDateIso.orEmpty(),
+                returnDateIso = turnaround?.returnDateIso.orEmpty(),
             )
+            upsertEventRow(createdEvt, sortIndex)
             reloadEventsFromSql()
         }
 
@@ -1203,15 +1453,29 @@ public class SqlRosaFiestaRepository(
         amountDop: Int,
         methodLabel: String,
         referenceCode: String,
+        voucherUrl: String = "",
+        ncfType: String = "B02",
+        clientRnc: String = "",
+        bankName: String = "",
+        kindLabel: String = "",
     ): PaymentRecord? = withContext(ioDispatcher) {
         val cleanMethod = methodLabel.trim()
         val cleanRef = referenceCode.trim().ifEmpty { "REF-2026" }
+        val cleanVoucher = voucherUrl.trim()
+        val cleanNcfType = ncfType.trim().ifEmpty { "B02" }.uppercase()
+        val cleanRnc = clientRnc.trim()
         if (amountDop <= 0) return@withContext null
         if (cleanMethod.isEmpty()) return@withContext null
 
         val shortDateLabel = DomainClockFormatter.currentShortDateLabel()
         val fullDateLabel = DomainClockFormatter.currentFullDateLabel()
         val normalizedPayment = RosaFiestaBackendMappers.normalizePaymentMethod(cleanMethod)
+        val resolvedBank = bankName.trim().ifEmpty { normalizedPayment.bankName.orEmpty() }
+        val isTransferMethod = normalizedPayment.canonicalMethod.equals("TRANSFER", ignoreCase = true)
+        val requiresVerification = if (isTransferMethod) true else cleanVoucher.isNotEmpty()
+        val resolvedVerified = !requiresVerification
+        val subtotalDop = (amountDop * 100) / 118
+        val itbisDop = amountDop - subtotalDop
 
         val createdRecord = sqlMutex.withLock {
             val eventRows = queries.selectAllEvents().executeAsList()
@@ -1237,11 +1501,22 @@ public class SqlRosaFiestaRepository(
                     dateLabel = alreadyPersisted.dateLabel,
                     referenceCode = alreadyPersisted.referenceCode,
                     verified = alreadyPersisted.verified != 0L,
+                    voucherUrl = alreadyPersisted.voucherUrl,
+                    ncfType = alreadyPersisted.ncfType,
+                    ncfNumber = alreadyPersisted.ncfNumber,
+                    clientRnc = alreadyPersisted.clientRnc,
+                    subtotalDop = alreadyPersisted.subtotalDop.toInt(),
+                    itbisDop = alreadyPersisted.itbisDop.toInt(),
+                    securityDepositDop = alreadyPersisted.securityDepositDop.toInt(),
+                    rejectionReason = alreadyPersisted.rejectionReason,
                 )
             }
             val nextNumber = 185 + existingPayments.size
             val receipt = "REC-2026-${nextNumber.toString().padStart(4, '0')}"
             val balanceDop = (target.totalDop - target.paidDepositDop).toInt().coerceAtLeast(0)
+            val resolvedKind = kindLabel.trim().ifEmpty {
+                if (amountDop >= balanceDop) "Liquidación" else "Abono"
+            }
             val record = PaymentRecord(
                 id = "pay-${existingPayments.size + 1}",
                 receiptNumber = receipt,
@@ -1250,36 +1525,31 @@ public class SqlRosaFiestaRepository(
                 clientName = target.clientName,
                 amountDop = amountDop,
                 methodLabel = "$cleanMethod · $shortDateLabel",
-                kindLabel = if (amountDop >= balanceDop) "Liquidación" else "Abono",
+                kindLabel = resolvedKind,
                 dateLabel = fullDateLabel,
                 referenceCode = cleanRef,
-                verified = true,
+                verified = resolvedVerified,
+                voucherUrl = cleanVoucher,
+                referenceNumber = cleanRef,
+                ncfType = cleanNcfType,
+                clientRnc = cleanRnc,
+                subtotalDop = subtotalDop,
+                itbisDop = itbisDop,
             )
-            queries.upsertPayment(
-                id = record.id,
-                receiptNumber = record.receiptNumber,
-                eventId = record.eventId,
-                eventTitle = record.eventTitle,
-                clientName = record.clientName,
-                amountDop = record.amountDop.toLong(),
-                methodLabel = record.methodLabel,
-                kindLabel = record.kindLabel,
-                dateLabel = record.dateLabel,
-                referenceCode = record.referenceCode,
-                verified = 1L,
-                sortOrder = -(existingPayments.size + 1).toLong(),
-            )
-            val newPaid = (target.paidDepositDop.toInt() + amountDop).coerceAtMost(target.totalDop.toInt())
-            queries.updateEventPaidDeposit(
-                paidDepositDop = newPaid.toLong(),
-                depositMethodLabel = cleanMethod,
-                id = target.id,
-            )
+            upsertPaymentRow(record, -(existingPayments.size + 1))
+            if (resolvedVerified) {
+                val newPaid = (target.paidDepositDop.toInt() + amountDop).coerceAtMost(target.totalDop.toInt())
+                queries.updateEventPaidDeposit(
+                    paidDepositDop = newPaid.toLong(),
+                    depositMethodLabel = cleanMethod,
+                    id = target.id,
+                )
+            }
             reloadPaymentsFromSql()
             reloadEventsFromSql()
             record
         }
-        runCatching {
+        val remoteAttempt = runCatching {
             apiClient?.registerPayment(
                 RegisterPaymentInputDto(
                     eventId = createdRecord.eventId,
@@ -1289,11 +1559,64 @@ public class SqlRosaFiestaRepository(
                     method = normalizedPayment.canonicalMethod,
                     kind = createdRecord.kindLabel,
                     referenceCode = cleanRef,
-                    bankName = normalizedPayment.bankName,
+                    bankName = resolvedBank.ifBlank { null },
+                    voucherUrl = cleanVoucher.ifBlank { null },
+                    ncfType = cleanNcfType,
+                    clientRnc = cleanRnc.ifBlank { null },
+                    referenceNumber = cleanRef,
                 ),
             )
         }
+        val failedRemote = if (apiClient != null) remoteAttempt.isFailure else false
+        if (failedRemote) {
+            enqueueOutboxMutation(
+                actionLabel = "Registrar pago ${createdRecord.receiptNumber}",
+                entityCode = createdRecord.eventId,
+                operationType = "register_payment",
+                payloadJson = sqlJsonCodec.encodeToString(
+                    RegisterPaymentInputDto(
+                        eventId = createdRecord.eventId,
+                        eventTitle = createdRecord.eventTitle,
+                        clientName = createdRecord.clientName,
+                        amountRD = createdRecord.amountDop.toLong(),
+                        method = normalizedPayment.canonicalMethod,
+                        kind = createdRecord.kindLabel,
+                        referenceCode = cleanRef,
+                        bankName = resolvedBank.ifBlank { null },
+                        voucherUrl = cleanVoucher.ifBlank { null },
+                        ncfType = cleanNcfType,
+                        clientRnc = cleanRnc.ifBlank { null },
+                        referenceNumber = cleanRef,
+                    ),
+                ),
+                idempotencyKey = "idem-pay-${createdRecord.id}-$cleanRef",
+            )
+        }
         createdRecord
+    }
+
+    private suspend fun enqueueOutboxMutation(
+        actionLabel: String,
+        entityCode: String,
+        operationType: String,
+        payloadJson: String,
+        idempotencyKey: String,
+    ) {
+        sqlMutex.withLock {
+            val existingCount = queries.selectAllOfflineMutations().executeAsList().size
+            val item = OfflineQueueItem(
+                id = "off-${existingCount + 1}",
+                actionLabel = actionLabel,
+                entityCode = entityCode,
+                timeAgo = "Pendiente",
+                synced = false,
+                operationType = operationType,
+                payloadJson = payloadJson,
+                idempotencyKey = idempotencyKey,
+            )
+            upsertOfflineMutationRow(item)
+            reloadOfflineQueueFromSql()
+        }
     }
 
     override fun toggleChecklistStep(stepId: String) {
@@ -1554,17 +1877,7 @@ public class SqlRosaFiestaRepository(
         submodules.propagateSessionTokenToApi(token)
         scope.launch {
             sqlMutex.withLock {
-                queries.upsertUserAccount(
-                    id = newAccount.id,
-                    username = newAccount.username,
-                    email = newAccount.email,
-                    fullName = newAccount.fullName,
-                    passwordHash = newAccount.passwordHash,
-                    salt = newAccount.salt,
-                    birthDate = newAccount.birthDate,
-                    phone = newAccount.phone,
-                    role = newAccount.role,
-                )
+                upsertUserAccountRow(newAccount)
                 queries.upsertActiveSession(
                     userId = newAccount.id,
                     accessToken = token,
@@ -1751,17 +2064,7 @@ public class SqlRosaFiestaRepository(
         submodules.propagateSessionTokenToApi(token)
         scope.launch {
             sqlMutex.withLock {
-                queries.upsertUserAccount(
-                    id = updatedAccount.id,
-                    username = updatedAccount.username,
-                    email = updatedAccount.email,
-                    fullName = updatedAccount.fullName,
-                    passwordHash = updatedAccount.passwordHash,
-                    salt = updatedAccount.salt,
-                    birthDate = updatedAccount.birthDate,
-                    phone = updatedAccount.phone,
-                    role = updatedAccount.role,
-                )
+                upsertUserAccountRow(updatedAccount)
                 queries.upsertActiveSession(
                     userId = updatedAccount.id,
                     accessToken = token,
@@ -1796,6 +2099,41 @@ public class SqlRosaFiestaRepository(
 
     override suspend fun loginWithOAuth(provider: String, idToken: String): AuthOutcome = submodules.loginWithOAuth(provider, idToken)
 
+    override suspend fun startOAuthAuthorization(
+        provider: String,
+        redirectUri: String,
+        codeChallenge: String,
+        state: String,
+    ): Result<String> = submodules.startOAuthAuthorization(provider, redirectUri, codeChallenge, state)
+
+    override suspend fun exchangeOAuthCode(
+        provider: String,
+        code: String,
+        codeVerifier: String,
+        redirectUri: String,
+    ): AuthOutcome = submodules.exchangeOAuthCode(provider, code, codeVerifier, redirectUri)
+
+    override suspend fun refreshSession(refreshToken: String): AuthOutcome = submodules.refreshSession(refreshToken)
+
+    override fun setRefreshToken(token: String?) {
+        submodules.setRefreshToken(token)
+    }
+
+    override fun setSessionLifecycleCallbacks(
+        onTokensRefreshed: suspend (accessToken: String, refreshToken: String) -> Unit,
+        onSessionExpired: suspend () -> Unit,
+    ) {
+        submodules.setSessionLifecycleCallbacks(onTokensRefreshed, onSessionExpired)
+    }
+
+    override suspend fun registerDevicePushToken(
+        platform: String,
+        token: String,
+        appVariant: String,
+    ): Result<Boolean> = submodules.registerDevicePushToken(platform, token, appVariant)
+
+    override suspend fun unregisterDevicePushToken(token: String): Result<Boolean> = submodules.unregisterDevicePushToken(token)
+
     override fun changeUserPassword(currentPassword: String, newPassword: String): AuthOutcome = submodules.changeUserPassword(currentPassword, newPassword)
 
     override fun logoutSession() {
@@ -1825,17 +2163,7 @@ public class SqlRosaFiestaRepository(
             userAccountsState.update { accounts -> accounts + reconstructed }
             scope.launch {
                 sqlMutex.withLock {
-                    queries.upsertUserAccount(
-                        id = reconstructed.id,
-                        username = reconstructed.username,
-                        email = reconstructed.email,
-                        fullName = reconstructed.fullName,
-                        passwordHash = reconstructed.passwordHash,
-                        salt = reconstructed.salt,
-                        birthDate = reconstructed.birthDate,
-                        phone = reconstructed.phone,
-                        role = reconstructed.role,
-                    )
+                    upsertUserAccountRow(reconstructed)
                     queries.upsertActiveSession(
                         userId = reconstructed.id,
                         accessToken = cleanToken,
@@ -2038,9 +2366,29 @@ public class SqlRosaFiestaRepository(
         pricePerDayDop: Int,
         totalStock: Int,
     ) {
+        createArticleWithMedia(
+            code = code,
+            name = name,
+            category = category,
+            pricePerDayDop = pricePerDayDop,
+            totalStock = totalStock,
+            photoUrl = "",
+        )
+    }
+
+    override fun createArticleWithMedia(
+        code: String,
+        name: String,
+        category: String,
+        pricePerDayDop: Int,
+        totalStock: Int,
+        photoUrl: String,
+    ) {
         val cleanCode = code.trim()
         val cleanName = name.trim()
-        val cleanCategory = category.trim().ifEmpty { "Mobiliario" }
+        val cleanCategory = category.trim()
+        val resolvedCategoryId = submodules.resolveCategoryWireId(cleanCategory)
+        val cleanPhotoUrl = photoUrl.trim()
         if (cleanCode.isEmpty()) return
         if (cleanName.isEmpty()) return
         if (pricePerDayDop <= 0) return
@@ -2057,7 +2405,8 @@ public class SqlRosaFiestaRepository(
             totalStock = totalStock,
             availableOct23 = totalStock,
             photo = photo,
-            variants = listOf("Estándar"),
+            variants = emptyList(),
+            photoUrl = cleanPhotoUrl,
         )
         _articles.update { list ->
             val filtered = list.filterNot { candidate ->
@@ -2068,7 +2417,14 @@ public class SqlRosaFiestaRepository(
             filtered + newArticle
         }
         scope.launch {
-            createArticleAsync(cleanCode, cleanName, cleanCategory, pricePerDayDop, totalStock)
+            createArticleAsync(
+                code = cleanCode,
+                name = cleanName,
+                category = cleanCategory,
+                pricePerDayDop = pricePerDayDop,
+                totalStock = totalStock,
+                photoUrl = cleanPhotoUrl,
+            )
         }
     }
 
@@ -2087,9 +2443,10 @@ public class SqlRosaFiestaRepository(
         if (cleanClient.isEmpty()) return
         if (cleanDate.isEmpty()) return
         if (cleanVenue.isEmpty()) return
-        if (guests <= 0) return
+        if (guests < 0) return
 
-        val lines = buildFallbackItems(cleanTitle, guests)
+        val safeProposalGuests = guests.coerceAtLeast(10)
+        val lines = buildFallbackItems(cleanTitle, safeProposalGuests)
         val deliveryFeeDop = RosaFiestaBackendMappers.resolveDeliveryFeeDop(cleanVenue, businessSettings.value)
         val linesSubtotal = lines.sumOf { line -> line.subtotalDop }
         val consistentTotalDop = linesSubtotal + deliveryFeeDop
@@ -2181,9 +2538,29 @@ public class SqlRosaFiestaRepository(
         amountDop: Int,
         methodLabel: String,
         referenceCode: String,
+    ): PaymentRecord? = registerDetailedPayment(
+        eventId = eventId,
+        amountDop = amountDop,
+        methodLabel = methodLabel,
+        referenceCode = referenceCode,
+    )
+
+    override fun registerDetailedPayment(
+        eventId: String,
+        amountDop: Int,
+        methodLabel: String,
+        referenceCode: String,
+        voucherUrl: String,
+        ncfType: String,
+        clientRnc: String,
+        bankName: String,
+        kindLabel: String,
     ): PaymentRecord? {
         val cleanMethod = methodLabel.trim()
         val cleanRef = referenceCode.trim().ifEmpty { "REF-2026" }
+        val cleanVoucher = voucherUrl.trim()
+        val cleanNcfType = ncfType.trim().ifEmpty { "B02" }.uppercase()
+        val cleanRnc = clientRnc.trim()
         if (amountDop <= 0) return null
         if (cleanMethod.isEmpty()) return null
 
@@ -2194,6 +2571,15 @@ public class SqlRosaFiestaRepository(
         val receipt = "REC-2026-${nextNumber.toString().padStart(4, '0')}"
         val shortDateLabel = DomainClockFormatter.currentShortDateLabel()
         val fullDateLabel = DomainClockFormatter.currentFullDateLabel()
+        val normalizedPayment = RosaFiestaBackendMappers.normalizePaymentMethod(cleanMethod)
+        val isTransferMethod = normalizedPayment.canonicalMethod.equals("TRANSFER", ignoreCase = true)
+        val requiresVerification = if (isTransferMethod) true else cleanVoucher.isNotEmpty()
+        val resolvedVerified = !requiresVerification
+        val subtotalDop = (amountDop * 100) / 118
+        val itbisDop = amountDop - subtotalDop
+        val resolvedKind = kindLabel.trim().ifEmpty {
+            if (amountDop >= targetEvent.balanceDop) "Liquidación" else "Abono"
+        }
         val record = PaymentRecord(
             id = "pay-${_payments.value.size + 1}",
             receiptNumber = receipt,
@@ -2202,27 +2588,45 @@ public class SqlRosaFiestaRepository(
             clientName = targetEvent.clientName,
             amountDop = amountDop,
             methodLabel = "$cleanMethod · $shortDateLabel",
-            kindLabel = if (amountDop >= targetEvent.balanceDop) "Liquidación" else "Abono",
+            kindLabel = resolvedKind,
             dateLabel = fullDateLabel,
             referenceCode = cleanRef,
-            verified = true,
+            verified = resolvedVerified,
+            voucherUrl = cleanVoucher,
+            referenceNumber = cleanRef,
+            ncfType = cleanNcfType,
+            clientRnc = cleanRnc,
+            subtotalDop = subtotalDop,
+            itbisDop = itbisDop,
         )
         _payments.update { existing -> listOf(record) + existing }
-        _events.update { list ->
-            list.map { evt ->
-                if (evt.id == targetEvent.id) {
-                    evt.copy(
-                        paidDepositDop = (evt.paidDepositDop + amountDop).coerceAtMost(evt.totalDop),
-                        depositMethodLabel = cleanMethod,
-                    )
-                } else {
-                    evt
+        if (resolvedVerified) {
+            _events.update { list ->
+                list.map { evt ->
+                    if (evt.id == targetEvent.id) {
+                        evt.copy(
+                            paidDepositDop = (evt.paidDepositDop + amountDop).coerceAtMost(evt.totalDop),
+                            depositMethodLabel = cleanMethod,
+                        )
+                    } else {
+                        evt
+                    }
                 }
             }
+            recalculateMetricsFromState()
         }
-        recalculateMetricsFromState()
         scope.launch {
-            registerPaymentAsync(targetEvent.id, amountDop, cleanMethod, cleanRef)
+            registerPaymentAsync(
+                eventId = targetEvent.id,
+                amountDop = amountDop,
+                methodLabel = cleanMethod,
+                referenceCode = cleanRef,
+                voucherUrl = cleanVoucher,
+                ncfType = cleanNcfType,
+                clientRnc = cleanRnc,
+                bankName = bankName,
+                kindLabel = resolvedKind,
+            )
         }
         return record
     }
@@ -2238,6 +2642,8 @@ public class SqlRosaFiestaRepository(
         deliveryFeeDop: Int,
         discountDop: Int,
         eventId: String,
+        notes: String,
+        sendImmediately: Boolean,
     ): QuoteRecord = submodules.createQuote(
         eventTitle = eventTitle,
         clientName = clientName,
@@ -2249,6 +2655,30 @@ public class SqlRosaFiestaRepository(
         deliveryFeeDop = deliveryFeeDop,
         discountDop = discountDop,
         eventId = eventId,
+        notes = notes,
+        sendImmediately = sendImmediately,
+    )
+
+    override fun sendQuote(
+        quoteId: String,
+        eventTitle: String,
+        venue: String,
+        dateLabel: String,
+        guests: Int,
+        lines: List<EventLineItem>,
+        deliveryFeeDop: Int?,
+        discountDop: Int?,
+        notes: String,
+    ): QuoteRecord? = submodules.sendQuote(
+        quoteId = quoteId,
+        eventTitle = eventTitle,
+        venue = venue,
+        dateLabel = dateLabel,
+        guests = guests,
+        lines = lines,
+        deliveryFeeDop = deliveryFeeDop,
+        discountDop = discountDop,
+        notes = notes,
     )
 
     override fun approveQuote(quoteId: String, signedByName: String, signatureSvg: String): QuoteRecord? = submodules.approveQuote(quoteId, signedByName, signatureSvg)
@@ -2440,6 +2870,41 @@ public class SqlRosaFiestaRepository(
         visibleInCatalog = visibleInCatalog,
     )
 
+    override suspend fun createCategory(
+        name: String,
+        illoKey: String,
+    ): Result<CatalogCategory> = submodules.createCategoryAsync(name = name, illoKey = illoKey)
+
+    override suspend fun updateCategory(
+        categoryId: String,
+        name: String,
+        illoKey: String,
+    ): Result<CatalogCategory> = submodules.updateCategoryAsync(
+        categoryId = categoryId,
+        name = name,
+        illoKey = illoKey,
+    )
+
+    override suspend fun deleteCategory(categoryId: String): Result<Unit> = submodules.deleteCategoryAsync(categoryId)
+
+    override suspend fun createTrend(trend: CatalogTrend): Result<CatalogTrend> = submodules.createTrendAsync(trend)
+
+    override suspend fun updateTrend(trend: CatalogTrend): Result<CatalogTrend> = submodules.updateTrendAsync(trend)
+
+    override suspend fun deleteTrend(trendId: String): Result<Unit> = submodules.deleteTrendAsync(trendId)
+
+    override suspend fun saveSeasonBanner(banner: SeasonBanner): Result<SeasonBanner> = submodules.saveSeasonBannerAsync(banner)
+
+    override suspend fun deleteArticle(articleId: String): Result<Unit> {
+        val outcome = submodules.deleteArticleAsync(articleId)
+        if (outcome.isSuccess) {
+            sqlMutex.withLock {
+                queries.deleteArticleById(articleId.trim())
+            }
+        }
+        return outcome
+    }
+
     override fun updateArticle(
         articleId: String,
         name: String?,
@@ -2509,4 +2974,170 @@ public class SqlRosaFiestaRepository(
     ): BotThreadRecord? = submodules.updateBotThread(threadId, botPaused, assignedAgent, lastMessage)
 
     override suspend fun exportReport(reportType: String, period: String): ReportExportResult = submodules.exportReport(reportType, period)
+
+    override suspend fun uploadMedia(
+        filename: String,
+        mimeType: String,
+        purpose: String,
+        bytes: ByteArray,
+    ): Result<MediaUploadAsset> = submodules.uploadMedia(filename, mimeType, purpose, bytes)
+
+    override suspend fun fetchMediaBytes(urlOrId: String): Result<ByteArray> = submodules.fetchMediaBytes(urlOrId)
+
+    override suspend fun verifyPayment(
+        paymentId: String,
+        notes: String,
+    ): Result<PaymentRecord> = submodules.verifyPayment(paymentId, notes)
+
+    override suspend fun rejectPayment(
+        paymentId: String,
+        reason: String,
+    ): Result<PaymentRecord> = submodules.rejectPayment(paymentId, reason)
+
+    override suspend fun createCardPaymentSession(
+        eventId: String,
+        amountDop: Int,
+        ncfType: String,
+        clientRnc: String,
+    ): Result<CardSessionResult> = submodules.createCardPaymentSession(eventId, amountDop, ncfType, clientRnc)
+
+    override suspend fun completeEventCloseout(
+        eventId: String,
+        notes: String,
+    ): Result<ClientEvent> = submodules.completeEventCloseout(eventId, notes)
+
+    override suspend fun resolveDamageIncident(
+        incidentId: String,
+        notes: String,
+    ): Result<DamageIncident> = submodules.resolveDamageIncident(incidentId, notes)
+
+    override suspend fun checkRangeAvailability(
+        date: String,
+        articleId: String,
+        quantity: Int,
+        excludeEventId: String,
+    ): Result<AvailabilityRangeCheck> = submodules.checkRangeAvailability(date, articleId, quantity, excludeEventId)
+
+    override suspend fun sendWhatsAppBotReply(
+        threadId: String,
+        phone: String,
+        message: String,
+    ): Result<BotThreadRecord> = submodules.sendWhatsAppBotReply(threadId, phone, message)
+
+    override suspend fun exportDgii607Csv(period: String): Result<String> = submodules.exportDgii607Csv(period)
+
+    override fun observeRealtimeEvents(): Flow<RealtimeStreamEvent> = submodules.observeRealtimeEvents()
+
+    override fun inviteStaffMemberWithPassword(
+        fullName: String,
+        email: String,
+        roleLabel: String,
+        role: String,
+        phone: String,
+        permissions: List<String>,
+        initialPassword: String,
+    ): StaffMember = submodules.inviteStaffMemberWithPassword(
+        fullName = fullName,
+        email = email,
+        roleLabel = roleLabel,
+        role = role,
+        phone = phone,
+        permissions = permissions,
+        initialPassword = initialPassword,
+    )
+
+    override fun updateArticleWithMedia(
+        articleId: String,
+        name: String?,
+        category: String?,
+        description: String?,
+        pricePerDayDop: Int?,
+        totalStock: Int?,
+        availableStock: Int?,
+        dimensions: String?,
+        material: String?,
+        visibleInCatalog: Boolean?,
+        photoUrl: String?,
+    ): CatalogArticle? = submodules.updateArticleWithMedia(
+        articleId = articleId,
+        name = name,
+        category = category,
+        description = description,
+        pricePerDayDop = pricePerDayDop,
+        totalStock = totalStock,
+        availableStock = availableStock,
+        dimensions = dimensions,
+        material = material,
+        visibleInCatalog = visibleInCatalog,
+        photoUrl = photoUrl,
+    )
+
+    override fun reportDamageWithMedia(
+        eventId: String,
+        articleCode: String,
+        articleName: String,
+        damagedUnits: Int,
+        missingUnits: Int,
+        replacementDop: Int,
+        notes: String,
+        photoUrl: String,
+    ): DamageIncident = submodules.reportDamageWithMedia(
+        eventId = eventId,
+        articleCode = articleCode,
+        articleName = articleName,
+        damagedUnits = damagedUnits,
+        missingUnits = missingUnits,
+        replacementDop = replacementDop,
+        notes = notes,
+        photoUrl = photoUrl,
+    )
+
+    override suspend fun fetchOAuthConfig(): Result<OAuthProviderConfig> = submodules.fetchOAuthConfig()
+
+    override suspend fun recoverUsernameByIdentifier(identifier: String): Result<String> = submodules.recoverUsernameByIdentifier(identifier)
+
+    override suspend fun updateUserPreferences(
+        pushNotificationsEnabled: Boolean?,
+        whatsappAlertsEnabled: Boolean?,
+        emailReceiptsEnabled: Boolean?,
+        biometricLockEnabled: Boolean?,
+        autoSyncWifiOnly: Boolean?,
+    ): Result<RegisteredUserAccount> = submodules.updateUserPreferences(
+        pushNotificationsEnabled = pushNotificationsEnabled,
+        whatsappAlertsEnabled = whatsappAlertsEnabled,
+        emailReceiptsEnabled = emailReceiptsEnabled,
+        biometricLockEnabled = biometricLockEnabled,
+        autoSyncWifiOnly = autoSyncWifiOnly,
+    )
+
+    override suspend fun sendEventPaymentReminder(
+        eventId: String,
+        channel: String,
+        message: String,
+    ): Result<PaymentReminderOutcome> = submodules.sendEventPaymentReminder(
+        eventId = eventId,
+        channel = channel,
+        message = message,
+    )
+
+    override suspend fun confirmCardCheckoutSession(sessionId: String): Result<PaymentRecord> = submodules.confirmCardCheckoutSession(sessionId)
+
+    override suspend fun fetchPaymentsAnalytics(range: String): Result<PaymentsAnalyticsSummary> = submodules.fetchPaymentsAnalytics(range)
+
+    override suspend fun requestRosaSketch(
+        prompt: String,
+        eventType: String,
+        guests: Int,
+    ): Result<RosaSketchProposal> = submodules.requestRosaSketch(
+        prompt = prompt,
+        eventType = eventType,
+        guests = guests,
+    )
+
+    override suspend fun updateEventItems(
+        eventId: String,
+        items: List<EventLineItem>,
+    ): Result<ClientEvent> = submodules.updateEventItems(eventId = eventId, items = items)
+
+    override suspend fun verifyAccountPassword(password: String): Result<Boolean> = submodules.verifyAccountPassword(password)
 }

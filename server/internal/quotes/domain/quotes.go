@@ -1,3 +1,4 @@
+// Package domain modela las cotizaciones, contratos digitales y análisis de asistentes de RosaFiesta.
 package domain
 
 import (
@@ -6,12 +7,28 @@ import (
 )
 
 var (
-	ErrQuoteNotFound       = errors.New("quote not found")
-	ErrQuoteForbidden      = errors.New("caller is not allowed to access this quote")
-	ErrEmptyQuoteItems     = errors.New("quote must include at least one line item")
-	ErrInvalidSignature    = errors.New("digital signature and signer name are required")
+	// ErrQuoteNotFound indica que la cotización solicitada no existe.
+	ErrQuoteNotFound = errors.New("quote not found")
+	// ErrQuoteForbidden indica que el llamador no tiene acceso a la cotización.
+	ErrQuoteForbidden = errors.New("caller is not allowed to access this quote")
+	// ErrEmptyQuoteItems exige al menos una línea de artículos en la cotización.
+	ErrEmptyQuoteItems = errors.New("quote must include at least one line item")
+	// ErrInvalidSignature exige firma digital y nombre del firmante al aprobar contrato.
+	ErrInvalidSignature = errors.New("digital signature and signer name are required")
+	// ErrQuoteAlreadyDecided impide reprocesar una cotización ya firmada o rechazada.
 	ErrQuoteAlreadyDecided = errors.New("quote has already been processed")
+	// ErrInvalidAudioPayload indica audio base64 vacío o inválido.
 	ErrInvalidAudioPayload = errors.New("invalid or empty base64 audio payload")
+	// ErrInsufficientStock indica inventario insuficiente en la fecha solicitada.
+	ErrInsufficientStock = errors.New("stock insuficiente para la fecha solicitada")
+	// ErrAIProviderNotConfigured indica que no existe clave de API configurada para el asistente Rosa.
+	ErrAIProviderNotConfigured = errors.New("el proveedor de IA no está configurado")
+	// ErrSTTProviderNotConfigured indica que no existe proveedor real de transcripción configurado.
+	ErrSTTProviderNotConfigured = errors.New("el proveedor de transcripción de voz no está configurado")
+	// ErrAudioTooLong rechaza notas de voz que exceden el límite de 25 segundos.
+	ErrAudioTooLong = errors.New("el audio excede la duración máxima permitida de 25 segundos")
+	// ErrAIRateLimited indica que el llamador alcanzó el límite de solicitudes por ventana temporal.
+	ErrAIRateLimited = errors.New("límite temporal de consultas a Rosa alcanzado")
 )
 
 type QuoteStatus string
@@ -44,6 +61,8 @@ type Quote struct {
 	EventTitle      string      `json:"eventTitle"`
 	ClientName      string      `json:"clientName"`
 	EventDateLabel  string      `json:"eventDateLabel"`
+	EventDateISO    string      `json:"eventDateIso,omitempty"`
+	PackageID       string      `json:"packageId,omitempty"`
 	Venue           string      `json:"venue"`
 	Guests          int         `json:"guests"`
 	Lines           []QuoteLine `json:"lines"`
@@ -54,8 +73,11 @@ type Quote struct {
 	DepositRD       int         `json:"depositRD"`
 	BalanceRD       int         `json:"balanceRD"`
 	Status          QuoteStatus `json:"status"`
+	Notes           string      `json:"notes,omitempty"`
 	SignatureSVG    string      `json:"signatureSvg,omitempty"`
 	SignedByName    string      `json:"signedByName,omitempty"`
+	SignedAtISO     string      `json:"signedAtIso,omitempty"`
+	ContractPDFURL  string      `json:"contractPdfUrl,omitempty"`
 	RejectionReason string      `json:"rejectionReason,omitempty"`
 }
 

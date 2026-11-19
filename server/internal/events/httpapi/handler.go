@@ -29,6 +29,16 @@ func (m Module) authMiddlewares(api huma.API) huma.Middlewares {
 	return huma.Middlewares{platformhttp.RequireAuth(api, m.Auth)}
 }
 
+func (m Module) closeoutMiddlewares(api huma.API) huma.Middlewares {
+	if m.Auth == nil {
+		return nil
+	}
+	if permAuth, ok := m.Auth.(platformhttp.PermissionAuthorizer); ok {
+		return huma.Middlewares{platformhttp.RequirePermission(api, permAuth, "eventos")}
+	}
+	return huma.Middlewares{platformhttp.RequireAuth(api, m.Auth)}
+}
+
 func (m Module) registerReadRoutes(api huma.API) {
 	mw := m.authMiddlewares(api)
 
@@ -113,6 +123,30 @@ func (m Module) registerMutationRoutes(api huma.API) {
 		Security:    platformhttp.Secured(),
 		Middlewares: mw,
 	}, m.handleCancelEvent)
+
+	m.registerCloseoutRoute(api)
+}
+
+func (m Module) registerCloseoutRoute(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "events-closeout",
+		Method:      http.MethodPost,
+		Path:        "/v1/events/{id}/closeout",
+		Summary:     "Complete administrative closeout and release reserved inventory",
+		Tags:        []string{"Events"},
+		Security:    platformhttp.Secured(),
+		Middlewares: m.closeoutMiddlewares(api),
+	}, m.handleCloseoutEvent)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "events-payment-reminder",
+		Method:      http.MethodPost,
+		Path:        "/v1/events/{id}/payment-reminder",
+		Summary:     "Dispatch and audit a client payment reminder for an event",
+		Tags:        []string{"Events"},
+		Security:    platformhttp.Secured(),
+		Middlewares: m.closeoutMiddlewares(api),
+	}, m.handlePaymentReminder)
 }
 
 func (m Module) registerGuestAndScheduleRoutes(api huma.API) {
@@ -295,6 +329,29 @@ func (m Module) handleCancelEvent(ctx context.Context, in *CancelEventInput) (*C
 	out := &CancelEventOutput{}
 	out.Body.Event = evt
 	out.Body.Refund = refund
+	return out, nil
+}
+
+func (m Module) handleCloseoutEvent(ctx context.Context, in *CloseoutEventInput) (*EventDetailOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	evt, err := m.Service.CompleteCloseoutForCaller(ctx, in.ID, in.Body.Notes, caller)
+	if err != nil {
+		return nil, mapEventError(err, "POST /v1/events/"+in.ID+"/closeout", "EVENT_CLOSEOUT_REJECTED", "CompleteEventCloseout", http.StatusConflict)
+	}
+	return newEventDetailOutput(evt), nil
+}
+
+func (m Module) handlePaymentReminder(ctx context.Context, in *PaymentReminderInput) (*PaymentReminderOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	channel := in.ChannelOrDefault()
+	evt, sent, err := m.Service.SendPaymentReminderForCaller(ctx, in.ID, channel, in.CustomMessage(), caller)
+	if err != nil {
+		return nil, mapEventError(err, "POST /v1/events/"+in.ID+"/payment-reminder", "EVENT_REMINDER_FAILED", "DispatchPaymentReminder", http.StatusBadRequest)
+	}
+	out := &PaymentReminderOutput{}
+	out.Body.Event = evt
+	out.Body.Sent = sent
+	out.Body.Channel = channel
 	return out, nil
 }
 

@@ -78,7 +78,9 @@ import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import com.jeudry.rosafiesta.designsystem.RosaAvatar
 import com.jeudry.rosafiesta.designsystem.RosaAvatarSize
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfClearFocusOnOutsidePress
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfTrackValidationFocus
 import com.jeudry.rosafiesta.domain.BusinessSettings
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
@@ -89,10 +91,12 @@ import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.LeadRecord
 import com.jeudry.rosafiesta.domain.NotificationRecord
 import com.jeudry.rosafiesta.domain.PaymentRecord
+import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.StaffMember
 import com.jeudry.rosafiesta.domain.validation.InputValidator
+import com.jeudry.rosafiesta.domain.validation.MaskedTextCursorResult
 
 private fun firstDesktopValidationError(vararg errors: String?): String? = errors.firstOrNull { message -> !message.isNullOrBlank() }
 
@@ -240,7 +244,7 @@ public fun RenderAdminWebDesktopA39(
         }
 
         RfRadialBackgroundBox(modifier = frameModifier) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize().rfClearFocusOnOutsidePress()) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     AdminDesktopSidebar(
                         activeSection = activeSection,
@@ -363,10 +367,21 @@ public fun RenderAdminWebDesktopA39(
                                 AdminDesktopInventorySection(
                                     articlesList = articlesList,
                                     searchQuery = desktopSearchQuery,
+                                    isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false,
                                     onAdjustStock = { articleId, delta ->
                                         viewModel?.adjustArticleStock(articleId = articleId, delta = delta)
                                     },
+                                    onDeleteArticle = { articleId, onDone ->
+                                        if (viewModel != null) {
+                                            viewModel.deleteArticle(articleId, onDone)
+                                        } else {
+                                            onDone(Result.success(Unit))
+                                        }
+                                    },
                                     onOpenMobileInventory = { onSelectScreenCode("A09") },
+                                    onOpenCategories = { onSelectScreenCode("A40") },
+                                    onOpenTrends = { onSelectScreenCode("A41") },
+                                    viewModel = viewModel,
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -375,12 +390,12 @@ public fun RenderAdminWebDesktopA39(
                                 AdminDesktopQuotesSection(
                                     quotesList = quotesList,
                                     searchQuery = desktopSearchQuery,
-                                    onApproveQuote = { quoteItem ->
-                                        viewModel?.approveQuoteById(
-                                            quoteId = quoteItem.id,
-                                            signedByName = profileName,
-                                            signatureSvg = "M12,32 L78,18",
-                                        )
+                                    onEnrichQuote = { quoteItem ->
+                                        viewModel?.selectQuote(quoteItem.id)
+                                        onSelectScreenCode("A03")
+                                    },
+                                    onApproveAndSendQuote = { quoteItem ->
+                                        viewModel?.approveAndSendQuoteFromAdmin(quoteId = quoteItem.id)
                                     },
                                     onDeclineQuote = { quoteItem ->
                                         viewModel?.declineQuoteById(quoteId = quoteItem.id)
@@ -658,7 +673,7 @@ private fun AdminDesktopSidebar(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f),
                 ) {
-                    val avatarInitial = profileName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "M"
+                    val avatarInitial = InputValidator.extractInitials(profileName, fallback = "M", maxInitials = 1)
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -1100,27 +1115,26 @@ private fun AdminDesktopInicioContent(
         metrics.activeEventsCount
     }
     val pendingPaymentEventsCount = paymentsList.count { payment -> !payment.verified }
-    val pendingReceivableLabel = if (pendingPaymentEventsCount > 0) {
-        "$pendingPaymentEventsCount por verificar · 1 vence el jueves"
-    } else {
-        "3 pagos · 1 vence el jueves"
+    val pendingReceivableLabel = when {
+        pendingPaymentEventsCount > 0 -> "$pendingPaymentEventsCount por verificar · 1 vence el jueves"
+        viewModel != null -> "Sin cobros pendientes"
+        else -> "3 pagos · 1 vence el jueves"
     }
     val openLeads = leadsList.filter { lead ->
         lead.stage.equals("Nueva", ignoreCase = true) || lead.stage.equals("Contactada", ignoreCase = true)
     }
     val requestsCount = if (viewModel != null) openLeads.size else metrics.newRequestsCount
     val estimatedLeadSum = openLeads.sumOf { lead -> lead.estimatedDop }
-    val hasLiveLeadEstimate = listOf(viewModel != null, estimatedLeadSum > 0).all { flag -> flag }
-    val requestsSubtext = if (hasLiveLeadEstimate) {
-        "Est. ${formatDesktopDop(estimatedLeadSum)} en total"
-    } else {
-        "Est. RD$ 2,545 en total"
+    val requestsSubtext = when {
+        estimatedLeadSum > 0 -> "Est. ${formatDesktopDop(estimatedLeadSum)} en total"
+        viewModel != null -> "Sin solicitudes pendientes"
+        else -> "Est. RD$ 2,545 en total"
     }
     val rawNextDate = eventsList.firstOrNull { eventItem -> eventItem.status != EventStatus.CANCELLED }?.dateLabel
-    val nextEventDate = if (rawNextDate != null) {
-        formatReadableSpanishDateText(rawNextDate).lowercase()
-    } else {
-        "vie, 23 de octubre"
+    val nextEventSubtext = when {
+        rawNextDate != null -> "Próximo: ${formatReadableSpanishDateText(rawNextDate).lowercase()}"
+        viewModel != null -> "Sin eventos programados"
+        else -> "Próximo: vie, 23 de octubre"
     }
 
     Column(
@@ -1156,7 +1170,7 @@ private fun AdminDesktopInicioContent(
             AdminStatCard(
                 label = "Eventos activos",
                 value = activeEventsCount.toString(),
-                subtext = "Próximo: $nextEventDate",
+                subtext = nextEventSubtext,
                 subtextColor = Color(0xFF5F6377),
                 iconKind = RfIconKind.CALENDAR,
                 tileBg = Color(0xFFECEBFF),
@@ -1170,8 +1184,8 @@ private fun AdminDesktopInicioContent(
                 subtext = requestsSubtext,
                 subtextColor = Color(0xFF5F6377),
                 iconKind = RfIconKind.ORDERS,
-                tileBg = Color(0xFFFDE6F2),
-                tileTint = Color(0xFFC2338F),
+                tileBg = RfColors.VioletaTint,
+                tileTint = RfColors.VioletaTintInk,
                 onClick = { onNavigateSection(A39DesktopSection.SOLICITUDES) },
                 modifier = Modifier.weight(1f),
             )
@@ -1197,8 +1211,15 @@ private fun AdminDesktopInicioContent(
                     modifier = Modifier.weight(1.3f),
                 )
 
+                val analyticsSummary = viewModel?.analyticsSummary?.collectAsState()?.value
                 AdminMonthlyRevenueChart(
                     currentMonthRevenueDop = metrics.octoberRevenueDop,
+                    analyticsSummary = analyticsSummary,
+                    paymentsList = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments,
+                    onRequestMonthsRange = { monthsCount ->
+                        val rangeKey = if (monthsCount == 12) "365d" else "180d"
+                        viewModel?.loadAnalytics(rangeKey)
+                    },
                     modifier = Modifier.weight(1.1f),
                 )
             }
@@ -1296,7 +1317,7 @@ private fun AdminStatCard(
         }
         BasicText(
             text = value,
-            style = typo.webKpi.copy(fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+            style = typo.webKpi.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
         )
         BasicText(
             text = subtext,
@@ -1379,12 +1400,17 @@ private fun AdminUpcomingEventsTable(
         }
 
         if (filteredRows.isEmpty()) {
+            val emptyTableText = if (searchQuery.isBlank()) {
+                "Aún no tienes eventos próximos."
+            } else {
+                "Sin eventos coincidentes con \"${searchQuery.trim()}\"."
+            }
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.fillMaxWidth().padding(24.dp),
             ) {
                 BasicText(
-                    text = "Sin eventos coincidentes con \"$searchQuery\".",
+                    text = emptyTableText,
                     style = typo.secondary.copy(fontSize = 13.5.sp, color = Color(0xFF5F6377)),
                 )
             }
@@ -1536,11 +1562,16 @@ private data class A39ChartBarSpec(
 @Composable
 private fun AdminMonthlyRevenueChart(
     currentMonthRevenueDop: Int,
+    analyticsSummary: PaymentsAnalyticsSummary? = null,
+    paymentsList: List<PaymentRecord> = emptyList(),
+    onRequestMonthsRange: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
     var selectedMonths by remember { mutableStateOf(6) }
-    val currentMonthBarLabel = formatShortK(currentMonthRevenueDop)
+    LaunchedEffect(selectedMonths) {
+        onRequestMonthsRange(selectedMonths)
+    }
 
     Column(
         modifier = modifier
@@ -1609,29 +1640,12 @@ private fun AdminMonthlyRevenueChart(
 
         Spacer(Modifier.weight(1f))
 
-        val bars = if (selectedMonths == 6) {
-            listOf(
-                A39ChartBarSpec("may", "6.2k", 66.dp),
-                A39ChartBarSpec("jun", "9.8k", 105.dp),
-                A39ChartBarSpec("jul", "8.1k", 87.dp),
-                A39ChartBarSpec("ago", "11.3k", 121.dp),
-                A39ChartBarSpec("sep", "10.2k", 109.dp),
-                A39ChartBarSpec("oct", currentMonthBarLabel, 133.dp),
-            )
-        } else {
-            listOf(
-                A39ChartBarSpec("nov", "7.4k", 78.dp),
-                A39ChartBarSpec("dic", "11.8k", 124.dp),
-                A39ChartBarSpec("ene", "8.5k", 90.dp),
-                A39ChartBarSpec("feb", "7.9k", 84.dp),
-                A39ChartBarSpec("mar", "9.1k", 96.dp),
-                A39ChartBarSpec("abr", "8.7k", 92.dp),
-                A39ChartBarSpec("may", "6.2k", 66.dp),
-                A39ChartBarSpec("jun", "9.8k", 105.dp),
-                A39ChartBarSpec("jul", "8.1k", 87.dp),
-                A39ChartBarSpec("ago", "11.3k", 121.dp),
-                A39ChartBarSpec("sep", "10.2k", 109.dp),
-                A39ChartBarSpec("oct", currentMonthBarLabel, 133.dp),
+        val bars = remember(analyticsSummary, paymentsList, selectedMonths, currentMonthRevenueDop) {
+            buildMonthlyRevenueBars(
+                analyticsSummary = analyticsSummary,
+                paymentsList = paymentsList,
+                selectedMonths = selectedMonths,
+                currentMonthRevenueDop = currentMonthRevenueDop,
             )
         }
 
@@ -1683,6 +1697,52 @@ private fun AdminMonthlyRevenueChart(
                 }
             }
         }
+    }
+}
+
+private fun buildMonthlyRevenueBars(
+    analyticsSummary: PaymentsAnalyticsSummary?,
+    paymentsList: List<PaymentRecord>,
+    selectedMonths: Int,
+    currentMonthRevenueDop: Int,
+): List<A39ChartBarSpec> {
+    val serverSeries = analyticsSummary?.monthlySeries.orEmpty()
+    if (serverSeries.isNotEmpty()) {
+        val visibleSeries = serverSeries.takeLast(selectedMonths.coerceAtLeast(1))
+        val maxRevenue = visibleSeries.maxOfOrNull { item -> item.revenueDop }?.coerceAtLeast(1) ?: 1
+        return visibleSeries.map { barItem ->
+            val ratio = (barItem.revenueDop.toFloat() / maxRevenue.toFloat()).coerceIn(0f, 1f)
+            val barHeight = (22f + (ratio * 111f)).dp
+            A39ChartBarSpec(
+                month = barItem.monthLabel.ifBlank { barItem.monthKey.takeLast(2) }.lowercase(),
+                amount = formatShortK(barItem.revenueDop),
+                height = barHeight,
+            )
+        }
+    }
+    val monthPairs = if (selectedMonths == 12) {
+        listOf("nov", "dic", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct")
+    } else {
+        listOf("may", "jun", "jul", "ago", "sep", "oct")
+    }
+    val totals = monthPairs.mapIndexed { index, monthToken ->
+        val summed = paymentsList
+            .filter { payment -> payment.dateLabel.lowercase().contains(monthToken) }
+            .sumOf { payment -> payment.amountDop }
+        val isFinalMonth = index == monthPairs.lastIndex
+        val shouldFallbackToCurrentMonth = summed == 0 && isFinalMonth
+        val effective = if (shouldFallbackToCurrentMonth) currentMonthRevenueDop else summed
+        monthToken to effective
+    }
+    val maxTotal = totals.maxOfOrNull { pair -> pair.second }?.coerceAtLeast(1) ?: 1
+    return totals.map { pair ->
+        val ratio = (pair.second.toFloat() / maxTotal.toFloat()).coerceIn(0f, 1f)
+        val heightDp = if (pair.second <= 0) 18.dp else (24f + (ratio * 109f)).dp
+        A39ChartBarSpec(
+            month = pair.first,
+            amount = formatShortK(pair.second),
+            height = heightDp,
+        )
     }
 }
 
@@ -2171,12 +2231,19 @@ private fun AdminDesktopEventsSection(
 private fun AdminDesktopInventorySection(
     articlesList: List<CatalogArticle>,
     searchQuery: String,
+    isSubmitting: Boolean = false,
     onAdjustStock: (String, Int) -> Unit,
+    onDeleteArticle: (String, (Result<Unit>) -> Unit) -> Unit = { _, onDone -> onDone(Result.success(Unit)) },
     onOpenMobileInventory: () -> Unit,
+    onOpenCategories: () -> Unit,
+    onOpenTrends: () -> Unit = {},
+    viewModel: RosaFiestaViewModel? = null,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
     val trimmed = searchQuery.trim()
+    var pendingDeleteArticle by remember { mutableStateOf<CatalogArticle?>(null) }
+    var deleteLocalError by remember { mutableStateOf<String?>(null) }
     val filtered = remember(articlesList, trimmed) {
         if (trimmed.isEmpty()) {
             articlesList
@@ -2189,48 +2256,117 @@ private fun AdminDesktopInventorySection(
         }
     }
 
-    DesktopSectionCardContainer(
-        title = "Inventario y disponibilidad (${filtered.size})",
-        actionLabel = "Catálogo admin",
-        onAction = onOpenMobileInventory,
-        modifier = modifier,
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
-            filtered.forEach { article ->
+    Box(modifier = modifier) {
+        DesktopSectionCardContainer(
+            title = "Inventario y disponibilidad (${filtered.size})",
+            actionLabel = "Catálogo admin",
+            onAction = onOpenMobileInventory,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFF9F9FD))
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(14.dp))
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
-                    RfPhoto(
-                        photoKey = photoKeyForDesktopEvent(article.photo),
-                        contentDescription = article.name,
-                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)),
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        BasicText(text = article.name, style = typo.bodyStrong.copy(fontSize = 14.5.sp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFFDE6F2))
+                            .border(1.dp, Color(0xFFF2C2DF), RoundedCornerShape(10.dp))
+                            .clickable { onOpenTrends() }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
                         BasicText(
-                            text = "${article.category} · ${formatDesktopDop(article.pricePerDayDop)}/día · Disp. Oct 23: ${article.availableOct23}/${article.totalStock}",
-                            style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            text = "Tendencias y portada",
+                            style = typo.bodyStrong.copy(fontSize = 12.5.sp, color = Color(0xFFC2338F)),
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        DesktopSmallPillButton(label = "-1", onClick = { onAdjustStock(article.id, -1) })
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFECEBFF))
+                            .border(1.dp, Color(0xFFD5D4F7), RoundedCornerShape(10.dp))
+                            .clickable { onOpenCategories() }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
                         BasicText(
-                            text = article.totalStock.toString(),
-                            style = typo.bodyStrong.copy(fontSize = 14.sp),
-                            modifier = Modifier.padding(horizontal = 6.dp),
+                            text = "Gestionar categorías",
+                            style = typo.bodyStrong.copy(fontSize = 12.5.sp, color = Color(0xFF4B47D6)),
                         )
-                        DesktopSmallPillButton(label = "+1", onClick = { onAdjustStock(article.id, 1) })
+                    }
+                }
+                filtered.forEach { article ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFF9F9FD))
+                            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                    ) {
+                        RfUploadedOrCatalogPhoto(
+                            photoUrl = article.photoUrl,
+                            fallbackPhotoKey = photoKeyForDesktopEvent(article.photo),
+                            contentDescription = article.name,
+                            viewModel = viewModel,
+                            cornerRadius = 10.dp,
+                            modifier = Modifier.size(44.dp),
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            BasicText(text = article.name, style = typo.bodyStrong.copy(fontSize = 14.5.sp))
+                            BasicText(
+                                text = "${article.category} · ${formatDesktopDop(article.pricePerDayDop)}/día · Disp. Oct 23: ${article.availableOct23}/${article.totalStock}",
+                                style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            DesktopSmallPillButton(label = "-1", onClick = { onAdjustStock(article.id, -1) })
+                            BasicText(
+                                text = article.totalStock.toString(),
+                                style = typo.bodyStrong.copy(fontSize = 14.sp),
+                                modifier = Modifier.padding(horizontal = 6.dp),
+                            )
+                            DesktopSmallPillButton(label = "+1", onClick = { onAdjustStock(article.id, 1) })
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFFFCE3E8))
+                                    .clickable {
+                                        deleteLocalError = null
+                                        pendingDeleteArticle = article
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 16.dp)
+                            }
+                        }
                     }
                 }
             }
         }
+
+        AdminDeleteArticleConfirmSheet(
+            targetArticle = pendingDeleteArticle,
+            errorMessage = deleteLocalError,
+            isSubmitting = isSubmitting,
+            onDismiss = {
+                pendingDeleteArticle = null
+                deleteLocalError = null
+            },
+            onConfirmDelete = { target ->
+                onDeleteArticle(target.id) { outcome ->
+                    if (outcome.isSuccess) {
+                        pendingDeleteArticle = null
+                        deleteLocalError = null
+                    } else {
+                        deleteLocalError = outcome.exceptionOrNull()?.message ?: "No se pudo eliminar el artículo."
+                    }
+                }
+            },
+        )
     }
 }
 
@@ -2238,7 +2374,8 @@ private fun AdminDesktopInventorySection(
 private fun AdminDesktopQuotesSection(
     quotesList: List<QuoteRecord>,
     searchQuery: String,
-    onApproveQuote: (QuoteRecord) -> Unit,
+    onEnrichQuote: (QuoteRecord) -> Unit,
+    onApproveAndSendQuote: (QuoteRecord) -> Unit,
     onDeclineQuote: (QuoteRecord) -> Unit,
     onDuplicateQuote: (QuoteRecord) -> Unit,
     onOpenBuilder: () -> Unit,
@@ -2285,8 +2422,19 @@ private fun AdminDesktopQuotesSection(
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RfTag(text = quote.status, tone = RfTagTone.SOL)
-                        DesktopGradientPillButton(label = "Aprobar", onClick = { onApproveQuote(quote) })
+                        val normalizedStatus = quote.status.trim().uppercase()
+                        val isPendingStatus = normalizedStatus in setOf("PENDING", "PENDIENTE", "DECLINED", "REJECTED")
+                        val statusTagLabel = when (normalizedStatus) {
+                            "SENT", "ENVIADA", "APPROVED", "APROBADA" -> "Enviada"
+                            "SIGNED", "FIRMADA", "CONFIRMADA" -> "Firmada"
+                            "DECLINED", "REJECTED", "RECHAZADA" -> "Ajuste"
+                            else -> "En revisión"
+                        }
+                        RfTag(text = statusTagLabel, tone = RfTagTone.SOL)
+                        DesktopSmallPillButton(label = "Enriquecer", onClick = { onEnrichQuote(quote) })
+                        if (isPendingStatus) {
+                            DesktopGradientPillButton(label = "Aprobar y enviar", onClick = { onApproveAndSendQuote(quote) })
+                        }
                         DesktopSmallPillButton(label = "Duplicar", onClick = { onDuplicateQuote(quote) })
                         DesktopSmallPillButton(label = "Rechazar", onClick = { onDeclineQuote(quote) })
                     }
@@ -2323,8 +2471,8 @@ private fun AdminDesktopPaymentsSection(
         return
     }
 
-    var amountInput by remember { mutableStateOf("1500") }
-    var referenceInput by remember { mutableStateOf("TRF-8841") }
+    var amountInput by remember { mutableStateOf("") }
+    var referenceInput by remember { mutableStateOf("") }
     var amountTouched by remember { mutableStateOf(false) }
     var referenceTouched by remember { mutableStateOf(false) }
     var paymentSubmitAttempted by remember { mutableStateOf(false) }
@@ -2808,10 +2956,11 @@ private fun AdminDesktopSettingsSection(
                         placeholder = "1-31-84920-2",
                         isError = rncError != null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        cursorMask = InputValidator::filterRncInputWithCursor,
                         onValueChange = { next ->
                             rncTouched = true
                             localSaveError = null
-                            rnc = InputValidator.filterRncInput(next)
+                            rnc = next
                         },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -2824,10 +2973,11 @@ private fun AdminDesktopSettingsSection(
                         placeholder = "+1809...",
                         isError = phoneError != null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        cursorMask = InputValidator::filterPhoneInputWithCursor,
                         onValueChange = { next ->
                             phoneTouched = true
                             localSaveError = null
-                            phone = InputValidator.filterPhoneInput(next)
+                            phone = next
                         },
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -3016,10 +3166,8 @@ private fun AdminDesktopModalHost(
                 RfInteractiveCalendarModal(
                     title = "Fecha del evento",
                     currentDateText = currentEventDate,
-                    minYear = 2024,
-                    maxYear = 2030,
-                    defaultYear = 2026,
                     isAdmin = true,
+                    dateMode = RfCalendarDateMode.EVENT_UPCOMING,
                     onSelectDate = { formattedDate ->
                         viewModel?.setNewEventDate(formattedDate)
                         showNewEventCalendar = false
@@ -3077,7 +3225,7 @@ private fun AdminDesktopRosaAiModal(
 ) {
     val typo = LocalRfTypography.current
     val rosaReply = viewModel?.rosaProposalMessage?.collectAsState()?.value
-    var promptText by remember { mutableStateOf("Boda romántica para 120 personas en Jardín Botánico") }
+    var promptText by remember { mutableStateOf("") }
     var promptTouched by remember { mutableStateOf(false) }
     var generateAttempted by remember { mutableStateOf(false) }
     val promptError = rememberDebouncedValidationError(
@@ -3408,6 +3556,8 @@ private fun DesktopInlineInput(
     modifier: Modifier = Modifier,
     isError: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    cursorMask: ((previousFormatted: String, newRawText: String, newSelectionEnd: Int) -> MaskedTextCursorResult)? = null,
+    onFocusChanged: ((Boolean) -> Unit)? = null,
 ) {
     val typo = LocalRfTypography.current
     Box(
@@ -3419,21 +3569,50 @@ private fun DesktopInlineInput(
             .border(1.dp, if (isError) Color(0xFFD63031) else Color(0xFFE3E4EF), RoundedCornerShape(10.dp))
             .padding(horizontal = 12.dp),
     ) {
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = true,
-            keyboardOptions = keyboardOptions,
-            textStyle = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF151729)),
-            cursorBrush = SolidColor(Color(0xFF5B6CF0)),
-            modifier = Modifier.fillMaxWidth(),
-            decorationBox = { inner ->
-                if (value.isEmpty()) {
-                    BasicText(text = placeholder, style = typo.secondary.copy(fontSize = 13.5.sp, color = Color(0xFF8C90A6)))
-                }
-                inner()
-            },
-        )
+        if (cursorMask != null) {
+            val maskKey = remember { Any() }
+            RfMaskedDigitBasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                maskTransform = cursorMask,
+                singleLine = true,
+                keyboardOptions = keyboardOptions,
+                textStyle = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF151729)),
+                cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .rfTrackValidationFocus(focusKey = maskKey) { isFocused ->
+                        onFocusChanged?.invoke(isFocused)
+                    },
+                decorationBox = { inner ->
+                    if (value.isEmpty()) {
+                        BasicText(text = placeholder, style = typo.secondary.copy(fontSize = 13.5.sp, color = Color(0xFF8C90A6)))
+                    }
+                    inner()
+                },
+            )
+        } else {
+            val plainKey = remember { Any() }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                keyboardOptions = keyboardOptions,
+                textStyle = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF151729)),
+                cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .rfTrackValidationFocus(focusKey = plainKey) { isFocused ->
+                        onFocusChanged?.invoke(isFocused)
+                    },
+                decorationBox = { inner ->
+                    if (value.isEmpty()) {
+                        BasicText(text = placeholder, style = typo.secondary.copy(fontSize = 13.5.sp, color = Color(0xFF8C90A6)))
+                    }
+                    inner()
+                },
+            )
+        }
     }
 }
 

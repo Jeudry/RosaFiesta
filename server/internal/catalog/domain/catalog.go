@@ -6,9 +6,18 @@ import (
 )
 
 var (
-	ErrArticleNotFound = errors.New("article not found")
-	ErrPackageNotFound = errors.New("package not found")
-	ErrInvalidCatalog  = errors.New("invalid catalog input")
+	ErrArticleNotFound          = errors.New("article not found")
+	ErrArticleInUse             = errors.New("no puedes eliminar este artículo porque tiene reservas activas en eventos")
+	ErrPackageNotFound          = errors.New("package not found")
+	ErrCategoryNotFound         = errors.New("category not found")
+	ErrCategoryInUse            = errors.New("no puedes eliminar esta categoría porque tiene artículos asociados")
+	ErrCategoryAlreadyExists    = errors.New("ya existe una categoría con ese nombre")
+	ErrTrendNotFound            = errors.New("trend not found")
+	ErrTrendAlreadyExists       = errors.New("trend with the same title already exists")
+	ErrInvalidSeasonBanner      = errors.New("invalid season banner input")
+	ErrInvalidCatalog           = errors.New("invalid catalog input")
+	ErrInsufficientStockForDate = errors.New("stock insuficiente para la fecha solicitada")
+	ErrInvalidDateRange         = errors.New("rango de fechas inválido")
 )
 
 type Article struct {
@@ -16,8 +25,10 @@ type Article struct {
 	Name              string   `json:"name" doc:"Commercial article name."`
 	CategoryID        string   `json:"categoryId" doc:"Category identifier."`
 	PhotoKey          string   `json:"photoKey" doc:"Asset image key."`
+	PhotoURL          string   `json:"photoUrl,omitempty" doc:"Uploaded media URL."`
 	DailyPriceDop     int      `json:"dailyPriceDop" doc:"Daily rental or unit price in DOP."`
 	TotalStock        int      `json:"totalStock" doc:"Total warehouse stock."`
+	DamagedStock      int      `json:"damagedStock,omitempty" doc:"Damaged or quarantined stock units."`
 	AvailableStock    int      `json:"availableStock" doc:"Currently available stock."`
 	LowStockThreshold int      `json:"lowStockThreshold" doc:"Low stock warning threshold."`
 	Description       string   `json:"description" doc:"Article description."`
@@ -26,6 +37,15 @@ type Article struct {
 	Material          string   `json:"material,omitempty" doc:"Primary material specification."`
 	ColorVariants     []string `json:"colorVariants,omitempty" doc:"Available color variants."`
 	IsDirectSale      bool     `json:"isDirectSale,omitempty" doc:"True for direct-sale balloon items."`
+}
+
+// UsableStock retorna el stock físico utilizable descontando unidades dañadas.
+func (a Article) UsableStock() int {
+	usable := a.TotalStock - a.DamagedStock
+	if usable < 0 {
+		return 0
+	}
+	return usable
 }
 
 func (a Article) IsLowStock() bool {
@@ -59,6 +79,7 @@ type PackageBundle struct {
 	Name          string        `json:"name" doc:"Package commercial name."`
 	EventType     string        `json:"eventType" doc:"Target event type."`
 	PhotoKey      string        `json:"photoKey" doc:"Package photo key."`
+	PhotoURL      string        `json:"photoUrl,omitempty" doc:"Uploaded media URL."`
 	TotalPriceDop int           `json:"totalPriceDop" doc:"Package price in DOP."`
 	GuestCapacity int           `json:"guestCapacity" doc:"Recommended guest capacity."`
 	ItemsSummary  string        `json:"itemsSummary" doc:"Human-readable summary of included items."`
@@ -71,6 +92,30 @@ type Category struct {
 	Name      string `json:"name" doc:"Category name."`
 	IlloKey   string `json:"illoKey" doc:"Vector illustration key."`
 	ItemCount int    `json:"itemCount" doc:"Number of articles in the category."`
+}
+
+// Trend represents a seasonal event trend card displayed on the Personal Home screen.
+type Trend struct {
+	ID              string `json:"id" doc:"Trend identifier."`
+	Title           string `json:"title" doc:"Trend title."`
+	EventsLabel     string `json:"eventsLabel" doc:"Secondary label or event count metric."`
+	PhotoKey        string `json:"photoKey" doc:"Fallback catalog illustration/photo key."`
+	PhotoURL        string `json:"photoUrl,omitempty" doc:"Optional uploaded media URL."`
+	PhotoBgHex      string `json:"photoBgHex" doc:"Background tint hex for the card image."`
+	LinkedCategory  string `json:"linkedCategory,omitempty" doc:"Optional category filter on click."`
+	LinkedPackageID string `json:"linkedPackageId,omitempty" doc:"Optional package identifier on click."`
+	SortOrder       int    `json:"sortOrder" doc:"Display sort priority."`
+	Active          bool   `json:"active" doc:"Whether the trend is visible in Personal Home."`
+}
+
+// SeasonBanner represents the configurable seasonal hero banner shown on Personal Home.
+type SeasonBanner struct {
+	ID               string `json:"id" doc:"Banner identifier ('default')."`
+	BadgeLabel       string `json:"badgeLabel" doc:"Upper seasonal badge text."`
+	Title            string `json:"title" doc:"Main hero headline."`
+	CtaLabel         string `json:"ctaLabel" doc:"Action button label."`
+	TargetScreenCode string `json:"targetScreenCode" doc:"Target personal screen code on CTA click."`
+	Active           bool   `json:"active" doc:"Whether the banner is published in Personal Home."`
 }
 
 type AvailabilityDay struct {
@@ -286,6 +331,62 @@ func CanonicalCategories() []Category {
 		{ID: "floral", Name: "Centros florales", IlloKey: "flores", ItemCount: 1},
 		{ID: "arcos", Name: "Arcos y globos", IlloKey: "globos", ItemCount: 5},
 		{ID: "dulces", Name: "Mesas dulces", IlloKey: "dulces", ItemCount: 1},
+	}
+}
+
+// CanonicalTrends returns demo trend cards used only in full demo seed mode.
+func CanonicalTrends() []Trend {
+	return []Trend{
+		{
+			ID:             "trend-graduaciones",
+			Title:          "Graduaciones",
+			EventsLabel:    "2.4K eventos",
+			PhotoKey:       "graduacion",
+			PhotoBgHex:     "#F3EEF6",
+			LinkedCategory: "",
+			SortOrder:      1,
+			Active:         true,
+		},
+		{
+			ID:              "trend-bodas",
+			Title:           "Bodas",
+			EventsLabel:     "1.8K eventos",
+			PhotoKey:        "boda",
+			PhotoBgHex:      "#FDE6F2",
+			LinkedPackageID: "pkg-boda-real",
+			SortOrder:       2,
+			Active:          true,
+		},
+		{
+			ID:          "trend-quinceaneras",
+			Title:       "Quinceañeras",
+			EventsLabel: "1.5K eventos",
+			PhotoKey:    "quinceanera",
+			PhotoBgHex:  "#FCE8F6",
+			SortOrder:   3,
+			Active:      true,
+		},
+		{
+			ID:          "trend-baby-shower",
+			Title:       "Baby Shower",
+			EventsLabel: "1.2K eventos",
+			PhotoKey:    "baby_shower",
+			PhotoBgHex:  "#E0F7F2",
+			SortOrder:   4,
+			Active:      true,
+		},
+	}
+}
+
+// CanonicalSeasonBanner returns the demo seasonal hero banner used only in full demo seed mode.
+func CanonicalSeasonBanner() SeasonBanner {
+	return SeasonBanner{
+		ID:               "default",
+		BadgeLabel:       "NUEVA TEMPORADA 2026",
+		Title:            "Crea momentos inolvidables",
+		CtaLabel:         "Explorar paquetes",
+		TargetScreenCode: "s21",
+		Active:           true,
 	}
 }
 

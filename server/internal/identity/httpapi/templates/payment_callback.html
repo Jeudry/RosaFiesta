@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RosaFiesta - Estado del Pago</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #FFFDFC;
+      color: #2D2624;
+      display: flex;
+      min-height: 100vh;
+      margin: 0;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      max-width: 420px;
+      width: 100%;
+      background: #FFFFFF;
+      border: 1px solid #F2D8DB;
+      border-radius: 20px;
+      padding: 28px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(45, 38, 36, 0.06);
+    }
+    h1 { font-size: 20px; margin: 0 0 8px; }
+    p { font-size: 14px; color: #6E625E; margin: 0 0 20px; line-height: 1.5; }
+    a.button {
+      display: inline-block;
+      background: #E89CA8;
+      color: #FFFFFF;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 12px 22px;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>{{.Headline}}</h1>
+    <p>{{.Description}}</p>
+    <a id="open-app-link" class="button" href="#">Volver a RosaFiesta</a>
+  </main>
+  <script nonce="{{.ScriptNonce}}">
+    (function () {
+      var payload = {{.Payload}};
+      var params = new URLSearchParams();
+      if (payload.sessionId) params.set("session_id", payload.sessionId);
+      if (payload.eventId) params.set("event_id", payload.eventId);
+      var path = payload.cancelled ? "payment/cancel" : "payment/success";
+      if (payload.cancelled) params.set("cancelled", "1");
+      var deepLink = "rosafiesta://" + path + "?" + params.toString();
+      var anchor = document.getElementById("open-app-link");
+      if (anchor) anchor.setAttribute("href", deepLink);
+      if (window.opener && !window.opener.closed) {
+        var origins = [window.location.origin];
+        var configured = {{.TargetOrigins}};
+        if (Array.isArray(configured)) {
+          for (var i = 0; i < configured.length; i += 1) {
+            if (origins.indexOf(configured[i]) < 0) origins.push(configured[i]);
+          }
+        }
+        var posted = false;
+        for (var j = 0; j < origins.length; j += 1) {
+          try {
+            window.opener.postMessage(payload, origins[j]);
+            posted = true;
+          } catch (err) {}
+        }
+        if (posted) {
+          window.setTimeout(function () { window.close(); }, 300);
+          return;
+        }
+      }
+      window.location.replace(deepLink);
+    })();
+  </script>
+</body>
+</html>

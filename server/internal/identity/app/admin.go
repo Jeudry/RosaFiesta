@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -16,14 +17,16 @@ type UpdateClientCommand struct {
 	Notes    *string
 }
 
+// InviteStaffCommand contiene los datos para invitar a un colaborador al equipo operativo.
 type InviteStaffCommand struct {
-	FullName    string
-	Email       string
-	Phone       string
-	RoleLabel   string
-	Role        string
-	Permissions []string
-	Password    string
+	FullName        string
+	Email           string
+	Phone           string
+	RoleLabel       string
+	Role            string
+	Permissions     []string
+	Password        string
+	InitialPassword string
 }
 
 type UpdateStaffCommand struct {
@@ -99,16 +102,48 @@ func (s *Service) InviteStaff(ctx context.Context, cmd InviteStaffCommand) (doma
 	if resolvedRole == "" {
 		return domain.StaffRecord{}, domain.ErrInvalidInput
 	}
-	rawPass := strings.TrimSpace(cmd.Password)
-	if rawPass == "" {
-		generatedPass, _ := domain.GenerateRandomHex(12)
-		rawPass = generatedPass
-	}
+	rawPass := resolveInviteInitialPassword(cmd)
 	passHash, err := domain.HashPassword(rawPass)
 	if err != nil {
 		return domain.StaffRecord{}, domain.ErrInvalidInput
 	}
-	return s.persistInvitedStaff(ctx, fullName, normalizedEmail, cmd, resolvedRole, normalizedPerms, passHash)
+	staffRec, err := s.persistInvitedStaff(ctx, fullName, normalizedEmail, cmd, resolvedRole, normalizedPerms, passHash)
+	if err != nil {
+		return domain.StaffRecord{}, err
+	}
+	s.sendStaffInviteEmailIfConfigured(ctx, staffRec)
+	return staffRec, nil
+}
+
+func resolveInviteInitialPassword(cmd InviteStaffCommand) string {
+	if initial := strings.TrimSpace(cmd.InitialPassword); initial != "" {
+		return initial
+	}
+	if legacy := strings.TrimSpace(cmd.Password); legacy != "" {
+		return legacy
+	}
+	generatedPass, _ := domain.GenerateRandomHex(12)
+	return generatedPass
+}
+
+func (s *Service) sendStaffInviteEmailIfConfigured(ctx context.Context, staffRec domain.StaffRecord) {
+	sender := s.opts.EmailSender
+	if sender == nil {
+		return
+	}
+	if !sender.IsConfigured() {
+		return
+	}
+	rawTemplate, err := emailTemplates.ReadFile("templates/staff_invite_email.txt")
+	if err != nil {
+		return
+	}
+	body := strings.ReplaceAll(string(rawTemplate), "{{NAME}}", staffRec.FullName)
+	body = strings.ReplaceAll(body, "{{ROLE_LABEL}}", staffRec.RoleLabel)
+	body = strings.ReplaceAll(body, "{{EMAIL}}", staffRec.Email)
+	if mailErr := sender.SendEmail(ctx, staffRec.Email, "Bienvenido al equipo RosaFiesta", body); mailErr != nil {
+		slog.WarnContext(ctx, "staff invite welcome email failed", slog.String("staff_id", staffRec.ID), slog.Any("error", mailErr))
+	}
 }
 
 func (s *Service) persistInvitedStaff(

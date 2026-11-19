@@ -6,13 +6,18 @@ import com.jeudry.rosafiesta.core.engine.UserRole
 import com.jeudry.rosafiesta.domain.ArticleAvailabilityCalendar
 import com.jeudry.rosafiesta.domain.ArticleAvailabilityDay
 import com.jeudry.rosafiesta.domain.AuditLogRecord
+import com.jeudry.rosafiesta.domain.AvailabilityConflictItem
+import com.jeudry.rosafiesta.domain.AvailabilityRangeCheck
 import com.jeudry.rosafiesta.domain.BalloonProduct
 import com.jeudry.rosafiesta.domain.BotFaqRecord
 import com.jeudry.rosafiesta.domain.BotKeywordRecord
 import com.jeudry.rosafiesta.domain.BotThreadRecord
 import com.jeudry.rosafiesta.domain.BusinessMetrics
 import com.jeudry.rosafiesta.domain.BusinessSettings
+import com.jeudry.rosafiesta.domain.CardSessionResult
 import com.jeudry.rosafiesta.domain.CatalogArticle
+import com.jeudry.rosafiesta.domain.CatalogCategory
+import com.jeudry.rosafiesta.domain.CatalogTrend
 import com.jeudry.rosafiesta.domain.ChatMessageRecord
 import com.jeudry.rosafiesta.domain.ChatThread
 import com.jeudry.rosafiesta.domain.ChecklistStep
@@ -27,23 +32,33 @@ import com.jeudry.rosafiesta.domain.EventLineItem
 import com.jeudry.rosafiesta.domain.EventPackage
 import com.jeudry.rosafiesta.domain.EventScheduleBlock
 import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.EventTypeCount
 import com.jeudry.rosafiesta.domain.EventTypeTemplate
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
 import com.jeudry.rosafiesta.domain.LeadRecord
+import com.jeudry.rosafiesta.domain.MediaUploadAsset
+import com.jeudry.rosafiesta.domain.MonthlyAnalyticsBar
 import com.jeudry.rosafiesta.domain.NotificationRecord
+import com.jeudry.rosafiesta.domain.OAuthProviderConfig
 import com.jeudry.rosafiesta.domain.OfflineQueueItem
 import com.jeudry.rosafiesta.domain.PaymentRecord
+import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
+import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReportExportResult
 import com.jeudry.rosafiesta.domain.ReportSeriesPoint
 import com.jeudry.rosafiesta.domain.ReviewRecord
 import com.jeudry.rosafiesta.domain.RosaChatReply
+import com.jeudry.rosafiesta.domain.RosaSketchElement
+import com.jeudry.rosafiesta.domain.RosaSketchProposal
+import com.jeudry.rosafiesta.domain.SeasonBanner
 import com.jeudry.rosafiesta.domain.StaffMember
 import com.jeudry.rosafiesta.domain.StaffProfile
 import com.jeudry.rosafiesta.domain.SupplierRecord
 import com.jeudry.rosafiesta.domain.VoiceTranscriptionOutcome
+import com.jeudry.rosafiesta.domain.security.UserPreferences
 
 internal data class NormalizedPaymentMethod(
     val canonicalMethod: String,
@@ -51,25 +66,58 @@ internal data class NormalizedPaymentMethod(
 )
 
 internal object RosaFiestaBackendMappers {
+    fun toCatalogCategory(dto: CategoryDto): CatalogCategory = CatalogCategory(
+        id = dto.id.trim(),
+        name = dto.name.trim().ifBlank { dto.id.trim() },
+        illoKey = dto.illoKey.trim().ifBlank { "cat-default" },
+        itemCount = dto.itemCount.toInt().coerceAtLeast(0),
+    )
+
+    fun toCatalogTrend(dto: CatalogTrendDto): CatalogTrend {
+        val normalizedPhotoKey = dto.photoKey.replace('-', '_').trim()
+        return CatalogTrend(
+            id = dto.id.trim(),
+            title = dto.title.trim(),
+            eventsLabel = dto.eventsLabel.trim(),
+            photo = PhotoAsset.fromKey(normalizedPhotoKey),
+            photoUrl = dto.photoUrl.orEmpty().trim(),
+            photoBgHex = dto.photoBgHex.trim().ifBlank { "#F3EEF6" },
+            linkedCategory = dto.linkedCategory.orEmpty().trim(),
+            linkedPackageId = dto.linkedPackageId.orEmpty().trim(),
+            sortOrder = dto.sortOrder,
+            active = dto.active,
+        )
+    }
+
+    fun toSeasonBanner(dto: SeasonBannerDto): SeasonBanner = SeasonBanner(
+        id = dto.id.trim().ifBlank { "default" },
+        badgeLabel = dto.badgeLabel.trim(),
+        title = dto.title.trim(),
+        ctaLabel = dto.ctaLabel.trim(),
+        targetScreenCode = dto.targetScreenCode.trim().ifBlank { "s21" },
+        active = dto.active,
+    )
+
     fun toCatalogArticle(
         dto: ArticleDto,
         index: Int,
         fallbackById: Map<String, CatalogArticle>,
+        categories: List<CatalogCategory> = emptyList(),
     ): CatalogArticle {
         val fallback = fallbackById[dto.id]
         val normalizedPhotoKey = dto.photoKey.replace('-', '_')
         val photo = fallback?.photo ?: PhotoAsset.fromKey(normalizedPhotoKey)
         val resolvedCode = fallback?.code ?: "RF-${(index + 1).toString().padStart(3, '0')}"
-        val resolvedCategory = mapCategoryLabel(dto.categoryId, fallback?.category)
+        val resolvedCategory = resolveCategoryDisplayName(dto.categoryId, categories, fallback?.category)
         val variants = dto.colorVariants?.takeIf { list -> list.isNotEmpty() }
             ?: fallback?.variants
-            ?: listOf("Estándar")
+            ?: emptyList()
         val dimensions = dto.dimensions?.ifBlank { null }
             ?: fallback?.dimensions
-            ?: "Estándar"
+            ?: ""
         val material = dto.material?.ifBlank { null }
             ?: fallback?.material
-            ?: "Resina y acabado premium"
+            ?: ""
         return CatalogArticle(
             id = dto.id,
             code = resolvedCode,
@@ -84,6 +132,8 @@ internal object RosaFiestaBackendMappers {
             dimensions = dimensions,
             material = material,
             visibleInCatalog = dto.visible,
+            photoUrl = dto.photoUrl.orEmpty().ifBlank { fallback?.photoUrl.orEmpty() },
+            damagedStock = dto.damagedStock.toInt(),
         )
     }
 
@@ -151,6 +201,7 @@ internal object RosaFiestaBackendMappers {
             includedItems = resolvedItems,
             eventType = dto.eventType,
             visibleInCatalog = dto.visible,
+            photoUrl = dto.photoUrl.orEmpty().ifBlank { fallback?.photoUrl.orEmpty() },
         )
     }
 
@@ -220,6 +271,14 @@ internal object RosaFiestaBackendMappers {
             clientEmail = dto.clientEmail.orEmpty(),
             cancellationReason = dto.cancellationReason.orEmpty(),
             sketchJson = dto.sketchJson.orEmpty(),
+            eventDateIso = dto.eventDateIso.orEmpty().ifBlank { fallback?.eventDateIso.orEmpty() },
+            pickupDateIso = dto.pickupDateIso.orEmpty().ifBlank { fallback?.pickupDateIso.orEmpty() },
+            returnDateIso = dto.returnDateIso.orEmpty().ifBlank { fallback?.returnDateIso.orEmpty() },
+            quoteId = dto.quoteId.orEmpty().ifBlank { fallback?.quoteId.orEmpty() },
+            closeoutCompleted = dto.closeoutCompleted,
+            closeoutNotes = dto.closeoutNotes.orEmpty(),
+            lastPaymentReminderAt = dto.lastPaymentReminderAt.orEmpty().ifBlank { fallback?.lastPaymentReminderAt.orEmpty() },
+            lastPaymentReminderChannel = dto.lastPaymentReminderChannel.orEmpty().ifBlank { fallback?.lastPaymentReminderChannel.orEmpty() },
         )
     }
 
@@ -246,6 +305,19 @@ internal object RosaFiestaBackendMappers {
             dateLabel = dto.paidDateLabel,
             referenceCode = dto.referenceCode,
             verified = verifiedFlag,
+            voucherUrl = dto.voucherUrl.orEmpty(),
+            referenceNumber = dto.referenceNumber.orEmpty(),
+            verifiedBy = dto.verifiedBy.orEmpty(),
+            verifiedAtIso = dto.verifiedAtIso.orEmpty(),
+            rejectionReason = dto.rejectionReason.orEmpty(),
+            ncfType = dto.ncfType.orEmpty().ifBlank { "B02" },
+            ncfNumber = dto.ncfNumber.orEmpty(),
+            clientRnc = dto.clientRnc.orEmpty(),
+            subtotalDop = dto.subtotalDop.toInt(),
+            itbisDop = dto.itbisDop.toInt(),
+            securityDepositDop = dto.securityDepositDop.toInt(),
+            gatewaySessionId = dto.gatewaySessionId.orEmpty(),
+            gatewayPaymentIntentId = dto.gatewayPaymentIntentId.orEmpty(),
         )
     }
 
@@ -279,6 +351,11 @@ internal object RosaFiestaBackendMappers {
             depositDop = dto.depositRD.toInt(),
             signedByName = dto.signedByName.orEmpty(),
             rejectionReason = dto.rejectionReason.orEmpty(),
+            notes = dto.notes.orEmpty(),
+            eventDateIso = dto.eventDateIso.orEmpty(),
+            packageId = dto.packageId.orEmpty(),
+            contractPdfUrl = dto.contractPdfUrl.orEmpty(),
+            signedAtIso = dto.signedAtIso.orEmpty(),
         )
     }
 
@@ -306,6 +383,8 @@ internal object RosaFiestaBackendMappers {
             requestedAtLabel = fallback?.requestedAtLabel ?: DomainClockFormatter.currentFullDateLabel(),
             approvedBy = dto.approvedBy.orEmpty(),
             approvedAtLabel = dto.approvedAtLabel.orEmpty(),
+            gatewayRefundId = dto.gatewayRefundId.orEmpty(),
+            gatewayStatus = dto.gatewayStatus.orEmpty(),
         )
     }
 
@@ -406,6 +485,9 @@ internal object RosaFiestaBackendMappers {
         notes = dto.notes,
         eventId = dto.eventId,
         articleCode = dto.articleCode,
+        photoUrl = dto.photoUrl.orEmpty(),
+        resolutionNotes = dto.resolutionNotes.orEmpty(),
+        chargePaymentId = dto.chargePaymentId.orEmpty(),
     )
 
     fun toChecklistStep(
@@ -427,6 +509,9 @@ internal object RosaFiestaBackendMappers {
         entityCode = dto.entityCode,
         timeAgo = dto.createdAt,
         synced = dto.synced,
+        operationType = dto.operationType,
+        payloadJson = dto.payloadJson.ifBlank { "{}" },
+        idempotencyKey = dto.idempotencyKey,
     )
 
     fun toDeliveryZone(dto: DeliveryZoneDto): DeliveryZone = DeliveryZone(
@@ -870,6 +955,23 @@ internal object RosaFiestaBackendMappers {
         }
     }
 
+    private fun resolveCategoryDisplayName(
+        categoryId: String,
+        categories: List<CatalogCategory>,
+        fallback: String?,
+    ): String {
+        val trimmedId = categoryId.trim()
+        val matchedCategory = categories.firstOrNull { candidate ->
+            val sameId = candidate.id.equals(trimmedId, ignoreCase = true)
+            val sameName = candidate.name.equals(trimmedId, ignoreCase = true)
+            if (sameId) true else sameName
+        }
+        if (matchedCategory != null) {
+            return matchedCategory.name
+        }
+        return mapCategoryLabel(categoryId, fallback)
+    }
+
     private fun mapCategoryLabel(categoryId: String, fallback: String?): String {
         if (!fallback.isNullOrBlank()) return fallback
         val lower = categoryId.trim().lowercase()
@@ -897,4 +999,123 @@ internal object RosaFiestaBackendMappers {
             else -> UserRole.STAFF_DECORATION
         }
     }
+
+    fun toMediaUploadAsset(dto: MediaAssetDto): MediaUploadAsset = MediaUploadAsset(
+        id = dto.id,
+        url = dto.url,
+        mimeType = dto.mimeType,
+        byteSize = dto.byteSize,
+        filename = dto.filename,
+    )
+
+    fun toCardSessionResult(dto: CardSessionResultDto): CardSessionResult = CardSessionResult(
+        sessionId = dto.sessionId,
+        checkoutUrl = dto.checkoutUrl,
+        provider = dto.provider,
+    )
+
+    fun toAvailabilityRangeCheck(dto: AvailabilityCheckOutputDto): AvailabilityRangeCheck = AvailabilityRangeCheck(
+        available = dto.available,
+        eventDateIso = dto.eventDateIso,
+        pickupDateIso = dto.pickupDateIso,
+        returnDateIso = dto.returnDateIso,
+        conflicts = dto.conflicts.map { conflict ->
+            AvailabilityConflictItem(
+                articleId = conflict.articleId,
+                articleName = conflict.articleName,
+                requested = conflict.requested,
+                available = conflict.available,
+                dateRange = conflict.dateRange,
+            )
+        },
+    )
+
+    fun toRealtimeStreamEvent(
+        dto: RealtimeEventDto,
+        fallbackType: String = "",
+        resolvedSeq: Long = dto.seq,
+    ): RealtimeStreamEvent = RealtimeStreamEvent(
+        seq = resolvedSeq,
+        type = dto.type.ifBlank { fallbackType },
+        entityId = dto.entityId,
+        clientId = dto.clientId,
+        audience = dto.audience.ifBlank { "all" },
+        summary = dto.summary,
+    )
+
+    fun toUserPreferences(dto: UserPreferencesDto?): UserPreferences {
+        if (dto == null) return UserPreferences()
+        return UserPreferences(
+            pushNotificationsEnabled = dto.pushNotificationsEnabled,
+            whatsappAlertsEnabled = dto.whatsappAlertsEnabled,
+            emailReceiptsEnabled = dto.emailReceiptsEnabled,
+            biometricLockEnabled = dto.biometricLockEnabled,
+            autoSyncWifiOnly = dto.autoSyncWifiOnly,
+        )
+    }
+
+    fun toOAuthProviderConfig(dto: OAuthConfigOutputDto): OAuthProviderConfig = OAuthProviderConfig(
+        googleEnabled = dto.googleEnabled,
+        appleEnabled = dto.appleEnabled,
+        googleClientId = dto.googleClientId,
+        appleClientId = dto.appleClientId,
+        webPushVapidPublicKey = dto.webPushVapidPublicKey,
+    )
+
+    fun toPaymentsAnalyticsSummary(dto: PaymentsAnalyticsDto): PaymentsAnalyticsSummary = PaymentsAnalyticsSummary(
+        range = dto.range,
+        monthlySeries = dto.monthlySeries.map { bar ->
+            MonthlyAnalyticsBar(
+                monthKey = bar.monthKey,
+                monthLabel = bar.label,
+                revenueDop = bar.revenueRD.toInt(),
+                expensesDop = bar.expensesRD.toInt(),
+                eventsCount = bar.eventsCount.toInt(),
+            )
+        },
+        totalRevenueDop = dto.totalRevenueRD.toInt(),
+        totalExpensesDop = dto.totalExpensesRD.toInt(),
+        netMarginPercent = dto.netMarginPercent.toInt(),
+        totalEventsCount = dto.totalEventsCount.toInt(),
+        confirmedEventsCount = dto.confirmedEventsCount.toInt(),
+        pendingEventsCount = dto.pendingEventsCount.toInt(),
+        completedEventsCount = dto.completedEventsCount.toInt(),
+        cancelledEventsCount = dto.cancelledEventsCount.toInt(),
+        eventTypesBreakdown = dto.eventTypesBreakdown.map { item ->
+            EventTypeCount(
+                eventType = item.label.ifBlank { item.key },
+                count = item.count.toInt(),
+            )
+        },
+        uniqueClientsCount = dto.uniqueClientsCount.toInt(),
+        repeatClientsCount = dto.repeatClientsCount.toInt(),
+        collectionRatePercent = dto.collectionRatePercent.toInt(),
+    )
+
+    fun toRosaSketchProposal(dto: RosaSketchResponseDto): RosaSketchProposal = RosaSketchProposal(
+        reply = dto.reply,
+        elements = dto.elements.map { element ->
+            RosaSketchElement(
+                id = element.id,
+                kind = element.kind,
+                label = element.label,
+                xRatio = element.xRatio,
+                yRatio = element.yRatio,
+                capacity = element.capacity,
+            )
+        },
+        eventWidthMeters = dto.eventWidthMeters,
+        eventDepthMeters = dto.eventDepthMeters,
+        provider = dto.provider,
+        model = dto.model,
+    )
 }
+
+internal fun RealtimeEventDto.toDomain(
+    fallbackType: String = "",
+    resolvedSeq: Long = seq,
+): RealtimeStreamEvent = RosaFiestaBackendMappers.toRealtimeStreamEvent(
+    dto = this,
+    fallbackType = fallbackType,
+    resolvedSeq = resolvedSeq,
+)

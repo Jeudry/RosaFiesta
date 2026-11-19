@@ -86,6 +86,7 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.delay
 
 @Composable
@@ -278,7 +279,7 @@ internal fun RenderPersonalHomeScreen(
     val avatarKey = viewModel?.profileAvatarKey?.collectAsState()?.value
     val avatarBytes = viewModel?.profileAvatarBytes?.collectAsState()?.value
     val firstName = fullName.substringBefore(" ").ifBlank { "Invitado" }
-    val avatarInitial = firstName.firstOrNull()?.uppercaseChar()?.toString() ?: "R"
+    val avatarInitial = InputValidator.extractInitials(firstName, fallback = "R", maxInitials = 1)
     val textColor = if (isDark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E)
     val mutedColor = if (isDark) Color(0xFFA6A3BA) else Color(0xFF62627A)
     val cardBg = if (isDark) Color(0xFF1D1D30) else Color(0xFFFFFFFF)
@@ -458,43 +459,10 @@ internal fun RenderPersonalHomeScreen(
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .height(44.dp)
-                    .clip(CircleShape)
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .clickable { onSelectScreenCode("s25") }
-                    .padding(
-                        start = 12.dp,
-                        end = if (totalDraftCartCount > 0) 8.dp else 12.dp,
-                    ),
-            ) {
-                RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 20.dp)
-                if (totalDraftCartCount > 0) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .height(24.dp)
-                            .widthIn(min = 30.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFFFD45C))
-                            .padding(horizontal = 7.dp),
-                    ) {
-                        BasicText(
-                            text = "$totalDraftCartCount",
-                            maxLines = 1,
-                            softWrap = false,
-                            style = typo.caption.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF2E1A47),
-                            ),
-                        )
-                    }
-                }
-            }
+            RfDraftCartPillButton(
+                count = totalDraftCartCount,
+                onClick = { onSelectScreenCode("s25") },
+            )
         }
 
         Row(
@@ -655,9 +623,11 @@ internal fun RenderPersonalHomeScreen(
                                 }
                                 .padding(vertical = 6.dp),
                         ) {
-                            RfPhoto(
-                                photoKey = resolvedPhoto,
+                            RfUploadedOrCatalogPhoto(
+                                photoUrl = article.photoUrl,
+                                fallbackPhotoKey = resolvedPhoto,
                                 contentDescription = article.name,
+                                viewModel = viewModel,
                                 modifier = Modifier.size(48.dp),
                                 cornerRadius = 10.dp,
                             )
@@ -681,114 +651,123 @@ internal fun RenderPersonalHomeScreen(
             }
         }
 
-        // Hero Card
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 20.dp)
-                .fillMaxWidth()
-                .height(186.dp)
-                .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = false)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
-        ) {
-            // Background decorations: circles, 5-point star, and confetti
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val s = this.size.width / 350f
-                drawCircle(Color.White.copy(alpha = 0.10f), radius = 70f * s, center = Offset(300f * s, 30f * s))
-                drawCircle(Color.White.copy(alpha = 0.08f), radius = 40f * s, center = Offset(330f * s, 170f * s))
-                drawCircle(Color(0xFFD6EA8C), radius = 5f * s, center = Offset(168f * s, 54f * s))
-                val star5 = Path().apply {
-                    val points = listOf(
-                        Offset(0f, -10f),
-                        Offset(2.35f, -3.24f),
-                        Offset(9.5f, -3.1f),
-                        Offset(3.8f, 1.24f),
-                        Offset(5.9f, 8.1f),
-                        Offset(0f, 4f),
-                        Offset(-5.9f, 8.1f),
-                        Offset(-3.8f, 1.24f),
-                        Offset(-9.5f, -3.1f),
-                        Offset(-2.35f, -3.24f),
-                    )
-                    points.forEachIndexed { i, pt ->
-                        val px = (196f + pt.x * 0.9f) * s
-                        val py = (26f + pt.y * 0.9f) * s
-                        if (i == 0) moveTo(px, py) else lineTo(px, py)
-                    }
-                    close()
-                }
-                drawPath(star5, Color(0xFFFFD45C))
-                drawRoundRect(
-                    color = Color(0xFFD6EA8C),
-                    topLeft = Offset(222f * s, 58f * s),
-                    size = Size(20f * s, 6f * s),
-                    cornerRadius = CornerRadius(3f * s, 3f * s),
-                )
-            }
-
-            // Balloon arch decoration (210 x 210, right: -30px, bottom: -26px)
-            HeroBalloonArchIllustration(
+        val activeSeasonBanner = viewModel?.seasonBanner?.collectAsState()?.value ?: CanonicalSampleData.seasonBanner
+        val showSeasonBanner = if (activeSeasonBanner.active) activeSeasonBanner.title.isNotBlank() else false
+        if (showSeasonBanner) {
+            Box(
                 modifier = Modifier
-                    .size(210.dp)
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 30.dp, y = 26.dp),
-            )
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 22.dp),
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth()
+                    .height(144.dp)
+                    .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))),
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .height(24.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFFD45C))
-                        .padding(horizontal = 10.dp),
-                ) {
-                    BasicText(
-                        text = "NUEVA TEMPORADA 2026",
-                        style = typo.tagLabel.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF2E1A47),
-                            letterSpacing = 0.5.sp,
-                        ),
+                // Background decorations: circles, 5-point star, and confetti
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val s = this.size.width / 350f
+                    drawCircle(Color.White.copy(alpha = 0.10f), radius = 70f * s, center = Offset(300f * s, 30f * s))
+                    drawCircle(Color.White.copy(alpha = 0.08f), radius = 40f * s, center = Offset(330f * s, 170f * s))
+                    drawCircle(Color(0xFFD6EA8C), radius = 5f * s, center = Offset(168f * s, 54f * s))
+                    val star5 = Path().apply {
+                        val points = listOf(
+                            Offset(0f, -10f),
+                            Offset(2.35f, -3.24f),
+                            Offset(9.5f, -3.1f),
+                            Offset(3.8f, 1.24f),
+                            Offset(5.9f, 8.1f),
+                            Offset(0f, 4f),
+                            Offset(-5.9f, 8.1f),
+                            Offset(-3.8f, 1.24f),
+                            Offset(-9.5f, -3.1f),
+                            Offset(-2.35f, -3.24f),
+                        )
+                        points.forEachIndexed { i, pt ->
+                            val px = (196f + pt.x * 0.9f) * s
+                            val py = (26f + pt.y * 0.9f) * s
+                            if (i == 0) moveTo(px, py) else lineTo(px, py)
+                        }
+                        close()
+                    }
+                    drawPath(star5, Color(0xFFFFD45C))
+                    drawRoundRect(
+                        color = Color(0xFFD6EA8C),
+                        topLeft = Offset(222f * s, 58f * s),
+                        size = Size(20f * s, 6f * s),
+                        cornerRadius = CornerRadius(3f * s, 3f * s),
                     )
                 }
 
-                BasicText(
-                    text = "Crea momentos inolvidables",
-                    style = typo.rootTabTitle.copy(
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        lineHeight = 26.sp,
-                    ),
-                    modifier = Modifier.widthIn(max = 190.dp),
+                // Balloon arch decoration (210 x 210, right: -30px, bottom: -26px)
+                HeroBalloonArchIllustration(
+                    modifier = Modifier
+                        .size(160.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 30.dp, y = 26.dp),
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
-                        .height(44.dp)
-                        .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("s21") }
-                        .padding(horizontal = 18.dp),
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp, vertical = 22.dp),
                 ) {
+                    if (activeSeasonBanner.badgeLabel.isNotBlank()) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .height(24.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFD45C))
+                                .padding(horizontal = 10.dp),
+                        ) {
+                            BasicText(
+                                text = activeSeasonBanner.badgeLabel,
+                                style = typo.tagLabel.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF2E1A47),
+                                    letterSpacing = 0.5.sp,
+                                ),
+                            )
+                        }
+                    }
+
                     BasicText(
-                        text = "Explorar paquetes",
-                        style = typo.buttonLabel.copy(
-                            fontSize = 14.sp,
+                        text = activeSeasonBanner.title,
+                        style = typo.rootTabTitle.copy(
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFFA23FB8),
+                            color = Color.White,
+                            lineHeight = 26.sp,
                         ),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = 200.dp),
                     )
-                    RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color(0xFFA23FB8), size = 16.dp)
+
+                    val resolvedCta = activeSeasonBanner.ctaLabel.ifBlank { "Explorar" }
+                    val resolvedTarget = activeSeasonBanner.targetScreenCode.ifBlank { "s21" }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .height(44.dp)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.surface)
+                            .clickable { onSelectScreenCode(resolvedTarget) }
+                            .padding(horizontal = 18.dp),
+                    ) {
+                        BasicText(
+                            text = resolvedCta,
+                            style = typo.buttonLabel.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFA23FB8),
+                            ),
+                        )
+                        RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color(0xFFA23FB8), size = 16.dp)
+                    }
                 }
             }
         }
@@ -836,193 +815,251 @@ internal fun RenderPersonalHomeScreen(
                 }
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-            ) {
-                HomeServiceItem(
-                    label = "Decoración",
-                    bgColor = decoracionBg,
-                    textColor = textColor,
-                    onClick = {
-                        viewModel?.setSelectedCategory("Decoración")
-                        onSelectScreenCode("s18")
-                    },
-                ) {
-                    ServiceIllustrationFloral(modifier = Modifier.size(56.dp))
-                }
+            val vmCategories = viewModel?.catalogCategories?.collectAsState()?.value
+            if (vmCategories != null) {
+                if (vmCategories.isEmpty()) {
+                    RfEmptyStateCard(
+                        icon = RfIconKind.CATALOG,
+                        title = "Explora nuestro catálogo",
+                        subtitle = "Descubre mobiliario disponible o diseña tu evento a medida con Rosa IA.",
+                        actionLabel = "Ver catálogo completo",
+                        compact = true,
+                        onAction = {
+                            viewModel.setSelectedCategory("Todas")
+                            onSelectScreenCode("s18")
+                        },
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 20.dp, vertical = 4.dp),
+                    ) {
+                        vmCategories.forEachIndexed { index, category ->
+                            val bgTint = if (index % 2 == 0) mobiliarioBg else decoracionBg
+                            HomeServiceItem(
+                                label = category.name,
+                                bgColor = bgTint,
+                                textColor = textColor,
+                                onClick = {
+                                    viewModel.setSelectedCategory(category.name)
+                                    onSelectScreenCode("s18")
+                                },
+                            ) {
+                                if (isCustomMediaIconKey(category.illoKey)) {
+                                    RfCategoryCustomOrFallbackIcon(
+                                        iconUrlOrKey = category.illoKey,
+                                        contentDescription = category.name,
+                                        viewModel = viewModel,
+                                        size = 42.dp,
+                                    )
+                                } else {
+                                    when {
+                                        category.illoKey.contains("flor", ignoreCase = true) || category.name.contains("flor", ignoreCase = true) ->
+                                            ServiceIllustrationFloral(modifier = Modifier.size(56.dp))
 
-                HomeServiceItem(
-                    label = "Mobiliario",
-                    bgColor = mobiliarioBg,
-                    textColor = textColor,
-                    onClick = {
-                        viewModel?.setSelectedCategory("Mobiliario")
-                        onSelectScreenCode("s18")
-                    },
-                ) {
-                    ServiceIllustrationMobiliario(modifier = Modifier.size(56.dp))
-                }
+                                        category.illoKey.contains("dulce", ignoreCase = true) || category.name.contains("dulce", ignoreCase = true) ->
+                                            ServiceIllustrationDulce(modifier = Modifier.size(56.dp))
 
-                HomeServiceItem(
-                    label = "Estaciones dulces",
-                    bgColor = mesaDulceBg,
-                    textColor = textColor,
-                    onClick = {
-                        viewModel?.setSelectedCategory("Estaciones dulces")
-                        onSelectScreenCode("s18")
-                    },
-                ) {
-                    ServiceIllustrationDulce(modifier = Modifier.size(56.dp))
-                }
+                                        category.illoKey.contains("ilumin", ignoreCase = true) || category.name.contains("ilumin", ignoreCase = true) ->
+                                            ServiceIllustrationLuz(modifier = Modifier.size(56.dp))
 
-                HomeServiceItem(
-                    label = "Iluminación",
-                    bgColor = iluminacionBg,
-                    textColor = textColor,
-                    onClick = {
-                        viewModel?.setSelectedCategory("Iluminación")
-                        onSelectScreenCode("s18")
-                    },
-                ) {
-                    ServiceIllustrationLuz(modifier = Modifier.size(56.dp))
-                }
+                                        category.illoKey.contains("glob", ignoreCase = true) || category.name.contains("glob", ignoreCase = true) ->
+                                            RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFFE04FAF), size = 30.dp)
 
-                HomeServiceItem(
-                    label = "Arcos y globos",
-                    bgColor = arcosBg,
-                    textColor = textColor,
-                    onClick = {
-                        viewModel?.setSelectedCategory("Arcos y globos")
-                        onSelectScreenCode("s18")
-                    },
-                ) {
-                    RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFFE04FAF), size = 30.dp)
+                                        else -> ServiceIllustrationMobiliario(modifier = Modifier.size(56.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-
-                HomeServiceItem(
-                    label = "Centros florales",
-                    bgColor = centrosBg,
-                    textColor = textColor,
-                    onClick = {
-                        viewModel?.setSelectedCategory("Centros florales")
-                        onSelectScreenCode("s18")
-                    },
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.STAR, tint = Color(0xFF1F9D8B), size = 30.dp)
-                }
+                    HomeServiceItem(
+                        label = "Decoración",
+                        bgColor = decoracionBg,
+                        textColor = textColor,
+                        onClick = {
+                            viewModel?.setSelectedCategory("Decoración")
+                            onSelectScreenCode("s18")
+                        },
+                    ) {
+                        ServiceIllustrationFloral(modifier = Modifier.size(56.dp))
+                    }
 
-                HomeServiceItem(
-                    label = "Mantelería",
-                    bgColor = manteleriaBg,
-                    textColor = textColor,
-                    onClick = {
-                        viewModel?.setSelectedCategory("Mantelería")
-                        onSelectScreenCode("s18")
-                    },
-                ) {
-                    RfIcon(kind = RfIconKind.GIFT, tint = Color(0xFF6664E9), size = 30.dp)
+                    HomeServiceItem(
+                        label = "Mobiliario",
+                        bgColor = mobiliarioBg,
+                        textColor = textColor,
+                        onClick = {
+                            viewModel?.setSelectedCategory("Mobiliario")
+                            onSelectScreenCode("s18")
+                        },
+                    ) {
+                        ServiceIllustrationMobiliario(modifier = Modifier.size(56.dp))
+                    }
+
+                    HomeServiceItem(
+                        label = "Estaciones dulces",
+                        bgColor = mesaDulceBg,
+                        textColor = textColor,
+                        onClick = {
+                            viewModel?.setSelectedCategory("Estaciones dulces")
+                            onSelectScreenCode("s18")
+                        },
+                    ) {
+                        ServiceIllustrationDulce(modifier = Modifier.size(56.dp))
+                    }
+
+                    HomeServiceItem(
+                        label = "Iluminación",
+                        bgColor = iluminacionBg,
+                        textColor = textColor,
+                        onClick = {
+                            viewModel?.setSelectedCategory("Iluminación")
+                            onSelectScreenCode("s18")
+                        },
+                    ) {
+                        ServiceIllustrationLuz(modifier = Modifier.size(56.dp))
+                    }
+
+                    HomeServiceItem(
+                        label = "Arcos y globos",
+                        bgColor = arcosBg,
+                        textColor = textColor,
+                        onClick = {
+                            viewModel?.setSelectedCategory("Arcos y globos")
+                            onSelectScreenCode("s18")
+                        },
+                    ) {
+                        RfIcon(kind = RfIconKind.SPARK, tint = Color(0xFFE04FAF), size = 30.dp)
+                    }
+
+                    HomeServiceItem(
+                        label = "Centros florales",
+                        bgColor = centrosBg,
+                        textColor = textColor,
+                        onClick = {
+                            viewModel?.setSelectedCategory("Centros florales")
+                            onSelectScreenCode("s18")
+                        },
+                    ) {
+                        RfIcon(kind = RfIconKind.STAR, tint = Color(0xFF1F9D8B), size = 30.dp)
+                    }
+
+                    HomeServiceItem(
+                        label = "Mantelería",
+                        bgColor = manteleriaBg,
+                        textColor = textColor,
+                        onClick = {
+                            viewModel?.setSelectedCategory("Mantelería")
+                            onSelectScreenCode("s18")
+                        },
+                    ) {
+                        RfIcon(kind = RfIconKind.GIFT, tint = Color(0xFF6664E9), size = 30.dp)
+                    }
                 }
             }
         }
 
-        // Tendencias Section
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+        val rawHomeTrends = viewModel?.catalogTrends?.collectAsState()?.value ?: CanonicalSampleData.trends
+        val visibleHomeTrends = remember(rawHomeTrends) {
+            rawHomeTrends.filter { item -> item.active }.sortedBy { item -> item.sortOrder }
+        }
+        if (visibleHomeTrends.isNotEmpty()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             ) {
-                BasicText(
-                    text = "Tendencias",
-                    style = typo.rootTabTitle.copy(
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor,
-                    ),
-                )
-                Box(
-                    contentAlignment = Alignment.Center,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier
-                        .height(32.dp)
-                        .clip(CircleShape)
-                        .background(chipBg)
-                        .clickable { onSelectScreenCode("s21") }
-                        .padding(horizontal = 12.dp),
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
                 ) {
                     BasicText(
-                        text = "Ver todo",
-                        style = typo.caption.copy(
-                            fontSize = 13.sp,
+                        text = "Tendencias",
+                        style = typo.rootTabTitle.copy(
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = chipText,
+                            color = textColor,
                         ),
                     )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(32.dp)
+                            .clip(CircleShape)
+                            .background(chipBg)
+                            .clickable { onSelectScreenCode("s21") }
+                            .padding(horizontal = 12.dp),
+                    ) {
+                        BasicText(
+                            text = "Ver todo",
+                            style = typo.caption.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = chipText,
+                            ),
+                        )
+                    }
                 }
-            }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(trendsScrollState)
-                    .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 18.dp),
-            ) {
-                HomeTrendCard(
-                    title = "Graduaciones",
-                    eventsLabel = "2.4K eventos",
-                    photoKey = RfPhotoKey.GRADUACION,
-                    photoBg = if (isDark) Color(0xFF26204A) else Color(0xFFF3EEF6),
-                    cardBg = cardBg,
-                    cardBorder = cardBorder,
-                    textColor = textColor,
-                    mutedColor = mutedColor,
-                    onClick = { onSelectScreenCode("s21") },
-                )
-                HomeTrendCard(
-                    title = "Bodas",
-                    eventsLabel = "1.8K eventos",
-                    photoKey = RfPhotoKey.BODA,
-                    photoBg = if (isDark) Color(0xFF3A1630) else Color(0xFFFDE6F2),
-                    cardBg = cardBg,
-                    cardBorder = cardBorder,
-                    textColor = textColor,
-                    mutedColor = mutedColor,
-                    onClick = {
-                        viewModel?.selectPackage("pkg-boda-real")
-                        onSelectScreenCode("s22")
-                    },
-                )
-                HomeTrendCard(
-                    title = "Quinceañeras",
-                    eventsLabel = "1.5K eventos",
-                    photoKey = RfPhotoKey.QUINCEANERA,
-                    photoBg = if (isDark) Color(0xFF361B38) else Color(0xFFFCE8F6),
-                    cardBg = cardBg,
-                    cardBorder = cardBorder,
-                    textColor = textColor,
-                    mutedColor = mutedColor,
-                    onClick = { onSelectScreenCode("s21") },
-                )
-                HomeTrendCard(
-                    title = "Baby Shower",
-                    eventsLabel = "1.2K eventos",
-                    photoKey = RfPhotoKey.BABY_SHOWER,
-                    photoBg = if (isDark) Color(0xFF1B332E) else Color(0xFFE0F7F2),
-                    cardBg = cardBg,
-                    cardBorder = cardBorder,
-                    textColor = textColor,
-                    mutedColor = mutedColor,
-                    onClick = { onSelectScreenCode("s21") },
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(trendsScrollState)
+                        .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 18.dp),
+                ) {
+                    visibleHomeTrends.forEach { trendItem ->
+                        val resolvedTrendPhoto = RfPhotoKey.entries.firstOrNull { entry ->
+                            val matchesAsset = entry.assetKey == trendItem.photo.key
+                            val matchesEnum = entry.name.equals(trendItem.photo.key, ignoreCase = true)
+                            if (matchesAsset) true else matchesEnum
+                        } ?: RfPhotoKey.BODA
+                        val lightCardBg = parseTrendBgHexOrDefault(trendItem.photoBgHex, Color(0xFFF3EEF6))
+                        val resolvedBg = if (isDark) Color(0xFF26204A) else lightCardBg
+                        HomeTrendCard(
+                            title = trendItem.title,
+                            eventsLabel = trendItem.eventsLabel,
+                            photoKey = resolvedTrendPhoto,
+                            photoUrl = trendItem.photoUrl,
+                            viewModel = viewModel,
+                            photoBg = resolvedBg,
+                            cardBg = cardBg,
+                            cardBorder = cardBorder,
+                            textColor = textColor,
+                            mutedColor = mutedColor,
+                            onClick = {
+                                when {
+                                    trendItem.linkedPackageId.isNotBlank() -> {
+                                        viewModel?.selectPackage(trendItem.linkedPackageId)
+                                        onSelectScreenCode("s22")
+                                    }
+
+                                    trendItem.linkedCategory.isNotBlank() -> {
+                                        viewModel?.setSelectedCategory(trendItem.linkedCategory)
+                                        onSelectScreenCode("s18")
+                                    }
+
+                                    else -> onSelectScreenCode("s21")
+                                }
+                            },
+                        )
+                    }
+                }
             }
         }
 
@@ -1094,9 +1131,11 @@ internal fun RenderPersonalHomeScreen(
                                     onSelectScreenCode("s19")
                                 },
                         ) {
-                            RfPhoto(
-                                photoKey = resolvedFeaturedPhoto,
+                            RfUploadedOrCatalogPhoto(
+                                photoUrl = featuredArticle.photoUrl,
+                                fallbackPhotoKey = resolvedFeaturedPhoto,
                                 contentDescription = featuredArticle.name,
+                                viewModel = viewModel,
                                 cornerRadius = 0.dp,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1174,6 +1213,8 @@ private fun HomeTrendCard(
     title: String,
     eventsLabel: String,
     photoKey: RfPhotoKey,
+    photoUrl: String = "",
+    viewModel: RosaFiestaViewModel? = null,
     photoBg: Color,
     cardBg: Color,
     cardBorder: Color,
@@ -1197,9 +1238,11 @@ private fun HomeTrendCard(
                 .height(100.dp)
                 .background(photoBg),
         ) {
-            RfPhoto(
-                photoKey = photoKey,
+            RfUploadedOrCatalogPhoto(
+                photoUrl = photoUrl,
+                fallbackPhotoKey = photoKey,
                 contentDescription = title,
+                viewModel = viewModel,
                 modifier = Modifier.fillMaxSize(),
                 cornerRadius = 0.dp,
             )
@@ -1256,4 +1299,14 @@ private fun HomeTrendCard(
             )
         }
     }
+}
+
+private fun parseTrendBgHexOrDefault(
+    rawHex: String,
+    fallback: Color,
+): Color {
+    val cleanHex = rawHex.trim().removePrefix("#")
+    if (cleanHex.length != 6) return fallback
+    val parsedRgb = cleanHex.toLongOrNull(16) ?: return fallback
+    return Color(0xFF000000L or parsedRgb)
 }

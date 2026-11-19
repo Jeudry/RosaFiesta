@@ -1,3 +1,4 @@
+// Package httpapi expone las rutas REST del módulo de operaciones, logística y WhatsApp.
 package httpapi
 
 import (
@@ -10,11 +11,13 @@ import (
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
 )
 
+// Module conecta el servicio operativo con el servidor Huma.
 type Module struct {
 	Service *app.Service
 	Auth    platformhttp.PrincipalResolver
 }
 
+// Register registra las rutas protegidas y webhooks públicos del módulo de operaciones.
 func (m Module) Register(api huma.API) {
 	m.registerLogisticsAndDamageRoutes(api)
 	m.registerRouteAndOfflineHandlers(api)
@@ -24,6 +27,7 @@ func (m Module) Register(api huma.API) {
 	m.registerGovernanceAndReportsRoutes(api)
 	m.registerBotFAQAndKeywordRoutes(api)
 	m.registerBotThreadRoutes(api)
+	m.registerWhatsAppWebhookRoutes(api)
 }
 
 func (m Module) authMiddlewares(api huma.API) huma.Middlewares {
@@ -89,6 +93,16 @@ func (m Module) registerLogisticsAndDamageRoutes(api huma.API) {
 		Security:    platformhttp.Secured(),
 		Middlewares: fieldMW,
 	}, m.handleListDamages)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "operations-resolve-damage",
+		Method:      http.MethodPost,
+		Path:        "/v1/operations/damage/{id}/resolve",
+		Summary:     "Resolve a damage incident and restore repaired inventory stock",
+		Tags:        []string{"Operations"},
+		Security:    platformhttp.Secured(),
+		Middlewares: fieldMW,
+	}, m.handleResolveDamage)
 }
 
 func (m Module) registerRouteAndOfflineHandlers(api huma.API) {
@@ -368,6 +382,34 @@ func (m Module) registerBotThreadRoutes(api huma.API) {
 		Security:    platformhttp.Secured(),
 		Middlewares: botMW,
 	}, m.handleUpdateBotThread)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "operations-whatsapp-send",
+		Method:      http.MethodPost,
+		Path:        "/v1/bot/whatsapp/send",
+		Summary:     "Send outbound reply through Meta WhatsApp Cloud API",
+		Tags:        []string{"Operations"},
+		Security:    platformhttp.Secured(),
+		Middlewares: botMW,
+	}, m.handleSendWhatsAppReply)
+}
+
+func (m Module) registerWhatsAppWebhookRoutes(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "operations-whatsapp-webhook-verify",
+		Method:      http.MethodGet,
+		Path:        "/v1/webhooks/whatsapp",
+		Summary:     "Verify Meta WhatsApp Cloud API webhook challenge",
+		Tags:        []string{"Operations"},
+	}, m.handleVerifyWhatsAppWebhook)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "operations-whatsapp-webhook-ingest",
+		Method:      http.MethodPost,
+		Path:        "/v1/webhooks/whatsapp",
+		Summary:     "Ingest inbound Meta WhatsApp webhook messages",
+		Tags:        []string{"Operations"},
+	}, m.handleIngestWhatsAppWebhook)
 }
 
 func (m Module) handleGetEventLogistics(ctx context.Context, in *EventLogisticsInput) (*EventLogisticsOutput, error) {
@@ -387,18 +429,19 @@ func (m Module) handleToggleChecklist(ctx context.Context, in *ToggleChecklistIn
 }
 
 func (m Module) handleReportDamage(ctx context.Context, in *ReportDamageInput) (*ReportDamageOutput, error) {
-	report, err := m.Service.ReportDamage(
-		ctx,
-		in.EventID,
-		in.Body.ArticleCode,
-		in.Body.ArticleName,
-		in.Body.DamagedUnits,
-		in.Body.MissingUnits,
-		in.Body.ReplacementRD,
-		in.Body.Notes,
-	)
+	report, err := m.Service.ReportDamageWithDetails(ctx, in.ToCommand())
 	if err != nil {
 		return nil, mapOperationsError(err, "POST /v1/operations/events/"+in.EventID+"/damages", "DAMAGE_REPORT_INVALID", "ReportDamageValidation", http.StatusBadRequest)
+	}
+	out := &ReportDamageOutput{}
+	out.Body.Report = report
+	return out, nil
+}
+
+func (m Module) handleResolveDamage(ctx context.Context, in *ResolveDamageInput) (*ReportDamageOutput, error) {
+	report, err := m.Service.ResolveDamage(ctx, in.ID, in.Notes())
+	if err != nil {
+		return nil, mapOperationsError(err, "POST /v1/operations/damage/"+in.ID+"/resolve", "DAMAGE_INCIDENT_NOT_FOUND", "ResolveDamageIncident", http.StatusBadRequest)
 	}
 	out := &ReportDamageOutput{}
 	out.Body.Report = report
@@ -423,9 +466,14 @@ func (m Module) handleListOfflineQueue(ctx context.Context, _ *struct{}) (*Offli
 	return out, nil
 }
 
-func (m Module) handleSyncOfflineQueue(ctx context.Context, _ *struct{}) (*OfflineQueueOutput, error) {
+func (m Module) handleSyncOfflineQueue(ctx context.Context, in *SyncOfflineQueueInput) (*OfflineQueueOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	queue, err := m.Service.SyncOfflineMutations(ctx, in.Mutations(), caller)
+	if err != nil {
+		return nil, mapOperationsError(err, "POST /v1/operations/offline-queue/sync", "OFFLINE_SYNC_FAILED", "SyncOfflineMutations", http.StatusBadRequest)
+	}
 	out := &OfflineQueueOutput{}
-	out.Body.Queue = m.Service.SyncOfflineQueue(ctx)
+	out.Body.Queue = queue
 	return out, nil
 }
 
@@ -617,5 +665,32 @@ func (m Module) handleUpdateBotThread(ctx context.Context, in *UpdateBotThreadIn
 	}
 	out := &BotThreadOutput{}
 	out.Body.Thread = th
+	return out, nil
+}
+
+func (m Module) handleSendWhatsAppReply(ctx context.Context, in *SendWhatsAppReplyInput) (*BotThreadOutput, error) {
+	th, err := m.Service.SendWhatsAppBotReply(ctx, in.Body.ThreadID, in.Body.RecipientPhone, in.Body.Message)
+	if err != nil {
+		return nil, mapOperationsError(err, "POST /v1/bot/whatsapp/send", "WHATSAPP_SEND_FAILED", "SendWhatsAppReply", http.StatusBadRequest)
+	}
+	out := &BotThreadOutput{}
+	out.Body.Thread = th
+	return out, nil
+}
+
+func (m Module) handleVerifyWhatsAppWebhook(_ context.Context, in *VerifyWhatsAppWebhookInput) (*PlainTextOutput, error) {
+	challenge, err := m.Service.VerifyWhatsAppWebhook(in.Mode, in.Token, in.Challenge)
+	if err != nil {
+		return nil, mapOperationsError(err, "GET /v1/webhooks/whatsapp", "WHATSAPP_WEBHOOK_FAILED", "VerifyWhatsAppWebhook", http.StatusForbidden)
+	}
+	return &PlainTextOutput{ContentType: "text/plain", Body: []byte(challenge)}, nil
+}
+
+func (m Module) handleIngestWhatsAppWebhook(ctx context.Context, in *IngestWhatsAppWebhookInput) (*WhatsAppWebhookAckOutput, error) {
+	if err := m.Service.IngestWhatsAppWebhook(ctx, in.RawBody); err != nil {
+		return nil, mapOperationsError(err, "POST /v1/webhooks/whatsapp", "WHATSAPP_WEBHOOK_INGEST_FAILED", "IngestWhatsAppWebhook", http.StatusBadRequest)
+	}
+	out := &WhatsAppWebhookAckOutput{}
+	out.Body.Received = true
 	return out, nil
 }

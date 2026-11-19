@@ -60,17 +60,22 @@ func (r *Repository) UpsertUser(ctx context.Context, user domain.User, rawSessio
 	}
 	joinedPermissions := strings.Join(user.Permissions, ",")
 	err := r.queries.UpsertUser(ctx, sqlcgen.UpsertUserParams{
-		ID:           user.ID,
-		FullName:     user.FullName,
-		Email:        user.Email,
-		Phone:        user.Phone,
-		PasswordHash: passwordHash,
-		Role:         string(user.Role),
-		Permissions:  joinedPermissions,
-		CreatedAt:    user.CreatedAt,
-		Username:     username,
-		BirthDate:    user.BirthDate,
-		AvatarKey:    user.AvatarKey,
+		ID:                       user.ID,
+		FullName:                 user.FullName,
+		Email:                    user.Email,
+		Phone:                    user.Phone,
+		PasswordHash:             passwordHash,
+		Role:                     string(user.Role),
+		Permissions:              joinedPermissions,
+		CreatedAt:                user.CreatedAt,
+		Username:                 username,
+		BirthDate:                user.BirthDate,
+		AvatarKey:                user.AvatarKey,
+		PushNotificationsEnabled: user.Preferences.PushNotificationsEnabled,
+		WhatsappAlertsEnabled:    user.Preferences.WhatsAppAlertsEnabled,
+		EmailReceiptsEnabled:     user.Preferences.EmailReceiptsEnabled,
+		BiometricLockEnabled:     user.Preferences.BiometricLockEnabled,
+		AutoSyncWifiOnly:         user.Preferences.AutoSyncWifiOnly,
 	})
 	if err != nil {
 		return err
@@ -354,6 +359,173 @@ func (r *Repository) UpsertStaffMember(ctx context.Context, staff domain.StaffRe
 	})
 }
 
+func (r *Repository) UpdateUserPreferences(ctx context.Context, userID uuid.UUID, prefs domain.UserPreferences) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.UpdateUserPreferencesByID(ctx, sqlcgen.UpdateUserPreferencesByIDParams{
+		ID:                       userID,
+		PushNotificationsEnabled: prefs.PushNotificationsEnabled,
+		WhatsappAlertsEnabled:    prefs.WhatsAppAlertsEnabled,
+		EmailReceiptsEnabled:     prefs.EmailReceiptsEnabled,
+		BiometricLockEnabled:     prefs.BiometricLockEnabled,
+		AutoSyncWifiOnly:         prefs.AutoSyncWifiOnly,
+	})
+}
+
+func (r *Repository) UpsertDevicePushToken(ctx context.Context, record domain.DevicePushToken) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.UpsertDevicePushToken(ctx, sqlcgen.UpsertDevicePushTokenParams{
+		ID:         record.ID,
+		UserID:     record.UserID,
+		Platform:   record.Platform,
+		Token:      record.Token,
+		AppVariant: record.AppVariant,
+		UpdatedAt:  record.UpdatedAt,
+	})
+}
+
+func (r *Repository) DisableDevicePushToken(ctx context.Context, userID uuid.UUID, token string, updatedAt time.Time) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DisableDevicePushToken(ctx, sqlcgen.DisableDevicePushTokenParams{
+		UserID:    userID,
+		Token:     token,
+		UpdatedAt: updatedAt,
+	})
+}
+
+func (r *Repository) DisableAllUserPushTokens(ctx context.Context, userID uuid.UUID, updatedAt time.Time) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DisableAllUserPushTokens(ctx, sqlcgen.DisableAllUserPushTokensParams{
+		UserID:    userID,
+		UpdatedAt: updatedAt,
+	})
+}
+
+func (r *Repository) ListActivePushTokensForUser(ctx context.Context, userID uuid.UUID) ([]domain.DevicePushToken, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListActivePushTokensByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return mapPushTokenRows(rows), nil
+}
+
+func (r *Repository) ListActiveAdminPushTokens(ctx context.Context) ([]domain.DevicePushToken, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListActiveAdminPushTokens(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return mapPushTokenRows(rows), nil
+}
+
+func (r *Repository) SaveRefreshToken(ctx context.Context, record domain.RefreshTokenRecord) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.InsertRefreshToken(ctx, sqlcgen.InsertRefreshTokenParams{
+		ID:        record.ID,
+		UserID:    record.UserID,
+		FamilyID:  record.FamilyID,
+		TokenHash: record.TokenHash,
+		Revoked:   record.Revoked,
+		ExpiresAt: record.ExpiresAt,
+		CreatedAt: record.CreatedAt,
+		UpdatedAt: record.UpdatedAt,
+	})
+}
+
+func (r *Repository) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (domain.RefreshTokenRecord, error) {
+	if !r.Enabled() {
+		return domain.RefreshTokenRecord{}, domain.ErrInvalidCredentials
+	}
+	row, err := r.queries.GetRefreshTokenByHash(ctx, tokenHash)
+	if err != nil {
+		return domain.RefreshTokenRecord{}, domain.ErrInvalidCredentials
+	}
+	return domain.RefreshTokenRecord{
+		ID:        row.ID,
+		UserID:    row.UserID,
+		FamilyID:  row.FamilyID,
+		TokenHash: row.TokenHash,
+		Revoked:   row.Revoked,
+		ExpiresAt: row.ExpiresAt,
+		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt,
+	}, nil
+}
+
+func (r *Repository) RevokeRefreshToken(ctx context.Context, tokenHash string, updatedAt time.Time) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.RevokeRefreshTokenByHash(ctx, sqlcgen.RevokeRefreshTokenByHashParams{
+		TokenHash: tokenHash,
+		UpdatedAt: updatedAt,
+	})
+}
+
+func (r *Repository) RevokeRefreshTokenFamily(ctx context.Context, familyID uuid.UUID, updatedAt time.Time) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.RevokeRefreshTokenFamily(ctx, sqlcgen.RevokeRefreshTokenFamilyParams{
+		FamilyID:  familyID,
+		UpdatedAt: updatedAt,
+	})
+}
+
+func (r *Repository) RevokeRefreshTokensByUser(ctx context.Context, userID uuid.UUID, updatedAt time.Time) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.RevokeRefreshTokensByUser(ctx, sqlcgen.RevokeRefreshTokensByUserParams{
+		UserID:    userID,
+		UpdatedAt: updatedAt,
+	})
+}
+
+func (r *Repository) DeleteExpiredRefreshTokens(
+	ctx context.Context,
+	expiresBefore time.Time,
+	revokedUpdatedBefore time.Time,
+) (int64, error) {
+	if !r.Enabled() {
+		return 0, nil
+	}
+	return r.queries.DeleteExpiredOrRevokedRefreshTokens(ctx, sqlcgen.DeleteExpiredOrRevokedRefreshTokensParams{
+		ExpiresAt: expiresBefore,
+		UpdatedAt: revokedUpdatedBefore,
+	})
+}
+
+func mapPushTokenRows(rows []sqlcgen.DevicePushToken) []domain.DevicePushToken {
+	out := make([]domain.DevicePushToken, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.DevicePushToken{
+			ID:         row.ID,
+			UserID:     row.UserID,
+			Platform:   row.Platform,
+			Token:      row.Token,
+			AppVariant: row.AppVariant,
+			Enabled:    row.Enabled,
+			UpdatedAt:  row.UpdatedAt,
+		})
+	}
+	return out
+}
+
 func mapRowToDomainUser(row sqlcgen.User) domain.User {
 	perms := splitCommaPermissions(row.Permissions)
 	role := domain.Role(row.Role)
@@ -364,16 +536,23 @@ func mapRowToDomainUser(row sqlcgen.User) domain.User {
 		username = emailParts[0]
 	}
 	return domain.User{
-		ID:           row.ID,
-		Username:     username,
-		FullName:     row.FullName,
-		Email:        row.Email,
-		Phone:        row.Phone,
-		BirthDate:    row.BirthDate,
-		AvatarKey:    row.AvatarKey,
-		Role:         role,
-		Permissions:  perms,
-		ActiveView:   activeView,
+		ID:          row.ID,
+		Username:    username,
+		FullName:    row.FullName,
+		Email:       row.Email,
+		Phone:       row.Phone,
+		BirthDate:   row.BirthDate,
+		AvatarKey:   row.AvatarKey,
+		Role:        role,
+		Permissions: perms,
+		ActiveView:  activeView,
+		Preferences: domain.UserPreferences{
+			PushNotificationsEnabled: row.PushNotificationsEnabled,
+			WhatsAppAlertsEnabled:    row.WhatsappAlertsEnabled,
+			EmailReceiptsEnabled:     row.EmailReceiptsEnabled,
+			BiometricLockEnabled:     row.BiometricLockEnabled,
+			AutoSyncWifiOnly:         row.AutoSyncWifiOnly,
+		},
 		CreatedAt:    row.CreatedAt,
 		PasswordHash: row.PasswordHash,
 	}

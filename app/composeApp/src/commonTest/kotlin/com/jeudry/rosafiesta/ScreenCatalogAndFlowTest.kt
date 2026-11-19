@@ -1,15 +1,22 @@
 package com.jeudry.rosafiesta
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.dp
 import com.jeudry.rosafiesta.core.engine.AppView
 import com.jeudry.rosafiesta.designsystem.AdminTab
 import com.jeudry.rosafiesta.designsystem.PersonalTab
@@ -17,13 +24,20 @@ import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.platform.NoOpPlatformActions
+import com.jeudry.rosafiesta.domain.platform.OAuthBrowserOutcome
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
+import com.jeudry.rosafiesta.domain.security.AuthOutcome
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
+import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
+import com.jeudry.rosafiesta.domain.security.SecureStorage
 import com.jeudry.rosafiesta.domain.sound.AppAudioConfig
 import com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer
 import com.jeudry.rosafiesta.domain.sound.SoundEffect
 import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 import com.jeudry.rosafiesta.ui.Navigator
+import com.jeudry.rosafiesta.ui.RenderAdminClientProfileA27
+import com.jeudry.rosafiesta.ui.RenderAdminRecordPaymentA21
+import com.jeudry.rosafiesta.ui.RenderAdminReplyReviewA34
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
 import com.jeudry.rosafiesta.ui.SketchCanvasElement
@@ -33,21 +47,28 @@ import com.jeudry.rosafiesta.ui.formatReadableSpanishDateText
 import com.jeudry.rosafiesta.ui.formatSpanishDateWithWords
 import com.jeudry.rosafiesta.ui.removeSketchElementById
 import com.jeudry.rosafiesta.ui.translateSketchElementWithAttachedChairs
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlin.io.encoding.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ScreenCatalogAndFlowTest {
     @Test
-    fun `verifica que el catalogo completo contenga las 133 pantallas sin duplicados`() {
+    fun `verifica que el catalogo completo contenga las 135 pantallas sin duplicados`() {
         assertEquals(73, ScreenCatalog.personalScreens.size)
-        assertEquals(60, ScreenCatalog.adminScreens.size)
-        assertEquals(133, ScreenCatalog.allScreens.size)
+        assertEquals(62, ScreenCatalog.adminScreens.size)
+        assertEquals(135, ScreenCatalog.allScreens.size)
 
         val uniqueCodes = ScreenCatalog.allScreens.map { it.code }.toSet()
-        assertEquals(133, uniqueCodes.size)
+        assertEquals(135, uniqueCodes.size)
 
         assertTrue("p00" in uniqueCodes)
         assertTrue("s01" in uniqueCodes)
@@ -56,6 +77,8 @@ class ScreenCatalogAndFlowTest {
         assertTrue("A00" in uniqueCodes)
         assertTrue("A30" in uniqueCodes)
         assertTrue("A39" in uniqueCodes)
+        assertTrue("A40" in uniqueCodes)
+        assertTrue("A41" in uniqueCodes)
         assertTrue(ScreenCatalog.findByCode("A39").isDesktopWeb)
     }
 
@@ -242,6 +265,7 @@ class ScreenCatalogAndFlowTest {
 
         viewModel.setNewArticleCode("RF-110")
         viewModel.setNewArticleName("Lámpara Colgante")
+        viewModel.setNewArticleCategory("Iluminación")
         viewModel.setNewArticlePrice("250")
         viewModel.setNewArticleStock("15")
         assertTrue(viewModel.submitNewArticle())
@@ -332,7 +356,7 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("Centro de mesa floral").assertExists()
         onNodeWithText("Mesa redonda para 8").assertExists()
 
-        onNodeWithText("Floral").performClick()
+        onNodeWithText("Diseño floral").performClick()
         onNodeWithText("Centro de mesa floral").assertExists()
         onNodeWithText("Mesa redonda para 8").assertDoesNotExist()
     }
@@ -459,9 +483,8 @@ class ScreenCatalogAndFlowTest {
         assertEquals("22/09/1996", com.jeudry.rosafiesta.ui.formatDateDigitsWithSlashes("", "22091996"))
 
         assertEquals("5.0", viewModel.companyAverageRatingFormatted())
-        viewModel.submitCompanyReview("Excelente montaje y atención", 5)
-        assertEquals(3, viewModel.companyReviews.value.size)
-        assertEquals("5.0", viewModel.companyAverageRatingFormatted())
+        assertFalse(viewModel.submitCompanyReview("Excelente montaje y atención", 5))
+        assertEquals(0, viewModel.companyReviews.value.size)
 
         val initialChatCount = viewModel.directChatMessages.value.size
         viewModel.sendDirectChatMessage("Quiero cotizar sillas Tiffany")
@@ -756,7 +779,7 @@ class ScreenCatalogAndFlowTest {
     @Test
     fun `flujo Rosa IA conserva titulo horarios presupuesto y selecciona el evento creado`() {
         assertEquals("s31", ScreenCatalog.defaultNextCode("s30"))
-        assertEquals("s36", ScreenCatalog.defaultNextCode("s31"))
+        assertEquals("s32", ScreenCatalog.defaultNextCode("s31"))
 
         val koin = org.koin.dsl.koinApplication {
             modules(com.jeudry.rosafiesta.di.appModule)
@@ -766,7 +789,7 @@ class ScreenCatalogAndFlowTest {
         viewModel.setEventTypeInput("Boda")
         viewModel.setClientEventTitleInput("Boda Jardín Encantado")
         viewModel.setRosaBudgetDop(75000)
-        viewModel.setEventDateInput("25/10/2026")
+        viewModel.setEventDateInput("25/12/2026")
         viewModel.setEventGuestsInput("120")
         viewModel.setEventVenueInput("Jardín Botánico Nacional")
         viewModel.addWizardScheduleItem("18:00", "19:00", "Ceremonia al aire libre")
@@ -816,7 +839,8 @@ class ScreenCatalogAndFlowTest {
                 viewModel = viewModel,
             )
         }
-        onNodeWithText("Presupuesto estimado (ej: 15000 RD$)").assertExists()
+        onNodeWithText("Presupuesto RD$").assertExists()
+        onNodeWithText("Invitados (opc.)").assertExists()
         onNodeWithText("HORARIOS DEL EVENTO").assertDoesNotExist()
     }
 
@@ -832,22 +856,49 @@ class ScreenCatalogAndFlowTest {
         )
         var elements = listOf(roundTable)
 
-        val firstChair = buildSmartChairElementForTap(
-            elements = elements,
-            tapNormX = 0.51f,
-            tapNormY = 0.49f,
-            colorHex = 0xFFEA4EA9L,
-            chairId = "ch-1",
+        val firstChair = requireNotNull(
+            buildSmartChairElementForTap(
+                elements = elements,
+                tapNormX = 0.51f,
+                tapNormY = 0.49f,
+                colorHex = 0xFFEA4EA9L,
+                chairId = "ch-1",
+            ),
         )
         elements = elements + firstChair
-        val secondChair = buildSmartChairElementForTap(
-            elements = elements,
-            tapNormX = 0.50f,
-            tapNormY = 0.52f,
-            colorHex = 0xFFEA4EA9L,
-            chairId = "ch-2",
+        val secondChair = requireNotNull(
+            buildSmartChairElementForTap(
+                elements = elements,
+                tapNormX = 0.50f,
+                tapNormY = 0.52f,
+                colorHex = 0xFFEA4EA9L,
+                chairId = "ch-2",
+            ),
         )
         elements = elements + secondChair
+
+        for (extraSeat in 3..10) {
+            val seatedChair = requireNotNull(
+                buildSmartChairElementForTap(
+                    elements = elements,
+                    tapNormX = 0.50f,
+                    tapNormY = 0.50f,
+                    colorHex = 0xFFEA4EA9L,
+                    chairId = "ch-$extraSeat",
+                ),
+            )
+            elements = elements + seatedChair
+        }
+        val overflowChair = buildSmartChairElementForTap(
+            elements = elements,
+            tapNormX = 0.50f,
+            tapNormY = 0.50f,
+            colorHex = 0xFFEA4EA9L,
+            chairId = "ch-11",
+        )
+        assertNull(overflowChair)
+
+        elements = listOf(roundTable, firstChair, secondChair)
 
         assertEquals(SketchElementKind.SINGLE_CHAIR, firstChair.kind)
         assertEquals("seat:tbl-1:0", firstChair.label)
@@ -997,7 +1048,15 @@ class ScreenCatalogAndFlowTest {
                 includeBottomBar = false,
             )
         }
-        onNodeWithText("AUDIO Y EFECTOS DE SONIDO").assertExists()
+        onNodeWithTag("personal-settings-menu-preferences").assertExists()
+        onNodeWithTag("personal-settings-menu-audio").assertExists()
+        onNodeWithTag("personal-settings-menu-account").assertExists()
+        onNodeWithTag("personal-settings-menu-notifications").assertExists()
+        onNodeWithTag("personal-settings-menu-security_sync").assertExists()
+        onNodeWithTag("personal-settings-menu-legal").assertExists()
+
+        onNodeWithTag("personal-settings-menu-audio").performClick()
+        onNodeWithText("Audio y efectos de sonido").assertExists()
         onNodeWithText("Efectos de sonido").assertExists()
         onNodeWithText("Volumen de efectos").assertExists()
         onNodeWithText("75 %").assertExists()
@@ -1007,6 +1066,9 @@ class ScreenCatalogAndFlowTest {
 
         onNodeWithTag("audio-volume-plus").performClick()
         onNodeWithText("85 %").assertExists()
+
+        onNodeWithTag("settings-back-button").performClick()
+        onNodeWithTag("personal-settings-menu-preferences").assertExists()
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -1019,7 +1081,14 @@ class ScreenCatalogAndFlowTest {
                 includeBottomBar = false,
             )
         }
-        onNodeWithText("AUDIO Y EFECTOS DE SONIDO").assertExists()
+        onNodeWithTag("admin-settings-menu-business_data").assertExists()
+        onNodeWithTag("admin-settings-menu-delivery_zones").assertExists()
+        onNodeWithTag("admin-settings-menu-reservations_deposit").assertExists()
+        onNodeWithTag("admin-settings-menu-audio").assertExists()
+        onNodeWithTag("admin-settings-menu-security_prefs").assertExists()
+
+        onNodeWithTag("admin-settings-menu-audio").performClick()
+        onNodeWithText("Audio y efectos de sonido").assertExists()
         onNodeWithText("Probar").assertExists()
     }
 
@@ -1071,6 +1140,7 @@ class ScreenCatalogAndFlowTest {
             }
         }
         onNodeWithText("Sin eventos programados").assertExists()
+        onNodeWithText("Crear\ncategoría").assertExists()
         onNodeWithText("Boda Real Rosa & Dorado").assertDoesNotExist()
     }
 
@@ -1257,6 +1327,8 @@ class ScreenCatalogAndFlowTest {
         }
 
         mainClock.advanceTimeByFrame()
+        onNodeWithTag("admin-settings-menu-business_data").performClick()
+        mainClock.advanceTimeByFrame()
 
         val phoneErrorSubstring = "El teléfono debe contener al menos 10 dígitos"
         val emailErrorSubstring = "Ingresa un correo electrónico válido"
@@ -1281,5 +1353,1254 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("correo-invalido").performTextReplacement("hola@rosafiesta.do")
         mainClock.advanceTimeByFrame()
         onNodeWithText(emailErrorSubstring, substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `viewmodel valida NCF B01 RNC pago detallado boceto y contrasena de equipo`() = kotlinx.coroutines.test.runTest {
+        val viewModel = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true),
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+
+        assertTrue(viewModel.isValidDominicanTaxId("131-84920-2"))
+        assertTrue(viewModel.isValidDominicanTaxId("00112345678"))
+        assertFalse(viewModel.isValidDominicanTaxId("123"))
+
+        val targetEventId = viewModel.events.value.first().id
+        val rejectedPayment = viewModel.submitDetailedPaymentFlow(
+            eventId = targetEventId,
+            amountDop = 2000,
+            methodLabel = "Transferencia",
+            bankName = "Banco Popular",
+            referenceCode = "REF-BAD-RNC",
+            voucherUrl = "",
+            ncfType = "B01",
+            clientRnc = "123",
+            kindLabel = "Abono",
+        )
+        assertNull(rejectedPayment)
+        assertFalse(viewModel.formError.value.isNullOrBlank())
+
+        val acceptedPayment = viewModel.submitDetailedPaymentFlow(
+            eventId = targetEventId,
+            amountDop = 2500,
+            methodLabel = "Transferencia",
+            bankName = "Banco Popular",
+            referenceCode = "REF-OK-01",
+            voucherUrl = "/v1/media/voucher-1",
+            ncfType = "B01",
+            clientRnc = "131849202",
+            kindLabel = "Abono",
+        )
+        assertNotNull(acceptedPayment)
+        assertEquals("B01", acceptedPayment.ncfType)
+        assertEquals("131849202", acceptedPayment.clientRnc)
+        assertFalse(acceptedPayment.verified)
+        assertTrue(acceptedPayment.rejectionReason.isBlank())
+        assertTrue(acceptedPayment.itbisDop > 0)
+
+        val tableArticleId = viewModel.articles.value.firstOrNull { item -> item.code == "RF-002" }?.id
+            ?: viewModel.articles.value.first().id
+        viewModel.setDraftQuantity(tableArticleId, 2)
+        viewModel.syncDraftQuantitiesToSketch(targetEventId)
+        assertTrue(viewModel.sketchLayoutJson.value.isNotBlank())
+
+        val invalidInvite = viewModel.inviteNewStaffMember(
+            fullName = "Ana Finanzas",
+            email = "ana@rosafiesta.do",
+            roleLabel = "Administración",
+            phone = "8095550199",
+            permissions = listOf("PAYMENTS"),
+            initialPassword = "123",
+        )
+        assertNull(invalidInvite)
+        assertFalse(viewModel.formError.value.isNullOrBlank())
+
+        val validInvite = viewModel.inviteNewStaffMember(
+            fullName = "Ana Finanzas",
+            email = "ana@rosafiesta.do",
+            roleLabel = "Administración",
+            phone = "8095550199",
+            permissions = listOf("PAYMENTS"),
+            initialPassword = "TempUser2026!",
+        )
+        assertNotNull(validInvite)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `checkout s50 muestra selector NCF ITBIS y carga de comprobante`() = runComposeUiTest {
+        val viewModel = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true),
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s50"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("Consumidor Final (B02)").assertExists()
+        onNodeWithText("Crédito Fiscal (B01)").assertExists()
+        onNodeWithText("ITBIS (18%)").assertExists()
+        onNodeWithText("Adjuntar comprobante de transferencia (JPG/PNG/PDF)").assertExists()
+
+        onNodeWithText("Crédito Fiscal (B01)").performScrollTo().performClick()
+        waitForIdle()
+        onNodeWithText("RNC (9 dígitos) o Cédula (11 dígitos)").performScrollTo().assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pagos admin A20 muestra exportar DGII 607 y pestana de verificacion`() = runComposeUiTest {
+        val viewModel = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true),
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("A20"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("Exportar 607 DGII").assertExists()
+        onNodeWithText("Verificar (", substring = true).assertExists()
+    }
+
+    @Test
+    fun `preferencias wifi bloquean sincronizacion cuando no hay wifi y permiten al conectarse`() {
+        val platformActions = NoOpPlatformActions().apply {
+            simulatedWifiConnected = false
+        }
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = platformActions,
+            secureStorage = InMemorySecureStorage(),
+        )
+        assertTrue(viewModel.isWifiSyncPermitted())
+
+        viewModel.toggleAutoSyncWifiOnly()
+        assertTrue(viewModel.autoSyncWifiOnly.value)
+        assertFalse(viewModel.isWifiSyncPermitted())
+
+        var syncResult = true
+        viewModel.syncWithServer { ok -> syncResult = ok }
+        assertFalse(syncResult)
+        assertFalse(viewModel.wifiSyncBlockedNotice.value.isNullOrBlank())
+
+        platformActions.simulatedWifiConnected = true
+        assertTrue(viewModel.isWifiSyncPermitted())
+    }
+
+    @Test
+    fun `bloqueo biometrico protege la sesion al activar y permite desbloquear con biometria o clave`() {
+        val platformActions = NoOpPlatformActions().apply {
+            simulatedDeviceAuthOutcome = false to "Biometría denegada"
+        }
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        assertTrue(repo.login("yuli@rosafiesta.do", "rosa2026"))
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = platformActions,
+            secureStorage = InMemorySecureStorage(),
+        )
+
+        viewModel.toggleBiometricLock()
+        assertTrue(viewModel.biometricLockEnabled.value)
+        viewModel.lockAppIfProtected()
+        assertTrue(viewModel.isAppLocked.value)
+
+        viewModel.unlockAppWithBiometrics()
+        assertTrue(viewModel.isAppLocked.value)
+        assertFalse(viewModel.appLockError.value.isNullOrBlank())
+
+        platformActions.simulatedDeviceAuthOutcome = true to null
+        viewModel.unlockAppWithBiometrics()
+        assertFalse(viewModel.isAppLocked.value)
+        assertNull(viewModel.appLockError.value)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `app muestra pantalla de bloqueo cuando biometric lock esta activo`() = runComposeUiTest {
+        val platformActions = NoOpPlatformActions().apply {
+            simulatedDeviceAuthOutcome = false to "Biometría requerida"
+        }
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        assertTrue(repo.login("yuli@rosafiesta.do", "rosa2026"))
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = platformActions,
+            secureStorage = InMemorySecureStorage(),
+        )
+        viewModel.toggleBiometricLock()
+        viewModel.lockAppIfProtected()
+        setContent {
+            RosaFiestaApp(viewModel = viewModel)
+        }
+        waitForIdle()
+        onNodeWithTag("app-lock-overlay").assertExists()
+        onNodeWithText("Desbloquear con biometría").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `a34 muestra estado vacio honesto cuando el viewmodel no tiene resenas`() = runComposeUiTest {
+        val emptyRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        val viewModel = RosaFiestaViewModel(
+            repository = emptyRepo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            RenderAdminReplyReviewA34(
+                viewModel = viewModel,
+                onSelectScreenCode = {},
+            )
+        }
+        waitForIdle()
+        onNodeWithText("Sin reseñas por responder").assertExists()
+        onNodeWithText("Publicar respuesta").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `a21 valida rnc b01 tras debounce de 2000ms y limpia al completar 9 digitos`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            RenderAdminRecordPaymentA21(
+                onSelectScreenCode = {},
+                viewModel = viewModel,
+            )
+        }
+        waitForIdle()
+        onNodeWithText("Crédito Fiscal (B01)").performClick()
+        waitForIdle()
+
+        val rncField = onNodeWithTag("a21-rnc-input")
+        rncField.assertExists()
+        rncField.performTextReplacement("123")
+        mainClock.advanceTimeBy(1500)
+        waitForIdle()
+        onNodeWithText("Ingresa un RNC (9 dígitos) o Cédula (11 dígitos) válido para NCF B01.").assertDoesNotExist()
+
+        mainClock.advanceTimeBy(700)
+        waitForIdle()
+        onNodeWithText("Ingresa un RNC (9 dígitos) o Cédula (11 dígitos) válido para NCF B01.").assertExists()
+
+        rncField.performTextReplacement("131849202")
+        waitForIdle()
+        onNodeWithText("Ingresa un RNC (9 dígitos) o Cédula (11 dígitos) válido para NCF B01.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `oauth pkce por navegador inicia sesion y sincroniza token push del dispositivo`() = runTest {
+        val delegateRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        val fakeOAuthAccount = RegisteredUserAccount(
+            id = "usr-oauth-1",
+            username = "yuli_oauth",
+            email = "yuli@rosafiesta.do",
+            fullName = "Yulissa Marte",
+            passwordHash = "",
+            salt = "",
+            birthDate = "1996-05-12",
+            phone = "+18095550142",
+            role = "CLIENT",
+        )
+        val pushSyncDone = CompletableDeferred<Unit>()
+        var capturedProvider = ""
+        var capturedCodeVerifier = ""
+        var capturedPushPlatform = ""
+        var capturedPushToken = ""
+        val oauthRepo = object : RosaFiestaRepository by delegateRepo {
+            override suspend fun startOAuthAuthorization(
+                provider: String,
+                redirectUri: String,
+                codeChallenge: String,
+                state: String,
+            ): Result<String> {
+                capturedProvider = provider
+                return Result.success("https://accounts.google.com/o/oauth2/v2/auth?code_challenge=$codeChallenge&state=$state")
+            }
+
+            override suspend fun exchangeOAuthCode(
+                provider: String,
+                code: String,
+                codeVerifier: String,
+                redirectUri: String,
+            ): AuthOutcome {
+                capturedCodeVerifier = codeVerifier
+                return AuthOutcome.authenticated(
+                    accessToken = "oauth-jwt-session-token",
+                    account = fakeOAuthAccount,
+                )
+            }
+
+            override suspend fun registerDevicePushToken(
+                platform: String,
+                token: String,
+                appVariant: String,
+            ): Result<Boolean> {
+                capturedPushPlatform = platform
+                capturedPushToken = token
+                pushSyncDone.complete(Unit)
+                return Result.success(true)
+            }
+        }
+        val platformActions = NoOpPlatformActions().apply {
+            queuedOAuthOutcome = OAuthBrowserOutcome(
+                code = "google-auth-code-99",
+                state = null,
+                redirectUri = "http://127.0.0.1:43123/callback",
+            )
+            simulatedPushRegistration = "android" to "fcm-real-token-99"
+        }
+        val testSecureStorage = InMemorySecureStorage()
+        val viewModel = RosaFiestaViewModel(
+            repository = oauthRepo,
+            platformActions = platformActions,
+            secureStorage = testSecureStorage,
+        )
+
+        val oauthCompleted = CompletableDeferred<Boolean>()
+        viewModel.signInWithBrowserOAuth("Google") { ok ->
+            oauthCompleted.complete(ok)
+        }
+
+        val loginSucceeded = withContext(Dispatchers.Default) {
+            withTimeout(5_000) {
+                val finished = oauthCompleted.await()
+                pushSyncDone.await()
+                finished
+            }
+        }
+        assertTrue(loginSucceeded)
+        assertEquals("google", capturedProvider)
+        assertTrue(capturedCodeVerifier.isNotBlank())
+        assertTrue(platformActions.lastOAuthAuthorizeUrlRequested?.startsWith("https://accounts.google.com") == true)
+        assertEquals("android", capturedPushPlatform)
+        assertEquals("fcm-real-token-99", capturedPushToken)
+        assertEquals("oauth-jwt-session-token", testSecureStorage.get(SecureStorage.KEY_ACCESS_TOKEN))
+        assertEquals("Sesión iniciada con Google.", viewModel.formFeedback.value)
+    }
+
+    @Test
+    fun `el deep link de retorno de Stripe confirma o cancela el checkout pendiente`() = runTest {
+        val confirmationDone = CompletableDeferred<Unit>()
+        var confirmedSessionId = ""
+        val delegateRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        val paymentRepo = object : RosaFiestaRepository by delegateRepo {
+            override suspend fun confirmCardCheckoutSession(sessionId: String): Result<com.jeudry.rosafiesta.domain.PaymentRecord> {
+                confirmedSessionId = sessionId
+                confirmationDone.complete(Unit)
+                return Result.success(
+                    com.jeudry.rosafiesta.domain.PaymentRecord(
+                        id = "pay-stripe-1",
+                        receiptNumber = "REC-2026-9901",
+                        eventId = "evt-1",
+                        eventTitle = "Boda",
+                        clientName = "Camila",
+                        amountDop = 12000,
+                        methodLabel = "Tarjeta Stripe",
+                        kindLabel = "Abono",
+                        dateLabel = "Hoy",
+                        referenceCode = "cs_test_777",
+                        verified = true,
+                        ncfType = "B02",
+                    ),
+                )
+            }
+        }
+        val viewModel = RosaFiestaViewModel(
+            repository = paymentRepo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+
+        val handledSuccess = viewModel.handleExternalPaymentDeepLink("rosafiesta://payment/success?session_id=cs_test_777&event_id=evt-1")
+        assertTrue(handledSuccess)
+        withContext(Dispatchers.Default) {
+            withTimeout(5_000) {
+                confirmationDone.await()
+            }
+        }
+        assertEquals("cs_test_777", confirmedSessionId)
+        assertTrue(viewModel.formFeedback.value?.contains("REC-2026-9901") == true)
+
+        val handledCancel = viewModel.handleExternalPaymentDeepLink("rosafiesta://payment/cancel?cancelled=1")
+        assertTrue(handledCancel)
+        assertEquals("Pago con tarjeta cancelado. No se realizó ningún cargo.", viewModel.formFeedback.value)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `la pantalla A27 muestra estado vacio honesto cuando no existen clientes registrados`() = runComposeUiTest {
+        val emptyRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        val viewModel = RosaFiestaViewModel(
+            repository = emptyRepo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.designsystem.RfTheme(variant = RfThemeVariant.ADMIN) {
+                RenderAdminClientProfileA27(
+                    viewModel = viewModel,
+                    onSelectScreenCode = {},
+                )
+            }
+        }
+        onNodeWithText("Aún no tienes clientes").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `calendario s63 con viewModel real no inventa reservas simuladas`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        repo.createArticle(
+            code = "RF-900",
+            name = "Mesa Imperial Real",
+            category = "Mobiliario",
+            pricePerDayDop = 450,
+            totalStock = 50,
+        )
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s63"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("9").performClick()
+        waitForIdle()
+        onNodeWithText("Disponibles: 50 de 50 uds · Reservadas: 0 uds").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `asistente Rosa s26 con viewModel real no inyecta extras de CanonicalSampleData`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        repo.createArticle(
+            code = "RF-901",
+            name = "Arco Orgánico Real",
+            category = "Mobiliario",
+            pricePerDayDop = 1200,
+            totalStock = 8,
+        )
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s26"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("Sillón lounge capitoné").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla A40 gestiona crud completo de categorias sin seed por defecto`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        assertEquals(0, repo.catalogCategories.value.size)
+
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("A40"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+        onNodeWithText("No hay categorías creadas").assertExists()
+
+        kotlinx.coroutines.runBlocking {
+            val firstCreated = repo.createCategory(name = "Tarimas y pistas", illoKey = "iluminacion")
+            assertTrue(firstCreated.isSuccess)
+            val createdId = firstCreated.getOrNull()?.id.orEmpty()
+            val secondCreated = repo.createCategory(name = "Sonido pro", illoKey = "general")
+            assertTrue(secondCreated.isSuccess)
+            val updated = repo.updateCategory(categoryId = createdId, name = "Tarimas LED", illoKey = "iluminacion")
+            assertTrue(updated.isSuccess)
+            val deleted = repo.deleteCategory(secondCreated.getOrNull()?.id.orEmpty())
+            assertTrue(deleted.isSuccess)
+        }
+        waitForIdle()
+        onNodeWithText("No hay categorías creadas").assertDoesNotExist()
+        onNodeWithText("Tarimas LED").assertExists()
+        onNodeWithText("Sonido pro").assertDoesNotExist()
+
+        onNodeWithTag("a40-new-category-btn").performClick()
+        waitForIdle()
+        onNodeWithText("Subir ícono SVG").assertExists()
+        onNodeWithText("Elegir .svg").assertExists()
+
+        val customSvgPayload = """
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M4 12h16" stroke="#4B47D6" stroke-width="2" fill="none" />
+                <circle cx="12" cy="12" r="4" fill="#C2338F" />
+            </svg>
+        """.trimIndent().encodeToByteArray()
+        val decodedPure = com.jeudry.rosafiesta.designsystem.decodeSvgToImageBitmapOrNull(customSvgPayload, targetSizePx = 64)
+        assertTrue(decodedPure != null && decodedPure.width == 64 && decodedPure.height == 64)
+        val decodedSkia = com.jeudry.rosafiesta.designsystem.decodeEncodedImageBitmapOrNull(customSvgPayload)
+        assertTrue(decodedSkia != null && decodedSkia.width > 0 && decodedSkia.height > 0)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla A09 muestra boton eliminar articulo y elimina item con confirmacion`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        kotlinx.coroutines.runBlocking {
+            repo.createCategory(name = "Mobiliario", illoKey = "mobiliario")
+        }
+        repo.createArticle(
+            code = "RF-001",
+            name = "Silla plastica",
+            category = "Mobiliario",
+            pricePerDayDop = 15,
+            totalStock = 137,
+        )
+        repo.createArticle(
+            code = "RF-002",
+            name = "Mesa plegable",
+            category = "Mobiliario",
+            pricePerDayDop = 20,
+            totalStock = 10,
+        )
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("A09"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+
+        onNodeWithText("Silla plastica").assertExists()
+        onNodeWithTag("delete-article-art-rf-001").performClick()
+        waitForIdle()
+        onNodeWithText("Eliminar artículo").assertExists()
+
+        onNodeWithTag("confirm-delete-article").performClick()
+        waitForIdle()
+
+        onNodeWithText("Silla plastica").assertDoesNotExist()
+        onNodeWithText("Mesa plegable").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `error de validacion en s07 aparece inmediatamente al hacer click fuera sin esperar 2 segundos`() = runComposeUiTest {
+        mainClock.autoAdvance = false
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s07"),
+                viewModel = viewModel,
+                isFrameHarness = true,
+                includeBottomBar = false,
+            )
+        }
+
+        mainClock.advanceTimeBy(100)
+        val expectedError = checkNotNull(
+            com.jeudry.rosafiesta.domain.validation.InputValidator.validateLoginIdentifier("a"),
+        )
+        onAllNodes(hasSetTextAction())[0].performClick()
+        mainClock.advanceTimeBy(50)
+        onAllNodes(hasSetTextAction())[0].performTextReplacement("a")
+        mainClock.advanceTimeBy(200)
+
+        onNodeWithText(expectedError).assertDoesNotExist()
+
+        onNodeWithText("Correo o usuario").performClick()
+        mainClock.advanceTimeBy(100)
+
+        onNodeWithText(expectedError).assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla s14 oculta tendencias y portada hardcodeadas cuando backend inicia vacio y renderiza datos creados por Admin`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s14"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+
+        waitForIdle()
+        onNodeWithText("Graduaciones").assertDoesNotExist()
+        onNodeWithText("NUEVA TEMPORADA 2026").assertDoesNotExist()
+
+        kotlinx.coroutines.runBlocking {
+            repo.saveSeasonBanner(
+                com.jeudry.rosafiesta.domain.SeasonBanner(
+                    badgeLabel = "TEMPORADA NAVIDAD",
+                    title = "Arma tu evento de fin de año",
+                    ctaLabel = "Ver paquetes",
+                    targetScreenCode = "s21",
+                    active = true,
+                ),
+            )
+            repo.createTrend(
+                com.jeudry.rosafiesta.domain.CatalogTrend(
+                    id = "trend-navidad",
+                    title = "Cenas Corporativas",
+                    eventsLabel = "18 reservas",
+                    active = true,
+                ),
+            )
+        }
+        waitForIdle()
+
+        onNodeWithText("TEMPORADA NAVIDAD").assertExists()
+        onNodeWithText("Arma tu evento de fin de año").assertExists()
+        onNodeWithText("Tendencias").assertExists()
+        onNodeWithText("Cenas Corporativas").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla A41 crea y elimina tendencias en flujo completo de admin`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("A41"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+
+        onNodeWithText("Aún no hay tendencias creadas").assertExists()
+        onNodeWithTag("add-trend-button").performClick()
+        waitForIdle()
+
+        onNodeWithText("Nueva tendencia").assertExists()
+        val sheetInputs = onAllNodes(hasSetTextAction())
+        sheetInputs[sheetInputs.fetchSemanticsNodes().size - 2].performTextReplacement("Noche de Gala")
+        waitForIdle()
+
+        onNodeWithText("Crear tendencia").performClick()
+        waitForIdle()
+
+        onNodeWithText("Noche de Gala").assertExists()
+        onNodeWithTag("delete-trend-trend-noche-de-gala").performClick()
+        waitForIdle()
+        onNodeWithText("Eliminar tendencia").assertExists()
+        onNodeWithTag("confirm-delete-trend").performClick()
+        waitForIdle()
+
+        onNodeWithText("Noche de Gala").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `modal eliminar articulo en A09 queda sobre barra inferior y muestra categorias reales`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        repo.createArticleWithMedia(
+            code = "RF-001",
+            name = "Silla plastica",
+            category = "Mobiliario",
+            pricePerDayDop = 15,
+            totalStock = 137,
+            photoUrl = "/v1/media/med-1",
+        )
+        val created = repo.articles.value.first()
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        setContent {
+            Box(modifier = Modifier.size(width = 420.dp, height = 870.dp)) {
+                RosaFiestaApp(
+                    initialAppView = AppView.ADMIN,
+                    initialScreenCode = "A09",
+                    showDevHeader = false,
+                    viewModel = viewModel,
+                )
+            }
+        }
+
+        onNodeWithText("1 artículo · 1 categoría").assertExists()
+        onNodeWithTag("delete-article-${created.id}").performClick()
+        waitForIdle()
+
+        val confirmNode = onNodeWithTag("confirm-delete-article").fetchSemanticsNode()
+        val navEventsNode = onAllNodesWithText("Eventos")
+            .fetchSemanticsNodes()
+            .maxBy { node -> node.boundsInRoot.top }
+        assertTrue(
+            confirmNode.boundsInRoot.bottom <= navEventsNode.boundsInRoot.top,
+            "Delete button bottom (${confirmNode.boundsInRoot.bottom}) must sit above bottom bar top (${navEventsNode.boundsInRoot.top})",
+        )
+
+        onNodeWithTag("confirm-delete-article").performClick()
+        waitForIdle()
+        onNodeWithText("Silla plastica").assertDoesNotExist()
+    }
+
+    @Test
+    fun `ensureMediaLoaded conserva todas las imagenes concurrentes sin sobrescribir cache`() = runTest {
+        val baseRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        val firstGate = CompletableDeferred<Unit>()
+        val secondGate = CompletableDeferred<Unit>()
+        val delegatingRepo = object : RosaFiestaRepository by baseRepo {
+            override suspend fun fetchMediaBytes(urlOrId: String): Result<ByteArray> = when (urlOrId) {
+                "/v1/media/chair-a" -> {
+                    firstGate.await()
+                    Result.success(byteArrayOf(1, 2, 3))
+                }
+
+                "/v1/media/chair-b" -> {
+                    secondGate.await()
+                    Result.success(byteArrayOf(4, 5, 6))
+                }
+
+                else -> Result.failure(IllegalArgumentException("Unknown media $urlOrId"))
+            }
+        }
+        val viewModel = RosaFiestaViewModel(
+            repository = delegatingRepo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+
+        viewModel.ensureMediaLoaded("/v1/media/chair-a")
+        viewModel.ensureMediaLoaded("/v1/media/chair-b")
+        firstGate.complete(Unit)
+        secondGate.complete(Unit)
+
+        withContext(Dispatchers.Default) {
+            withTimeout(2_000) {
+                for (attempt in 0 until 40) {
+                    if (viewModel.mediaBytesCache.value.size >= 2) {
+                        break
+                    }
+                    kotlinx.coroutines.delay(15)
+                }
+            }
+        }
+
+        val cached = viewModel.mediaBytesCache.value
+        assertEquals(2, cached.size)
+        assertTrue(cached["/v1/media/chair-a"]?.contentEquals(byteArrayOf(1, 2, 3)) == true)
+        assertTrue(cached["/v1/media/chair-b"]?.contentEquals(byteArrayOf(4, 5, 6)) == true)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `pantalla A12 agrupa modulos por categoria y permite filtrar por chip y busqueda`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        val viewModel = RosaFiestaViewModel(
+            repository = repo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        var navigatedTarget = ""
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderAdminMoreA12(
+                viewModel = viewModel,
+                onSelectScreenCode = { target -> navigatedTarget = target },
+            )
+        }
+
+        onNodeWithText("COMERCIAL Y CLIENTES").assertExists()
+        onNodeWithText("CATÁLOGO Y PORTADA").assertExists()
+        onNodeWithText("FINANZAS Y ANALÍTICA").assertExists()
+        onNodeWithText("OPERACIÓN Y SISTEMA").assertExists()
+
+        onNodeWithTag("admin-more-filter-catalog").performClick()
+        waitForIdle()
+        onNodeWithText("CATÁLOGO Y PORTADA").assertExists()
+        onNodeWithText("COMERCIAL Y CLIENTES").assertDoesNotExist()
+        onNodeWithText("Tendencias y portada").assertExists()
+
+        onNodeWithTag("admin-more-filter-all").performClick()
+        waitForIdle()
+        onNodeWithTag("admin-more-search-input").performTextReplacement("whatsapp")
+        waitForIdle()
+        onNodeWithTag("admin-more-item-whatsapp_bot").assertExists()
+        onNodeWithTag("admin-more-item-payments").assertDoesNotExist()
+
+        onNodeWithTag("admin-more-item-whatsapp_bot").performClick()
+        assertEquals("s72", navigatedTarget)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `detalle s19 y A09 cargan foto real subida en galeria e inventario`() = runComposeUiTest {
+        val baseRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        baseRepo.createArticleWithMedia(
+            code = "RF-002",
+            name = "Silla Plastica",
+            category = "Mobiliario",
+            pricePerDayDop = 15,
+            totalStock = 138,
+            photoUrl = "/v1/media/med-silla-blanca",
+        )
+        val onePixelPng = Base64.decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+X2Z0AAAAASUVORK5CYII=",
+        )
+        val requestedUrls = mutableListOf<String>()
+        val delegatingRepo = object : RosaFiestaRepository by baseRepo {
+            override suspend fun fetchMediaBytes(urlOrId: String): Result<ByteArray> {
+                requestedUrls.add(urlOrId)
+                return Result.success(onePixelPng)
+            }
+        }
+        val viewModel = RosaFiestaViewModel(
+            repository = delegatingRepo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+        val created = baseRepo.articles.value.first()
+        viewModel.selectArticle(created.id)
+
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s19"),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+            )
+        }
+
+        waitForIdle()
+        onNodeWithContentDescription("Vista 1").assertExists()
+        assertTrue(requestedUrls.contains("/v1/media/med-silla-blanca"))
+        assertTrue(viewModel.mediaBytesCache.value.containsKey("/v1/media/med-silla-blanca"))
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `flujo cotizacion pide detalles en s25 muestra en revision en s48 y habilita firma tras envio admin`() = runComposeUiTest {
+        assertEquals("s31", ScreenCatalog.defaultNextCode("s25"))
+
+        val baseRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        val viewModel = RosaFiestaViewModel(
+            repository = baseRepo,
+            platformActions = NoOpPlatformActions(),
+            secureStorage = InMemorySecureStorage(),
+        )
+
+        baseRepo.createArticleWithMedia(
+            code = "RF-002",
+            name = "Silla Plastica",
+            category = "Mobiliario",
+            pricePerDayDop = 15,
+            totalStock = 138,
+        )
+        val article = baseRepo.articles.value.first()
+        viewModel.setDraftQuantity(article.id, 5)
+
+        val pendingQuote = baseRepo.createQuote(
+            eventTitle = "Boda Ana & Carlos",
+            clientName = "Ana Pérez",
+            clientEmail = "ana@rosafiesta.do",
+            venue = "Salón Mirador",
+            dateLabel = "25/12/2026",
+            guests = 80,
+            lines = listOf(
+                com.jeudry.rosafiesta.domain.EventLineItem(
+                    articleCode = article.code,
+                    name = article.name,
+                    quantity = 5,
+                    unitPriceDop = article.pricePerDayDop,
+                    photo = article.photo,
+                ),
+            ),
+            deliveryFeeDop = 350,
+            discountDop = 0,
+            eventId = "",
+        )
+        viewModel.selectQuote(pendingQuote.id)
+
+        val currentScreen = androidx.compose.runtime.mutableStateOf("s25")
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode(currentScreen.value),
+                viewModel = viewModel,
+                isFrameHarness = false,
+                includeBottomBar = false,
+                onSelectScreenCode = { nextCode -> currentScreen.value = nextCode },
+            )
+        }
+
+        onNodeWithText("Continuar con detalles").assertExists()
+        onNodeWithText("Ver cotización oficial").assertDoesNotExist()
+
+        currentScreen.value = "s48"
+        waitForIdle()
+        onNodeWithText("En revisión").assertExists()
+        onNodeWithText("En revisión por Rosa Fiesta").assertExists()
+        onNodeWithText("Firma digital del contrato").assertDoesNotExist()
+        onNodeWithText("Aprobar cotización").assertDoesNotExist()
+        onNodeWithText("Nota de María · Rosa Fiesta").assertDoesNotExist()
+
+        viewModel.createFormalQuoteFromAdmin(
+            eventTitle = "Boda Ana & Carlos",
+            clientName = "Ana Pérez",
+            clientEmail = "ana@rosafiesta.do",
+            venue = "Jardín Los Rosales",
+            dateLabel = "25/12/2026",
+            guests = 80,
+            lines = pendingQuote.lines,
+            deliveryFeeDop = 500,
+            discountDop = 50,
+            notes = "Incluye montaje 2 horas antes y funda blanca",
+            existingQuoteId = pendingQuote.id,
+        )
+        waitForIdle()
+
+        onNodeWithText("Lista para aceptar").assertExists()
+        onNodeWithText("Incluye montaje 2 horas antes y funda blanca").assertExists()
+        onNodeWithText("Firma digital del contrato").assertExists()
+        onNodeWithText("Aceptar y firmar cotización").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `s31 prioriza tipo de evento autocompleta titulo omite mas ideas y dicta notas en linea`() = runComposeUiTest {
+        val koin = org.koin.dsl.koinApplication {
+            modules(com.jeudry.rosafiesta.di.appModule)
+        }.koin
+        val viewModel = koin.get<RosaFiestaViewModel>()
+        val navigatedScreens = mutableListOf<String>()
+
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s31"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+                viewModel = viewModel,
+                onSelectScreenCode = { nextCode -> navigatedScreens.add(nextCode) },
+            )
+        }
+
+        onNodeWithText("Tipo de evento").assertExists()
+        onNodeWithText("Boda").assertExists()
+        onNodeWithText("Cumpleaños").assertExists()
+        onNodeWithText("Más ideas").assertDoesNotExist()
+        onNodeWithText("Siguiente").assertExists()
+
+        onNodeWithText("Cumpleaños").performClick()
+        waitForIdle()
+        assertEquals("Cumpleaños", viewModel.eventTypeInput.value)
+        assertEquals("Cumpleaños de ", viewModel.clientEventTitleInput.value)
+
+        onNodeWithText("Elegir").performClick()
+        waitForIdle()
+        onNodeWithText("Confirmar", substring = true).performClick()
+        waitForIdle()
+
+        assertTrue(viewModel.eventDateInput.value.contains("/"))
+        onNodeWithText("La fecha del evento debe usar el formato DD/MM/AAAA.").assertDoesNotExist()
+
+        viewModel.toggleInlineVoiceNotes("Mesa dulce")
+        waitForIdle()
+        assertEquals(com.jeudry.rosafiesta.ui.VoiceInputOrigin.NOTES_INLINE, viewModel.voiceInputOrigin.value)
+        assertTrue(navigatedScreens.none { screenCode -> screenCode == "s35" })
+        viewModel.stopVoiceInput()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `resumen s32 muestra apartados opcionales claros s40 evita tabs duplicados y s45 inicia limpio`() = runComposeUiTest {
+        val sharedStorage = com.jeudry.rosafiesta.domain.security.InMemorySecureStorage()
+        val firstRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository()
+        val firstVm = RosaFiestaViewModel(
+            repository = firstRepo,
+            secureStorage = sharedStorage,
+            soundPlayer = com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer(),
+        )
+        firstVm.setEventTypeInput("Boda")
+        firstVm.setClientEventTitleInput("Boda Persistida")
+        firstVm.setEventDateInput("28/12/2026")
+        firstVm.setEventVenueInput("Villa Colonial")
+        firstVm.setDraftQuantity("art-silla-tiffany", 25)
+        kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.delay(50)
+        }
+
+        val secondRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository()
+        val restoredVm = RosaFiestaViewModel(
+            repository = secondRepo,
+            secureStorage = sharedStorage,
+            soundPlayer = com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer(),
+        )
+        kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.delay(100)
+        }
+        assertEquals(25, restoredVm.draftQuantities.value["art-silla-tiffany"])
+        assertEquals("Boda Persistida", restoredVm.clientEventTitleInput.value)
+
+        val currentScreen = androidx.compose.runtime.mutableStateOf("s32")
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode(currentScreen.value),
+                isFrameHarness = false,
+                includeBottomBar = false,
+                viewModel = restoredVm,
+                onSelectScreenCode = { nextCode -> currentScreen.value = nextCode },
+            )
+        }
+
+        onNodeWithText("Lista de invitados").assertExists()
+        onNodeWithText("Boceto del espacio").assertExists()
+        onNodeWithText("Opcional · Diseñar").assertExists()
+        assertEquals(2, onAllNodesWithText("Opcional · Agregar").fetchSemanticsNodes().size)
+
+        assertTrue(restoredVm.submitClientQuoteRequest())
+        assertTrue(restoredVm.draftQuantities.value.isEmpty())
+        assertEquals("", restoredVm.clientEventTitleInput.value)
+        assertEquals("", restoredVm.eventTypeInput.value)
+        assertEquals("", restoredVm.eventDateInput.value)
+        assertEquals("", restoredVm.eventVenueInput.value)
+        assertEquals(0, restoredVm.rosaBudgetDop.value)
+        assertTrue(restoredVm.wizardScheduleItems.value.isEmpty())
+        assertTrue(restoredVm.eventGuestsList.value.isEmpty())
+        assertEquals("Boda Persistida", restoredVm.activeClientEvent().title)
+        assertTrue(restoredVm.quotes.value.any { quoteItem -> quoteItem.eventTitle == "Boda Persistida" })
+
+        kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.delay(50)
+        }
+        val postSubmitVm = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(),
+            secureStorage = sharedStorage,
+            soundPlayer = com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer(),
+        )
+        kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.delay(100)
+        }
+        assertTrue(postSubmitVm.draftQuantities.value.isEmpty())
+        assertEquals("", postSubmitVm.clientEventTitleInput.value)
+
+        currentScreen.value = "s40"
+        waitForIdle()
+        onNodeWithText("Modo ejecución").assertDoesNotExist()
+        onNodeWithText("Chat en la app").assertExists()
+
+        currentScreen.value = "s45"
+        waitForIdle()
+        onNodeWithText("Confirmar paleta floral blanco y rosa pastel").assertDoesNotExist()
+        onNodeWithText("Aún no hay tareas para este evento. Usa «+ Agregar tarea» para crear tu lista.").assertExists()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `modal de filtros s81 se superpone sin desmontar catalogo s18 y cierra sin parpadeo`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository()
+        val vm = RosaFiestaViewModel(
+            repository = repo,
+            secureStorage = com.jeudry.rosafiesta.domain.security.InMemorySecureStorage(),
+            soundPlayer = com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer(),
+        )
+        setContent {
+            RosaFiestaApp(
+                initialScreenCode = "s18",
+                viewModel = vm,
+            )
+        }
+
+        onNodeWithTag("screen-s18").assertExists()
+        onNodeWithTag("screen-s81").assertDoesNotExist()
+
+        onNodeWithText("Aplicar", substring = true).assertDoesNotExist()
+        onNodeWithText("Filtros").assertDoesNotExist()
+
+        val filterNav = com.jeudry.rosafiesta.ui.Navigator(initialScreenCode = "s18")
+        filterNav.navigateTo("s81")
+        assertEquals("s81", filterNav.currentCode)
+        assertEquals("s18", filterNav.lastModalOriginCode)
+        filterNav.navigateTo("BACK:s18")
+        assertEquals("s18", filterNav.currentCode)
+        assertTrue(com.jeudry.rosafiesta.ui.isFloatingOverlayModalCode("s81"))
+        assertFalse(com.jeudry.rosafiesta.ui.isFloatingOverlayModalCode("s18"))
+    }
+
+    @Test
+    fun `microfono transcribe WAV asincrono tras stop y en auto-stop y muestra error si STT no configurado`() = runTest {
+        val mutableListening = kotlinx.coroutines.flow.MutableStateFlow(false)
+        val mutableTranscribing = kotlinx.coroutines.flow.MutableStateFlow(false)
+        val mutableAmplitude = kotlinx.coroutines.flow.MutableStateFlow(0f)
+        val mutableHasMic = kotlinx.coroutines.flow.MutableStateFlow(true)
+        val mutableTranscript = kotlinx.coroutines.flow.MutableStateFlow("")
+        val mutableCapturedWav = kotlinx.coroutines.flow.MutableStateFlow<ByteArray?>(null)
+        val mutableError = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
+        val asyncVoiceMonitor = object : com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor {
+            override val isListening = mutableListening
+            override val isTranscribing = mutableTranscribing
+            override val amplitudeLevel = mutableAmplitude
+            override val hasHardwareMicrophone = mutableHasMic
+            override val recognizedTranscript = mutableTranscript
+            override val capturedWavBytes = mutableCapturedWav
+            override val errorMessage = mutableError
+
+            override fun startListening(onTranscriptResult: (String) -> Unit) {
+                mutableError.value = null
+                mutableCapturedWav.value = null
+                mutableListening.value = true
+            }
+
+            override fun stopListening() {
+                mutableListening.value = false
+            }
+        }
+
+        val responses = ArrayDeque(
+            listOf(
+                com.jeudry.rosafiesta.domain.VoiceTranscriptionOutcome(
+                    transcript = "silla tiffany dorada",
+                    locale = "es-DO",
+                    voiceDetected = true,
+                    durationMs = 1200,
+                    provider = "gemini",
+                ),
+                com.jeudry.rosafiesta.domain.VoiceTranscriptionOutcome(
+                    transcript = "flores blancas y velas",
+                    locale = "es-DO",
+                    voiceDetected = true,
+                    durationMs = 1400,
+                    provider = "gemini",
+                ),
+                com.jeudry.rosafiesta.domain.VoiceTranscriptionOutcome(
+                    transcript = "",
+                    locale = "es-DO",
+                    voiceDetected = false,
+                    durationMs = 900,
+                    provider = "STT_PROVIDER_NOT_CONFIGURED:Proveedor de transcripción por voz no configurado.",
+                ),
+            ),
+        )
+        var transcriptionCalls = 0
+        val delegateRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = false)
+        val voiceRepo = object : RosaFiestaRepository by delegateRepo {
+            override suspend fun transcribeVoicePrompt(
+                wavBase64: String,
+                locale: String,
+            ): com.jeudry.rosafiesta.domain.VoiceTranscriptionOutcome {
+                transcriptionCalls += 1
+                return responses.removeFirst()
+            }
+        }
+
+        val viewModel = RosaFiestaViewModel(
+            repository = voiceRepo,
+            voiceInputMonitor = asyncVoiceMonitor,
+            secureStorage = InMemorySecureStorage(),
+        )
+
+        viewModel.setSearchQuery("mesa anterior")
+        viewModel.startVoiceInput(com.jeudry.rosafiesta.ui.VoiceInputOrigin.SEARCH, "mesa anterior")
+        viewModel.stopVoiceInput()
+        assertEquals(0, transcriptionCalls)
+
+        mutableCapturedWav.value = ByteArray(128) { byteIndex -> byteIndex.toByte() }
+        withContext(Dispatchers.Default) {
+            withTimeout(5_000) {
+                for (attempt in 0 until 100) {
+                    if (viewModel.searchQuery.value == "silla tiffany dorada") break
+                    kotlinx.coroutines.delay(25)
+                }
+            }
+        }
+        assertEquals(1, transcriptionCalls)
+        assertEquals("silla tiffany dorada", viewModel.searchQuery.value)
+        assertEquals(null, viewModel.voiceErrorMessage.value)
+
+        viewModel.startVoiceInput(com.jeudry.rosafiesta.ui.VoiceInputOrigin.NOTES_INLINE, "Nota base")
+        mutableListening.value = false
+        mutableCapturedWav.value = ByteArray(140) { byteIndex -> (byteIndex + 1).toByte() }
+        withContext(Dispatchers.Default) {
+            withTimeout(5_000) {
+                for (attempt in 0 until 100) {
+                    if (viewModel.eventNotesInput.value.contains("flores blancas y velas")) break
+                    kotlinx.coroutines.delay(25)
+                }
+            }
+        }
+        assertEquals(2, transcriptionCalls)
+        assertEquals("Nota base\nflores blancas y velas", viewModel.eventNotesInput.value)
+
+        viewModel.startVoiceInput(com.jeudry.rosafiesta.ui.VoiceInputOrigin.SEARCH, "")
+        viewModel.stopVoiceInput()
+        mutableCapturedWav.value = ByteArray(160) { byteIndex -> (byteIndex + 2).toByte() }
+        withContext(Dispatchers.Default) {
+            withTimeout(5_000) {
+                for (attempt in 0 until 100) {
+                    if (viewModel.voiceErrorMessage.value != null) break
+                    kotlinx.coroutines.delay(25)
+                }
+            }
+        }
+        assertEquals(3, transcriptionCalls)
+        assertEquals("Proveedor de transcripción por voz no configurado.", viewModel.voiceErrorMessage.value)
+        viewModel.dismissVoiceError()
+        withContext(Dispatchers.Default) {
+            withTimeout(5_000) {
+                for (attempt in 0 until 100) {
+                    if (viewModel.voiceErrorMessage.value == null) break
+                    kotlinx.coroutines.delay(25)
+                }
+            }
+        }
+        assertEquals(null, viewModel.voiceErrorMessage.value)
     }
 }

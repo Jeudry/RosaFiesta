@@ -1,6 +1,11 @@
 -- name: UpsertUser :exec
-INSERT INTO users (id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+INSERT INTO users (
+    id, full_name, email, phone, password_hash, role, permissions, created_at,
+    username, birth_date, avatar_key,
+    push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled,
+    biometric_lock_enabled, auto_sync_wifi_only
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     email = EXCLUDED.email,
@@ -10,22 +15,39 @@ ON CONFLICT (id) DO UPDATE SET
     permissions = EXCLUDED.permissions,
     username = EXCLUDED.username,
     birth_date = EXCLUDED.birth_date,
-    avatar_key = EXCLUDED.avatar_key;
+    avatar_key = EXCLUDED.avatar_key,
+    push_notifications_enabled = EXCLUDED.push_notifications_enabled,
+    whatsapp_alerts_enabled = EXCLUDED.whatsapp_alerts_enabled,
+    email_receipts_enabled = EXCLUDED.email_receipts_enabled,
+    biometric_lock_enabled = EXCLUDED.biometric_lock_enabled,
+    auto_sync_wifi_only = EXCLUDED.auto_sync_wifi_only;
 
 -- name: GetUserByID :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
 FROM users
 WHERE id = $1;
 
 -- name: GetUserByEmail :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
 FROM users
 WHERE email = $1;
 
 -- name: ListAllUsers :many
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
 FROM users
 ORDER BY created_at ASC;
+
+-- name: UpdateUserPreferencesByID :exec
+UPDATE users
+SET push_notifications_enabled = $2,
+    whatsapp_alerts_enabled = $3,
+    email_receipts_enabled = $4,
+    biometric_lock_enabled = $5,
+    auto_sync_wifi_only = $6
+WHERE id = $1;
 
 -- name: UpdateUserPasswordByEmail :exec
 UPDATE users
@@ -144,3 +166,72 @@ ON CONFLICT (id) DO UPDATE SET
 SELECT id, user_id, full_name, email, phone, role_label, role, permissions, active, created_at
 FROM staff_members
 ORDER BY created_at ASC, id ASC;
+
+-- name: UpsertDevicePushToken :exec
+INSERT INTO device_push_tokens (id, user_id, platform, token, app_variant, enabled, updated_at)
+VALUES ($1, $2, $3, $4, $5, TRUE, $6)
+ON CONFLICT (user_id, platform, token) DO UPDATE SET
+    app_variant = EXCLUDED.app_variant,
+    enabled = TRUE,
+    updated_at = EXCLUDED.updated_at;
+
+-- name: DisableDevicePushToken :exec
+UPDATE device_push_tokens
+SET enabled = FALSE,
+    updated_at = $3
+WHERE user_id = $1 AND token = $2;
+
+-- name: DisableAllUserPushTokens :exec
+UPDATE device_push_tokens
+SET enabled = FALSE,
+    updated_at = $2
+WHERE user_id = $1;
+
+-- name: ListActivePushTokensByUserID :many
+SELECT id, user_id, platform, token, app_variant, enabled, updated_at
+FROM device_push_tokens
+WHERE user_id = $1 AND enabled = TRUE
+ORDER BY updated_at DESC;
+
+-- name: ListActiveAdminPushTokens :many
+SELECT d.id, d.user_id, d.platform, d.token, d.app_variant, d.enabled, d.updated_at
+FROM device_push_tokens d
+INNER JOIN users u ON u.id = d.user_id
+WHERE d.enabled = TRUE
+  AND d.app_variant = 'admin'
+  AND u.push_notifications_enabled = TRUE
+ORDER BY d.updated_at DESC;
+
+-- name: InsertRefreshToken :exec
+INSERT INTO refresh_tokens (id, user_id, family_id, token_hash, revoked, expires_at, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+
+-- name: GetRefreshTokenByHash :one
+SELECT id, user_id, family_id, token_hash, revoked, expires_at, created_at, updated_at
+FROM refresh_tokens
+WHERE token_hash = $1;
+
+-- name: RevokeRefreshTokenByHash :exec
+UPDATE refresh_tokens
+SET revoked = TRUE,
+    updated_at = $2
+WHERE token_hash = $1;
+
+-- name: RevokeRefreshTokenFamily :exec
+UPDATE refresh_tokens
+SET revoked = TRUE,
+    updated_at = $2
+WHERE family_id = $1;
+
+-- name: RevokeRefreshTokensByUser :exec
+UPDATE refresh_tokens
+SET revoked = TRUE,
+    updated_at = $2
+WHERE user_id = $1;
+
+-- name: DeleteExpiredOrRevokedRefreshTokens :execrows
+DELETE FROM refresh_tokens
+WHERE expires_at < $1
+   OR (revoked = TRUE AND updated_at < $2);
+
+

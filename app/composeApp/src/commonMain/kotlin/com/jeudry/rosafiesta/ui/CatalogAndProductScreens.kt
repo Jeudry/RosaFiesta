@@ -2,14 +2,17 @@ package com.jeudry.rosafiesta.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -50,6 +53,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -248,43 +253,10 @@ internal fun RenderPersonalCatalogS18(
                     RfIcon(kind = RfIconKind.GRID, tint = RfThemeState.currentPalette.ink, size = 20.dp)
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clickable { onSelectScreenCode("s25") },
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, CircleShape),
-                    ) {
-                        RfIcon(kind = RfIconKind.PARTY, tint = RfThemeState.currentPalette.ink, size = 20.dp)
-                    }
-                    if (totalDraftCount > 0) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 4.dp, y = (-4).dp)
-                                .height(20.dp)
-                                .widthIn(min = 20.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color(0xFFFFD45C))
-                                .padding(horizontal = 5.dp),
-                        ) {
-                            BasicText(
-                                text = totalDraftCount.toString(),
-                                maxLines = 1,
-                                softWrap = false,
-                                style = typo.sectionCap.copy(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
-                            )
-                        }
-                    }
-                }
+                RfDraftCartPillButton(
+                    count = totalDraftCount,
+                    onClick = { onSelectScreenCode("s25") },
+                )
             }
         }
 
@@ -452,16 +424,23 @@ internal fun RenderPersonalCatalogS18(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                val baseCategoryChips = listOf(
-                    "Mobiliario",
-                    "Decoración",
-                    "Centros florales",
-                    "Arcos y globos",
-                    "Mantelería",
-                    "Estaciones dulces",
-                    "Iluminación",
-                    "Letreros",
-                )
+                val vmCategories = viewModel?.catalogCategories?.collectAsState()?.value
+                val baseCategoryChips = if (vmCategories != null) {
+                    vmCategories.map { category -> category.name.trim() }
+                        .filter { name -> name.isNotEmpty() }
+                        .distinctBy { name -> name.lowercase() }
+                } else {
+                    listOf(
+                        "Mobiliario",
+                        "Decoración",
+                        "Centros florales",
+                        "Arcos y globos",
+                        "Mantelería",
+                        "Estaciones dulces",
+                        "Iluminación",
+                        "Letreros",
+                    )
+                }
                 val isAllCategoryActive = isUnfilteredCatalogCategory18(selectedCategory)
                 val isKnownChip = baseCategoryChips.any { chipName -> chipName.equals(selectedCategory, ignoreCase = true) }
                 val shouldInjectSelectedChip = if (isAllCategoryActive) false else !isKnownChip
@@ -582,6 +561,8 @@ internal fun RenderPersonalCatalogS18(
                             desc = first.description,
                             price = first.pricePerDayDop.toString(),
                             photoKey = firstPhoto,
+                            photoUrl = first.photoUrl,
+                            viewModel = viewModel,
                             bg = Color(0xFFEFE8FD),
                             initialFavorite = favoritesSet.contains(first.id),
                             useGradientPrice = true,
@@ -608,6 +589,8 @@ internal fun RenderPersonalCatalogS18(
                                 desc = second.description,
                                 price = second.pricePerDayDop.toString(),
                                 photoKey = secondPhoto,
+                                photoUrl = second.photoUrl,
+                                viewModel = viewModel,
                                 bg = Color(0xFFEEF6D6),
                                 initialFavorite = favoritesSet.contains(second.id),
                                 useGradientPrice = true,
@@ -647,6 +630,8 @@ private fun PersonalProductCard(
     badge: String? = null,
     initialFavorite: Boolean = false,
     useGradientPrice: Boolean = false,
+    photoUrl: String = "",
+    viewModel: RosaFiestaViewModel? = null,
     onOpenDetail: () -> Unit,
     onAddClick: () -> Unit = onOpenDetail,
     onToggleFavorite: (() -> Unit)? = null,
@@ -668,12 +653,14 @@ private fun PersonalProductCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(128.dp)
+                    .height(100.dp)
                     .background(bg),
             ) {
-                RfPhoto(
-                    photoKey = photoKey,
+                RfUploadedOrCatalogPhoto(
+                    photoUrl = photoUrl,
+                    fallbackPhotoKey = photoKey,
                     contentDescription = title,
+                    viewModel = viewModel,
                     cornerRadius = 0.dp,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -724,11 +711,19 @@ private fun PersonalProductCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Row(verticalAlignment = Alignment.Bottom) {
+                    Row {
                         if (useGradientPrice) {
-                            RfGradientPriceText(price, style = TextStyle(fontFamily = typo.displayFamily, fontSize = 21.sp, fontWeight = FontWeight.ExtraBold))
+                            RfGradientPriceText(
+                                text = price,
+                                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 21.sp, fontWeight = FontWeight.ExtraBold),
+                                modifier = Modifier.alignByBaseline(),
+                            )
                             Spacer(Modifier.width(3.dp))
-                            BasicText("RD$/día", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB54BD6)))
+                            BasicText(
+                                text = "RD$/día",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB54BD6)),
+                                modifier = Modifier.alignByBaseline(),
+                            )
                         } else {
                             BasicText(
                                 "RD$ $price",
@@ -737,8 +732,13 @@ private fun PersonalProductCard(
                                     fontWeight = FontWeight.ExtraBold,
                                     color = RfThemeState.currentPalette.ink,
                                 ),
+                                modifier = Modifier.alignByBaseline(),
                             )
-                            BasicText(" /día", style = typo.secondary.copy(fontSize = 12.sp, color = RfThemeState.currentPalette.muted))
+                            BasicText(
+                                " /día",
+                                style = typo.secondary.copy(fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
+                                modifier = Modifier.alignByBaseline(),
+                            )
                         }
                     }
 
@@ -791,50 +791,78 @@ internal fun RenderProductDetailS19(
 
     val persistedVariants = viewModel?.selectedArticleVariantColors?.collectAsState()?.value ?: emptyMap()
     val variantOptions = remember(currentArticle.id, currentArticle.variants) {
-        currentArticle.variants.ifEmpty { listOf("Estándar") }
+        currentArticle.variants.filter { variant -> variant.isNotBlank() }
     }
     val persistedVariantForArticle = persistedVariants[currentArticle.id]
-    var selectedColor by remember(currentArticle.id, persistedVariantForArticle) {
-        mutableStateOf(persistedVariantForArticle ?: variantOptions.first())
+    var selectedColor by remember(currentArticle.id, persistedVariantForArticle, variantOptions) {
+        mutableStateOf(persistedVariantForArticle ?: variantOptions.firstOrNull().orEmpty())
     }
     var count by remember(currentArticle.id, maxAvailableUnits) { mutableStateOf(initialCount) }
     var selectedTab by remember { mutableStateOf("Descripción") }
 
     val companyReviews = viewModel?.companyReviews?.collectAsState()?.value.orEmpty()
-    val domainReviews = viewModel?.reviews?.collectAsState()?.value ?: CanonicalSampleData.reviews
-    val averageRatingLabel = remember(companyReviews, domainReviews, viewModel) {
-        viewModel?.companyAverageRatingFormatted() ?: "4.9"
+    val hasRealReviews = companyReviews.isNotEmpty()
+    val averageRatingLabel = if (hasRealReviews) {
+        viewModel?.companyAverageRatingFormatted()
+    } else {
+        null
     }
-    val totalReviewCount = if (companyReviews.isNotEmpty()) companyReviews.size else domainReviews.size
+    val totalReviewCount = companyReviews.size
 
     val primaryPhoto = currentArticle.photo.toPhotoKey()
-    val galleryPhotos = remember(primaryPhoto, articlesState, currentArticle.category) {
-        val relatedPhotos = articlesState
-            .filter { candidate -> candidate.category.equals(currentArticle.category, ignoreCase = true) }
-            .map { candidate -> candidate.photo.toPhotoKey() }
-        val fallbackPhotos = articlesState.map { candidate -> candidate.photo.toPhotoKey() }
-        (listOf(primaryPhoto) + relatedPhotos + fallbackPhotos).distinct().take(3)
+    val galleryMedia = remember(currentArticle.id, currentArticle.photoUrl, primaryPhoto, articlesState, currentArticle.category) {
+        val cleanPrimaryUrl = currentArticle.photoUrl.trim()
+        if (cleanPrimaryUrl.isNotEmpty()) {
+            listOf(cleanPrimaryUrl to primaryPhoto)
+        } else {
+            val relatedPhotos = articlesState
+                .filter { candidate -> candidate.category.equals(currentArticle.category, ignoreCase = true) }
+                .map { candidate -> candidate.photo.toPhotoKey() }
+            val fallbackPhotos = articlesState.map { candidate -> candidate.photo.toPhotoKey() }
+            (listOf(primaryPhoto) + relatedPhotos + fallbackPhotos)
+                .distinct()
+                .take(3)
+                .map { key -> "" to key }
+        }
     }
     var selectedPhotoIndex by remember(currentArticle.id) { mutableStateOf(0) }
-    val activeHeroPhoto = galleryPhotos.getOrElse(selectedPhotoIndex) { primaryPhoto }
+    var isPhotoExpanded by remember(currentArticle.id) { mutableStateOf(false) }
+    var showFullScreenPhoto by remember(currentArticle.id) { mutableStateOf(false) }
+    val activeGalleryMedia = galleryMedia.getOrElse(selectedPhotoIndex) { galleryMedia.first() }
     val sheetScrollState = rememberScrollState()
     val parallaxOffsetDp = (-sheetScrollState.value / 6).dp
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(RfThemeState.currentPalette.bg),
     ) {
+        val targetHeroSpacerHeight = if (isPhotoExpanded) {
+            (maxHeight - 152.dp).coerceAtLeast(340.dp)
+        } else {
+            236.dp
+        }
+        val animatedHeroSpacerHeight by animateDpAsState(
+            targetValue = targetHeroSpacerHeight,
+            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+            label = "s19-hero-expand",
+        )
+        val animatedHeroPhotoHeight = animatedHeroSpacerHeight + 60.dp
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(410.dp)
-                .offset(y = parallaxOffsetDp),
+                .height(animatedHeroPhotoHeight)
+                .background(if (isPhotoExpanded) Color(0xFF141522) else Color.Transparent)
+                .offset(y = if (isPhotoExpanded) 0.dp else parallaxOffsetDp),
         ) {
-            RfPhoto(
-                photoKey = activeHeroPhoto,
+            RfUploadedOrCatalogPhoto(
+                photoUrl = activeGalleryMedia.first,
+                fallbackPhotoKey = activeGalleryMedia.second,
                 contentDescription = currentArticle.name,
+                viewModel = viewModel,
                 cornerRadius = 0.dp,
+                contentScale = if (isPhotoExpanded) ContentScale.Fit else ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
             Box(
@@ -853,8 +881,52 @@ internal fun RenderProductDetailS19(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(316.dp),
+                    .height(animatedHeroSpacerHeight)
+                    .clickable { isPhotoExpanded = !isPhotoExpanded },
             ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 14.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color(0x881A1A2E))
+                            .clickable { showFullScreenPhoto = true },
+                    ) {
+                        Canvas(modifier = Modifier.size(16.dp)) {
+                            val strokeWidth = 2.dp.toPx()
+                            val cornerLen = size.width * 0.34f
+                            val w = size.width
+                            val h = size.height
+                            drawLine(Color.White, Offset(0f, cornerLen), Offset(0f, 0f), strokeWidth, StrokeCap.Round)
+                            drawLine(Color.White, Offset(0f, 0f), Offset(cornerLen, 0f), strokeWidth, StrokeCap.Round)
+                            drawLine(Color.White, Offset(w - cornerLen, 0f), Offset(w, 0f), strokeWidth, StrokeCap.Round)
+                            drawLine(Color.White, Offset(w, 0f), Offset(w, cornerLen), strokeWidth, StrokeCap.Round)
+                            drawLine(Color.White, Offset(0f, h - cornerLen), Offset(0f, h), strokeWidth, StrokeCap.Round)
+                            drawLine(Color.White, Offset(0f, h), Offset(cornerLen, h), strokeWidth, StrokeCap.Round)
+                            drawLine(Color.White, Offset(w - cornerLen, h), Offset(w, h), strokeWidth, StrokeCap.Round)
+                            drawLine(Color.White, Offset(w, h), Offset(w, h - cornerLen), strokeWidth, StrokeCap.Round)
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0x881A1A2E))
+                            .clickable { isPhotoExpanded = !isPhotoExpanded }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                    ) {
+                        BasicText(
+                            text = if (isPhotoExpanded) "Ver detalles" else "Ver foto",
+                            style = typo.caption.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
+                    }
+                }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -865,7 +937,7 @@ internal fun RenderProductDetailS19(
                         .background(Color(0x6628283C))
                         .padding(6.dp),
                 ) {
-                    galleryPhotos.forEachIndexed { photoIndex, galleryKey ->
+                    galleryMedia.forEachIndexed { photoIndex, mediaEntry ->
                         val isSelectedPhoto = photoIndex == selectedPhotoIndex
                         Box(
                             modifier = Modifier
@@ -880,24 +952,26 @@ internal fun RenderProductDetailS19(
                                 )
                                 .clickable { selectedPhotoIndex = photoIndex },
                         ) {
-                            RfPhoto(
-                                photoKey = galleryKey,
+                            RfUploadedOrCatalogPhoto(
+                                photoUrl = mediaEntry.first,
+                                fallbackPhotoKey = mediaEntry.second,
                                 contentDescription = "Vista ${photoIndex + 1}",
+                                viewModel = viewModel,
                                 cornerRadius = 12.dp,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }
                     }
-                    if (galleryPhotos.size > 1) {
+                    if (galleryMedia.size > 1) {
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(50.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(RfThemeState.currentPalette.surface)
-                                .clickable { selectedPhotoIndex = (selectedPhotoIndex + 1) % galleryPhotos.size },
+                                .clickable { selectedPhotoIndex = (selectedPhotoIndex + 1) % galleryMedia.size },
                         ) {
-                            BasicText("+${galleryPhotos.size}", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted))
+                            BasicText("+${galleryMedia.size}", style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.muted))
                         }
                     }
                 }
@@ -913,13 +987,29 @@ internal fun RenderProductDetailS19(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .width(42.dp)
-                        .height(5.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color(0xFFE3DCE8)),
-                )
+                        .fillMaxWidth()
+                        .clickable { isPhotoExpanded = !isPhotoExpanded }
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures { _, dragAmount ->
+                                if (dragAmount > 12f) {
+                                    isPhotoExpanded = true
+                                } else if (dragAmount < -12f) {
+                                    isPhotoExpanded = false
+                                }
+                            }
+                        }
+                        .padding(vertical = 4.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(42.dp)
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFFE3DCE8)),
+                    )
+                }
 
                 Row(
                     verticalAlignment = Alignment.Top,
@@ -944,8 +1034,12 @@ internal fun RenderProductDetailS19(
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    BasicText("★ $averageRatingLabel", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
-                                    BasicText("$totalReviewCount reseñas", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF7A5700)))
+                                    if (averageRatingLabel != null) {
+                                        BasicText("★ $averageRatingLabel", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
+                                        BasicText("$totalReviewCount reseñas", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF7A5700)))
+                                    } else {
+                                        BasicText("Sin reseñas", style = typo.secondary.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
+                                    }
                                 }
                             }
                             Box(
@@ -955,7 +1049,7 @@ internal fun RenderProductDetailS19(
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                             ) {
                                 BasicText(
-                                    "${currentArticle.availableOct23} disp. 23 oct",
+                                    "${currentArticle.availableOct23} disp.",
                                     style = typo.secondary.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)),
                                 )
                             }
@@ -971,61 +1065,63 @@ internal fun RenderProductDetailS19(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row {
-                        BasicText("Variante: ", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
-                        BasicText(selectedColor, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    ) {
-                        variantOptions.forEachIndexed { variantIndex, variantLabel ->
-                            val isSel = variantLabel == selectedColor
-                            val accentColor = when (variantIndex % 4) {
-                                0 -> Color(0xFF7C5CF0)
-                                1 -> Color(0xFFEA4EA9)
-                                2 -> Color(0xFFA9CC3A)
-                                else -> Color(0xFFF0B92E)
-                            }
-                            val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .height(38.dp)
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(
+                if (variantOptions.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row {
+                            BasicText("Variante: ", style = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted))
+                            BasicText(selectedColor, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        ) {
+                            variantOptions.forEachIndexed { variantIndex, variantLabel ->
+                                val isSel = variantLabel == selectedColor
+                                val accentColor = when (variantIndex % 4) {
+                                    0 -> Color(0xFF7C5CF0)
+                                    1 -> Color(0xFFEA4EA9)
+                                    2 -> Color(0xFFA9CC3A)
+                                    else -> Color(0xFFF0B92E)
+                                }
+                                val gradDiag = Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .height(38.dp)
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(
+                                            if (isSel) {
+                                                gradDiag
+                                            } else {
+                                                SolidColor(RfThemeState.currentPalette.chipBg)
+                                            },
+                                        )
+                                        .border(
+                                            width = if (isSel) 0.dp else 1.5.dp,
+                                            color = if (isSel) Color.Transparent else accentColor.copy(alpha = 0.65f),
+                                            shape = RoundedCornerShape(999.dp),
+                                        )
+                                        .clickable {
+                                            selectedColor = variantLabel
+                                            viewModel?.setArticleColorVariant(currentArticle.id, variantLabel)
+                                        }
+                                        .padding(horizontal = 14.dp),
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         if (isSel) {
-                                            gradDiag
+                                            RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
                                         } else {
-                                            SolidColor(RfThemeState.currentPalette.chipBg)
-                                        },
-                                    )
-                                    .border(
-                                        width = if (isSel) 0.dp else 1.5.dp,
-                                        color = if (isSel) Color.Transparent else accentColor.copy(alpha = 0.65f),
-                                        shape = RoundedCornerShape(999.dp),
-                                    )
-                                    .clickable {
-                                        selectedColor = variantLabel
-                                        viewModel?.setArticleColorVariant(currentArticle.id, variantLabel)
+                                            Box(Modifier.size(8.dp).clip(CircleShape).background(accentColor))
+                                        }
+                                        BasicText(
+                                            text = variantLabel,
+                                            style = typo.body.copy(
+                                                fontSize = 13.5.sp,
+                                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isSel) Color.White else RfThemeState.currentPalette.ink,
+                                            ),
+                                        )
                                     }
-                                    .padding(horizontal = 14.dp),
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    if (isSel) {
-                                        RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 14.dp)
-                                    } else {
-                                        Box(Modifier.size(8.dp).clip(CircleShape).background(accentColor))
-                                    }
-                                    BasicText(
-                                        text = variantLabel,
-                                        style = typo.body.copy(
-                                            fontSize = 13.5.sp,
-                                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isSel) Color.White else RfThemeState.currentPalette.ink,
-                                        ),
-                                    )
                                 }
                             }
                         }
@@ -1073,16 +1169,19 @@ internal fun RenderProductDetailS19(
 
                 when (selectedTab) {
                     "Detalles" -> {
+                        val detailRows = buildList {
+                            add("Código de catálogo" to currentArticle.code)
+                            add("Categoría" to currentArticle.category)
+                            add("Disponibilidad" to "${currentArticle.availableOct23} / ${currentArticle.totalStock}")
+                            if (currentArticle.material.isNotBlank()) {
+                                add("Material y acabado" to currentArticle.material)
+                            }
+                            if (currentArticle.dimensions.isNotBlank()) {
+                                add("Dimensiones" to currentArticle.dimensions)
+                            }
+                        }
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            listOf(
-                                "Código de catálogo" to currentArticle.code,
-                                "Categoría" to currentArticle.category,
-                                "Stock total en almacén" to "${currentArticle.totalStock} unidades",
-                                "Disponibles para el 23 oct" to "${currentArticle.availableOct23} unidades",
-                                "Material y acabado" to currentArticle.material,
-                                "Dimensiones" to currentArticle.dimensions,
-                                "Incluye montaje" to "Sí, transporte e instalación por el equipo Rosa Fiesta",
-                            ).forEach { (specLabel, specValue) ->
+                            detailRows.forEach { (specLabel, specValue) ->
                                 Row(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
@@ -1104,47 +1203,57 @@ internal fun RenderProductDetailS19(
                     }
 
                     "Reseñas" -> {
-                        val displayReviews: List<Triple<String, String, String>> = if (companyReviews.isNotEmpty()) {
-                            companyReviews.take(4).map { reviewModel ->
-                                val starsLabel = "★".repeat(reviewModel.rating.coerceIn(1, 5))
-                                Triple(reviewModel.author, "$starsLabel · ${formatReadableSpanishDateText(reviewModel.dateLabel)}", reviewModel.comment)
-                            }
-                        } else {
-                            domainReviews.take(4).map { reviewRecord ->
-                                val starsLabel = "★".repeat(reviewRecord.rating.coerceIn(1, 5))
-                                Triple(reviewRecord.authorName, "$starsLabel · ${reviewRecord.eventTitle}", reviewRecord.comment)
-                            }
+                        val displayReviews: List<Triple<String, String, String>> = companyReviews.take(4).map { reviewModel ->
+                            val starsLabel = "★".repeat(reviewModel.rating.coerceIn(1, 5))
+                            Triple(reviewModel.author, "$starsLabel · ${formatReadableSpanishDateText(reviewModel.dateLabel)}", reviewModel.comment)
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            displayReviews.forEach { (authorName, ratingMeta, reviewComment) ->
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(RfThemeState.currentPalette.chipBg)
-                                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
-                                        .padding(14.dp),
-                                ) {
-                                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                        BasicText(authorName, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
-                                        BasicText(ratingMeta, style = typo.caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
+                            if (displayReviews.isEmpty()) {
+                                BasicText(
+                                    text = "Aún no hay reseñas publicadas.",
+                                    style = typo.body.copy(fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted),
+                                )
+                            } else {
+                                displayReviews.forEach { (authorName, ratingMeta, reviewComment) ->
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .background(RfThemeState.currentPalette.chipBg)
+                                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
+                                            .padding(14.dp),
+                                    ) {
+                                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                            BasicText(authorName, style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
+                                            BasicText(ratingMeta, style = typo.caption.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A5700)))
+                                        }
+                                        BasicText(reviewComment, style = typo.body.copy(fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted, lineHeight = 19.sp))
                                     }
-                                    BasicText(reviewComment, style = typo.body.copy(fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted, lineHeight = 19.sp))
                                 }
                             }
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFFDE6F2))
-                                    .clickable { onSelectScreenCode("s17") },
-                            ) {
+                            val canWriteReview = viewModel?.hasCompletedOrUsedRental() ?: false
+                            val hasReviews = totalReviewCount > 0
+                            val showReviewAction = hasReviews || canWriteReview
+                            if (showReviewAction) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(42.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFFFDE6F2))
+                                        .clickable { onSelectScreenCode("s17") },
+                                ) {
+                                    BasicText(
+                                        text = if (hasReviews) "Ver todas las reseñas ($totalReviewCount) →" else "Escribir reseña →",
+                                        style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
+                                    )
+                                }
+                            } else {
                                 BasicText(
-                                    text = "Ver todas las reseñas ($totalReviewCount) →",
-                                    style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFFC2338F)),
+                                    text = "Solo puedes escribir una reseña después de alquilar o usar este producto.",
+                                    style = typo.caption.copy(fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
                                 )
                             }
                         }
@@ -1155,6 +1264,18 @@ internal fun RenderProductDetailS19(
                             text = currentArticle.description,
                             style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted, lineHeight = 22.sp),
                         )
+                        val summaryLines = buildList {
+                            add("• Código: ${currentArticle.code}")
+                            if (selectedColor.isNotBlank()) {
+                                add("• Variante seleccionada: $selectedColor")
+                            }
+                            if (currentArticle.material.isNotBlank()) {
+                                add("• Material: ${currentArticle.material}")
+                            }
+                            if (currentArticle.dimensions.isNotBlank()) {
+                                add("• Dimensiones: ${currentArticle.dimensions}")
+                            }
+                        }.joinToString("\n")
                         Column(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
@@ -1169,7 +1290,7 @@ internal fun RenderProductDetailS19(
                                 style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink),
                             )
                             BasicText(
-                                "• Variante seleccionada: $selectedColor (${currentArticle.code})\n• Material: ${currentArticle.material}\n• Dimensiones: ${currentArticle.dimensions}\n• Limpieza certificada y garantía de reposición incluida",
+                                summaryLines,
                                 style = typo.body.copy(fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted, lineHeight = 20.sp),
                             )
                         }
@@ -1190,7 +1311,7 @@ internal fun RenderProductDetailS19(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(RfDimens.IconButtonSize)
                     .rfIconButtonShadow(CircleShape, isAdmin = false)
                     .clip(CircleShape)
                     .background(RfThemeState.currentPalette.surface)
@@ -1203,7 +1324,7 @@ internal fun RenderProductDetailS19(
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(RfDimens.IconButtonSize)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
@@ -1221,7 +1342,7 @@ internal fun RenderProductDetailS19(
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(RfDimens.IconButtonSize)
                         .rfIconButtonShadow(CircleShape, isAdmin = false)
                         .clip(CircleShape)
                         .background(RfThemeState.currentPalette.surface)
@@ -1299,7 +1420,8 @@ internal fun RenderProductDetailS19(
                             viewModel?.setArticleColorVariant(currentArticle.id, selectedColor)
                             viewModel?.setDraftQuantity(currentArticle.id, count)
                             viewModel?.soundPlayer?.playCartAdd()
-                            onSelectScreenCode("s25")
+                            viewModel?.showSavedItemPreview(article = currentArticle, quantity = count)
+                            onSelectScreenCode("s18")
                         },
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1310,6 +1432,19 @@ internal fun RenderProductDetailS19(
                         )
                     }
                 }
+            }
+        }
+
+        if (showFullScreenPhoto) {
+            Box(modifier = Modifier.fillMaxSize().zIndex(5f)) {
+                RfFullScreenPhotoViewer(
+                    mediaItems = galleryMedia,
+                    currentIndex = selectedPhotoIndex,
+                    title = currentArticle.name,
+                    viewModel = viewModel,
+                    onSelectIndex = { newIndex -> selectedPhotoIndex = newIndex },
+                    onDismiss = { showFullScreenPhoto = false },
+                )
             }
         }
     }
@@ -1326,6 +1461,7 @@ internal fun RenderCategoriesScreenS20(
 ) {
     val typo = LocalRfTypography.current
     val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
+    val vmCategories = viewModel?.catalogCategories?.collectAsState()?.value
     val balloonProductsState = viewModel?.balloonProducts?.collectAsState()?.value ?: CanonicalSampleData.balloonProducts
 
     fun countForCategory(categoryName: String): Int {
@@ -1414,107 +1550,166 @@ internal fun RenderCategoriesScreenS20(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard(
-                        title = "Mobiliario",
-                        subtitle = "${countForCategory("Mobiliario")} artículos",
-                        bg = Color(0xFFFFF2C9),
-                        illustration = CategoryIllustration.MOBILIARIO,
-                        modifier = Modifier.weight(1f),
+            if (vmCategories != null) {
+                if (vmCategories.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .padding(20.dp),
                     ) {
-                        viewModel?.setSelectedCategory("Mobiliario")
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s18")
+                        BasicText(
+                            text = "El negocio aún no ha publicado categorías en el catálogo.",
+                            style = typo.secondary.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
+                        )
                     }
-                    CategoryGridCard(
-                        title = "Centros florales",
-                        subtitle = "${countForCategory("Centros florales")} artículos",
-                        bg = Color(0xFFFDE6F2),
-                        illustration = CategoryIllustration.FLORAL,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        viewModel?.setSelectedCategory("Centros florales")
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s18")
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard(
-                        title = "Globos de fiesta",
-                        subtitle = "${balloonProductsState.size} productos",
-                        bg = Color(0xFFFFF2C9),
-                        illustration = CategoryIllustration.GLOBOS,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s23")
-                    }
-                    CategoryGridCard(
-                        title = "Decoración",
-                        subtitle = "${countForCategory("Decoración")} artículos",
-                        bg = Color(0xFFFDE6F2),
-                        illustration = CategoryIllustration.DECORACION,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        viewModel?.setSelectedCategory("Decoración")
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s18")
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        vmCategories.chunked(2).forEach { rowItems ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                                rowItems.forEachIndexed { colIndex, category ->
+                                    val liveCount = countForCategory(category.name).coerceAtLeast(category.itemCount)
+                                    val cardBg = if (colIndex == 0) Color(0xFFFFF2C9) else Color(0xFFFDE6F2)
+                                    CategoryGridCard(
+                                        title = category.name,
+                                        subtitle = "$liveCount artículos",
+                                        bg = cardBg,
+                                        illustration = resolvePersonalCategoryIllustration(category.illoKey, category.name),
+                                        customIconUrl = category.illoKey,
+                                        viewModel = viewModel,
+                                        modifier = Modifier.weight(1f),
+                                    ) {
+                                        viewModel.setSelectedCategory(category.name)
+                                        viewModel.soundPlayer.playTap()
+                                        onSelectScreenCode("s18")
+                                    }
+                                }
+                                if (rowItems.size < 2) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard(
-                        title = "Estaciones dulces",
-                        subtitle = "${countForCategory("Estaciones dulces")} artículos",
-                        bg = Color(0xFFEEF6D6),
-                        illustration = CategoryIllustration.MESA_DULCE,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        viewModel?.setSelectedCategory("Estaciones dulces")
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s18")
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        CategoryGridCard(
+                            title = "Mobiliario",
+                            subtitle = "${countForCategory("Mobiliario")} artículos",
+                            bg = Color(0xFFFFF2C9),
+                            illustration = CategoryIllustration.MOBILIARIO,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            viewModel?.setSelectedCategory("Mobiliario")
+                            viewModel?.soundPlayer?.playTap()
+                            onSelectScreenCode("s18")
+                        }
+                        CategoryGridCard(
+                            title = "Centros florales",
+                            subtitle = "${countForCategory("Centros florales")} artículos",
+                            bg = Color(0xFFFDE6F2),
+                            illustration = CategoryIllustration.FLORAL,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            viewModel?.setSelectedCategory("Centros florales")
+                            viewModel?.soundPlayer?.playTap()
+                            onSelectScreenCode("s18")
+                        }
                     }
-                    CategoryGridCard(
-                        title = "Mantelería",
-                        subtitle = "${countForCategory("Mantelería")} artículos",
-                        bg = Color(0xFFEFE8FD),
-                        illustration = CategoryIllustration.MANTELERIA,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        viewModel?.setSelectedCategory("Mantelería")
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s18")
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        CategoryGridCard(
+                            title = "Globos de fiesta",
+                            subtitle = "${balloonProductsState.size} productos",
+                            bg = Color(0xFFFFF2C9),
+                            illustration = CategoryIllustration.GLOBOS,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            viewModel?.soundPlayer?.playTap()
+                            onSelectScreenCode("s23")
+                        }
+                        CategoryGridCard(
+                            title = "Decoración",
+                            subtitle = "${countForCategory("Decoración")} artículos",
+                            bg = Color(0xFFFDE6F2),
+                            illustration = CategoryIllustration.DECORACION,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            viewModel?.setSelectedCategory("Decoración")
+                            viewModel?.soundPlayer?.playTap()
+                            onSelectScreenCode("s18")
+                        }
                     }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    CategoryGridCard(
-                        title = "Iluminación",
-                        subtitle = "${countForCategory("Iluminación")} artículos",
-                        bg = Color(0xFFDDF4F3),
-                        illustration = CategoryIllustration.ILUMINACION,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        viewModel?.setSelectedCategory("Iluminación")
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s18")
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        CategoryGridCard(
+                            title = "Estaciones dulces",
+                            subtitle = "${countForCategory("Estaciones dulces")} artículos",
+                            bg = Color(0xFFEEF6D6),
+                            illustration = CategoryIllustration.MESA_DULCE,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            viewModel?.setSelectedCategory("Estaciones dulces")
+                            viewModel?.soundPlayer?.playTap()
+                            onSelectScreenCode("s18")
+                        }
+                        CategoryGridCard(
+                            title = "Mantelería",
+                            subtitle = "${countForCategory("Mantelería")} artículos",
+                            bg = Color(0xFFEFE8FD),
+                            illustration = CategoryIllustration.MANTELERIA,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            viewModel?.setSelectedCategory("Mantelería")
+                            viewModel?.soundPlayer?.playTap()
+                            onSelectScreenCode("s18")
+                        }
                     }
-                    CategoryGridCard(
-                        title = "Letreros",
-                        subtitle = "${countForCategory("Letreros")} artículos",
-                        bg = Color(0xFF1E1A2E),
-                        illustration = CategoryIllustration.LETREROS,
-                        modifier = Modifier.weight(1f),
-                        titleColor = Color(0xFFFFFFFF),
-                    ) {
-                        viewModel?.setSelectedCategory("Letreros")
-                        viewModel?.soundPlayer?.playTap()
-                        onSelectScreenCode("s18")
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        CategoryGridCard(
+                            title = "Iluminación",
+                            subtitle = "${countForCategory("Iluminación")} artículos",
+                            bg = Color(0xFFDDF4F3),
+                            illustration = CategoryIllustration.ILUMINACION,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            viewModel?.setSelectedCategory("Iluminación")
+                            viewModel?.soundPlayer?.playTap()
+                            onSelectScreenCode("s18")
+                        }
+                        CategoryGridCard(
+                            title = "Letreros",
+                            subtitle = "${countForCategory("Letreros")} artículos",
+                            bg = Color(0xFF1E1A2E),
+                            illustration = CategoryIllustration.LETREROS,
+                            modifier = Modifier.weight(1f),
+                            titleColor = Color(0xFFFFFFFF),
+                        ) {
+                            viewModel?.setSelectedCategory("Letreros")
+                            viewModel?.soundPlayer?.playTap()
+                            onSelectScreenCode("s18")
+                        }
                     }
                 }
             }
 
             Spacer(Modifier.height(RfDimens.BottomBarContentClearance))
         }
+    }
+}
+
+private fun resolvePersonalCategoryIllustration(illoKey: String, name: String): CategoryIllustration {
+    val combined = "${illoKey.lowercase()} ${name.lowercase()}"
+    return when {
+        combined.contains("flor") -> CategoryIllustration.FLORAL
+        combined.contains("glob") || combined.contains("arco") -> CategoryIllustration.GLOBOS
+        combined.contains("dulce") -> CategoryIllustration.MESA_DULCE
+        combined.contains("mantel") -> CategoryIllustration.MANTELERIA
+        combined.contains("ilumin") || combined.contains("luz") -> CategoryIllustration.ILUMINACION
+        combined.contains("letrer") -> CategoryIllustration.LETREROS
+        combined.contains("decor") -> CategoryIllustration.DECORACION
+        else -> CategoryIllustration.MOBILIARIO
     }
 }
 
@@ -1535,6 +1730,8 @@ private fun CategoryGridCard(
     subtitle: String = "",
     bg: Color,
     illustration: CategoryIllustration,
+    customIconUrl: String = "",
+    viewModel: RosaFiestaViewModel? = null,
     modifier: Modifier = Modifier,
     titleColor: Color = Color(0xFF1A1A2E),
     onClick: () -> Unit,
@@ -1542,212 +1739,223 @@ private fun CategoryGridCard(
     val typo = LocalRfTypography.current
     Box(
         modifier = modifier
-            .height(142.dp)
+            .height(110.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(bg)
             .clickable(onClick = onClick)
             .padding(start = 14.dp, bottom = 14.dp),
     ) {
-        // SVG-style illustration via Canvas, positioned top-end 104dp
-        Canvas(
-            modifier = Modifier
-                .size(104.dp)
-                .align(Alignment.TopEnd)
-                .offset(x = 4.dp, y = (-2).dp),
-        ) {
-            val w = size.width
-            val h = size.height
-            when (illustration) {
-                CategoryIllustration.ILUMINACION -> {
-                    // String of colorful lights
-                    val wireColor = androidx.compose.ui.graphics.Color(0xFF2B1730).copy(alpha = 0.45f)
-                    drawPath(
-                        path = androidx.compose.ui.graphics.Path().apply {
-                            moveTo(w * 0.02f, h * 0.30f)
-                            cubicTo(w * 0.20f, h * 0.52f, w * 0.40f, h * 0.52f, w * 0.60f, h * 0.36f)
-                            cubicTo(w * 0.78f, h * 0.20f, w * 0.98f, h * 0.24f, w * 1.0f, h * 0.40f)
-                        },
-                        color = wireColor,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density),
-                    )
-                    drawPath(
-                        path = androidx.compose.ui.graphics.Path().apply {
-                            moveTo(w * 0.02f, h * 0.72f)
-                            cubicTo(w * 0.22f, h * 0.94f, w * 0.44f, h * 0.94f, w * 0.64f, h * 0.78f)
-                            cubicTo(w * 0.80f, h * 0.66f, w * 1.0f, h * 0.66f, w * 1.0f, h * 0.82f)
-                        },
-                        color = wireColor,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density),
-                    )
-                    // Bulbs
-                    val bulbColors = listOf(
-                        androidx.compose.ui.graphics.Color(0xFFF5B53B),
-                        androidx.compose.ui.graphics.Color(0xFFEC4F97),
-                        androidx.compose.ui.graphics.Color(0xFF2FB58F),
-                        androidx.compose.ui.graphics.Color(0xFF7650E8),
-                        androidx.compose.ui.graphics.Color(0xFF4AA8E0),
-                        androidx.compose.ui.graphics.Color(0xFFF5B53B),
-                    )
-                    val bulbXs = listOf(0.14f, 0.32f, 0.50f, 0.70f, 0.90f, 1.08f)
-                    val bulbYs = listOf(0.53f, 0.58f, 0.52f, 0.43f, 0.42f, 0.49f)
-                    bulbXs.forEachIndexed { i, bx ->
-                        val by = bulbYs[i]
-                        val c = bulbColors[i % bulbColors.size]
-                        drawOval(color = c.copy(alpha = 0.18f), topLeft = androidx.compose.ui.geometry.Offset((bx - 0.11f) * w, (by - 0.11f) * h), size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.22f))
-                        drawOval(color = c, topLeft = androidx.compose.ui.geometry.Offset((bx - 0.05f) * w, (by - 0.07f) * h), size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.14f))
+        if (isCustomMediaIconKey(customIconUrl)) {
+            RfCategoryCustomOrFallbackIcon(
+                iconUrlOrKey = customIconUrl,
+                contentDescription = title,
+                viewModel = viewModel,
+                size = 76.dp,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp, end = 12.dp),
+            )
+        } else {
+            Canvas(
+                modifier = Modifier
+                    .size(104.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 4.dp, y = (-2).dp),
+            ) {
+                val w = size.width
+                val h = size.height
+                when (illustration) {
+                    CategoryIllustration.ILUMINACION -> {
+                        // String of colorful lights
+                        val wireColor = androidx.compose.ui.graphics.Color(0xFF2B1730).copy(alpha = 0.45f)
+                        drawPath(
+                            path = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(w * 0.02f, h * 0.30f)
+                                cubicTo(w * 0.20f, h * 0.52f, w * 0.40f, h * 0.52f, w * 0.60f, h * 0.36f)
+                                cubicTo(w * 0.78f, h * 0.20f, w * 0.98f, h * 0.24f, w * 1.0f, h * 0.40f)
+                            },
+                            color = wireColor,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density),
+                        )
+                        drawPath(
+                            path = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(w * 0.02f, h * 0.72f)
+                                cubicTo(w * 0.22f, h * 0.94f, w * 0.44f, h * 0.94f, w * 0.64f, h * 0.78f)
+                                cubicTo(w * 0.80f, h * 0.66f, w * 1.0f, h * 0.66f, w * 1.0f, h * 0.82f)
+                            },
+                            color = wireColor,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * density),
+                        )
+                        // Bulbs
+                        val bulbColors = listOf(
+                            androidx.compose.ui.graphics.Color(0xFFF5B53B),
+                            androidx.compose.ui.graphics.Color(0xFFEC4F97),
+                            androidx.compose.ui.graphics.Color(0xFF2FB58F),
+                            androidx.compose.ui.graphics.Color(0xFF7650E8),
+                            androidx.compose.ui.graphics.Color(0xFF4AA8E0),
+                            androidx.compose.ui.graphics.Color(0xFFF5B53B),
+                        )
+                        val bulbXs = listOf(0.14f, 0.32f, 0.50f, 0.70f, 0.90f, 1.08f)
+                        val bulbYs = listOf(0.53f, 0.58f, 0.52f, 0.43f, 0.42f, 0.49f)
+                        bulbXs.forEachIndexed { i, bx ->
+                            val by = bulbYs[i]
+                            val c = bulbColors[i % bulbColors.size]
+                            drawOval(color = c.copy(alpha = 0.18f), topLeft = androidx.compose.ui.geometry.Offset((bx - 0.11f) * w, (by - 0.11f) * h), size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.22f))
+                            drawOval(color = c, topLeft = androidx.compose.ui.geometry.Offset((bx - 0.05f) * w, (by - 0.07f) * h), size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.14f))
+                        }
                     }
-                }
 
-                CategoryIllustration.FLORAL -> {
-                    // Simple flower vase
-                    // Vase
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.35f, h * 0.58f), size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.32f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f * density))
-                    // Stem
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFF4AA8E0).copy(alpha = 0.6f), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.60f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.28f), strokeWidth = 3f * density)
-                    // Pink flower
-                    for (angle in listOf(0.0, 60.0, 120.0, 180.0, 240.0, 300.0)) {
-                        val rad = angle * kotlin.math.PI / 180.0
-                        val px = (w * 0.50f + w * 0.12f * kotlin.math.cos(rad)).toFloat()
-                        val py = (h * 0.22f + h * 0.12f * kotlin.math.sin(rad)).toFloat()
-                        drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), radius = w * 0.10f, center = androidx.compose.ui.geometry.Offset(px, py))
+                    CategoryIllustration.FLORAL -> {
+                        // Simple flower vase
+                        // Vase
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.35f, h * 0.58f), size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.32f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f * density))
+                        // Stem
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFF4AA8E0).copy(alpha = 0.6f), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.60f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.28f), strokeWidth = 3f * density)
+                        // Pink flower
+                        for (angle in listOf(0.0, 60.0, 120.0, 180.0, 240.0, 300.0)) {
+                            val rad = angle * kotlin.math.PI / 180.0
+                            val px = (w * 0.50f + w * 0.12f * kotlin.math.cos(rad)).toFloat()
+                            val py = (h * 0.22f + h * 0.12f * kotlin.math.sin(rad)).toFloat()
+                            drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), radius = w * 0.10f, center = androidx.compose.ui.geometry.Offset(px, py))
+                        }
+                        drawCircle(color = androidx.compose.ui.graphics.Color(0xFFEC4F97), radius = w * 0.09f, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.22f))
+                        // Yellow flower
+                        for (angle in listOf(0.0, 72.0, 144.0, 216.0, 288.0)) {
+                            val rad = angle * kotlin.math.PI / 180.0
+                            val px = (w * 0.72f + w * 0.09f * kotlin.math.cos(rad)).toFloat()
+                            val py = (h * 0.32f + h * 0.09f * kotlin.math.sin(rad)).toFloat()
+                            drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = w * 0.08f, center = androidx.compose.ui.geometry.Offset(px, py))
+                        }
+                        drawCircle(color = androidx.compose.ui.graphics.Color(0xFFD9A441), radius = w * 0.06f, center = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.32f))
                     }
-                    drawCircle(color = androidx.compose.ui.graphics.Color(0xFFEC4F97), radius = w * 0.09f, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.22f))
-                    // Yellow flower
-                    for (angle in listOf(0.0, 72.0, 144.0, 216.0, 288.0)) {
-                        val rad = angle * kotlin.math.PI / 180.0
-                        val px = (w * 0.72f + w * 0.09f * kotlin.math.cos(rad)).toFloat()
-                        val py = (h * 0.32f + h * 0.09f * kotlin.math.sin(rad)).toFloat()
-                        drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = w * 0.08f, center = androidx.compose.ui.geometry.Offset(px, py))
+
+                    CategoryIllustration.GLOBOS -> {
+                        // 3 balloons
+                        val balloonData = listOf(
+                            Triple(w * 0.30f, h * 0.35f, androidx.compose.ui.graphics.Color(0xFFEC4F97)),
+                            Triple(w * 0.60f, h * 0.28f, androidx.compose.ui.graphics.Color(0xFF7650E8)),
+                            Triple(w * 0.50f, h * 0.52f, androidx.compose.ui.graphics.Color(0xFFF5B53B)),
+                        )
+                        balloonData.forEach { (bx, by, bc) ->
+                            drawCircle(color = bc.copy(alpha = 0.18f), radius = w * 0.19f, center = androidx.compose.ui.geometry.Offset(bx, by))
+                            drawCircle(color = bc, radius = w * 0.15f, center = androidx.compose.ui.geometry.Offset(bx, by))
+                            drawLine(color = androidx.compose.ui.graphics.Color(0xFF2B1730).copy(alpha = 0.4f), start = androidx.compose.ui.geometry.Offset(bx, by + w * 0.15f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.95f), strokeWidth = 1.4f * density)
+                        }
                     }
-                    drawCircle(color = androidx.compose.ui.graphics.Color(0xFFD9A441), radius = w * 0.06f, center = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.32f))
-                }
 
-                CategoryIllustration.GLOBOS -> {
-                    // 3 balloons
-                    val balloonData = listOf(
-                        Triple(w * 0.30f, h * 0.35f, androidx.compose.ui.graphics.Color(0xFFEC4F97)),
-                        Triple(w * 0.60f, h * 0.28f, androidx.compose.ui.graphics.Color(0xFF7650E8)),
-                        Triple(w * 0.50f, h * 0.52f, androidx.compose.ui.graphics.Color(0xFFF5B53B)),
-                    )
-                    balloonData.forEach { (bx, by, bc) ->
-                        drawCircle(color = bc.copy(alpha = 0.18f), radius = w * 0.19f, center = androidx.compose.ui.geometry.Offset(bx, by))
-                        drawCircle(color = bc, radius = w * 0.15f, center = androidx.compose.ui.geometry.Offset(bx, by))
-                        drawLine(color = androidx.compose.ui.graphics.Color(0xFF2B1730).copy(alpha = 0.4f), start = androidx.compose.ui.geometry.Offset(bx, by + w * 0.15f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.95f), strokeWidth = 1.4f * density)
+                    CategoryIllustration.MANTELERIA -> {
+                        // Stacked tablecloth layers
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.22f, h * 0.68f), size = androidx.compose.ui.geometry.Size(w * 0.56f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.25f, h * 0.52f), size = androidx.compose.ui.geometry.Size(w * 0.50f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w * 0.20f, h * 0.37f), size = androidx.compose.ui.geometry.Size(w * 0.54f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
+                        // Dashes on top layer
+                        val dashColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f)
+                        drawLine(dashColor, start = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.45f), end = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.45f), strokeWidth = 1.6f * density)
+                        drawLine(dashColor, start = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.60f), end = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.60f), strokeWidth = 1.6f * density)
+                        drawLine(dashColor, start = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.76f), end = androidx.compose.ui.geometry.Offset(w * 0.70f, h * 0.76f), strokeWidth = 1.6f * density)
+                        // Bow
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.30f), size = androidx.compose.ui.geometry.Size(w * 0.12f, h * 0.04f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
                     }
-                }
 
-                CategoryIllustration.MANTELERIA -> {
-                    // Stacked tablecloth layers
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.22f, h * 0.68f), size = androidx.compose.ui.geometry.Size(w * 0.56f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.25f, h * 0.52f), size = androidx.compose.ui.geometry.Size(w * 0.50f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w * 0.20f, h * 0.37f), size = androidx.compose.ui.geometry.Size(w * 0.54f, h * 0.16f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(5f * density))
-                    // Dashes on top layer
-                    val dashColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f)
-                    drawLine(dashColor, start = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.45f), end = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.45f), strokeWidth = 1.6f * density)
-                    drawLine(dashColor, start = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.60f), end = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.60f), strokeWidth = 1.6f * density)
-                    drawLine(dashColor, start = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.76f), end = androidx.compose.ui.geometry.Offset(w * 0.70f, h * 0.76f), strokeWidth = 1.6f * density)
-                    // Bow
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.30f), size = androidx.compose.ui.geometry.Size(w * 0.12f, h * 0.04f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
-                }
-
-                CategoryIllustration.MESA_DULCE -> {
-                    // Sweet table with cake
-                    // Table legs
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.90f), strokeWidth = 2f * density)
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.90f), strokeWidth = 2f * density)
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.58f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.58f, h * 0.90f), strokeWidth = 2f * density)
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.90f), strokeWidth = 2f * density)
-                    // Table top
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.22f, h * 0.65f), size = androidx.compose.ui.geometry.Size(w * 0.56f, h * 0.08f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
-                    // Cake layers
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.53f), size = androidx.compose.ui.geometry.Size(w * 0.44f, h * 0.13f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.40f), size = androidx.compose.ui.geometry.Size(w * 0.34f, h * 0.13f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w * 0.38f, h * 0.27f), size = androidx.compose.ui.geometry.Size(w * 0.24f, h * 0.13f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
-                    // Candle
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFF4AA8E0), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.18f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.27f), strokeWidth = 3f * density)
-                    drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = 5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.16f))
-                }
-
-                CategoryIllustration.LETREROS -> {
-                    // Neon heart sign (pink on dark bg)
-                    val neonColor = androidx.compose.ui.graphics.Color(0xFFFF6FB0)
-                    val neonGlow = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.22f)
-
-                    // Heart path: scale to 104x104
-                    fun heartPath(scale: Float): androidx.compose.ui.graphics.Path {
-                        val p = androidx.compose.ui.graphics.Path()
-                        val cx = w * 0.50f
-                        val cy = h * 0.42f
-                        p.moveTo(cx, cy + scale * 0.46f)
-                        p.cubicTo(cx - scale * 0.60f, cy + scale * 0.26f, cx - scale * 0.80f, cy + scale * 0.05f, cx - scale * 0.50f, cy - scale * 0.18f)
-                        p.cubicTo(cx - scale * 0.20f, cy - scale * 0.40f, cx, cy - scale * 0.25f, cx, cy - scale * 0.10f)
-                        p.cubicTo(cx, cy - scale * 0.25f, cx + scale * 0.20f, cy - scale * 0.40f, cx + scale * 0.50f, cy - scale * 0.18f)
-                        p.cubicTo(cx + scale * 0.80f, cy + scale * 0.05f, cx + scale * 0.60f, cy + scale * 0.26f, cx, cy + scale * 0.46f)
-                        p.close()
-                        return p
+                    CategoryIllustration.MESA_DULCE -> {
+                        // Sweet table with cake
+                        // Table legs
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.90f), strokeWidth = 2f * density)
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.90f), strokeWidth = 2f * density)
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.58f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.58f, h * 0.90f), strokeWidth = 2f * density)
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.3f), start = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.72f, h * 0.90f), strokeWidth = 2f * density)
+                        // Table top
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.22f, h * 0.65f), size = androidx.compose.ui.geometry.Size(w * 0.56f, h * 0.08f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                        // Cake layers
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.53f), size = androidx.compose.ui.geometry.Size(w * 0.44f, h * 0.13f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFB9A6F7), topLeft = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.40f), size = androidx.compose.ui.geometry.Size(w * 0.34f, h * 0.13f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFF9BE3C9), topLeft = androidx.compose.ui.geometry.Offset(w * 0.38f, h * 0.27f), size = androidx.compose.ui.geometry.Size(w * 0.24f, h * 0.13f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                        // Candle
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFF4AA8E0), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.18f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.27f), strokeWidth = 3f * density)
+                        drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = 5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.16f))
                     }
-                    drawPath(heartPath(w * 0.45f), color = neonGlow, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 14f * density))
-                    drawPath(heartPath(w * 0.45f), color = neonColor, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.5f * density))
-                    // Wavy line at bottom (yellow neon)
-                    drawPath(
-                        path = androidx.compose.ui.graphics.Path().apply {
-                            moveTo(w * 0.28f, h * 0.82f)
-                            cubicTo(w * 0.33f, h * 0.76f, w * 0.38f, h * 0.76f, w * 0.44f, h * 0.82f)
-                            cubicTo(w * 0.50f, h * 0.88f, w * 0.55f, h * 0.88f, w * 0.60f, h * 0.82f)
-                            cubicTo(w * 0.66f, h * 0.76f, w * 0.71f, h * 0.76f, w * 0.74f, h * 0.82f)
-                        },
-                        color = androidx.compose.ui.graphics.Color(0xFFF5B53B).copy(alpha = 0.2f),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 10f * density),
-                    )
-                    drawPath(
-                        path = androidx.compose.ui.graphics.Path().apply {
-                            moveTo(w * 0.28f, h * 0.82f)
-                            cubicTo(w * 0.33f, h * 0.76f, w * 0.38f, h * 0.76f, w * 0.44f, h * 0.82f)
-                            cubicTo(w * 0.50f, h * 0.88f, w * 0.55f, h * 0.88f, w * 0.60f, h * 0.82f)
-                            cubicTo(w * 0.66f, h * 0.76f, w * 0.71f, h * 0.76f, w * 0.74f, h * 0.82f)
-                        },
-                        color = androidx.compose.ui.graphics.Color(0xFFFFC75A),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.2f * density),
-                    )
-                    // String
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFF9B8AA0), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.05f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.17f), strokeWidth = 1.4f * density)
-                }
 
-                CategoryIllustration.MOBILIARIO -> {
-                    // Chair — Tiffany style
-                    val chairColor = androidx.compose.ui.graphics.Color(0xFFD9A441)
-                    // Legs
-                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.32f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.92f), strokeWidth = 3f * density)
-                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.70f, h * 0.92f), strokeWidth = 3f * density)
-                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.32f, h * 0.92f), end = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.92f), strokeWidth = 2.5f * density)
-                    // Seat
-                    drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.25f, h * 0.65f), size = androidx.compose.ui.geometry.Size(w * 0.50f, h * 0.08f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * density))
-                    // Cushion
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.27f, h * 0.62f), size = androidx.compose.ui.geometry.Size(w * 0.46f, h * 0.06f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
-                    // Back slats
-                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.40f, h * 0.62f), end = androidx.compose.ui.geometry.Offset(w * 0.40f, h * 0.20f), strokeWidth = 3f * density)
-                    drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.60f, h * 0.62f), end = androidx.compose.ui.geometry.Offset(w * 0.60f, h * 0.20f), strokeWidth = 3f * density)
-                    // Top rail
-                    drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.17f), size = androidx.compose.ui.geometry.Size(w * 0.40f, h * 0.06f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * density))
-                    // Middle rail
-                    drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.38f), size = androidx.compose.ui.geometry.Size(w * 0.34f, h * 0.04f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * density))
-                }
+                    CategoryIllustration.LETREROS -> {
+                        // Neon heart sign (pink on dark bg)
+                        val neonColor = androidx.compose.ui.graphics.Color(0xFFFF6FB0)
+                        val neonGlow = androidx.compose.ui.graphics.Color(0xFFEC4F97).copy(alpha = 0.22f)
 
-                CategoryIllustration.DECORACION -> {
-                    // Vase with plants and candle
-                    // Vase
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF5F0EA), topLeft = androidx.compose.ui.geometry.Offset(w * 0.35f, h * 0.55f), size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.38f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f * density))
-                    // Stems
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFD9A441), start = androidx.compose.ui.geometry.Offset(w * 0.45f, h * 0.55f), end = androidx.compose.ui.geometry.Offset(w * 0.38f, h * 0.15f), strokeWidth = 2.5f * density)
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFD9A441), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.55f), end = androidx.compose.ui.geometry.Offset(w * 0.52f, h * 0.08f), strokeWidth = 2.5f * density)
-                    drawLine(color = androidx.compose.ui.graphics.Color(0xFFD9A441), start = androidx.compose.ui.geometry.Offset(w * 0.55f, h * 0.55f), end = androidx.compose.ui.geometry.Offset(w * 0.64f, h * 0.20f), strokeWidth = 2.5f * density)
-                    // Leaves
-                    drawOval(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.14f), size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.14f))
-                    drawOval(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.05f), size = androidx.compose.ui.geometry.Size(w * 0.16f, h * 0.10f))
-                    drawOval(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.56f, h * 0.15f), size = androidx.compose.ui.geometry.Size(w * 0.20f, h * 0.12f))
-                    // Candle
-                    drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFEC4F97), topLeft = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.55f), size = androidx.compose.ui.geometry.Size(w * 0.18f, h * 0.35f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
-                    drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = 5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.77f, h * 0.52f))
+                        // Heart path: scale to 104x104
+                        fun heartPath(scale: Float): androidx.compose.ui.graphics.Path {
+                            val p = androidx.compose.ui.graphics.Path()
+                            val cx = w * 0.50f
+                            val cy = h * 0.42f
+                            p.moveTo(cx, cy + scale * 0.46f)
+                            p.cubicTo(cx - scale * 0.60f, cy + scale * 0.26f, cx - scale * 0.80f, cy + scale * 0.05f, cx - scale * 0.50f, cy - scale * 0.18f)
+                            p.cubicTo(cx - scale * 0.20f, cy - scale * 0.40f, cx, cy - scale * 0.25f, cx, cy - scale * 0.10f)
+                            p.cubicTo(cx, cy - scale * 0.25f, cx + scale * 0.20f, cy - scale * 0.40f, cx + scale * 0.50f, cy - scale * 0.18f)
+                            p.cubicTo(cx + scale * 0.80f, cy + scale * 0.05f, cx + scale * 0.60f, cy + scale * 0.26f, cx, cy + scale * 0.46f)
+                            p.close()
+                            return p
+                        }
+                        drawPath(heartPath(w * 0.45f), color = neonGlow, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 14f * density))
+                        drawPath(heartPath(w * 0.45f), color = neonColor, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4.5f * density))
+                        // Wavy line at bottom (yellow neon)
+                        drawPath(
+                            path = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(w * 0.28f, h * 0.82f)
+                                cubicTo(w * 0.33f, h * 0.76f, w * 0.38f, h * 0.76f, w * 0.44f, h * 0.82f)
+                                cubicTo(w * 0.50f, h * 0.88f, w * 0.55f, h * 0.88f, w * 0.60f, h * 0.82f)
+                                cubicTo(w * 0.66f, h * 0.76f, w * 0.71f, h * 0.76f, w * 0.74f, h * 0.82f)
+                            },
+                            color = androidx.compose.ui.graphics.Color(0xFFF5B53B).copy(alpha = 0.2f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 10f * density),
+                        )
+                        drawPath(
+                            path = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(w * 0.28f, h * 0.82f)
+                                cubicTo(w * 0.33f, h * 0.76f, w * 0.38f, h * 0.76f, w * 0.44f, h * 0.82f)
+                                cubicTo(w * 0.50f, h * 0.88f, w * 0.55f, h * 0.88f, w * 0.60f, h * 0.82f)
+                                cubicTo(w * 0.66f, h * 0.76f, w * 0.71f, h * 0.76f, w * 0.74f, h * 0.82f)
+                            },
+                            color = androidx.compose.ui.graphics.Color(0xFFFFC75A),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.2f * density),
+                        )
+                        // String
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFF9B8AA0), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.05f), end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.17f), strokeWidth = 1.4f * density)
+                    }
+
+                    CategoryIllustration.MOBILIARIO -> {
+                        // Chair — Tiffany style
+                        val chairColor = androidx.compose.ui.graphics.Color(0xFFD9A441)
+                        // Legs
+                        drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.32f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.92f), strokeWidth = 3f * density)
+                        drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.72f), end = androidx.compose.ui.geometry.Offset(w * 0.70f, h * 0.92f), strokeWidth = 3f * density)
+                        drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.32f, h * 0.92f), end = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.92f), strokeWidth = 2.5f * density)
+                        // Seat
+                        drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.25f, h * 0.65f), size = androidx.compose.ui.geometry.Size(w * 0.50f, h * 0.08f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * density))
+                        // Cushion
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF9B6D3), topLeft = androidx.compose.ui.geometry.Offset(w * 0.27f, h * 0.62f), size = androidx.compose.ui.geometry.Size(w * 0.46f, h * 0.06f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                        // Back slats
+                        drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.40f, h * 0.62f), end = androidx.compose.ui.geometry.Offset(w * 0.40f, h * 0.20f), strokeWidth = 3f * density)
+                        drawLine(chairColor, start = androidx.compose.ui.geometry.Offset(w * 0.60f, h * 0.62f), end = androidx.compose.ui.geometry.Offset(w * 0.60f, h * 0.20f), strokeWidth = 3f * density)
+                        // Top rail
+                        drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.30f, h * 0.17f), size = androidx.compose.ui.geometry.Size(w * 0.40f, h * 0.06f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * density))
+                        // Middle rail
+                        drawRoundRect(color = chairColor, topLeft = androidx.compose.ui.geometry.Offset(w * 0.33f, h * 0.38f), size = androidx.compose.ui.geometry.Size(w * 0.34f, h * 0.04f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f * density))
+                    }
+
+                    CategoryIllustration.DECORACION -> {
+                        // Vase with plants and candle
+                        // Vase
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFF5F0EA), topLeft = androidx.compose.ui.geometry.Offset(w * 0.35f, h * 0.55f), size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.38f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f * density))
+                        // Stems
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFFD9A441), start = androidx.compose.ui.geometry.Offset(w * 0.45f, h * 0.55f), end = androidx.compose.ui.geometry.Offset(w * 0.38f, h * 0.15f), strokeWidth = 2.5f * density)
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFFD9A441), start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.55f), end = androidx.compose.ui.geometry.Offset(w * 0.52f, h * 0.08f), strokeWidth = 2.5f * density)
+                        drawLine(color = androidx.compose.ui.graphics.Color(0xFFD9A441), start = androidx.compose.ui.geometry.Offset(w * 0.55f, h * 0.55f), end = androidx.compose.ui.geometry.Offset(w * 0.64f, h * 0.20f), strokeWidth = 2.5f * density)
+                        // Leaves
+                        drawOval(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.28f, h * 0.14f), size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.14f))
+                        drawOval(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.44f, h * 0.05f), size = androidx.compose.ui.geometry.Size(w * 0.16f, h * 0.10f))
+                        drawOval(color = androidx.compose.ui.graphics.Color(0xFFD9A441), topLeft = androidx.compose.ui.geometry.Offset(w * 0.56f, h * 0.15f), size = androidx.compose.ui.geometry.Size(w * 0.20f, h * 0.12f))
+                        // Candle
+                        drawRoundRect(color = androidx.compose.ui.graphics.Color(0xFFEC4F97), topLeft = androidx.compose.ui.geometry.Offset(w * 0.68f, h * 0.55f), size = androidx.compose.ui.geometry.Size(w * 0.18f, h * 0.35f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * density))
+                        drawCircle(color = androidx.compose.ui.graphics.Color(0xFFF5B53B), radius = 5f * density, center = androidx.compose.ui.geometry.Offset(w * 0.77f, h * 0.52f))
+                    }
                 }
             }
         }
@@ -1904,45 +2112,10 @@ internal fun RenderPackagesScreenS21(
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clickable { onSelectScreenCode("s25") },
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(palette.surface)
-                            .border(1.dp, palette.line, CircleShape),
-                    ) {
-                        RfIcon(kind = RfIconKind.PARTY, tint = palette.ink, size = 20.dp)
-                    }
-                    if (totalDraftCount > 0) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 4.dp, y = (-4).dp)
-                                .height(20.dp)
-                                .widthIn(min = 20.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color(0xFFFFD45C))
-                                .padding(horizontal = 4.dp),
-                        ) {
-                            BasicText(
-                                text = totalDraftCount.toString(),
-                                style = typo.sectionCap.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF2E1A47),
-                                ),
-                            )
-                        }
-                    }
-                }
+                RfDraftCartPillButton(
+                    count = totalDraftCount,
+                    onClick = { onSelectScreenCode("s25") },
+                )
             }
 
             val packageBorderColor = if (packageSearchError != null) Color(0xFFE53935) else palette.line
@@ -2195,9 +2368,17 @@ private fun PackageSummaryCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                 ) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        BasicText("desde ", style = typo.secondary.copy(fontSize = 12.5.sp, color = RfThemeState.currentPalette.muted))
-                        BasicText(price, style = typo.heroTitle.copy(fontSize = 16.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
+                    Row {
+                        BasicText(
+                            "desde ",
+                            style = typo.secondary.copy(fontSize = 12.5.sp, color = RfThemeState.currentPalette.muted),
+                            modifier = Modifier.alignByBaseline(),
+                        )
+                        BasicText(
+                            price,
+                            style = typo.heroTitle.copy(fontSize = 16.5.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)),
+                            modifier = Modifier.alignByBaseline(),
+                        )
                     }
                     Box(
                         contentAlignment = Alignment.Center,
@@ -2350,7 +2531,7 @@ internal fun RenderPackageDetailScreenS22(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp)
+                    .height(224.dp)
                     .background(palette.chipBg),
             ) {
                 RfPhoto(
@@ -2404,9 +2585,17 @@ internal fun RenderPackageDetailScreenS22(
                         style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink),
                         modifier = Modifier.weight(1f),
                     )
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        BasicText("desde ", style = typo.secondary.copy(fontSize = 14.sp, color = palette.muted))
-                        BasicText("RD$ $discountedTotalDop", style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)))
+                    Row {
+                        BasicText(
+                            "desde ",
+                            style = typo.secondary.copy(fontSize = 14.sp, color = palette.muted),
+                            modifier = Modifier.alignByBaseline(),
+                        )
+                        BasicText(
+                            "RD$ $discountedTotalDop",
+                            style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFFC2338F)),
+                            modifier = Modifier.alignByBaseline(),
+                        )
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -2531,7 +2720,6 @@ internal fun RenderPackageDetailScreenS22(
                                     }
                                 }
                             }
-                            onSelectScreenCode("s25")
                         },
                 ) {
                     BasicText("Personalizar este paquete", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))
@@ -2848,38 +3036,10 @@ internal fun RenderShopScreenS23(
                 ) {
                     RfIcon(kind = RfIconKind.SEARCH, tint = palette.ink, size = 20.dp)
                 }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .height(44.dp)
-                        .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66A050D2))
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(gradDiag)
-                        .clickable { onSelectScreenCode("s25") }
-                        .padding(horizontal = 10.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 20.dp)
-                        if (cartCount > 0) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .height(22.dp)
-                                    .widthIn(min = 22.dp)
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(Color(0xFFFFD45C))
-                                    .padding(horizontal = 6.dp),
-                            ) {
-                                BasicText(
-                                    text = "$cartCount",
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    style = typo.sectionCap.copy(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
-                                )
-                            }
-                        }
-                    }
-                }
+                RfDraftCartPillButton(
+                    count = cartCount,
+                    onClick = { onSelectScreenCode("s25") },
+                )
             }
 
             AnimatedVisibility(visible = showSearchInput) {
@@ -2984,14 +3144,14 @@ internal fun RenderShopScreenS23(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .height(164.dp)
+                    .height(128.dp)
                     .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = false)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color(0xFFEFE8FD)),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(170.dp)
+                        .size(132.dp)
                         .align(Alignment.TopEnd)
                         .offset(x = 6.dp, y = 4.dp),
                 ) {
@@ -3327,7 +3487,7 @@ private fun TiendaBalloonProductCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(128.dp)
+                    .height(100.dp)
                     .background(bg),
                 contentAlignment = Alignment.Center,
             ) {
@@ -3684,7 +3844,6 @@ internal fun RenderClientFavoritesScreenS24(
                                     favoriteDisplayItems.forEach { favItem ->
                                         viewModel?.adjustDraftQuantity(favItem.id, 1)
                                     }
-                                    onSelectScreenCode("s25")
                                 },
                         ) {
                             BasicText(addAllButtonLabel, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))

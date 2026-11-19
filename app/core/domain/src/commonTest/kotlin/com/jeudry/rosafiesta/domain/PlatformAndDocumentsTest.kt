@@ -176,6 +176,7 @@ class PlatformAndDocumentsTest {
         )
         assertEquals("application/pdf", ExternalUrlBuilder.inferMimeType("comprobante.PDF"))
         assertEquals("text/csv", ExternalUrlBuilder.inferMimeType("dgii_607.csv"))
+        assertEquals("image/svg+xml", ExternalUrlBuilder.inferMimeType("icono_categoria.SVG"))
 
         val actions = NoOpPlatformActions(configuredBaseUrl = "http://10.0.2.2:8788/")
         assertEquals("http://10.0.2.2:8788", actions.defaultApiBaseUrl())

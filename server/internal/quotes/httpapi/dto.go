@@ -37,31 +37,68 @@ func newQuoteOutput(quote domain.Quote) *QuoteOutput {
 
 type CreateQuoteInput struct {
 	Body struct {
-		EventID        string             `json:"eventId,omitempty"`
-		EventTitle     string             `json:"eventTitle" minLength:"2"`
-		ClientName     string             `json:"clientName" minLength:"2"`
-		ClientEmail    string             `json:"clientEmail,omitempty"`
-		EventDateLabel string             `json:"eventDateLabel" minLength:"2"`
-		Venue          string             `json:"venue" minLength:"2"`
-		Guests         int                `json:"guests" minimum:"1"`
-		Lines          []domain.QuoteLine `json:"lines"`
-		DeliveryFeeRD  int                `json:"deliveryFeeRD" minimum:"0"`
-		DiscountRD     int                `json:"discountRD" minimum:"0"`
+		EventID         string             `json:"eventId,omitempty"`
+		EventTitle      string             `json:"eventTitle" minLength:"2"`
+		ClientName      string             `json:"clientName" minLength:"2"`
+		ClientEmail     string             `json:"clientEmail,omitempty"`
+		EventDateLabel  string             `json:"eventDateLabel" minLength:"2"`
+		EventDateISO    string             `json:"eventDateIso,omitempty"`
+		PackageID       string             `json:"packageId,omitempty"`
+		Venue           string             `json:"venue" minLength:"2"`
+		Guests          int                `json:"guests" minimum:"1"`
+		Lines           []domain.QuoteLine `json:"lines"`
+		DeliveryFeeRD   int                `json:"deliveryFeeRD" minimum:"0"`
+		DiscountRD      int                `json:"discountRD" minimum:"0"`
+		Notes           string             `json:"notes,omitempty"`
+		SendImmediately bool               `json:"sendImmediately,omitempty"`
 	}
 }
 
 func (in *CreateQuoteInput) ToCommand() app.CreateQuoteCommand {
 	return app.CreateQuoteCommand{
-		EventID:        in.Body.EventID,
+		EventID:         in.Body.EventID,
+		EventTitle:      in.Body.EventTitle,
+		ClientName:      in.Body.ClientName,
+		ClientEmail:     in.Body.ClientEmail,
+		EventDateLabel:  in.Body.EventDateLabel,
+		EventDateISO:    in.Body.EventDateISO,
+		PackageID:       in.Body.PackageID,
+		Venue:           in.Body.Venue,
+		Guests:          in.Body.Guests,
+		Lines:           in.Body.Lines,
+		DeliveryFeeRD:   in.Body.DeliveryFeeRD,
+		DiscountRD:      in.Body.DiscountRD,
+		Notes:           in.Body.Notes,
+		SendImmediately: in.Body.SendImmediately,
+	}
+}
+
+type SendQuoteInput struct {
+	ID   string `path:"id" doc:"Quote identifier."`
+	Body struct {
+		EventTitle     string             `json:"eventTitle,omitempty"`
+		Venue          string             `json:"venue,omitempty"`
+		EventDateLabel string             `json:"eventDateLabel,omitempty"`
+		EventDateISO   string             `json:"eventDateIso,omitempty"`
+		Guests         int                `json:"guests,omitempty"`
+		Lines          []domain.QuoteLine `json:"lines,omitempty"`
+		DeliveryFeeRD  *int               `json:"deliveryFeeRD,omitempty"`
+		DiscountRD     *int               `json:"discountRD,omitempty"`
+		Notes          string             `json:"notes,omitempty"`
+	}
+}
+
+func (in *SendQuoteInput) ToCommand() app.EnrichAndSendQuoteCommand {
+	return app.EnrichAndSendQuoteCommand{
 		EventTitle:     in.Body.EventTitle,
-		ClientName:     in.Body.ClientName,
-		ClientEmail:    in.Body.ClientEmail,
-		EventDateLabel: in.Body.EventDateLabel,
 		Venue:          in.Body.Venue,
+		EventDateLabel: in.Body.EventDateLabel,
+		EventDateISO:   in.Body.EventDateISO,
 		Guests:         in.Body.Guests,
 		Lines:          in.Body.Lines,
 		DeliveryFeeRD:  in.Body.DeliveryFeeRD,
 		DiscountRD:     in.Body.DiscountRD,
+		Notes:          in.Body.Notes,
 	}
 }
 
@@ -152,36 +189,49 @@ type RosaTranscribeOutput struct {
 	Body domain.TranscriptionResult
 }
 
+type RosaSketchInput struct {
+	Body struct {
+		Prompt    string `json:"prompt" minLength:"2"`
+		EventType string `json:"eventType,omitempty"`
+		Guests    int    `json:"guests,omitempty"`
+	}
+}
+
+type RosaSketchOutput struct {
+	Body domain.RosaSketchResponse
+}
+
+type quoteErrorSpec struct {
+	target error
+	status int
+	code   string
+	policy string
+}
+
+var quoteErrorSpecs = []quoteErrorSpec{
+	{domain.ErrQuoteForbidden, http.StatusForbidden, "FORBIDDEN_QUOTE_ACCESS", "ClientQuoteIsolation"},
+	{domain.ErrQuoteNotFound, http.StatusNotFound, "QUOTE_NOT_FOUND", "QuoteMustExist"},
+	{domain.ErrQuoteAlreadyDecided, http.StatusConflict, "QUOTE_ALREADY_DECIDED", "QuoteTransitionGuard"},
+	{domain.ErrInsufficientStock, http.StatusConflict, "STOCK_INSUFFICIENT_FOR_DATE", "CheckDateAvailability"},
+	{domain.ErrAIProviderNotConfigured, http.StatusServiceUnavailable, "AI_PROVIDER_NOT_CONFIGURED", "RequireConfiguredAIProvider"},
+	{domain.ErrSTTProviderNotConfigured, http.StatusServiceUnavailable, "STT_PROVIDER_NOT_CONFIGURED", "RequireConfiguredSTTProvider"},
+	{domain.ErrAudioTooLong, http.StatusBadRequest, "ROSA_AUDIO_TOO_LONG", "ValidateAudioDuration"},
+	{domain.ErrAIRateLimited, http.StatusTooManyRequests, "ROSA_RATE_LIMITED", "RateLimitRosaChat"},
+	{domain.ErrInvalidAudioPayload, http.StatusBadRequest, "ROSA_AUDIO_INVALID", "ValidateBase64Audio"},
+}
+
 func mapQuoteError(err error, endpoint, defaultCode, policy string, defaultStatus int) *platformhttp.APIError {
-	if errors.Is(err, domain.ErrQuoteForbidden) {
-		return platformhttp.NewAPIError(
-			http.StatusForbidden,
-			"FORBIDDEN_QUOTE_ACCESS",
-			err.Error(),
-			endpoint,
-			"ClientQuoteIsolation",
-			err.Error(),
-		)
-	}
-	if errors.Is(err, domain.ErrQuoteNotFound) {
-		return platformhttp.NewAPIError(
-			http.StatusNotFound,
-			"QUOTE_NOT_FOUND",
-			err.Error(),
-			endpoint,
-			"QuoteMustExist",
-			err.Error(),
-		)
-	}
-	if errors.Is(err, domain.ErrInvalidAudioPayload) {
-		return platformhttp.NewAPIError(
-			http.StatusBadRequest,
-			"ROSA_AUDIO_INVALID",
-			err.Error(),
-			endpoint,
-			"ValidateBase64Audio",
-			err.Error(),
-		)
+	for _, spec := range quoteErrorSpecs {
+		if errors.Is(err, spec.target) {
+			return platformhttp.NewAPIError(
+				spec.status,
+				spec.code,
+				err.Error(),
+				endpoint,
+				spec.policy,
+				err.Error(),
+			)
+		}
 	}
 	return platformhttp.NewAPIError(
 		defaultStatus,

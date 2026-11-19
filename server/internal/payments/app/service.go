@@ -1,3 +1,4 @@
+// Package app orquesta los casos de uso financieros, verificación de pagos, NCF, pasarela y reembolsos.
 package app
 
 import (
@@ -5,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +15,8 @@ import (
 	"github.com/Jeudry/rosafiesta/server/internal/payments/domain"
 	"github.com/Jeudry/rosafiesta/server/internal/platform/clock"
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
+	"github.com/Jeudry/rosafiesta/server/internal/platform/mailer"
+	realtimedomain "github.com/Jeudry/rosafiesta/server/internal/realtime/domain"
 )
 
 const (
@@ -22,16 +26,39 @@ const (
 	defaultReceivableBaselineRD    = 7724
 	defaultActiveEventsCount       = 4
 	defaultNewQuoteRequests        = 2
+	defaultStripeAPIBaseURL        = "https://api.stripe.com"
 )
 
+// EventMetricsReader expone una vista de lectura de eventos para calcular cuentas por cobrar.
 type EventMetricsReader interface {
 	AllEventsSnapshot(ctx context.Context) []eventsdomain.Event
 }
 
+// QuoteMetricsReader expone el conteo de cotizaciones pendientes de revisión.
 type QuoteMetricsReader interface {
 	PendingQuotesCount(ctx context.Context) int
 }
 
+// VerifiedPaymentSynchronizer sincroniza otros módulos cuando un pago queda confirmado o verificado.
+type VerifiedPaymentSynchronizer interface {
+	OnPaymentVerified(ctx context.Context, payment domain.Payment) error
+}
+
+// EmailPreferenceChecker verifica si el cliente autoriza el envío de recibos por correo.
+type EmailPreferenceChecker interface {
+	AllowsEmailReceipts(ctx context.Context, clientID string, email string) bool
+}
+
+// DamageExpensesReader expone el total de gastos por daños o reposiciones registradas.
+type DamageExpensesReader interface {
+	TotalDamageExpensesRD(ctx context.Context) int
+}
+
+type ncfSequenceAllocator interface {
+	AllocateNextNCF(ctx context.Context, ncfType string) (string, error)
+}
+
+// Store abstrae la persistencia durable de pagos y reembolsos.
 type Store interface {
 	Enabled() bool
 	ListPayments(ctx context.Context) ([]domain.Payment, error)
@@ -40,38 +67,71 @@ type Store interface {
 	UpsertRefund(ctx context.Context, refund domain.Refund, now time.Time) error
 }
 
+// RegisterPaymentCommand encapsula los datos de entrada para registrar un pago.
 type RegisterPaymentCommand struct {
-	EventID       string
-	EventTitle    string
-	ClientEmail   string
-	ClientName    string
-	AmountRD      int
-	Method        string
-	Kind          string
-	BankName      string
-	ReferenceCode string
+	EventID            string
+	EventTitle         string
+	ClientEmail        string
+	ClientName         string
+	AmountRD           int
+	Method             string
+	Kind               string
+	BankName           string
+	ReferenceCode      string
+	VoucherURL         string
+	ReferenceNumber    string
+	NCFType            string
+	ClientRNC          string
+	SecurityDepositDOP int
 }
 
+// CreateCardSessionCommand solicita una sesión de pago electrónico con tarjeta.
+type CreateCardSessionCommand struct {
+	EventID    string
+	EventTitle string
+	AmountRD   int
+	Kind       string
+	NCFType    string
+	ClientRNC  string
+}
+
+// Service coordina pagos, emisión de NCF, pasarela de tarjetas, exporte DGII y reembolsos.
 type Service struct {
-	mu           sync.RWMutex
-	clock        clock.Clock
-	store        Store
-	eventsReader EventMetricsReader
-	quotesReader QuoteMetricsReader
-	payments     map[string]domain.Payment
-	order        []string
-	refunds      map[string]domain.Refund
-	refundOrder  []string
-	nextSeq      int
-	zeroBaseline bool
+	mu                  sync.RWMutex
+	clock               clock.Clock
+	store               Store
+	eventsReader        EventMetricsReader
+	quotesReader        QuoteMetricsReader
+	damageReader        DamageExpensesReader
+	verifiedSync        VerifiedPaymentSynchronizer
+	emailPrefChecker    EmailPreferenceChecker
+	emailSender         mailer.Sender
+	realtimePub         realtimedomain.Publisher
+	stripeSecretKey     string
+	stripeWebhookSecret string
+	publicBaseURL       string
+	stripeAPIBaseURL    string
+	payments            map[string]domain.Payment
+	order               []string
+	refunds             map[string]domain.Refund
+	refundOrder         []string
+	ncfSeqB01           atomic.Int64
+	ncfSeqB02           atomic.Int64
+	nextSeq             int
+	zeroBaseline        bool
 }
 
+// NewService crea una instancia de Service inicializada con el estado base.
 func NewService() *Service {
-	svc := &Service{clock: clock.System{}}
+	svc := &Service{
+		clock:            clock.System{},
+		stripeAPIBaseURL: defaultStripeAPIBaseURL,
+	}
 	svc.Reset(context.Background())
 	return svc
 }
 
+// WithClock inyecta un reloj determinístico en el servicio.
 func (s *Service) WithClock(clk clock.Clock) *Service {
 	if clk != nil {
 		s.mu.Lock()
@@ -81,6 +141,7 @@ func (s *Service) WithClock(clk clock.Clock) *Service {
 	return s
 }
 
+// WithMetricsReaders conecta lectores externos de eventos y cotizaciones para métricas.
 func (s *Service) WithMetricsReaders(eventsReader EventMetricsReader, quotesReader QuoteMetricsReader) *Service {
 	s.mu.Lock()
 	s.eventsReader = eventsReader
@@ -89,6 +150,7 @@ func (s *Service) WithMetricsReaders(eventsReader EventMetricsReader, quotesRead
 	return s
 }
 
+// WithStore conecta el repositorio durable de PostgreSQL y sincroniza el estado inicial.
 func (s *Service) WithStore(store Store) *Service {
 	s.mu.Lock()
 	s.store = store
@@ -97,6 +159,84 @@ func (s *Service) WithStore(store Store) *Service {
 	return s
 }
 
+// WithVerifiedSynchronizer registra el sincronizador invocado cuando un pago se verifica.
+func (s *Service) WithVerifiedSynchronizer(syncer VerifiedPaymentSynchronizer) *Service {
+	s.mu.Lock()
+	s.verifiedSync = syncer
+	s.mu.Unlock()
+	return s
+}
+
+// WithEmailSender registra el cliente SMTP encargado de enviar recibos de pago.
+func (s *Service) WithEmailSender(sender mailer.Sender) *Service {
+	s.mu.Lock()
+	s.emailSender = sender
+	s.mu.Unlock()
+	return s
+}
+
+// WithRealtimePublisher registra el publicador de eventos en tiempo real SSE.
+func (s *Service) WithRealtimePublisher(pub realtimedomain.Publisher) *Service {
+	s.mu.Lock()
+	s.realtimePub = pub
+	s.mu.Unlock()
+	return s
+}
+
+// WithStripeSecretKey configura la clave secreta de Stripe para sesiones con tarjeta.
+func (s *Service) WithStripeSecretKey(secretKey string) *Service {
+	s.mu.Lock()
+	s.stripeSecretKey = strings.TrimSpace(secretKey)
+	s.mu.Unlock()
+	return s
+}
+
+// WithStripeWebhookSecret configura el secreto HMAC para verificar webhooks de Stripe.
+func (s *Service) WithStripeWebhookSecret(secret string) *Service {
+	s.mu.Lock()
+	s.stripeWebhookSecret = strings.TrimSpace(secret)
+	s.mu.Unlock()
+	return s
+}
+
+// WithEmailPreferenceChecker conecta el lector de preferencias de recibos por correo.
+func (s *Service) WithEmailPreferenceChecker(checker EmailPreferenceChecker) *Service {
+	s.mu.Lock()
+	s.emailPrefChecker = checker
+	s.mu.Unlock()
+	return s
+}
+
+// WithDamageExpensesReader conecta el lector de costos de incidencias/reposiciones.
+func (s *Service) WithDamageExpensesReader(reader DamageExpensesReader) *Service {
+	s.mu.Lock()
+	s.damageReader = reader
+	s.mu.Unlock()
+	return s
+}
+
+// WithPublicBaseURL configura la URL pública base usada en retornos de pasarela.
+func (s *Service) WithPublicBaseURL(baseURL string) *Service {
+	trimmed := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	s.mu.Lock()
+	s.publicBaseURL = trimmed
+	s.mu.Unlock()
+	return s
+}
+
+// WithStripeAPIBaseURL permite sobrescribir el endpoint base de Stripe en pruebas unitarias.
+func (s *Service) WithStripeAPIBaseURL(apiBaseURL string) *Service {
+	trimmed := strings.TrimRight(strings.TrimSpace(apiBaseURL), "/")
+	if trimmed == "" {
+		return s
+	}
+	s.mu.Lock()
+	s.stripeAPIBaseURL = trimmed
+	s.mu.Unlock()
+	return s
+}
+
+// Reset restablece el estado en memoria con los pagos y reembolsos de demostración.
 func (s *Service) Reset(_ context.Context) {
 	canonicalPay := domain.CanonicalPayments()
 	payments := make(map[string]domain.Payment, len(canonicalPay))
@@ -122,6 +262,7 @@ func (s *Service) Reset(_ context.Context) {
 	s.mu.Unlock()
 }
 
+// ResetEmpty limpia todos los registros en memoria para iniciar en modo vacío.
 func (s *Service) ResetEmpty(_ context.Context) {
 	s.mu.Lock()
 	s.payments = make(map[string]domain.Payment)
@@ -176,6 +317,7 @@ func (s *Service) syncRefundsLocked(ctx context.Context) {
 	}
 }
 
+// GetSummary calcula las métricas financieras agregadas para el tablero administrativo.
 func (s *Service) GetSummary(ctx context.Context) domain.FinanceSummary {
 	s.mu.Lock()
 	s.syncFromStoreLocked(ctx)
@@ -242,14 +384,37 @@ func buildZeroBaselineSummary(
 func (s *Service) aggregatePaymentsLocked() (paidSum int, pendingCount int) {
 	for _, id := range s.order {
 		item := s.payments[id]
-		if item.Status != domain.PaymentFailed {
-			paidSum += item.AmountRD
-		}
-		if item.Status == domain.PaymentPendingVerification {
+		if item.IsPendingVerification() {
 			pendingCount++
+		}
+		if s.shouldCountPaymentInSummary(id, item) {
+			paidSum += item.AmountRD
 		}
 	}
 	return paidSum, pendingCount
+}
+
+func (s *Service) shouldCountPaymentInSummary(id string, item domain.Payment) bool {
+	if s.zeroBaseline {
+		return item.IsVerifiedOrConfirmed()
+	}
+	if isCanonicalSeedPaymentID(id) {
+		isExcluded := item.Status == domain.PaymentFailed
+		if isExcluded {
+			return false
+		}
+		return item.Status != domain.PaymentRejected
+	}
+	return item.IsVerifiedOrConfirmed()
+}
+
+func isCanonicalSeedPaymentID(id string) bool {
+	switch id {
+	case "pay-boda-anticipo", "pay-quince-anticipo", "pay-grad-anticipo", "pay-gala-total":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Service) aggregateApprovedRefundsLocked() int {
@@ -289,11 +454,13 @@ func clampNonNegative(value int) int {
 	return value
 }
 
+// ListPayments lista todos los pagos visibles para administración.
 func (s *Service) ListPayments(eventID string) []domain.Payment {
 	admin := platformhttp.Principal{Role: "admin"}
 	return s.ListPaymentsForCaller(context.Background(), eventID, admin, true)
 }
 
+// ListPaymentsForCaller lista los pagos visibles según el rol del usuario autenticado.
 func (s *Service) ListPaymentsForCaller(
 	ctx context.Context,
 	eventID string,
@@ -334,6 +501,7 @@ func matchesPaymentFilter(item domain.Payment, eventID string, caller platformht
 	return item.BelongsToClient(caller.ID.String(), caller.Email, caller.FullName)
 }
 
+// RegisterPayment registra un nuevo pago usando credenciales de administrador.
 func (s *Service) RegisterPayment(
 	eventID string,
 	eventTitle string,
@@ -356,37 +524,131 @@ func (s *Service) RegisterPayment(
 	return s.RegisterPaymentForCaller(context.Background(), cmd, admin)
 }
 
+// RegisterPaymentForCaller valida, registra y notifica un pago de transferencia, tarjeta o efectivo.
 func (s *Service) RegisterPaymentForCaller(
 	ctx context.Context,
 	cmd RegisterPaymentCommand,
 	caller platformhttp.Principal,
 ) (domain.Payment, error) {
-	if cmd.AmountRD <= 0 {
-		return domain.Payment{}, domain.ErrInvalidPaymentAmount
-	}
-	normalizedMethod, bankName, err := domain.NormalizePaymentMethod(cmd.Method, cmd.BankName)
+	prepared, err := validatePaymentRegistration(cmd)
 	if err != nil {
 		return domain.Payment{}, err
 	}
-	normalizedKind := domain.NormalizePaymentKind(cmd.Kind)
 	now := s.clock.Now()
+	effectiveRef := resolveEffectiveReference(cmd.ReferenceCode, cmd.ReferenceNumber)
 
-	s.mu.Lock()
-	s.syncFromStoreLocked(ctx)
-	if existing, found, dupErr := s.findExistingByReferenceLocked(cmd.ReferenceCode, caller); found {
-		s.mu.Unlock()
+	if existing, found, dupErr := s.findDuplicatePayment(ctx, effectiveRef, caller); found {
 		return existing, dupErr
 	}
-	payment := s.buildNewPaymentLocked(cmd, normalizedMethod, normalizedKind, bankName, caller, now)
-	s.payments[payment.ID] = payment
-	s.order = append(s.order, payment.ID)
-	store := s.store
-	s.mu.Unlock()
 
+	ncfNumber := ""
+	if prepared.method != domain.MethodTransfer {
+		allocated, allocErr := s.allocateNextNCF(ctx, prepared.ncfType)
+		if allocErr != nil {
+			return domain.Payment{}, allocErr
+		}
+		ncfNumber = allocated
+	}
+
+	payment, store, dupErr := s.insertRegisteredPayment(ctx, cmd, prepared, caller, now, ncfNumber, effectiveRef)
+	if dupErr != nil {
+		return payment, dupErr
+	}
 	if err := persistPaymentIfEnabled(ctx, store, payment, now); err != nil {
 		return domain.Payment{}, err
 	}
+	if err := s.dispatchRegistrationSideEffects(ctx, payment); err != nil {
+		return domain.Payment{}, err
+	}
 	return payment, nil
+}
+
+type preparedPaymentData struct {
+	method     domain.PaymentMethod
+	bankName   string
+	kind       domain.PaymentKind
+	ncfType    string
+	clientRNC  string
+	subtotal   int
+	itbis      int
+	depositDOP int
+}
+
+func validatePaymentRegistration(cmd RegisterPaymentCommand) (preparedPaymentData, error) {
+	if cmd.AmountRD <= 0 {
+		return preparedPaymentData{}, domain.ErrInvalidPaymentAmount
+	}
+	normalizedMethod, bankName, err := domain.NormalizePaymentMethod(cmd.Method, cmd.BankName)
+	if err != nil {
+		return preparedPaymentData{}, err
+	}
+	ncfType, cleanedRNC, ncfErr := domain.ValidateRNCForNCF(cmd.NCFType, cmd.ClientRNC)
+	if ncfErr != nil {
+		return preparedPaymentData{}, ncfErr
+	}
+	deposit := clampSecurityDeposit(cmd.SecurityDepositDOP, cmd.AmountRD)
+	subtotal, itbis := domain.ComputeDominicanTaxBreakdown(cmd.AmountRD, deposit)
+	return preparedPaymentData{
+		method:     normalizedMethod,
+		bankName:   bankName,
+		kind:       domain.NormalizePaymentKind(cmd.Kind),
+		ncfType:    ncfType,
+		clientRNC:  cleanedRNC,
+		subtotal:   subtotal,
+		itbis:      itbis,
+		depositDOP: deposit,
+	}, nil
+}
+
+func clampSecurityDeposit(deposit, amount int) int {
+	if deposit < 0 {
+		return 0
+	}
+	if deposit > amount {
+		return amount
+	}
+	return deposit
+}
+
+func resolveEffectiveReference(refCode, refNumber string) string {
+	cleanCode := strings.TrimSpace(refCode)
+	if cleanCode != "" {
+		return cleanCode
+	}
+	return strings.TrimSpace(refNumber)
+}
+
+func (s *Service) findDuplicatePayment(
+	ctx context.Context,
+	effectiveRef string,
+	caller platformhttp.Principal,
+) (domain.Payment, bool, error) {
+	s.mu.Lock()
+	s.syncFromStoreLocked(ctx)
+	existing, found, dupErr := s.findExistingByReferenceLocked(effectiveRef, caller)
+	s.mu.Unlock()
+	return existing, found, dupErr
+}
+
+func (s *Service) insertRegisteredPayment(
+	ctx context.Context,
+	cmd RegisterPaymentCommand,
+	prep preparedPaymentData,
+	caller platformhttp.Principal,
+	now time.Time,
+	ncfNumber string,
+	effectiveRef string,
+) (domain.Payment, Store, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.syncFromStoreLocked(ctx)
+	if existing, found, dupErr := s.findExistingByReferenceLocked(effectiveRef, caller); found {
+		return existing, nil, dupErr
+	}
+	payment := s.buildNewPaymentLocked(cmd, prep, caller, now, ncfNumber, effectiveRef)
+	s.payments[payment.ID] = payment
+	s.order = append(s.order, payment.ID)
+	return payment, s.store, nil
 }
 
 func (s *Service) findExistingByReferenceLocked(
@@ -414,41 +676,66 @@ func (s *Service) findExistingByReferenceLocked(
 
 func (s *Service) buildNewPaymentLocked(
 	cmd RegisterPaymentCommand,
-	method domain.PaymentMethod,
-	kind domain.PaymentKind,
-	bankName string,
+	prep preparedPaymentData,
 	caller platformhttp.Principal,
 	now time.Time,
+	ncfNumber string,
+	effectiveRef string,
 ) domain.Payment {
 	s.nextSeq++
 	suffix := uuid.NewString()[:6]
 	id := fmt.Sprintf("pay-%d-%s", s.nextSeq, suffix)
 	receipt := fmt.Sprintf("REC-%d-%04d-%s", now.Year(), s.nextSeq, strings.ToUpper(suffix[:4]))
-	status := domain.PaymentVerified
-	if method == domain.MethodTransfer {
-		status = domain.PaymentPendingVerification
-	}
+	status, verifiedBy, verifiedAtISO := resolveInitialVerificationState(prep.method, caller, now)
 	clientID, clientEmail, clientName := resolvePaymentClient(cmd, caller)
-	refCode := strings.TrimSpace(cmd.ReferenceCode)
+	refCode := effectiveRef
 	if refCode == "" {
 		refCode = receipt
 	}
 	return domain.Payment{
-		ID:            id,
-		ReceiptNumber: receipt,
-		EventID:       strings.TrimSpace(cmd.EventID),
-		EventTitle:    strings.TrimSpace(cmd.EventTitle),
-		ClientID:      clientID,
-		ClientEmail:   clientEmail,
-		ClientName:    clientName,
-		AmountRD:      cmd.AmountRD,
-		Method:        method,
-		Kind:          kind,
-		BankName:      bankName,
-		PaidDateLabel: domain.FormatSpanishShortDate(now),
-		ReferenceCode: refCode,
-		Status:        status,
+		ID:                 id,
+		ReceiptNumber:      receipt,
+		EventID:            strings.TrimSpace(cmd.EventID),
+		EventTitle:         strings.TrimSpace(cmd.EventTitle),
+		ClientID:           clientID,
+		ClientEmail:        clientEmail,
+		ClientName:         clientName,
+		AmountRD:           cmd.AmountRD,
+		Method:             prep.method,
+		Kind:               prep.kind,
+		BankName:           prep.bankName,
+		PaidDateLabel:      domain.FormatSpanishShortDate(now),
+		ReferenceCode:      refCode,
+		Status:             status,
+		VoucherURL:         strings.TrimSpace(cmd.VoucherURL),
+		ReferenceNumber:    strings.TrimSpace(cmd.ReferenceNumber),
+		VerifiedBy:         verifiedBy,
+		VerifiedAtISO:      verifiedAtISO,
+		NCFType:            prep.ncfType,
+		NCFNumber:          ncfNumber,
+		ClientRNC:          prep.clientRNC,
+		SubtotalDOP:        prep.subtotal,
+		ITBISDOP:           prep.itbis,
+		SecurityDepositDOP: prep.depositDOP,
 	}
+}
+
+func resolveInitialVerificationState(
+	method domain.PaymentMethod,
+	caller platformhttp.Principal,
+	now time.Time,
+) (status domain.PaymentStatus, verifiedBy string, verifiedAtISO string) {
+	if method == domain.MethodTransfer {
+		return domain.PaymentPendingVerification, "", ""
+	}
+	verifier := strings.TrimSpace(caller.FullName)
+	if verifier == "" {
+		verifier = strings.TrimSpace(caller.Email)
+	}
+	if verifier == "" {
+		verifier = "Sistema"
+	}
+	return domain.PaymentVerified, verifier, now.UTC().Format(time.RFC3339)
 }
 
 func resolvePaymentClient(
@@ -481,6 +768,7 @@ func persistPaymentIfEnabled(ctx context.Context, store Store, payment domain.Pa
 	return store.UpsertPayment(ctx, payment, now)
 }
 
+// ListRefunds devuelve todas las solicitudes de reembolso registradas.
 func (s *Service) ListRefunds(ctx context.Context) []domain.Refund {
 	s.mu.Lock()
 	s.syncFromStoreLocked(ctx)
@@ -492,6 +780,7 @@ func (s *Service) ListRefunds(ctx context.Context) []domain.Refund {
 	return out
 }
 
+// ApproveRefund autoriza una solicitud de reembolso pendiente y ejecuta devolución en Stripe cuando aplica.
 func (s *Service) ApproveRefund(
 	ctx context.Context,
 	refundID string,
@@ -511,11 +800,25 @@ func (s *Service) ApproveRefund(
 		s.mu.Unlock()
 		return domain.Refund{}, domain.ErrRefundNotFound
 	}
+	linkedPayment, hasLinkedCardPayment := s.findConfirmedStripePaymentLocked(refund.EventID)
+	store := s.store
+	s.mu.Unlock()
+
+	gatewayRefundID, gatewayStatus, stripeErr := s.dispatchStripeRefundIfApplicable(ctx, refund, linkedPayment, hasLinkedCardPayment, now)
+	if stripeErr != nil {
+		return domain.Refund{}, stripeErr
+	}
+
+	s.mu.Lock()
+	refund = s.refunds[targetID]
 	refund.Status = domain.RefundStatusApproved
 	refund.ApprovedBy = approver
 	refund.ApprovedAtLabel = domain.FormatSpanishShortDate(now)
+	if gatewayRefundID != "" {
+		refund.GatewayRefundID = gatewayRefundID
+		refund.GatewayStatus = gatewayStatus
+	}
 	s.refunds[targetID] = refund
-	store := s.store
 	s.mu.Unlock()
 
 	if err := persistRefundIfEnabled(ctx, store, refund, now); err != nil {
@@ -524,6 +827,101 @@ func (s *Service) ApproveRefund(
 	return refund, nil
 }
 
+func (s *Service) findConfirmedStripePaymentLocked(eventID string) (domain.Payment, bool) {
+	cleanEventID := strings.TrimSpace(eventID)
+	if cleanEventID == "" {
+		return domain.Payment{}, false
+	}
+	for _, id := range s.order {
+		pay := s.payments[id]
+		if pay.EventID != cleanEventID {
+			continue
+		}
+		if pay.Method != domain.MethodCard {
+			continue
+		}
+		if !pay.IsVerifiedOrConfirmed() {
+			continue
+		}
+		hasStripeRef := pay.GatewayPaymentIntentID != ""
+		if !hasStripeRef {
+			hasStripeRef = pay.GatewaySessionID != ""
+		}
+		if hasStripeRef {
+			return pay, true
+		}
+	}
+	return domain.Payment{}, false
+}
+
+func (s *Service) dispatchStripeRefundIfApplicable(
+	ctx context.Context,
+	refund domain.Refund,
+	linkedPayment domain.Payment,
+	paymentFound bool,
+	now time.Time,
+) (string, string, error) {
+	if !paymentFound {
+		return "", "", nil
+	}
+	if refund.Status == domain.RefundStatusApproved {
+		return refund.GatewayRefundID, refund.GatewayStatus, nil
+	}
+	if refund.GatewayRefundID != "" {
+		return refund.GatewayRefundID, refund.GatewayStatus, nil
+	}
+	secretKey, _, apiBase := s.stripeSettingsSnapshot()
+	if secretKey == "" {
+		return "", "", nil
+	}
+	paymentIntentID, resolveErr := s.resolveStripePaymentIntent(ctx, apiBase, secretKey, linkedPayment, now)
+	if resolveErr != nil {
+		return "", "", resolveErr
+	}
+	if paymentIntentID == "" {
+		return "", "", nil
+	}
+	stripeRes, refundErr := executeStripeRefundRequest(ctx, apiBase, secretKey, paymentIntentID, refund)
+	if refundErr != nil {
+		return "", "", refundErr
+	}
+	return stripeRes.ID, stripeRes.Status, nil
+}
+
+func (s *Service) resolveStripePaymentIntent(
+	ctx context.Context,
+	apiBase string,
+	secretKey string,
+	payment domain.Payment,
+	now time.Time,
+) (string, error) {
+	if strings.TrimSpace(payment.GatewayPaymentIntentID) != "" {
+		return strings.TrimSpace(payment.GatewayPaymentIntentID), nil
+	}
+	if strings.TrimSpace(payment.GatewaySessionID) == "" {
+		return "", nil
+	}
+	session, err := fetchStripeCheckoutSession(ctx, apiBase, secretKey, payment.GatewaySessionID)
+	if err != nil {
+		return "", err
+	}
+	intentID := strings.TrimSpace(session.PaymentIntent)
+	if intentID == "" {
+		return "", nil
+	}
+	s.mu.Lock()
+	if storedPay, ok := s.payments[payment.ID]; ok {
+		storedPay.GatewayPaymentIntentID = intentID
+		s.payments[payment.ID] = storedPay
+		payment = storedPay
+	}
+	store := s.store
+	s.mu.Unlock()
+	_ = persistPaymentIfEnabled(ctx, store, payment, now)
+	return intentID, nil
+}
+
+// RecordCancellationRefund genera una solicitud de reembolso al cancelar un evento.
 func (s *Service) RecordCancellationRefund(
 	ctx context.Context,
 	eventID string,

@@ -424,4 +424,89 @@ class SqlRosaFiestaRepositoryTest {
         assertEquals(1, repo.articles.value.size)
         assertEquals("Mesa imperial roble", repo.articles.value.first().name)
     }
+
+    @Test
+    fun `replays structured outbox mutations and preserves detailed payment and availability checks`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val driver = DriverFactory().createDriver()
+        val capturedSyncBodies = mutableListOf<String>()
+
+        val mockEngine = MockEngine { request ->
+            val jsonHeaders = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            when (request.url.encodedPath) {
+                "/v1/payments" -> respond(
+                    content = """{"code":"TEMPORARY_OFFLINE","message":"Backend temporalmente fuera de línea"}""",
+                    status = HttpStatusCode.ServiceUnavailable,
+                    headers = jsonHeaders,
+                )
+
+                "/v1/catalog/availability-check" -> respond(
+                    content = """{"eventDateIso":"2026-12-20","pickupDateIso":"2026-12-19","returnDateIso":"2026-12-21","available":true,"conflicts":[]}""",
+                    status = HttpStatusCode.OK,
+                    headers = jsonHeaders,
+                )
+
+                "/v1/operations/offline-queue/sync" -> {
+                    capturedSyncBodies.add(request.body.toString())
+                    respond(
+                        content = """{"queue":[]}""",
+                        status = HttpStatusCode.OK,
+                        headers = jsonHeaders,
+                    )
+                }
+
+                else -> respond(
+                    content = """{"queue":[]}""",
+                    status = HttpStatusCode.OK,
+                    headers = jsonHeaders,
+                )
+            }
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+        val repo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = apiClient,
+        )
+
+        val detailedPayment = repo.registerDetailedPayment(
+            eventId = "evt-boda-real",
+            amountDop = 2950,
+            methodLabel = "Transferencia BHD",
+            referenceCode = "BHD-998811",
+            voucherUrl = "/v1/media/med-voucher-01",
+            ncfType = "B01",
+            clientRnc = "131849202",
+            bankName = "Banco BHD",
+            kindLabel = "Anticipo",
+        )
+        testScheduler.advanceUntilIdle()
+        assertEquals("B01", detailedPayment?.ncfType)
+        assertEquals("131849202", detailedPayment?.clientRnc)
+        assertEquals("/v1/media/med-voucher-01", detailedPayment?.voucherUrl)
+        assertFalse(detailedPayment?.verified ?: true)
+
+        val pendingMutations = repo.offlineQueue.value.filter { mutation -> !mutation.synced }
+        assertTrue(pendingMutations.any { mutation -> mutation.operationType == "register_payment" })
+
+        repo.syncOfflineQueueAsync()
+        testScheduler.advanceUntilIdle()
+        assertTrue(repo.offlineQueue.value.all { mutation -> mutation.synced })
+
+        val availability = repo.checkRangeAvailability(
+            date = "2026-12-20",
+            articleId = "art-silla-tiffany",
+            quantity = 1,
+        )
+        assertTrue(availability.isSuccess)
+    }
 }

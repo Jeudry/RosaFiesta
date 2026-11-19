@@ -73,6 +73,16 @@ func (m Module) registerDecisionRoutes(api huma.API) {
 	mw := m.authMiddlewares(api)
 
 	huma.Register(api, huma.Operation{
+		OperationID: "quotes-send",
+		Method:      http.MethodPost,
+		Path:        "/v1/quotes/{id}/send",
+		Summary:     "Admin enriches, approves and sends a quote to the client",
+		Tags:        []string{"Quotes"},
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleSendQuote)
+
+	huma.Register(api, huma.Operation{
 		OperationID: "quotes-sign-contract",
 		Method:      http.MethodPost,
 		Path:        "/v1/quotes/{id}/sign",
@@ -132,6 +142,15 @@ func (m Module) registerRosaAssistantRoutes(api huma.API) {
 		Tags:        []string{"Quotes"},
 		Middlewares: optMW,
 	}, m.handleRosaTranscribe)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "rosa-sketch",
+		Method:      http.MethodPost,
+		Path:        "/v1/quotes/rosa/sketch",
+		Summary:     "Generate spatial layout elements for event sketch using configured AI provider",
+		Tags:        []string{"Quotes"},
+		Middlewares: optMW,
+	}, m.handleRosaSketch)
 }
 
 func (m Module) handleListQuotes(ctx context.Context, in *QuotesListInput) (*QuotesListOutput, error) {
@@ -156,6 +175,16 @@ func (m Module) handleCreateQuote(ctx context.Context, in *CreateQuoteInput) (*Q
 	quote, err := m.Service.CreateQuoteForCaller(ctx, cmd, caller)
 	if err != nil {
 		return nil, mapQuoteError(err, "POST /v1/quotes", "QUOTE_VALIDATION_FAILED", "CreateQuoteValidation", http.StatusBadRequest)
+	}
+	return newQuoteOutput(quote), nil
+}
+
+func (m Module) handleSendQuote(ctx context.Context, in *SendQuoteInput) (*QuoteOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	cmd := in.ToCommand()
+	quote, err := m.Service.SendQuoteForAdmin(ctx, in.ID, cmd, caller)
+	if err != nil {
+		return nil, mapQuoteError(err, "POST /v1/quotes/"+in.ID+"/send", "QUOTE_SEND_FAILED", "SendQuoteValidation", http.StatusBadRequest)
 	}
 	return newQuoteOutput(quote), nil
 }
@@ -197,7 +226,10 @@ func (m Module) handleRosaProposal(ctx context.Context, in *RosaProposalInput) (
 func (m Module) handleRosaChat(ctx context.Context, in *RosaChatInput) (*RosaChatOutput, error) {
 	caller, _ := platformhttp.CurrentPrincipal(ctx)
 	req := in.ToRequest()
-	reply := m.Service.ChatWithRosa(ctx, in.Body.Message, req, caller)
+	reply, err := m.Service.ChatWithRosa(ctx, in.Body.Message, req, caller)
+	if err != nil {
+		return nil, mapQuoteError(err, "POST /v1/rosa/chat", "ROSA_CHAT_FAILED", "RosaAssistantChat", http.StatusBadGateway)
+	}
 	return &RosaChatOutput{Body: reply}, nil
 }
 
@@ -208,4 +240,13 @@ func (m Module) handleRosaTranscribe(ctx context.Context, in *RosaTranscribeInpu
 		return nil, mapQuoteError(err, "POST /v1/rosa/transcribe", "ROSA_AUDIO_INVALID", "ValidateBase64Audio", http.StatusBadRequest)
 	}
 	return &RosaTranscribeOutput{Body: res}, nil
+}
+
+func (m Module) handleRosaSketch(ctx context.Context, in *RosaSketchInput) (*RosaSketchOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	res, err := m.Service.GenerateRosaSketch(ctx, in.Body.Prompt, in.Body.EventType, in.Body.Guests, caller)
+	if err != nil {
+		return nil, mapQuoteError(err, "POST /v1/quotes/rosa/sketch", "ROSA_SKETCH_FAILED", "RosaSketchGeneration", http.StatusBadGateway)
+	}
+	return &RosaSketchOutput{Body: res}, nil
 }

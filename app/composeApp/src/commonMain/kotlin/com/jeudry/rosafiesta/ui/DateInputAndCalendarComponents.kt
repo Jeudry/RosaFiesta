@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +47,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -60,6 +63,10 @@ import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.rememberDecodedImageBitmap
+import com.jeudry.rosafiesta.designsystem.rfTrackValidationFocus
+import com.jeudry.rosafiesta.domain.DomainClockFormatter
+import com.jeudry.rosafiesta.domain.validation.InputValidator
+import com.jeudry.rosafiesta.domain.validation.MaskedTextCursorResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -140,6 +147,72 @@ public fun formatDateDigitsWithSlashes(
 }
 
 /**
+ * Text field backed by [TextFieldValue] that runs [maskTransform] on text edits and places the
+ * caret at the matching formatted index in the same composition pass.
+ */
+@Composable
+internal fun RfMaskedDigitBasicTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    maskTransform: (previousFormatted: String, newRawText: String, newSelectionEnd: Int) -> MaskedTextCursorResult,
+    textStyle: TextStyle,
+    cursorBrush: Brush,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    singleLine: Boolean = true,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    decorationBox: @Composable (innerTextField: @Composable () -> Unit) -> Unit = { innerTextField -> innerTextField() },
+) {
+    var fieldState by remember {
+        mutableStateOf(
+            TextFieldValue(
+                text = value,
+                selection = TextRange(value.length),
+            ),
+        )
+    }
+    if (fieldState.text != value) {
+        fieldState = TextFieldValue(
+            text = value,
+            selection = TextRange(value.length),
+        )
+    }
+
+    BasicTextField(
+        value = fieldState,
+        onValueChange = { incoming ->
+            val didTextChange = incoming.text != fieldState.text
+            if (didTextChange) {
+                val masked = maskTransform(
+                    fieldState.text,
+                    incoming.text,
+                    incoming.selection.end,
+                )
+                val clampedCursor = masked.cursorIndex.coerceIn(0, masked.text.length)
+                fieldState = TextFieldValue(
+                    text = masked.text,
+                    selection = TextRange(clampedCursor),
+                )
+                onValueChange(masked.text)
+            } else {
+                fieldState = incoming
+            }
+        },
+        enabled = enabled,
+        singleLine = singleLine,
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        textStyle = textStyle,
+        cursorBrush = cursorBrush,
+        modifier = modifier,
+        decorationBox = decorationBox,
+    )
+}
+
+/**
  * Reusable date input box that displays dates in legible Spanish words when not actively typing
  * digits, supports automatic `DD/MM/AAAA` slash masking while editing, and opens [RfInteractiveCalendarModal].
  */
@@ -154,6 +227,7 @@ internal fun RfMaskedDateField(
     compactInline: Boolean = false,
     embeddedInContainer: Boolean = false,
     readableFormatter: (String) -> String = ::formatReadableSpanishDateText,
+    onFocusChanged: ((Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
@@ -250,8 +324,9 @@ internal fun RfMaskedDateField(
             cursorBrush = SolidColor(accentColor),
             modifier = Modifier
                 .weight(1f)
-                .onFocusChanged { focusState ->
-                    isFocused = focusState.isFocused
+                .rfTrackValidationFocus(focusKey = remember { Any() }) { focused ->
+                    isFocused = focused
+                    onFocusChanged?.invoke(focused)
                 },
             decorationBox = { innerTextField ->
                 if (value.isEmpty()) {
@@ -500,17 +575,17 @@ internal fun formatReadableSpanishDateText(rawDateText: String): String {
         if (!slashRegex.containsMatchIn(startSegment.trim())) {
             return trimmed
         }
-        val startParts = parseCalendarDateOrDefault(startSegment, 1925, 2035, 2026)
+        val startParts = parseCalendarDateOrDefault(startSegment, InputValidator.MIN_BIRTH_YEAR, 2035, 2026)
         if (endSegment.isBlank()) {
             return startParts.formatReadableSpanish()
         }
-        val endParts = parseCalendarDateOrDefault(endSegment, 1925, 2035, startParts.year, startParts.month, startParts.day)
+        val endParts = parseCalendarDateOrDefault(endSegment, InputValidator.MIN_BIRTH_YEAR, 2035, startParts.year, startParts.month, startParts.day)
         return formatReadableSpanishDateRange(startParts, endParts)
     }
 
     val isoParts = parseDayMonthYearParts(trimmed)
     if (isoParts != null) {
-        val safeIso = buildSafeDateParts(isoParts.first, isoParts.second, isoParts.third, 1925, 2035)
+        val safeIso = buildSafeDateParts(isoParts.first, isoParts.second, isoParts.third, InputValidator.MIN_BIRTH_YEAR, 2035)
         return safeIso.formatReadableSpanish()
     }
 
@@ -542,6 +617,137 @@ private fun matchAbbreviatedMonthOnly(word: String): Int? {
 }
 
 /**
+ * Semantic validation rules enforced inside [RfInteractiveCalendarModal].
+ */
+internal enum class RfCalendarDateMode {
+    NONE,
+    EVENT_UPCOMING,
+    PAYMENT_PAST_OR_TODAY,
+    BIRTH_AGE_LIMITED,
+}
+
+private fun clampDateWithinBounds(
+    date: CalendarDateParts,
+    minDate: CalendarDateParts?,
+    maxDate: CalendarDateParts?,
+): CalendarDateParts {
+    if (minDate != null) {
+        if (date < minDate) return minDate
+    }
+    if (maxDate != null) {
+        if (date > maxDate) return maxDate
+    }
+    return date
+}
+
+private fun hasInvalidCalendarSelection(
+    startDate: CalendarDateParts,
+    endDate: CalendarDateParts,
+    isRangeMode: Boolean,
+    minBound: CalendarDateParts?,
+    maxBound: CalendarDateParts?,
+): Boolean {
+    if (minBound != null) {
+        if (startDate < minBound) return true
+    }
+    if (maxBound != null) {
+        if (startDate > maxBound) return true
+    }
+    if (!isRangeMode) return false
+    if (maxBound != null) {
+        if (endDate > maxBound) return true
+    }
+    return endDate < startDate
+}
+
+private fun resolveCalendarBoundsForMode(
+    dateMode: RfCalendarDateMode,
+    explicitMinYear: Int,
+    explicitMaxYear: Int,
+    explicitDefaultYear: Int,
+    explicitQuickYears: List<Int>,
+): CalendarBoundsConfig {
+    val todayYmd = DomainClockFormatter.currentCivilDateTriple()
+    val todayParts = CalendarDateParts(day = todayYmd.third, month = todayYmd.second, year = todayYmd.first)
+    return when (dateMode) {
+        RfCalendarDateMode.EVENT_UPCOMING -> {
+            val topYear = maxOf(explicitMaxYear, todayParts.year + 5)
+            CalendarBoundsConfig(
+                minYear = todayParts.year,
+                maxYear = topYear,
+                defaultYear = todayParts.year,
+                defaultMonth = todayParts.month,
+                defaultDay = todayParts.day,
+                minDate = todayParts,
+                maxDate = null,
+                quickYears = (todayParts.year..(todayParts.year + 3)).toList(),
+                outOfBoundsError = "Los eventos deben programarse desde hoy en adelante.",
+            )
+        }
+
+        RfCalendarDateMode.PAYMENT_PAST_OR_TODAY -> {
+            val floorYear = minOf(explicitMinYear, todayParts.year)
+            CalendarBoundsConfig(
+                minYear = floorYear,
+                maxYear = todayParts.year,
+                defaultYear = todayParts.year,
+                defaultMonth = todayParts.month,
+                defaultDay = todayParts.day,
+                minDate = null,
+                maxDate = todayParts,
+                quickYears = (floorYear..todayParts.year).toList(),
+                outOfBoundsError = "La fecha del pago no puede estar en el futuro.",
+            )
+        }
+
+        RfCalendarDateMode.BIRTH_AGE_LIMITED -> {
+            val (minBirthYmd, maxBirthYmd) = InputValidator.birthDateBounds()
+            val minBirthParts = CalendarDateParts(day = minBirthYmd.third, month = minBirthYmd.second, year = minBirthYmd.first)
+            val maxBirthParts = CalendarDateParts(day = maxBirthYmd.third, month = maxBirthYmd.second, year = maxBirthYmd.first)
+            val quickCandidates = listOf(1975, 1980, 1985, 1990, 1995, 2000, 2005)
+                .filter { yearValue -> yearValue in minBirthParts.year..maxBirthParts.year }
+            CalendarBoundsConfig(
+                minYear = minBirthParts.year,
+                maxYear = maxBirthParts.year,
+                defaultYear = explicitDefaultYear.coerceIn(minBirthParts.year, maxBirthParts.year),
+                defaultMonth = todayParts.month,
+                defaultDay = todayParts.day.coerceAtMost(28),
+                minDate = minBirthParts,
+                maxDate = maxBirthParts,
+                quickYears = quickCandidates,
+                outOfBoundsError = "Solo se permiten edades entre ${InputValidator.MIN_AGE_YEARS} y ${InputValidator.MAX_AGE_YEARS} años.",
+            )
+        }
+
+        RfCalendarDateMode.NONE -> {
+            CalendarBoundsConfig(
+                minYear = explicitMinYear,
+                maxYear = explicitMaxYear,
+                defaultYear = explicitDefaultYear.coerceIn(explicitMinYear, explicitMaxYear),
+                defaultMonth = 10,
+                defaultDay = 22,
+                minDate = null,
+                maxDate = null,
+                quickYears = explicitQuickYears.filter { yearValue -> yearValue in explicitMinYear..explicitMaxYear },
+                outOfBoundsError = "La fecha seleccionada está fuera del rango permitido.",
+            )
+        }
+    }
+}
+
+private data class CalendarBoundsConfig(
+    val minYear: Int,
+    val maxYear: Int,
+    val defaultYear: Int,
+    val defaultMonth: Int,
+    val defaultDay: Int,
+    val minDate: CalendarDateParts?,
+    val maxDate: CalendarDateParts?,
+    val quickYears: List<Int>,
+    val outOfBoundsError: String,
+)
+
+/**
  * Interactive calendar modal for selecting any single date or optional date range across the app.
  */
 @Composable
@@ -549,32 +755,56 @@ internal fun RfInteractiveCalendarModal(
     title: String,
     subtitle: String = "Selecciona día, mes y año",
     currentDateText: String,
-    minYear: Int = 1925,
+    minYear: Int = InputValidator.MIN_BIRTH_YEAR,
     maxYear: Int = 2030,
     defaultYear: Int = 1996,
     quickYears: List<Int> = listOf(1985, 1990, 1995, 1996, 2000, 2004, 2008),
     allowRangeSelection: Boolean = false,
     preferReadableFormat: Boolean = false,
+    dateMode: RfCalendarDateMode = RfCalendarDateMode.NONE,
     isAdmin: Boolean = false,
     onSelectDate: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
-    val (initialStart, initialEnd, parsedHasRange) = parseCalendarRangeOrDefault(
-        dateText = currentDateText,
-        minYear = minYear,
-        maxYear = maxYear,
-        defaultYear = defaultYear,
-    )
+    val bounds = remember(dateMode, minYear, maxYear, defaultYear, quickYears) {
+        resolveCalendarBoundsForMode(
+            dateMode = dateMode,
+            explicitMinYear = minYear,
+            explicitMaxYear = maxYear,
+            explicitDefaultYear = defaultYear,
+            explicitQuickYears = quickYears,
+        )
+    }
+    val (parsedStart, parsedEnd, parsedHasRange) = if (currentDateText.isBlank()) {
+        val defaultStart = buildSafeDateParts(
+            bounds.defaultDay,
+            bounds.defaultMonth,
+            bounds.defaultYear,
+            bounds.minYear,
+            bounds.maxYear,
+        )
+        Triple(defaultStart, defaultStart, false)
+    } else {
+        parseCalendarRangeOrDefault(
+            dateText = currentDateText,
+            minYear = bounds.minYear,
+            maxYear = bounds.maxYear,
+            defaultYear = bounds.defaultYear,
+        )
+    }
+    val initialStart = clampDateWithinBounds(parsedStart, bounds.minDate, bounds.maxDate)
+    val initialEnd = clampDateWithinBounds(parsedEnd, initialStart, bounds.maxDate)
     val hasInitialRange = if (allowRangeSelection) parsedHasRange else false
 
     var isRangeMode by remember(currentDateText, allowRangeSelection) { mutableStateOf(hasInitialRange) }
     var editingEndDate by remember(currentDateText, allowRangeSelection) { mutableStateOf(false) }
-    var startDate by remember(currentDateText) { mutableStateOf(initialStart) }
-    var endDate by remember(currentDateText) { mutableStateOf(initialEnd) }
-    var visibleMonth by remember(currentDateText) { mutableStateOf(initialStart.month) }
-    var visibleYear by remember(currentDateText) { mutableStateOf(initialStart.year) }
+    var startDate by remember(currentDateText, bounds) { mutableStateOf(initialStart) }
+    var endDate by remember(currentDateText, bounds) { mutableStateOf(initialEnd) }
+    var visibleMonth by remember(currentDateText, bounds) { mutableStateOf(initialStart.month) }
+    var visibleYear by remember(currentDateText, bounds) { mutableStateOf(initialStart.year) }
+    var calendarValidationError by remember { mutableStateOf<String?>(null) }
 
     val monthNames = remember {
         listOf(
@@ -837,7 +1067,8 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                visibleYear = (visibleYear - 1).coerceAtLeast(minYear)
+                                visibleYear = (visibleYear - 1).coerceAtLeast(bounds.minYear)
+                                calendarValidationError = null
                             },
                     ) {
                         RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 14.dp)
@@ -853,7 +1084,8 @@ internal fun RfInteractiveCalendarModal(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                visibleYear = (visibleYear + 1).coerceAtMost(maxYear)
+                                visibleYear = (visibleYear + 1).coerceAtMost(bounds.maxYear)
+                                calendarValidationError = null
                             },
                     ) {
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.ink, size = 14.dp)
@@ -861,33 +1093,36 @@ internal fun RfInteractiveCalendarModal(
                 }
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-            ) {
-                quickYears.forEach { yearOption ->
-                    val isSelectedYear = yearOption == visibleYear
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .height(28.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(if (isSelectedYear) activeChipColor else selectorBoxBg)
-                            .clickable {
-                                visibleYear = yearOption
-                            }
-                            .padding(horizontal = 10.dp),
-                    ) {
-                        BasicText(
-                            text = yearOption.toString(),
-                            style = typo.body.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isSelectedYear) Color.White else palette.muted,
-                            ),
-                        )
+            if (bounds.quickYears.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                ) {
+                    bounds.quickYears.forEach { yearOption ->
+                        val isSelectedYear = yearOption == visibleYear
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .height(28.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(if (isSelectedYear) activeChipColor else selectorBoxBg)
+                                .clickable {
+                                    visibleYear = yearOption
+                                    calendarValidationError = null
+                                }
+                                .padding(horizontal = 10.dp),
+                        ) {
+                            BasicText(
+                                text = yearOption.toString(),
+                                style = typo.body.copy(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isSelectedYear) Color.White else palette.muted,
+                                ),
+                            )
+                        }
                     }
                 }
             }
@@ -923,19 +1158,37 @@ internal fun RfInteractiveCalendarModal(
                             val dayValue = weekDays.getOrNull(slotIndex)
                             if (dayValue != null) {
                                 val cellDate = CalendarDateParts(dayValue, visibleMonth, visibleYear)
+                                val minBound = bounds.minDate
+                                val maxBound = bounds.maxDate
+                                val isBeforeMin = if (minBound != null) cellDate < minBound else false
+                                val isAfterMax = if (maxBound != null) cellDate > maxBound else false
+                                val isDayDisabled = if (isBeforeMin) true else isAfterMax
                                 val isStartMatch = cellDate == startDate
                                 val isEndMatch = if (isRangeMode) cellDate == endDate else false
-                                val isEndpointSelected = if (isStartMatch) true else isEndMatch
+                                val isEndpointSelected = if (isDayDisabled) {
+                                    false
+                                } else if (isStartMatch) {
+                                    true
+                                } else {
+                                    isEndMatch
+                                }
                                 val isBetweenEndpoints = if (isRangeMode) {
                                     val isAfterStart = cellDate > startDate
                                     val isBeforeEnd = cellDate < endDate
-                                    if (isAfterStart) isBeforeEnd else false
+                                    if (isDayDisabled) {
+                                        false
+                                    } else if (isAfterStart) {
+                                        isBeforeEnd
+                                    } else {
+                                        false
+                                    }
                                 } else {
                                     false
                                 }
                                 val dayBgBrush = when {
                                     isEndpointSelected -> primaryBrush
                                     isBetweenEndpoints -> SolidColor(activeChipColor.copy(alpha = 0.16f))
+                                    isDayDisabled -> SolidColor(dayCellBg.copy(alpha = 0.45f))
                                     else -> SolidColor(dayCellBg)
                                 }
                                 Box(
@@ -945,19 +1198,24 @@ internal fun RfInteractiveCalendarModal(
                                         .clip(CircleShape)
                                         .background(dayBgBrush)
                                         .clickable {
-                                            if (!isRangeMode) {
-                                                startDate = cellDate
-                                                endDate = cellDate
-                                            } else if (!editingEndDate) {
-                                                startDate = cellDate
-                                                if (endDate < cellDate) {
+                                            if (isDayDisabled) {
+                                                calendarValidationError = bounds.outOfBoundsError
+                                            } else {
+                                                calendarValidationError = null
+                                                if (!isRangeMode) {
+                                                    startDate = cellDate
+                                                    endDate = cellDate
+                                                } else if (!editingEndDate) {
+                                                    startDate = cellDate
+                                                    if (endDate < cellDate) {
+                                                        endDate = cellDate
+                                                    }
+                                                    editingEndDate = true
+                                                } else if (cellDate < startDate) {
+                                                    startDate = cellDate
+                                                } else {
                                                     endDate = cellDate
                                                 }
-                                                editingEndDate = true
-                                            } else if (cellDate < startDate) {
-                                                startDate = cellDate
-                                            } else {
-                                                endDate = cellDate
                                             }
                                         },
                                 ) {
@@ -966,7 +1224,11 @@ internal fun RfInteractiveCalendarModal(
                                         style = typo.body.copy(
                                             fontSize = 13.5.sp,
                                             fontWeight = if (isEndpointSelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isEndpointSelected) Color.White else palette.ink,
+                                            color = when {
+                                                isEndpointSelected -> Color.White
+                                                isDayDisabled -> palette.muted.copy(alpha = 0.35f)
+                                                else -> palette.ink
+                                            },
                                         ),
                                     )
                                 }
@@ -988,6 +1250,14 @@ internal fun RfInteractiveCalendarModal(
             }
             val formattedPreview = if (preferReadableFormat) readablePreview else slashPreview
 
+            val activeErrorText = calendarValidationError
+            if (activeErrorText != null) {
+                BasicText(
+                    text = activeErrorText,
+                    style = typo.body.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                )
+            }
+
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -997,7 +1267,18 @@ internal fun RfInteractiveCalendarModal(
                     .clip(RoundedCornerShape(14.dp))
                     .background(primaryBrush)
                     .clickable {
-                        onSelectDate(formattedPreview)
+                        val invalidRangeOrBound = hasInvalidCalendarSelection(
+                            startDate = startDate,
+                            endDate = endDate,
+                            isRangeMode = isRangeMode,
+                            minBound = bounds.minDate,
+                            maxBound = bounds.maxDate,
+                        )
+                        if (invalidRangeOrBound) {
+                            calendarValidationError = bounds.outOfBoundsError
+                        } else {
+                            onSelectDate(formattedPreview)
+                        }
                     }
                     .padding(horizontal = 12.dp),
             ) {
@@ -1607,26 +1888,28 @@ public const val RF_VALIDATION_DEBOUNCE_DELAY_MS: Long = 2000L
 
 /**
  * Computes a live validation error for [value] that clears immediately when valid, shows immediately
- * when [forceShowError] is true, and otherwise waits [delayMs] after typing stops when [hasInteracted] is true.
+ * when [forceShowError] or [hasBlurred] is true, and otherwise waits [delayMs] after typing stops when [hasInteracted] is true.
  */
 @Composable
 public fun rememberDebouncedValidationError(
     value: String,
     hasInteracted: Boolean,
     forceShowError: Boolean = false,
+    hasBlurred: Boolean = false,
     delayMs: Long = RF_VALIDATION_DEBOUNCE_DELAY_MS,
     validator: (String) -> String?,
 ): String? {
     val latestValidator by rememberUpdatedState(validator)
     val immediateError = latestValidator(value)
     var debouncedError by remember { mutableStateOf<String?>(null) }
+    val showImmediately = if (forceShowError) true else hasBlurred
 
-    LaunchedEffect(value, hasInteracted, forceShowError, delayMs) {
+    LaunchedEffect(value, hasInteracted, showImmediately, delayMs) {
         if (immediateError == null) {
             debouncedError = null
             return@LaunchedEffect
         }
-        if (forceShowError) {
+        if (showImmediately) {
             debouncedError = immediateError
             return@LaunchedEffect
         }
@@ -1643,9 +1926,49 @@ public fun rememberDebouncedValidationError(
     }
 
     if (immediateError == null) return null
-    if (forceShowError) return immediateError
+    if (showImmediately) return immediateError
     if (!hasInteracted) return null
     return debouncedError
+}
+
+/**
+ * Tracks focus/blur transitions for any text input so validation errors appear immediately when released.
+ */
+@Stable
+public class RfFieldBlurState internal constructor() {
+    public var hasBlurred: Boolean by mutableStateOf(false)
+        private set
+
+    private var wasFocused: Boolean = false
+
+    /** Updates focus tracking and marks the field blurred when focus leaves after being focused. */
+    public fun onFocusStateChanged(
+        isFocused: Boolean,
+        onBlurred: () -> Unit = {},
+    ) {
+        if (isFocused) {
+            wasFocused = true
+            hasBlurred = false
+        } else if (wasFocused) {
+            wasFocused = false
+            hasBlurred = true
+            onBlurred()
+        }
+    }
+
+    /** Clears blur and focus history when a form resets programmatically. */
+    public fun reset() {
+        wasFocused = false
+        hasBlurred = false
+    }
+}
+
+/**
+ * Remembers an [RfFieldBlurState] scoped to [resetKey].
+ */
+@Composable
+public fun rememberFieldBlurState(resetKey: Any? = Unit): RfFieldBlurState = remember(resetKey) {
+    RfFieldBlurState()
 }
 
 /**
@@ -1684,6 +2007,11 @@ public class RfDebouncedFieldController internal constructor(
     public var forceShowError: Boolean by mutableStateOf(false)
         private set
 
+    public var hasBlurred: Boolean by mutableStateOf(false)
+        private set
+
+    private var wasFocused: Boolean = false
+
     /**
      * Applies any configured input mask/filter and marks the field as interacted.
      */
@@ -1691,6 +2019,18 @@ public class RfDebouncedFieldController internal constructor(
         val nextValue = if (inputFilter != null) inputFilter.invoke(rawInput) else rawInput
         value = nextValue
         hasInteracted = true
+    }
+
+    /** Updates focus status and reveals any error immediately when focus leaves the field. */
+    public fun onFocusChanged(isFocused: Boolean) {
+        if (isFocused) {
+            wasFocused = true
+            hasBlurred = false
+        } else if (wasFocused) {
+            wasFocused = false
+            hasBlurred = true
+            hasInteracted = true
+        }
     }
 
     /**
@@ -1708,6 +2048,8 @@ public class RfDebouncedFieldController internal constructor(
         value = newValue
         hasInteracted = false
         forceShowError = false
+        wasFocused = false
+        hasBlurred = false
     }
 
     /**
@@ -1723,6 +2065,7 @@ public class RfDebouncedFieldController internal constructor(
         value = value,
         hasInteracted = hasInteracted,
         forceShowError = forceShowError,
+        hasBlurred = hasBlurred,
         delayMs = delayMs,
         validator = validator,
     )
@@ -1763,10 +2106,12 @@ public fun RfValidatedField(
     inputFilter: ((String) -> String)? = null,
 ) {
     var hasInteracted by remember { mutableStateOf(false) }
+    val blurState = rememberFieldBlurState()
     val visibleError = rememberDebouncedValidationError(
         value = value,
         hasInteracted = hasInteracted,
         forceShowError = forceShowError,
+        hasBlurred = blurState.hasBlurred,
         delayMs = delayMs,
         validator = validator,
     )
@@ -1779,6 +2124,11 @@ public fun RfValidatedField(
         helperOrError = effectiveHelperOrError,
         isError = hasVisibleError,
         placeholder = placeholder,
+        onFocusChanged = { isFocused ->
+            blurState.onFocusStateChanged(isFocused) {
+                hasInteracted = true
+            }
+        },
         onValueChange = { rawInput ->
             hasInteracted = true
             val filtered = if (inputFilter != null) inputFilter.invoke(rawInput) else rawInput

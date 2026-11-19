@@ -39,6 +39,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +73,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -103,6 +105,7 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfTrackValidationFocus
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.validation.InputValidator
@@ -160,16 +163,16 @@ internal fun RenderPersonalSplashP00(
             // Doble halo oficial
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(188.dp),
+                modifier = Modifier.size(144.dp),
             ) {
                 Box(
                     modifier = Modifier
-                        .size(188.dp)
+                        .size(144.dp)
                         .background(Color.White.copy(alpha = 0.07f), CircleShape),
                 )
                 Box(
                     modifier = Modifier
-                        .size(160.dp)
+                        .size(124.dp)
                         .background(Color.White.copy(alpha = 0.14f), CircleShape),
                 )
                 RfLogo(customSize = 136.dp, insetPadding = false)
@@ -180,7 +183,7 @@ internal fun RenderPersonalSplashP00(
             BasicText(
                 text = "Rosa Fiesta",
                 style = typo.heroTitle.copy(
-                    fontSize = 38.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White,
                 ),
@@ -347,7 +350,7 @@ internal fun RenderAdminSplashA00(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(136.dp)
+                    .size(106.dp)
                     .drawBehind {
                         drawCircle(
                             color = Color.White.copy(alpha = 0.07f),
@@ -370,7 +373,7 @@ internal fun RenderAdminSplashA00(
             BasicText(
                 text = "Rosa Fiesta",
                 style = typo.heroTitle.copy(
-                    fontSize = 38.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White,
                 ),
@@ -611,10 +614,10 @@ internal fun RenderOnboardingScreen(
                     BasicText(
                         text = stepTitle,
                         style = typo.heroTitle.copy(
-                            fontSize = 30.sp,
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color(0xFF151729),
-                            lineHeight = 34.sp,
+                            lineHeight = 26.sp,
                         ),
                     )
 
@@ -917,7 +920,7 @@ private fun OnboardingIllustrationStep1() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(328.dp),
+            .height(244.dp),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val sX = size.width / 350f
@@ -977,14 +980,14 @@ private fun OnboardingIllustrationStep1() {
         BalloonArchIllustration(
             modifier = Modifier
                 .offset(x = 35.dp, y = 44.dp)
-                .size(280.dp),
+                .size(210.dp),
         )
 
         // Mesa de pastel (left: 95dp, top: 168dp, size: 160dp)
         CakeTableIllustration(
             modifier = Modifier
                 .offset(x = 95.dp, y = 168.dp)
-                .size(160.dp),
+                .size(124.dp),
         )
 
         // Silla Tiffany (left: 4dp, top: 214dp, size: 110dp)
@@ -1659,12 +1662,12 @@ internal fun RenderBienvenidaScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(160.dp)
+                        .size(124.dp)
                         .background(Color(0x0D865DEC), CircleShape),
                 )
                 Box(
                     modifier = Modifier
-                        .size(136.dp)
+                        .size(106.dp)
                         .background(Color(0x14EA4EA9), CircleShape),
                 )
                 RfLogo(customSize = 116.dp, insetPadding = false)
@@ -1676,7 +1679,7 @@ internal fun RenderBienvenidaScreen(
                 BasicText(
                     text = "Rosa ",
                     style = typo.heroTitle.copy(
-                        fontSize = 42.sp,
+                        fontSize = 30.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = RfThemeState.currentPalette.ink,
                     ),
@@ -1684,7 +1687,7 @@ internal fun RenderBienvenidaScreen(
                 BasicText(
                     text = "Fiesta",
                     style = typo.heroTitle.copy(
-                        fontSize = 42.sp,
+                        fontSize = 30.sp,
                         fontWeight = FontWeight.ExtraBold,
                         brush = Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))),
                     ),
@@ -1912,6 +1915,8 @@ internal fun RenderLoginScreenS07(
     var hasAttemptedLogin by remember { mutableStateOf(false) }
     var hasInteractedEmail by remember { mutableStateOf(false) }
     var hasInteractedPassword by remember { mutableStateOf(false) }
+    val emailBlur = rememberFieldBlurState()
+    val passwordBlur = rememberFieldBlurState()
     var localLoginError by remember { mutableStateOf<String?>(null) }
     val formError = viewModel?.formError?.collectAsState()?.value
     val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
@@ -1920,6 +1925,7 @@ internal fun RenderLoginScreenS07(
         value = email,
         hasInteracted = hasInteractedEmail,
         forceShowError = hasAttemptedLogin,
+        hasBlurred = emailBlur.hasBlurred,
     ) { identifier ->
         InputValidator.validateLoginIdentifier(identifier)
     }
@@ -1927,6 +1933,7 @@ internal fun RenderLoginScreenS07(
         value = password,
         hasInteracted = hasInteractedPassword,
         forceShowError = hasAttemptedLogin,
+        hasBlurred = passwordBlur.hasBlurred,
     ) { secret ->
         InputValidator.validatePassword(secret)
     }
@@ -2087,7 +2094,11 @@ internal fun RenderLoginScreenS07(
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(authColors.cursorColor),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .rfTrackValidationFocus(focusKey = emailBlur) { focused ->
+                                emailBlur.onFocusStateChanged(focused) { hasInteractedEmail = true }
+                            },
                         decorationBox = { innerTextField ->
                             if (email.isEmpty()) {
                                 BasicText(
@@ -2169,7 +2180,11 @@ internal fun RenderLoginScreenS07(
                             visualTransformation = loginPasswordVisualTransformation,
                             textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                             cursorBrush = SolidColor(authColors.cursorColor),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .rfTrackValidationFocus(focusKey = passwordBlur) { focused ->
+                                    passwordBlur.onFocusStateChanged(focused) { hasInteractedPassword = true }
+                                },
                             decorationBox = { innerTextField ->
                                 Box(contentAlignment = Alignment.CenterStart) {
                                     if (password.isEmpty()) {
@@ -2277,12 +2292,26 @@ internal fun RenderLoginScreenS07(
 
             Spacer(Modifier.height(16.dp))
 
+            val oauthConfig = viewModel?.oauthConfig?.collectAsState()?.value
+            LaunchedEffect(viewModel) {
+                viewModel?.loadOAuthConfig()
+            }
             val handleSocialLogin: (String) -> Unit = { providerName ->
-                val socialSuccess = viewModel?.authenticateSocialAccount(providerName, "") == true
-                if (socialSuccess) {
-                    val isAdminSession = viewModel.isCurrentSessionAdminOrStaff()
-                    val targetCode = if (isAdminSession) "A01" else "s14"
-                    onSelectScreenCode(targetCode)
+                val isGoogle = providerName == "Google"
+                val isApple = providerName == "Apple"
+                val providerEnabled = when {
+                    isGoogle -> oauthConfig?.googleEnabled == true
+                    isApple -> oauthConfig?.appleEnabled == true
+                    else -> false
+                }
+                if (!providerEnabled) {
+                    viewModel?.soundPlayer?.playAlertError()
+                    viewModel?.postError(
+                        "$providerName OAuth no está habilitado en el servidor. Ingresa con tu correo y contraseña.",
+                    )
+                } else {
+                    viewModel?.soundPlayer?.playTap()
+                    viewModel?.signInWithBrowserOAuth(providerName.lowercase())
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -2300,7 +2329,14 @@ internal fun RenderLoginScreenS07(
                                 handleSocialLogin(providerName)
                             },
                     ) {
-                        BasicText(providerName, style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
+                        BasicText(
+                            providerName,
+                            style = typo.body.copy(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = RfThemeState.currentPalette.ink,
+                            ),
+                        )
                     }
                 }
             }
@@ -2602,6 +2638,13 @@ internal fun RenderRegisterScreenS08(
     var hasInteractedEmail by remember { mutableStateOf(false) }
     var hasInteractedPhone by remember { mutableStateOf(false) }
     var hasInteractedBirthDate by remember { mutableStateOf(false) }
+    val firstNameBlur = rememberFieldBlurState()
+    val lastNameBlur = rememberFieldBlurState()
+    val usernameBlur = rememberFieldBlurState()
+    val passwordRegBlur = rememberFieldBlurState()
+    val emailRegBlur = rememberFieldBlurState()
+    val phoneRegBlur = rememberFieldBlurState()
+    val birthDateRegBlur = rememberFieldBlurState()
     var localRegisterError by remember { mutableStateOf<String?>(null) }
     val vmRegisterPhone = viewModel?.registerPhone?.collectAsState()?.value ?: ""
     var phone by remember(vmRegisterPhone) { mutableStateOf(InputValidator.filterPhoneInput(vmRegisterPhone)) }
@@ -2612,6 +2655,7 @@ internal fun RenderRegisterScreenS08(
         value = firstName,
         hasInteracted = hasInteractedFirstName,
         forceShowError = hasAttemptedRegister,
+        hasBlurred = firstNameBlur.hasBlurred,
     ) { part ->
         InputValidator.validatePersonNamePart(part, "El nombre")
     }
@@ -2619,6 +2663,7 @@ internal fun RenderRegisterScreenS08(
         value = lastName,
         hasInteracted = hasInteractedLastName,
         forceShowError = hasAttemptedRegister,
+        hasBlurred = lastNameBlur.hasBlurred,
     ) { part ->
         InputValidator.validatePersonNamePart(part, "El apellido")
     }
@@ -2626,6 +2671,7 @@ internal fun RenderRegisterScreenS08(
         value = username,
         hasInteracted = hasInteractedUsername,
         forceShowError = hasAttemptedRegister,
+        hasBlurred = usernameBlur.hasBlurred,
     ) { handle ->
         InputValidator.validateUsername(handle)
     }
@@ -2633,6 +2679,7 @@ internal fun RenderRegisterScreenS08(
         value = password,
         hasInteracted = hasInteractedPassword,
         forceShowError = hasAttemptedRegister,
+        hasBlurred = passwordRegBlur.hasBlurred,
     ) { secret ->
         InputValidator.validatePassword(secret)
     }
@@ -2640,6 +2687,7 @@ internal fun RenderRegisterScreenS08(
         value = email,
         hasInteracted = hasInteractedEmail,
         forceShowError = hasAttemptedRegister,
+        hasBlurred = emailRegBlur.hasBlurred,
     ) { addr ->
         InputValidator.validateEmail(addr)
     }
@@ -2647,6 +2695,7 @@ internal fun RenderRegisterScreenS08(
         value = phone,
         hasInteracted = hasInteractedPhone,
         forceShowError = hasAttemptedRegister,
+        hasBlurred = phoneRegBlur.hasBlurred,
     ) { rawPhone ->
         InputValidator.validateOptionalPhone(rawPhone)
     }
@@ -2654,6 +2703,7 @@ internal fun RenderRegisterScreenS08(
         value = birthDate,
         hasInteracted = hasInteractedBirthDate,
         forceShowError = hasAttemptedRegister,
+        hasBlurred = birthDateRegBlur.hasBlurred,
     ) { rawBirthDate ->
         InputValidator.validateBirthDate(rawBirthDate, isRequired = true)
     }
@@ -2762,7 +2812,11 @@ internal fun RenderRegisterScreenS08(
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(authColors.cursorColor),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfTrackValidationFocus(focusKey = firstNameBlur) { focused ->
+                                firstNameBlur.onFocusStateChanged(focused) { hasInteractedFirstName = true }
+                            },
                         decorationBox = { inner ->
                             if (firstName.isEmpty()) {
                                 BasicText("Nombre (2–40)", style = typo.body.copy(fontSize = 14.5.sp, color = RfThemeState.currentPalette.muted))
@@ -2795,7 +2849,11 @@ internal fun RenderRegisterScreenS08(
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(authColors.cursorColor),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfTrackValidationFocus(focusKey = lastNameBlur) { focused ->
+                                lastNameBlur.onFocusStateChanged(focused) { hasInteractedLastName = true }
+                            },
                         decorationBox = { inner ->
                             if (lastName.isEmpty()) {
                                 BasicText("Apellido (2–40)", style = typo.body.copy(fontSize = 14.5.sp, color = RfThemeState.currentPalette.muted))
@@ -2848,7 +2906,11 @@ internal fun RenderRegisterScreenS08(
                             singleLine = true,
                             textStyle = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
                             cursorBrush = SolidColor(authColors.cursorColor),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .rfTrackValidationFocus(focusKey = usernameBlur) { focused ->
+                                    usernameBlur.onFocusStateChanged(focused) { hasInteractedUsername = true }
+                                },
                             decorationBox = { inner ->
                                 if (username.isEmpty()) {
                                     BasicText(
@@ -2909,7 +2971,11 @@ internal fun RenderRegisterScreenS08(
                                 visualTransformation = registerPasswordVisualTransformation,
                                 textStyle = typo.body.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
                                 cursorBrush = SolidColor(authColors.cursorColor),
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .rfTrackValidationFocus(focusKey = passwordRegBlur) { focused ->
+                                        passwordRegBlur.onFocusStateChanged(focused) { hasInteractedPassword = true }
+                                    },
                                 decorationBox = { inner ->
                                     Box(contentAlignment = Alignment.CenterStart) {
                                         if (password.isEmpty()) {
@@ -2974,7 +3040,11 @@ internal fun RenderRegisterScreenS08(
                         singleLine = true,
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(authColors.cursorColor),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfTrackValidationFocus(focusKey = emailRegBlur) { focused ->
+                                emailRegBlur.onFocusStateChanged(focused) { hasInteractedEmail = true }
+                            },
                         decorationBox = { inner ->
                             if (email.isEmpty()) {
                                 BasicText("Correo electrónico (ej. usuario@dominio.com)", style = typo.body.copy(fontSize = 14.5.sp, color = RfThemeState.currentPalette.muted))
@@ -3010,20 +3080,25 @@ internal fun RenderRegisterScreenS08(
                         tint = if (phoneError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                         size = 20.dp,
                     )
-                    BasicTextField(
+                    RfMaskedDigitBasicTextField(
                         value = phone,
-                        onValueChange = { nextPhone ->
-                            val filteredPhone = InputValidator.filterPhoneInput(nextPhone)
+                        onValueChange = { filteredPhone ->
                             phone = filteredPhone
                             hasInteractedPhone = true
                             localRegisterError = null
                             viewModel?.setRegisterPhone(filteredPhone)
                             viewModel?.clearFormError()
                         },
+                        maskTransform = InputValidator::filterPhoneInputWithCursor,
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         cursorBrush = SolidColor(authColors.cursorColor),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .rfTrackValidationFocus(focusKey = phoneRegBlur) { focused ->
+                                phoneRegBlur.onFocusStateChanged(focused) { hasInteractedPhone = true }
+                            },
                         decorationBox = { innerField ->
                             if (phone.isEmpty()) {
                                 BasicText("Teléfono (ej. 809-555-0102)", style = typo.body.copy(fontSize = 14.5.sp, color = RfThemeState.currentPalette.muted))
@@ -3084,6 +3159,9 @@ internal fun RenderRegisterScreenS08(
                         compactInline = true,
                         embeddedInContainer = true,
                         readableFormatter = ::formatSpanishDateWithWords,
+                        onFocusChanged = { focused ->
+                            birthDateRegBlur.onFocusStateChanged(focused) { hasInteractedBirthDate = true }
+                        },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -3367,6 +3445,19 @@ private fun RegisterBalloonArchHeaderIllustration(modifier: Modifier = Modifier)
     }
 }
 
+private fun isCivilDateWithinBirthBounds(
+    year: Int,
+    month: Int,
+    day: Int,
+    minYmd: Triple<Int, Int, Int>,
+    maxYmd: Triple<Int, Int, Int>,
+): Boolean {
+    val minKey = (minYmd.first * 10000) + (minYmd.second * 100) + minYmd.third
+    val maxKey = (maxYmd.first * 10000) + (maxYmd.second * 100) + maxYmd.third
+    val targetKey = (year * 10000) + (month * 100) + day
+    return targetKey in minKey..maxKey
+}
+
 @Composable
 private fun BirthDateCalendarModal(
     currentBirthDate: String,
@@ -3375,18 +3466,23 @@ private fun BirthDateCalendarModal(
 ) {
     val typo = LocalRfTypography.current
     val authColors = rememberAuthScreenColors()
+    val (minBirthYmd, maxBirthYmd) = remember { InputValidator.birthDateBounds() }
+    val minAllowedYear = minBirthYmd.first
+    val maxAllowedYear = maxBirthYmd.first
     val initialParts = currentBirthDate.split("/")
     val parsedMonth = initialParts.getOrNull(1)?.toIntOrNull()?.coerceIn(1, 12) ?: 8
+    val fallbackYear = (maxAllowedYear - 10).coerceIn(minAllowedYear, maxAllowedYear)
     val parsedYear = initialParts.getOrNull(2)?.toIntOrNull()?.coerceIn(
-        InputValidator.MIN_BIRTH_YEAR,
-        InputValidator.MAX_BIRTH_YEAR,
-    ) ?: 1998
+        minAllowedYear,
+        maxAllowedYear,
+    ) ?: fallbackYear
     val initialMaxDays = computeDaysInGregorianMonth(parsedYear, parsedMonth)
     val parsedDay = initialParts.getOrNull(0)?.toIntOrNull()?.coerceIn(1, initialMaxDays) ?: 15
 
     var selectedDay by remember { mutableStateOf(parsedDay) }
     var selectedMonth by remember { mutableStateOf(parsedMonth) }
     var selectedYear by remember { mutableStateOf(parsedYear) }
+    var birthModalError by remember { mutableStateOf<String?>(null) }
 
     val monthNames = remember {
         listOf(
@@ -3450,7 +3546,7 @@ private fun BirthDateCalendarModal(
                         style = typo.heroTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = RfThemeState.currentPalette.ink),
                     )
                     BasicText(
-                        "Selecciona día, mes y año",
+                        "Edad permitida: ${InputValidator.MIN_AGE_YEARS} a ${InputValidator.MAX_AGE_YEARS} años",
                         style = typo.body.copy(fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                     )
                 }
@@ -3491,6 +3587,7 @@ private fun BirthDateCalendarModal(
                                 val nextMonth = if (selectedMonth == 1) 12 else selectedMonth - 1
                                 selectedMonth = nextMonth
                                 selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(selectedYear, nextMonth))
+                                birthModalError = null
                             },
                     ) {
                         RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 14.dp)
@@ -3510,6 +3607,7 @@ private fun BirthDateCalendarModal(
                                 val nextMonth = if (selectedMonth == 12) 1 else selectedMonth + 1
                                 selectedMonth = nextMonth
                                 selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(selectedYear, nextMonth))
+                                birthModalError = null
                             },
                     ) {
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.ink, size = 14.dp)
@@ -3533,9 +3631,10 @@ private fun BirthDateCalendarModal(
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .clickable {
-                                val nextYear = (selectedYear - 1).coerceAtLeast(InputValidator.MIN_BIRTH_YEAR)
+                                val nextYear = (selectedYear - 1).coerceAtLeast(minAllowedYear)
                                 selectedYear = nextYear
                                 selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
+                                birthModalError = null
                             },
                     ) {
                         RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 14.dp)
@@ -3551,9 +3650,10 @@ private fun BirthDateCalendarModal(
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
                             .clickable {
-                                val nextYear = (selectedYear + 1).coerceAtMost(InputValidator.MAX_BIRTH_YEAR)
+                                val nextYear = (selectedYear + 1).coerceAtMost(maxAllowedYear)
                                 selectedYear = nextYear
                                 selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(nextYear, selectedMonth))
+                                birthModalError = null
                             },
                     ) {
                         RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = RfThemeState.currentPalette.ink, size = 14.dp)
@@ -3567,7 +3667,10 @@ private fun BirthDateCalendarModal(
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
             ) {
-                val quickYears = listOf(1980, 1985, 1990, 1995, 1998, 2002, 2008)
+                val candidateYears = listOf(1960, 1970, 1980, 1985, 1990, 1995, 1998, 2002, 2006, maxAllowedYear)
+                val quickYears = candidateYears
+                    .filter { yearOption -> yearOption in minAllowedYear..maxAllowedYear }
+                    .distinct()
                 quickYears.forEach { yearOption ->
                     val isSelectedYear = yearOption == selectedYear
                     Box(
@@ -3579,6 +3682,7 @@ private fun BirthDateCalendarModal(
                             .clickable {
                                 selectedYear = yearOption
                                 selectedDay = selectedDay.coerceAtMost(computeDaysInGregorianMonth(yearOption, selectedMonth))
+                                birthModalError = null
                             }
                             .padding(horizontal = 10.dp),
                     ) {
@@ -3622,11 +3726,24 @@ private fun BirthDateCalendarModal(
                         for (slotIndex in 0 until 7) {
                             val dayValue = weekDays.getOrNull(slotIndex)
                             if (dayValue != null) {
+                                val isDayAllowed = isCivilDateWithinBirthBounds(
+                                    year = selectedYear,
+                                    month = selectedMonth,
+                                    day = dayValue,
+                                    minYmd = minBirthYmd,
+                                    maxYmd = maxBirthYmd,
+                                )
                                 val isDaySelected = dayValue == clampedSelectedDay
-                                val dayBgBrush = if (isDaySelected) {
+                                val isActiveSelection = isDaySelected && isDayAllowed
+                                val dayBgBrush = if (isActiveSelection) {
                                     authColors.primaryButtonBrush
                                 } else {
                                     SolidColor(RfThemeState.currentPalette.bg)
+                                }
+                                val dayTextColor = when {
+                                    isActiveSelection -> Color.White
+                                    isDayAllowed -> RfThemeState.currentPalette.ink
+                                    else -> RfThemeState.currentPalette.muted.copy(alpha = 0.35f)
                                 }
                                 Box(
                                     contentAlignment = Alignment.Center,
@@ -3634,16 +3751,23 @@ private fun BirthDateCalendarModal(
                                         .size(36.dp)
                                         .clip(CircleShape)
                                         .background(dayBgBrush)
-                                        .clickable {
-                                            selectedDay = dayValue
-                                        },
+                                        .then(
+                                            if (isDayAllowed) {
+                                                Modifier.clickable {
+                                                    selectedDay = dayValue
+                                                    birthModalError = null
+                                                }
+                                            } else {
+                                                Modifier
+                                            },
+                                        ),
                                 ) {
                                     BasicText(
                                         dayValue.toString(),
                                         style = typo.body.copy(
                                             fontSize = 13.5.sp,
-                                            fontWeight = if (isDaySelected) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (isDaySelected) Color.White else RfThemeState.currentPalette.ink,
+                                            fontWeight = if (isActiveSelection) FontWeight.Bold else FontWeight.Medium,
+                                            color = dayTextColor,
                                         ),
                                     )
                                 }
@@ -3659,6 +3783,14 @@ private fun BirthDateCalendarModal(
             val formattedMonth = selectedMonth.toString().padStart(2, '0')
             val formattedPreview = "$formattedDay/$formattedMonth/$selectedYear"
 
+            val currentModalError = birthModalError
+            if (currentModalError != null) {
+                BasicText(
+                    currentModalError,
+                    style = typo.body.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Medium, color = Color(0xFFD93025)),
+                )
+            }
+
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -3668,7 +3800,12 @@ private fun BirthDateCalendarModal(
                     .clip(RoundedCornerShape(14.dp))
                     .background(authColors.primaryButtonBrush)
                     .clickable {
-                        onSelectBirthDate(formattedPreview)
+                        val validationError = InputValidator.validateBirthDate(formattedPreview)
+                        if (validationError != null) {
+                            birthModalError = validationError
+                        } else {
+                            onSelectBirthDate(formattedPreview)
+                        }
                     },
             ) {
                 BasicText(
@@ -3964,17 +4101,13 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     if (cleanInput.length < 3) {
                                         viewModel?.soundPlayer?.playAlertError()
                                         userLookupNotice = null
-                                    } else {
-                                        val isEmailCandidate = cleanInput.contains("@")
-                                        if (isEmailCandidate) {
-                                            val sent = viewModel?.requestPasswordResetOtp(cleanInput) ?: true
-                                            if (sent) {
-                                                userLookupNotice = "Si esa cuenta existe, enviamos las instrucciones de acceso a tu correo."
-                                            }
-                                        } else {
-                                            viewModel?.soundPlayer?.playTap()
-                                            userLookupNotice = "Por seguridad no exponemos cuentas en pantalla. Usa tu correo registrado en la pestaña Recuperar clave o contacta a Administración."
+                                    } else if (viewModel != null) {
+                                        userLookupNotice = "Consultando recuperación en el servidor..."
+                                        viewModel.recoverUsername(cleanInput) { _, serverMessage ->
+                                            userLookupNotice = serverMessage
                                         }
+                                    } else {
+                                        userLookupNotice = "Si esa cuenta existe, enviaremos las instrucciones a tu correo registrado."
                                     }
                                 },
                         ) {
@@ -4213,14 +4346,18 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 tint = if (resetOtpError != null) RfColors.Error else RfThemeState.currentPalette.muted,
                                 size = 20.dp,
                             )
-                            BasicTextField(
+                            RfMaskedDigitBasicTextField(
                                 value = otpCode,
                                 onValueChange = { nextOtp ->
-                                    otpCode = InputValidator.filterDigitsOnly(nextOtp, InputValidator.OTP_LENGTH)
+                                    otpCode = nextOtp
                                     hasInteractedResetOtp = true
                                     viewModel?.clearFormError()
                                 },
+                                maskTransform = { prev, next, sel ->
+                                    InputValidator.filterDigitsOnlyWithCursor(prev, next, sel, InputValidator.OTP_LENGTH)
+                                },
                                 singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 textStyle = typo.body.copy(
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
@@ -4627,7 +4764,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                     BasicText(
                         "Verifica tu correo",
                         style = typo.heroTitle.copy(
-                            fontSize = 30.sp,
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.ExtraBold,
                             letterSpacing = (-0.6).sp,
                             color = RfThemeState.currentPalette.ink,
@@ -4665,15 +4802,19 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .border(1.5.dp, otpBorderColor, RoundedCornerShape(16.dp))
                             .padding(horizontal = 16.dp),
                     ) {
-                        BasicTextField(
+                        RfMaskedDigitBasicTextField(
                             value = verificationOtp,
                             onValueChange = { nextCode ->
-                                verificationOtp = InputValidator.filterDigitsOnly(nextCode, InputValidator.OTP_LENGTH)
+                                verificationOtp = nextCode
                                 hasInteractedVerificationOtp = true
                                 forceShowVerificationOtpError = false
                                 viewModel?.clearFormError()
                             },
+                            maskTransform = { prev, next, sel ->
+                                InputValidator.filterDigitsOnlyWithCursor(prev, next, sel, InputValidator.OTP_LENGTH)
+                            },
                             singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             textStyle = typo.heroTitle.copy(
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.ExtraBold,
@@ -4773,7 +4914,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
         "s13" -> {
             val s13ProfileName = viewModel?.profileName?.collectAsState()?.value ?: "Invitado Rosa Fiesta"
             val s13FirstName = s13ProfileName.substringBefore(" ").ifBlank { "Cliente" }
-            val s13AvatarInitial = s13FirstName.firstOrNull()?.uppercaseChar()?.toString() ?: "R"
+            val s13AvatarInitial = InputValidator.extractInitials(s13FirstName, fallback = "R", maxInitials = 1)
             val s13Email = viewModel?.profileEmail?.collectAsState()?.value ?: "cliente@rosafiesta.do"
 
             Box(
@@ -4830,7 +4971,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         BasicText(
                             "¡Hola de nuevo, $s13FirstName!",
                             style = typo.heroTitle.copy(
-                                fontSize = 30.sp,
+                                fontSize = 24.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 letterSpacing = (-0.6).sp,
                                 color = RfThemeState.currentPalette.ink,
@@ -5080,6 +5221,14 @@ private fun EventActiveItemRow(
 // s01 · CATÁLOGO (MODO INVITADO)
 // ==============================================================================
 
+private fun normalizeGuestCatalogCategory(rawCategory: String): String {
+    val clean = rawCategory.trim()
+    if (clean.isEmpty()) return "Todas"
+    if (clean.equals("Todos", ignoreCase = true)) return "Todas"
+    if (clean.equals("Todas", ignoreCase = true)) return "Todas"
+    return clean
+}
+
 @Composable
 internal fun RenderGuestCatalogS01(
     onSelectScreenCode: (String) -> Unit,
@@ -5088,7 +5237,7 @@ internal fun RenderGuestCatalogS01(
     val typo = LocalRfTypography.current
     val vmSelectedCategory = viewModel?.selectedCategory?.collectAsState()?.value ?: "Todas"
     var selectedCategory by remember(vmSelectedCategory) {
-        mutableStateOf(vmSelectedCategory.ifBlank { "Todas" })
+        mutableStateOf(normalizeGuestCatalogCategory(vmSelectedCategory))
     }
     val vmSearchQuery = viewModel?.searchQuery?.collectAsState()?.value ?: ""
     var searchQuery by remember(vmSearchQuery) { mutableStateOf(vmSearchQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)) }
@@ -5314,7 +5463,14 @@ internal fun RenderGuestCatalogS01(
                     .height(38.dp)
                     .horizontalScroll(rememberScrollState()),
             ) {
-                val baseCategories = listOf("Todas", "Iluminación", "Floral", "Globos", "Mobiliario")
+                val vmCategories = viewModel?.catalogCategories?.collectAsState()?.value
+                val baseCategories = if (vmCategories != null) {
+                    listOf("Todas") + vmCategories.map { category -> category.name.trim() }
+                        .filter { name -> name.isNotEmpty() }
+                        .distinctBy { name -> name.lowercase() }
+                } else {
+                    listOf("Todas", "Iluminación", "Floral", "Globos", "Mobiliario")
+                }
                 val categories = if (baseCategories.contains(selectedCategory)) {
                     baseCategories
                 } else {
@@ -5542,7 +5698,7 @@ private fun GuestProductCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(136.dp)
+                    .height(106.dp)
                     .background(bg),
             ) {
                 RfPhoto(
@@ -5782,7 +5938,7 @@ internal fun RenderGuestFavoritesS02(
                     .padding(horizontal = 20.dp),
             ) {
                 HeartOrbitIllustration(
-                    modifier = Modifier.size(190.dp),
+                    modifier = Modifier.size(146.dp),
                 )
 
                 Spacer(Modifier.height(8.dp))

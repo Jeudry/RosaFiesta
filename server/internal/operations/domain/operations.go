@@ -1,29 +1,52 @@
+// Package domain define las entidades operativas de logística, incidencias, CRM y bot.
 package domain
 
 import "errors"
 
 var (
-	ErrOperationNotFound      = errors.New("event logistics order not found")
-	ErrChecklistNotFound      = errors.New("checklist item not found")
-	ErrInvalidReplacement     = errors.New("replacement charge must be greater than or equal to zero")
-	ErrReviewNotFound         = errors.New("review not found")
-	ErrLeadNotFound           = errors.New("crm lead not found")
-	ErrNotificationNotFound   = errors.New("notification not found")
-	ErrBotThreadNotFound      = errors.New("whatsapp bot thread not found")
-	ErrInvalidRating          = errors.New("review rating must be between 1 and 5")
+	// ErrOperationNotFound indica que la orden logística del evento no existe.
+	ErrOperationNotFound = errors.New("event logistics order not found")
+	// ErrChecklistNotFound indica que el ítem del checklist operativo no existe.
+	ErrChecklistNotFound = errors.New("checklist item not found")
+	// ErrDamageIncidentNotFound indica que el reporte de daño solicitado no existe.
+	ErrDamageIncidentNotFound = errors.New("damage incident not found")
+	// ErrInvalidReplacement indica que el costo de reposición no puede ser negativo.
+	ErrInvalidReplacement = errors.New("replacement charge must be greater than or equal to zero")
+	// ErrReviewNotFound indica que la reseña solicitada no existe.
+	ErrReviewNotFound = errors.New("review not found")
+	// ErrLeadNotFound indica que el prospecto CRM no existe.
+	ErrLeadNotFound = errors.New("crm lead not found")
+	// ErrNotificationNotFound indica que la notificación no existe.
+	ErrNotificationNotFound = errors.New("notification not found")
+	// ErrBotThreadNotFound indica que el hilo de conversación WhatsApp no existe.
+	ErrBotThreadNotFound = errors.New("whatsapp bot thread not found")
+	// ErrWhatsAppNotConfigured indica que WhatsApp Cloud API no está configurado.
+	ErrWhatsAppNotConfigured = errors.New("whatsapp cloud api provider is not configured")
+	// ErrWhatsAppVerifyFailed indica que el token de verificación del webhook de WhatsApp no coincide.
+	ErrWhatsAppVerifyFailed = errors.New("whatsapp webhook verification failed")
+	// ErrInvalidRating indica que la calificación de la reseña debe estar entre 1 y 5.
+	ErrInvalidRating = errors.New("review rating must be between 1 and 5")
+	// ErrInvalidOperationsInput indica parámetros inválidos en la operación.
 	ErrInvalidOperationsInput = errors.New("invalid operations payload")
-	ErrInvalidReportRequest   = errors.New("invalid report type or period; use income|events|clients|inventory|dgii and 6m|12m")
+	// ErrInvalidReportRequest indica un tipo o período de reporte no soportado.
+	ErrInvalidReportRequest = errors.New("invalid report type or period; use income|events|clients|inventory|dgii and 6m|12m")
 )
 
+// ChecklistStage agrupa los pasos operativos según la etapa del evento.
 type ChecklistStage string
 
 const (
+	// StageWarehouseLoad corresponde al despacho y carga en bodega.
 	StageWarehouseLoad ChecklistStage = "carga_bodega"
-	StageInTransit     ChecklistStage = "en_transito"
-	StageOnSiteSetup   ChecklistStage = "montaje_sitio"
-	StageTeardown      ChecklistStage = "desmontaje_recogida"
+	// StageInTransit corresponde al traslado hacia la locación.
+	StageInTransit ChecklistStage = "en_transito"
+	// StageOnSiteSetup corresponde al montaje en sitio.
+	StageOnSiteSetup ChecklistStage = "montaje_sitio"
+	// StageTeardown corresponde al desmontaje y retorno a bodega.
+	StageTeardown ChecklistStage = "desmontaje_recogida"
 )
 
+// ChecklistItem representa una tarea verificable de logística en campo.
 type ChecklistItem struct {
 	ID          string         `json:"id"`
 	Stage       ChecklistStage `json:"stage"`
@@ -33,6 +56,7 @@ type ChecklistItem struct {
 	CompletedAt string         `json:"completedAt,omitempty"`
 }
 
+// RouteStop describe una parada de entrega o recogida en la ruta diaria.
 type RouteStop struct {
 	Order           int    `json:"order"`
 	EventID         string `json:"eventId"`
@@ -43,25 +67,35 @@ type RouteStop struct {
 	Status          string `json:"status"`
 }
 
+// DamageReport registra artículos dañados o faltantes durante el evento.
 type DamageReport struct {
-	ID            string `json:"id"`
-	EventID       string `json:"eventId"`
-	ArticleCode   string `json:"articleCode"`
-	ArticleName   string `json:"articleName"`
-	DamagedUnits  int    `json:"damagedUnits"`
-	MissingUnits  int    `json:"missingUnits"`
-	ReplacementRD int    `json:"replacementRD"`
-	Notes         string `json:"notes"`
+	ID              string `json:"id"`
+	EventID         string `json:"eventId"`
+	ArticleCode     string `json:"articleCode"`
+	ArticleName     string `json:"articleName"`
+	DamagedUnits    int    `json:"damagedUnits"`
+	MissingUnits    int    `json:"missingUnits"`
+	ReplacementRD   int    `json:"replacementRD"`
+	Notes           string `json:"notes"`
+	PhotoURL        string `json:"photoUrl,omitempty"`
+	ResolutionNotes string `json:"resolutionNotes,omitempty"`
+	ChargePaymentID string `json:"chargePaymentId,omitempty"`
+	Status          string `json:"status,omitempty"`
 }
 
+// OfflineMutation representa una operación capturada en campo sin conectividad.
 type OfflineMutation struct {
-	ID          string `json:"id"`
-	ActionLabel string `json:"actionLabel"`
-	EntityCode  string `json:"entityCode"`
-	CreatedAt   string `json:"createdAt"`
-	Synced      bool   `json:"synced"`
+	ID             string `json:"id"`
+	ActionLabel    string `json:"actionLabel"`
+	EntityCode     string `json:"entityCode"`
+	OperationType  string `json:"operationType,omitempty"`
+	PayloadJSON    string `json:"payloadJson,omitempty"`
+	IdempotencyKey string `json:"idempotencyKey,omitempty"`
+	CreatedAt      string `json:"createdAt"`
+	Synced         bool   `json:"synced"`
 }
 
+// EventLogistics agrupa itinerario, equipo asignado, checklist e incidencias de un evento.
 type EventLogistics struct {
 	EventID        string          `json:"eventId"`
 	EventTitle     string          `json:"eventTitle"`
@@ -77,6 +111,7 @@ type EventLogistics struct {
 	DamageReports  []DamageReport  `json:"damageReports"`
 }
 
+// CompletionPercent calcula el porcentaje de tareas completadas del checklist.
 func (l EventLogistics) CompletionPercent() int {
 	if len(l.Checklist) == 0 {
 		return 0
@@ -90,6 +125,7 @@ func (l EventLogistics) CompletionPercent() int {
 	return (done * 100) / len(l.Checklist)
 }
 
+// CanonicalLogistics devuelve los registros logísticos iniciales de demostración.
 func CanonicalLogistics() []EventLogistics {
 	return []EventLogistics{
 		{ //nolint:gosec
@@ -165,6 +201,7 @@ func bodaChecklist() []ChecklistItem {
 	}
 }
 
+// CanonicalRouteStops devuelve las paradas de ruta iniciales de demostración.
 func CanonicalRouteStops() []RouteStop {
 	return []RouteStop{
 		{
@@ -188,6 +225,7 @@ func CanonicalRouteStops() []RouteStop {
 	}
 }
 
+// CanonicalOfflineQueue devuelve las mutaciones fuera de línea iniciales de demostración.
 func CanonicalOfflineQueue() []OfflineMutation {
 	return []OfflineMutation{
 		{

@@ -64,6 +64,50 @@ public data class OAuthLoginInputDto(
 )
 
 @Serializable
+public data class OAuthStartResultDto(
+    public val provider: String,
+    public val authorizeUrl: String,
+    public val state: String,
+)
+
+@Serializable
+public data class OAuthExchangeInputDto(
+    public val provider: String,
+    public val code: String,
+    public val codeVerifier: String,
+    public val redirectUri: String,
+)
+
+@Serializable
+public data class PushTokenInputDto(
+    public val platform: String,
+    public val token: String,
+    public val appVariant: String = "personal",
+)
+
+@Serializable
+public data class DevicePushTokenDto(
+    public val id: String,
+    public val userId: String,
+    public val platform: String,
+    public val token: String,
+    public val appVariant: String,
+    public val enabled: Boolean,
+    public val updatedAt: String,
+)
+
+@Serializable
+public data class PushTokenOutputDto(
+    public val registered: Boolean,
+    public val device: DevicePushTokenDto,
+)
+
+@Serializable
+public data class DeletePushTokenOutputDto(
+    public val disabled: Boolean,
+)
+
+@Serializable
 public data class UpdateClientInputDto(
     public val fullName: String? = null,
     public val email: String? = null,
@@ -82,6 +126,7 @@ public data class InviteStaffInputDto(
     public val email: String,
     public val permissions: List<String>,
     public val password: String? = null,
+    public val initialPassword: String? = null,
     public val phone: String? = null,
     public val role: String? = null,
     public val roleLabel: String? = null,
@@ -117,7 +162,9 @@ public data class CreateArticleInputDto(
     public val id: String? = null,
     public val categoryId: String? = null,
     public val photoKey: String? = null,
+    public val photoUrl: String? = null,
     public val availableStock: Long? = null,
+    public val damagedStock: Long? = null,
     public val lowStockThreshold: Long? = null,
     public val description: String? = null,
     public val colorVariants: List<String>? = null,
@@ -132,8 +179,10 @@ public data class UpdateArticleInputDto(
     public val name: String? = null,
     public val categoryId: String? = null,
     public val photoKey: String? = null,
+    public val photoUrl: String? = null,
     public val dailyPriceDop: Long? = null,
     public val totalStock: Long? = null,
+    public val damagedStock: Long? = null,
     public val availableStock: Long? = null,
     public val lowStockThreshold: Long? = null,
     public val description: String? = null,
@@ -156,6 +205,7 @@ public data class SavePackageInputDto(
     public val id: String? = null,
     public val eventType: String? = null,
     public val photoKey: String? = null,
+    public val photoUrl: String? = null,
     public val itemsSummary: String? = null,
     public val items: List<PackageItemDto>? = null,
     public val visible: Boolean? = null,
@@ -168,6 +218,7 @@ public data class UpdatePackageInputDto(
     public val totalPriceDop: Long,
     public val eventType: String? = null,
     public val photoKey: String? = null,
+    public val photoUrl: String? = null,
     public val itemsSummary: String? = null,
     public val items: List<PackageItemDto>? = null,
     public val visible: Boolean? = null,
@@ -207,6 +258,7 @@ public data class CreateEventInputDto(
     public val dateLabel: String,
     public val venue: String,
     public val guests: Long,
+    public val eventDateIso: String? = null,
     public val clientName: String? = null,
     public val clientEmail: String? = null,
     public val eventType: String? = null,
@@ -224,6 +276,7 @@ public data class CreateEventInputDto(
 public data class UpdateEventInputDto(
     public val title: String? = null,
     public val dateLabel: String? = null,
+    public val eventDateIso: String? = null,
     public val daysUntilEvent: Long? = null,
     public val venue: String? = null,
     public val zone: String? = null,
@@ -335,6 +388,7 @@ public data class ChatMessageDto(
     public val createdAt: String,
     public val unread: Boolean,
     public val attachmentName: String? = null,
+    public val attachmentUrl: String? = null,
     public val recipientLabel: String? = null,
 )
 
@@ -352,6 +406,7 @@ public data class ChatMessageOutputDto(
 public data class PostChatMessageInputDto(
     public val body: String,
     public val attachmentName: String? = null,
+    public val attachmentUrl: String? = null,
     public val eventId: String? = null,
     public val eventTitle: String? = null,
     public val recipientLabel: String? = null,
@@ -379,11 +434,21 @@ public data class RosaChatInputDto(
 )
 
 @Serializable
+public data class RosaSuggestedItemDto(
+    public val articleCode: String,
+    public val name: String? = null,
+    public val quantity: Long,
+)
+
+@Serializable
 public data class RosaChatResponseDto(
     public val reply: String,
     public val intent: String,
     public val actionCode: String? = null,
     public val proposal: RosaMoodboardProposalDto? = null,
+    public val suggestedItems: List<RosaSuggestedItemDto> = emptyList(),
+    public val provider: String? = null,
+    public val model: String? = null,
 )
 
 @Serializable
@@ -418,6 +483,8 @@ public data class RefundDto(
     public val status: String,
     public val approvedBy: String? = null,
     public val approvedAtLabel: String? = null,
+    public val gatewayRefundId: String? = null,
+    public val gatewayStatus: String? = null,
 )
 
 @Serializable
@@ -779,4 +846,244 @@ public data class ReportExportDto(
 @Serializable
 public data class ReportExportOutputDto(
     public val report: ReportExportDto,
+)
+
+@Serializable
+public data class MediaUploadInputDto(
+    public val filename: String,
+    @SerialName("mime_type") public val mimeType: String,
+    public val purpose: String,
+    @SerialName("data_base64") public val dataBase64: String,
+)
+
+@Serializable
+public data class MediaAssetDto(
+    public val id: String,
+    @SerialName("owner_id") public val ownerId: String = "",
+    @SerialName("owner_role") public val ownerRole: String = "",
+    public val purpose: String = "",
+    public val filename: String = "",
+    @SerialName("mime_type") public val mimeType: String = "",
+    @SerialName("byte_size") public val byteSize: Long = 0L,
+    public val sha256: String = "",
+    public val url: String,
+    @SerialName("created_at") public val createdAt: String = "",
+)
+
+@Serializable
+public data class AvailabilityConflictDto(
+    public val articleId: String,
+    public val articleName: String,
+    public val requested: Int,
+    public val available: Int,
+    public val dateRange: String,
+)
+
+@Serializable
+public data class AvailabilityCheckOutputDto(
+    public val eventDateIso: String,
+    public val pickupDateIso: String,
+    public val returnDateIso: String,
+    public val available: Boolean,
+    public val conflicts: List<AvailabilityConflictDto> = emptyList(),
+)
+
+@Serializable
+public data class CloseoutEventInputDto(
+    public val notes: String = "",
+)
+
+@Serializable
+public data class VerifyPaymentInputDto(
+    public val notes: String = "",
+    public val reason: String = "",
+)
+
+@Serializable
+public data class RejectPaymentInputDto(
+    public val reason: String,
+)
+
+@Serializable
+public data class CreateCardSessionInputDto(
+    public val eventId: String,
+    public val eventTitle: String = "",
+    public val amountRD: Long,
+    public val kind: String = "deposit",
+    public val ncfType: String = "B02",
+    public val clientRnc: String = "",
+)
+
+@Serializable
+public data class CardSessionResultDto(
+    public val sessionId: String,
+    public val provider: String,
+    public val checkoutUrl: String,
+)
+
+@Serializable
+public data class CardSessionOutputDto(
+    public val session: CardSessionResultDto,
+)
+
+@Serializable
+public data class DGII607OutputDto(
+    public val period: String,
+    public val csv: String,
+)
+
+@Serializable
+public data class ResolveDamageInputDto(
+    public val notes: String = "",
+    public val resolutionNotes: String = "",
+)
+
+@Serializable
+public data class SendWhatsAppReplyInputDto(
+    public val threadId: String = "",
+    public val recipientPhone: String = "",
+    public val message: String,
+)
+
+@Serializable
+public data class OfflineMutationSyncItemDto(
+    public val actionLabel: String,
+    public val entityCode: String,
+    public val operationType: String,
+    public val payloadJson: String,
+    public val idempotencyKey: String,
+)
+
+@Serializable
+public data class OfflineSyncInputDto(
+    public val mutations: List<OfflineMutationSyncItemDto>,
+)
+
+@Serializable
+public data class RealtimeEventDto(
+    public val seq: Long = 0L,
+    public val id: String = "",
+    public val type: String,
+    @SerialName("entity_id") public val entityId: String = "",
+    @SerialName("client_id") public val clientId: String = "",
+    public val audience: String = "",
+    public val summary: String = "",
+    @SerialName("created_at") public val createdAt: String = "",
+)
+
+@Serializable
+public data class UserPreferencesDto(
+    public val pushNotificationsEnabled: Boolean = true,
+    public val whatsappAlertsEnabled: Boolean = true,
+    public val emailReceiptsEnabled: Boolean = true,
+    public val biometricLockEnabled: Boolean = false,
+    public val autoSyncWifiOnly: Boolean = false,
+)
+
+@Serializable
+public data class UpdatePreferencesInputDto(
+    public val pushNotificationsEnabled: Boolean? = null,
+    public val whatsappAlertsEnabled: Boolean? = null,
+    public val emailReceiptsEnabled: Boolean? = null,
+    public val biometricLockEnabled: Boolean? = null,
+    public val autoSyncWifiOnly: Boolean? = null,
+)
+
+@Serializable
+public data class RecoverUsernameInputDto(
+    public val identifier: String,
+)
+
+@Serializable
+public data class RecoverUsernameOutputDto(
+    public val sent: Boolean = false,
+    public val message: String = "",
+)
+
+@Serializable
+public data class OAuthConfigOutputDto(
+    public val googleEnabled: Boolean = false,
+    public val appleEnabled: Boolean = false,
+    public val googleClientId: String = "",
+    public val appleClientId: String = "",
+    public val webPushVapidPublicKey: String = "",
+)
+
+@Serializable
+public data class PaymentReminderInputDto(
+    public val channel: String = "whatsapp",
+    public val message: String = "",
+)
+
+@Serializable
+public data class PaymentReminderOutputDto(
+    public val event: EventDto,
+    public val sent: Boolean = false,
+    public val channel: String = "whatsapp",
+)
+
+@Serializable
+public data class MonthlyAnalyticsPointDto(
+    public val monthKey: String = "",
+    public val label: String = "",
+    public val revenueRD: Long = 0L,
+    public val expensesRD: Long = 0L,
+    public val eventsCount: Long = 0L,
+)
+
+@Serializable
+public data class CategoryCountPointDto(
+    public val key: String = "",
+    public val label: String = "",
+    public val count: Long = 0L,
+)
+
+@Serializable
+public data class PaymentsAnalyticsDto(
+    public val range: String = "30d",
+    public val monthlySeries: List<MonthlyAnalyticsPointDto> = emptyList(),
+    public val totalRevenueRD: Long = 0L,
+    public val totalExpensesRD: Long = 0L,
+    public val netMarginPercent: Long = 0L,
+    public val totalEventsCount: Long = 0L,
+    public val confirmedEventsCount: Long = 0L,
+    public val pendingEventsCount: Long = 0L,
+    public val completedEventsCount: Long = 0L,
+    public val cancelledEventsCount: Long = 0L,
+    public val eventTypesBreakdown: List<CategoryCountPointDto> = emptyList(),
+    public val uniqueClientsCount: Long = 0L,
+    public val repeatClientsCount: Long = 0L,
+    public val collectionRatePercent: Long = 0L,
+)
+
+@Serializable
+public data class PaymentsAnalyticsOutputDto(
+    public val analytics: PaymentsAnalyticsDto,
+)
+
+@Serializable
+public data class RosaSketchInputDto(
+    public val prompt: String,
+    public val eventType: String = "",
+    public val guests: Int = 80,
+)
+
+@Serializable
+public data class RosaSketchElementDto(
+    public val id: String = "",
+    public val kind: String = "",
+    public val label: String = "",
+    public val xRatio: Double = 0.5,
+    public val yRatio: Double = 0.5,
+    public val capacity: Int = 0,
+)
+
+@Serializable
+public data class RosaSketchResponseDto(
+    public val reply: String = "",
+    public val elements: List<RosaSketchElementDto> = emptyList(),
+    public val eventWidthMeters: Double = 14.0,
+    public val eventDepthMeters: Double = 10.0,
+    public val provider: String = "",
+    public val model: String = "",
 )

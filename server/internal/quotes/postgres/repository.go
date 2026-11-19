@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -38,9 +39,12 @@ func (r *Repository) UpsertQuote(ctx context.Context, quote domain.Quote, now ti
 	if err != nil {
 		linesBytes = []byte("[]")
 	}
-	notes := quote.SignedByName
-	if quote.RejectionReason != "" {
-		notes = quote.RejectionReason
+	notes := strings.TrimSpace(quote.Notes)
+	if notes == "" {
+		notes = quote.SignedByName
+		if quote.RejectionReason != "" {
+			notes = quote.RejectionReason
+		}
 	}
 	return r.queries.UpsertQuote(ctx, sqlcgen.UpsertQuoteParams{
 		ID:              quote.ID,
@@ -51,6 +55,8 @@ func (r *Repository) UpsertQuote(ctx context.Context, quote domain.Quote, now ti
 		ClientName:      quote.ClientName,
 		EventTitle:      quote.EventTitle,
 		EventDateLabel:  quote.EventDateLabel,
+		EventDateIso:    quote.EventDateISO,
+		PackageID:       quote.PackageID,
 		Venue:           quote.Venue,
 		Guests:          quote.Guests,
 		LinesJson:       linesBytes,
@@ -64,6 +70,8 @@ func (r *Repository) UpsertQuote(ctx context.Context, quote domain.Quote, now ti
 		Notes:           notes,
 		SignatureSvg:    quote.SignatureSVG,
 		SignedByName:    quote.SignedByName,
+		SignedAtIso:     quote.SignedAtISO,
+		ContractPdfUrl:  quote.ContractPDFURL,
 		RejectionReason: quote.RejectionReason,
 		CreatedAt:       now,
 	})
@@ -79,52 +87,76 @@ func (r *Repository) ListQuotes(ctx context.Context) ([]domain.Quote, error) {
 	}
 	out := make([]domain.Quote, 0, len(rows))
 	for _, row := range rows {
-		var lines []domain.QuoteLine
-		if len(row.LinesJson) > 0 {
-			_ = json.Unmarshal(row.LinesJson, &lines)
-		}
-		if lines == nil {
-			lines = []domain.QuoteLine{}
-		}
-		code := row.Code
-		if code == "" {
-			code = row.EventID
-		}
-		signedBy := row.SignedByName
-		rejection := row.RejectionReason
-		if signedBy == "" {
-			if domain.QuoteStatus(row.Status) == domain.QuoteStatusSigned {
-				signedBy = row.Notes
-			}
-		}
-		if rejection == "" {
-			if domain.QuoteStatus(row.Status) == domain.QuoteStatusDeclined {
-				rejection = row.Notes
-			}
-		}
-		out = append(out, domain.Quote{
-			ID:              row.ID,
-			Code:            code,
-			EventID:         row.EventID,
-			ClientID:        row.ClientID,
-			ClientEmail:     row.ClientEmail,
-			ClientName:      row.ClientName,
-			EventTitle:      row.EventTitle,
-			EventDateLabel:  row.EventDateLabel,
-			Venue:           row.Venue,
-			Guests:          row.Guests,
-			Lines:           lines,
-			DeliveryFeeRD:   row.DeliveryFeeDop,
-			DiscountRD:      row.DiscountDop,
-			TotalRD:         row.TotalDop,
-			DepositPercent:  30,
-			DepositRD:       row.DepositDop,
-			BalanceRD:       row.BalanceDop,
-			Status:          domain.QuoteStatus(row.Status),
-			SignatureSVG:    row.SignatureSvg,
-			SignedByName:    signedBy,
-			RejectionReason: rejection,
-		})
+		out = append(out, mapQuoteRow(row))
 	}
 	return out, nil
+}
+
+// GetQuoteByID recupera una cotización persistida por su identificador.
+func (r *Repository) GetQuoteByID(ctx context.Context, id string) (domain.Quote, error) {
+	if !r.Enabled() {
+		return domain.Quote{}, domain.ErrQuoteNotFound
+	}
+	row, err := r.queries.GetQuoteByID(ctx, id)
+	if err != nil {
+		return domain.Quote{}, err
+	}
+	return mapQuoteRow(sqlcgen.ListQuotesRow(row)), nil
+}
+
+func mapQuoteRow(row sqlcgen.ListQuotesRow) domain.Quote {
+	var lines []domain.QuoteLine
+	if len(row.LinesJson) > 0 {
+		_ = json.Unmarshal(row.LinesJson, &lines)
+	}
+	if lines == nil {
+		lines = []domain.QuoteLine{}
+	}
+	code := row.Code
+	if code == "" {
+		code = row.EventID
+	}
+	signedBy := row.SignedByName
+	rejection := row.RejectionReason
+	resolvedNotes := row.Notes
+	if signedBy == "" {
+		if domain.QuoteStatus(row.Status) == domain.QuoteStatusSigned {
+			signedBy = row.Notes
+			resolvedNotes = ""
+		}
+	}
+	if rejection == "" {
+		if domain.QuoteStatus(row.Status) == domain.QuoteStatusDeclined {
+			rejection = row.Notes
+			resolvedNotes = ""
+		}
+	}
+	return domain.Quote{
+		ID:              row.ID,
+		Code:            code,
+		EventID:         row.EventID,
+		ClientID:        row.ClientID,
+		ClientEmail:     row.ClientEmail,
+		ClientName:      row.ClientName,
+		EventTitle:      row.EventTitle,
+		EventDateLabel:  row.EventDateLabel,
+		EventDateISO:    row.EventDateIso,
+		PackageID:       row.PackageID,
+		Venue:           row.Venue,
+		Guests:          row.Guests,
+		Lines:           lines,
+		DeliveryFeeRD:   row.DeliveryFeeDop,
+		DiscountRD:      row.DiscountDop,
+		TotalRD:         row.TotalDop,
+		DepositPercent:  30,
+		DepositRD:       row.DepositDop,
+		BalanceRD:       row.BalanceDop,
+		Status:          domain.QuoteStatus(row.Status),
+		Notes:           resolvedNotes,
+		SignatureSVG:    row.SignatureSvg,
+		SignedByName:    signedBy,
+		SignedAtISO:     row.SignedAtIso,
+		ContractPDFURL:  row.ContractPdfUrl,
+		RejectionReason: rejection,
+	}
 }

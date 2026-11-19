@@ -126,4 +126,18 @@ class RfDesignSystemTest {
         val maxY = verticalPoints.maxOrNull() ?: 0f
         assertTrue(maxY - minY > 16f)
     }
+
+    @Test
+    fun `detecta y extrae primitivas vectoriales SVG personalizadas`() {
+        val svgPayload = """
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M4 12h16" stroke="#4B47D6" stroke-width="2" fill="none" />
+                <circle cx="12" cy="12" r="4" fill="#C2338F" />
+            </svg>
+        """.trimIndent().encodeToByteArray()
+
+        assertTrue(looksLikeSvgBytes(svgPayload))
+        assertFalse(looksLikeSvgBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47)))
+        assertEquals(2, countSvgRenderablePrimitives(svgPayload))
+    }
 }

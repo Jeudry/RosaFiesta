@@ -230,6 +230,7 @@ class SecurityAndSoundTest {
         assertNotNull(InputValidator.validateBirthDate("1996-09-22"))
         assertNotNull(InputValidator.validateBirthDate("31/02/1996"))
         assertNotNull(InputValidator.validateBirthDate("22/09/2023"))
+        assertNotNull(InputValidator.validateBirthDate("22/09/1880"))
         assertNull(InputValidator.validateBirthDate("22/09/1996"))
 
         assertNotNull(InputValidator.validatePassword("12345"))
@@ -242,6 +243,44 @@ class SecurityAndSoundTest {
         assertEquals("(809) 555-0142", InputValidator.filterPhoneInput("8095550142"))
         assertEquals("+1 (809) 555-0142", InputValidator.filterPhoneInput("18095550142"))
         assertEquals("(809) 555", InputValidator.filterPhoneInput("809abc555"))
+
+        val stepAfterArea = InputValidator.filterPhoneInputWithCursor("849", "8497", 4)
+        assertEquals("(849) 7", stepAfterArea.text)
+        assertEquals(7, stepAfterArea.cursorIndex)
+
+        val stepAfterFive = InputValidator.filterPhoneInputWithCursor("(849) 7", "(849) 75", 8)
+        assertEquals("(849) 75", stepAfterFive.text)
+        assertEquals(8, stepAfterFive.cursorIndex)
+
+        val stepAfterZero = InputValidator.filterPhoneInputWithCursor("(849) 75", "(849) 750", 9)
+        assertEquals("(849) 750", stepAfterZero.text)
+        assertEquals(9, stepAfterZero.cursorIndex)
+
+        val stepMiddleInsert = InputValidator.filterPhoneInputWithCursor("(849) 750", "(849) 7250", 8)
+        assertEquals("(849) 725-0", stepMiddleInsert.text)
+        assertEquals(8, stepMiddleInsert.cursorIndex)
+
+        val stepBackspaceMask = InputValidator.filterPhoneInputWithCursor("(849) 750", "(849)750", 5)
+        assertEquals("(847) 50", stepBackspaceMask.text)
+        assertEquals(3, stepBackspaceMask.cursorIndex)
+
+        assertEquals("MD", InputValidator.extractInitials("María (Dueña)"))
+        assertEquals("M", InputValidator.extractInitials("María (Dueña)", fallback = "C", maxInitials = 1))
+        assertEquals("D", InputValidator.extractInitials("(Dueña) María", fallback = "C", maxInitials = 1))
+        assertEquals("JR", InputValidator.extractInitials("Jeudry Rojas"))
+        assertEquals("RF", InputValidator.extractInitials("()"))
+
+        val expiryStep = InputValidator.filterCardExpiryInputWithCursor("12", "122", 3)
+        assertEquals("12/2", expiryStep.text)
+        assertEquals(4, expiryStep.cursorIndex)
+
+        val timeStep = InputValidator.filterTimeInputWithCursor("16", "163", 3)
+        assertEquals("16:3", timeStep.text)
+        assertEquals(4, timeStep.cursorIndex)
+
+        val digitsStep = InputValidator.filterDigitsOnlyWithCursor("1234", "12a34", 3, 6)
+        assertEquals("1234", digitsStep.text)
+        assertEquals(2, digitsStep.cursorIndex)
 
         assertNotNull(InputValidator.validateDominicanPhone("dfasfasfadsfsa"))
         assertNotNull(InputValidator.validateDominicanPhone("", isRequired = true))
@@ -265,14 +304,18 @@ class SecurityAndSoundTest {
         assertNotNull(InputValidator.validateRnc("12345", isRequired = true))
         assertNotNull(InputValidator.validateRnc("1-31-ABCDE-2", isRequired = true))
 
-        assertNull(InputValidator.validateEventDate("23/10/2026"))
+        assertNull(InputValidator.validateEventDate("23/12/2026"))
+        assertNull(InputValidator.validateEventDate("23/12/2026 - 25/12/2026"))
         assertNull(InputValidator.validateEventDate("29/02/2028"))
+        assertNotNull(InputValidator.validateEventDate("01/01/2025"))
         assertNotNull(InputValidator.validateEventDate("29/02/2026"))
         assertNotNull(InputValidator.validateEventDate("32/01/2026"))
         assertNotNull(InputValidator.validateEventDate("15/13/2026"))
         assertNotNull(InputValidator.validateEventDate("23/10/2020"))
         assertNotNull(InputValidator.validateEventDate("23/10/2040"))
         assertNotNull(InputValidator.validateEventDate("2026-10-23"))
+        assertNotNull(InputValidator.validatePaymentDate("23/12/2030"))
+        assertNull(InputValidator.validatePaymentDate("10/11/2026"))
 
         assertEquals("16:30", InputValidator.filterTimeInput("1630"))
         assertEquals("09:5", InputValidator.filterTimeInput("09ab5"))

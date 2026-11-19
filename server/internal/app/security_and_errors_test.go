@@ -334,7 +334,12 @@ func TestAdminOnlySeedStartsEmptyExceptAdminAndStaff(t *testing.T) {
 		t.Fatalf("expected exactly 2 admin/staff entries (Maria and Yuli), got %d", len(staffOut.Staff))
 	}
 
-	summaryReq := httptest.NewRequestWithContext(ctx, http.MethodGet, "/v1/payments/summary", nil)
+	assertZeroEmptySeedSummary(t, handler)
+}
+
+func assertZeroEmptySeedSummary(t *testing.T, handler http.Handler) {
+	t.Helper()
+	summaryReq := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/payments/summary", nil)
 	summaryReq.Header.Set("Authorization", "Bearer rf-token-maria")
 	summaryRec := httptest.NewRecorder()
 	handler.ServeHTTP(summaryRec, summaryReq)
@@ -350,20 +355,9 @@ func TestAdminOnlySeedStartsEmptyExceptAdminAndStaff(t *testing.T) {
 	if err := json.Unmarshal(summaryRec.Body.Bytes(), &summaryOut); err != nil {
 		t.Fatalf("decode summary: %v", err)
 	}
-	hasNonZeroMetric := summaryOut.Summary.OctRevenueRD != 0
-	if summaryOut.Summary.AccountsReceivable != 0 {
-		hasNonZeroMetric = true
-	}
-	if summaryOut.Summary.ActiveEventsCount != 0 {
-		hasNonZeroMetric = true
-	}
-	if summaryOut.Summary.NewQuoteRequests != 0 {
-		hasNonZeroMetric = true
-	}
-	if summaryOut.Summary.PendingVerification != 0 {
-		hasNonZeroMetric = true
-	}
-	if hasNonZeroMetric {
-		t.Fatalf("expected zero metrics in AdminOnlySeed summary, got %+v", summaryOut.Summary)
+	sum := summaryOut.Summary
+	nonZero := sum.OctRevenueRD + sum.AccountsReceivable + sum.ActiveEventsCount + sum.NewQuoteRequests + sum.PendingVerification
+	if nonZero != 0 {
+		t.Fatalf("expected zero metrics in AdminOnlySeed summary, got %+v", sum)
 	}
 }

@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS LocalArticleEntity (
     pricePerDayDop INTEGER NOT NULL,
     totalStock INTEGER NOT NULL,
     availableOct23 INTEGER NOT NULL,
-    photoKey TEXT NOT NULL
+    photoKey TEXT NOT NULL,
+    photoUrl TEXT NOT NULL DEFAULT '',
+    damagedStock INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS LocalChecklistStepEntity (
@@ -24,7 +26,10 @@ CREATE TABLE IF NOT EXISTS LocalOfflineMutationEntity (
     actionLabel TEXT NOT NULL,
     entityCode TEXT NOT NULL,
     timeAgo TEXT NOT NULL,
-    synced INTEGER NOT NULL DEFAULT 0
+    synced INTEGER NOT NULL DEFAULT 0,
+    operationType TEXT NOT NULL DEFAULT '',
+    payloadJson TEXT NOT NULL DEFAULT '{}',
+    idempotencyKey TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS eventEntity (
@@ -48,7 +53,16 @@ CREATE TABLE IF NOT EXISTS eventEntity (
     leadStaffName TEXT NOT NULL,
     photoKey TEXT NOT NULL,
     priorChangesCount INTEGER NOT NULL DEFAULT 0,
-    sortOrder INTEGER NOT NULL DEFAULT 0
+    sortOrder INTEGER NOT NULL DEFAULT 0,
+    eventDateIso TEXT NOT NULL DEFAULT '',
+    pickupDateIso TEXT NOT NULL DEFAULT '',
+    returnDateIso TEXT NOT NULL DEFAULT '',
+    quoteId TEXT NOT NULL DEFAULT '',
+    closeoutCompleted INTEGER NOT NULL DEFAULT 0,
+    closeoutNotes TEXT NOT NULL DEFAULT '',
+    sketchJson TEXT NOT NULL DEFAULT '',
+    lastPaymentReminderAt TEXT NOT NULL DEFAULT '',
+    lastPaymentReminderChannel TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS paymentEntity (
@@ -63,7 +77,79 @@ CREATE TABLE IF NOT EXISTS paymentEntity (
     dateLabel TEXT NOT NULL,
     referenceCode TEXT NOT NULL,
     verified INTEGER NOT NULL DEFAULT 1,
+    sortOrder INTEGER NOT NULL DEFAULT 0,
+    voucherUrl TEXT NOT NULL DEFAULT '',
+    ncfType TEXT NOT NULL DEFAULT 'B02',
+    ncfNumber TEXT NOT NULL DEFAULT '',
+    clientRnc TEXT NOT NULL DEFAULT '',
+    subtotalDop INTEGER NOT NULL DEFAULT 0,
+    itbisDop INTEGER NOT NULL DEFAULT 0,
+    securityDepositDop INTEGER NOT NULL DEFAULT 0,
+    rejectionReason TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS quoteEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    code TEXT NOT NULL,
+    eventId TEXT NOT NULL,
+    eventTitle TEXT NOT NULL,
+    clientName TEXT NOT NULL,
+    clientEmail TEXT NOT NULL,
+    venue TEXT NOT NULL,
+    dateLabel TEXT NOT NULL,
+    guests INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    linesJson TEXT NOT NULL DEFAULT '[]',
+    deliveryFeeDop INTEGER NOT NULL,
+    discountDop INTEGER NOT NULL,
+    totalDop INTEGER NOT NULL,
+    signatureSvg TEXT NOT NULL,
+    depositPercent INTEGER NOT NULL,
+    depositDop INTEGER NOT NULL,
+    signedByName TEXT NOT NULL,
+    rejectionReason TEXT NOT NULL,
+    eventDateIso TEXT NOT NULL,
+    packageId TEXT NOT NULL,
+    contractPdfUrl TEXT NOT NULL,
+    signedAtIso TEXT NOT NULL,
     sortOrder INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS deliveryStopEntity (
+    stopOrder INTEGER NOT NULL,
+    eventId TEXT NOT NULL,
+    eventTitle TEXT NOT NULL,
+    venue TEXT NOT NULL,
+    windowLabel TEXT NOT NULL,
+    vehicleAndCrew TEXT NOT NULL,
+    statusLabel TEXT NOT NULL,
+    PRIMARY KEY(eventId, windowLabel)
+);
+
+CREATE TABLE IF NOT EXISTS damageIncidentEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    eventId TEXT NOT NULL,
+    eventTitle TEXT NOT NULL,
+    articleCode TEXT NOT NULL,
+    articleName TEXT NOT NULL,
+    damagedUnits INTEGER NOT NULL,
+    missingUnits INTEGER NOT NULL,
+    replacementDop INTEGER NOT NULL,
+    notes TEXT NOT NULL,
+    photoUrl TEXT NOT NULL,
+    resolutionNotes TEXT NOT NULL,
+    chargePaymentId TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notificationEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    category TEXT NOT NULL,
+    createdAtLabel TEXT NOT NULL,
+    isRead INTEGER NOT NULL DEFAULT 0,
+    recipientRole TEXT NOT NULL,
+    actionPath TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS favoriteEntity (
@@ -95,7 +181,12 @@ CREATE TABLE IF NOT EXISTS userAccountEntity (
     salt TEXT NOT NULL,
     birthDate TEXT NOT NULL DEFAULT '',
     phone TEXT NOT NULL DEFAULT '',
-    role TEXT NOT NULL DEFAULT 'client'
+    role TEXT NOT NULL DEFAULT 'client',
+    pushNotificationsEnabled INTEGER NOT NULL DEFAULT 1,
+    whatsappAlertsEnabled INTEGER NOT NULL DEFAULT 1,
+    emailReceiptsEnabled INTEGER NOT NULL DEFAULT 1,
+    biometricLockEnabled INTEGER NOT NULL DEFAULT 0,
+    autoSyncWifiOnly INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS activeSessionEntity (
@@ -108,13 +199,22 @@ selectAllArticles:
 SELECT * FROM LocalArticleEntity ORDER BY code ASC;
 
 upsertArticle:
-INSERT OR REPLACE INTO LocalArticleEntity(id, code, name, category, description, pricePerDayDop, totalStock, availableOct23, photoKey)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO LocalArticleEntity(
+    id, code, name, category, description, pricePerDayDop, totalStock, availableOct23, photoKey, photoUrl, damagedStock
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateArticleStock:
 UPDATE LocalArticleEntity
 SET totalStock = ?, availableOct23 = ?
 WHERE id = ?;
+
+deleteArticleById:
+DELETE FROM LocalArticleEntity
+WHERE id = ?;
+
+deleteAllArticles:
+DELETE FROM LocalArticleEntity;
 
 selectAllChecklistSteps:
 SELECT * FROM LocalChecklistStepEntity ORDER BY id ASC;
@@ -135,11 +235,16 @@ selectPendingOfflineMutations:
 SELECT * FROM LocalOfflineMutationEntity WHERE synced = 0 ORDER BY id ASC;
 
 upsertOfflineMutation:
-INSERT OR REPLACE INTO LocalOfflineMutationEntity(id, actionLabel, entityCode, timeAgo, synced)
-VALUES (?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO LocalOfflineMutationEntity(
+    id, actionLabel, entityCode, timeAgo, synced, operationType, payloadJson, idempotencyKey
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 markAllOfflineMutationsSynced:
 UPDATE LocalOfflineMutationEntity SET synced = 1;
+
+markOfflineMutationSyncedById:
+UPDATE LocalOfflineMutationEntity SET synced = 1 WHERE id = ?;
 
 selectAllEvents:
 SELECT * FROM eventEntity ORDER BY sortOrder ASC, id ASC;
@@ -148,9 +253,11 @@ upsertEvent:
 INSERT OR REPLACE INTO eventEntity(
     id, code, title, clientName, eventType, dateLabel, daysUntilEvent, venue, zone,
     guests, articleCount, totalDop, paidDepositDop, depositMethodLabel, depositDateLabel,
-    balanceDueDateLabel, status, leadStaffName, photoKey, priorChangesCount, sortOrder
+    balanceDueDateLabel, status, leadStaffName, photoKey, priorChangesCount, sortOrder,
+    eventDateIso, pickupDateIso, returnDateIso, quoteId, closeoutCompleted, closeoutNotes, sketchJson,
+    lastPaymentReminderAt, lastPaymentReminderChannel
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateEventDateAndTotal:
 UPDATE eventEntity
@@ -173,9 +280,53 @@ SELECT * FROM paymentEntity ORDER BY sortOrder ASC, id ASC;
 upsertPayment:
 INSERT OR REPLACE INTO paymentEntity(
     id, receiptNumber, eventId, eventTitle, clientName, amountDop,
-    methodLabel, kindLabel, dateLabel, referenceCode, verified, sortOrder
+    methodLabel, kindLabel, dateLabel, referenceCode, verified, sortOrder,
+    voucherUrl, ncfType, ncfNumber, clientRnc, subtotalDop, itbisDop, securityDepositDop, rejectionReason
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAllQuotes:
+SELECT * FROM quoteEntity ORDER BY sortOrder ASC, id ASC;
+
+upsertQuote:
+INSERT OR REPLACE INTO quoteEntity(
+    id, code, eventId, eventTitle, clientName, clientEmail, venue, dateLabel,
+    guests, status, linesJson, deliveryFeeDop, discountDop, totalDop, signatureSvg,
+    depositPercent, depositDop, signedByName, rejectionReason, eventDateIso, packageId,
+    contractPdfUrl, signedAtIso, sortOrder
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAllDeliveryStops:
+SELECT * FROM deliveryStopEntity ORDER BY stopOrder ASC, eventId ASC;
+
+clearDeliveryStops:
+DELETE FROM deliveryStopEntity;
+
+upsertDeliveryStop:
+INSERT OR REPLACE INTO deliveryStopEntity(
+    stopOrder, eventId, eventTitle, venue, windowLabel, vehicleAndCrew, statusLabel
+)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+selectAllDamageIncidents:
+SELECT * FROM damageIncidentEntity ORDER BY id ASC;
+
+upsertDamageIncident:
+INSERT OR REPLACE INTO damageIncidentEntity(
+    id, eventId, eventTitle, articleCode, articleName, damagedUnits, missingUnits,
+    replacementDop, notes, photoUrl, resolutionNotes, chargePaymentId
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAllNotifications:
+SELECT * FROM notificationEntity ORDER BY id ASC;
+
+upsertNotification:
+INSERT OR REPLACE INTO notificationEntity(
+    id, title, body, category, createdAtLabel, isRead, recipientRole, actionPath
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 selectAllFavorites:
 SELECT articleId FROM favoriteEntity ORDER BY articleId ASC;
@@ -211,9 +362,10 @@ SELECT * FROM userAccountEntity ORDER BY id ASC;
 
 upsertUserAccount:
 INSERT OR REPLACE INTO userAccountEntity(
-    id, username, email, fullName, passwordHash, salt, birthDate, phone, role
+    id, username, email, fullName, passwordHash, salt, birthDate, phone, role,
+    pushNotificationsEnabled, whatsappAlertsEnabled, emailReceiptsEnabled, biometricLockEnabled, autoSyncWifiOnly
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateUserAccountPassword:
 UPDATE userAccountEntity

@@ -12,6 +12,25 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteExpiredOrRevokedRefreshTokens = `-- name: DeleteExpiredOrRevokedRefreshTokens :execrows
+DELETE FROM refresh_tokens
+WHERE expires_at < $1
+   OR (revoked = TRUE AND updated_at < $2)
+`
+
+type DeleteExpiredOrRevokedRefreshTokensParams struct {
+	ExpiresAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) DeleteExpiredOrRevokedRefreshTokens(ctx context.Context, arg DeleteExpiredOrRevokedRefreshTokensParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredOrRevokedRefreshTokens, arg.ExpiresAt, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteSessionByTokenHash = `-- name: DeleteSessionByTokenHash :exec
 DELETE FROM sessions
 WHERE token_hash = $1
@@ -42,6 +61,41 @@ func (q *Queries) DeleteUserByID(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const disableAllUserPushTokens = `-- name: DisableAllUserPushTokens :exec
+UPDATE device_push_tokens
+SET enabled = FALSE,
+    updated_at = $2
+WHERE user_id = $1
+`
+
+type DisableAllUserPushTokensParams struct {
+	UserID    uuid.UUID
+	UpdatedAt time.Time
+}
+
+func (q *Queries) DisableAllUserPushTokens(ctx context.Context, arg DisableAllUserPushTokensParams) error {
+	_, err := q.db.Exec(ctx, disableAllUserPushTokens, arg.UserID, arg.UpdatedAt)
+	return err
+}
+
+const disableDevicePushToken = `-- name: DisableDevicePushToken :exec
+UPDATE device_push_tokens
+SET enabled = FALSE,
+    updated_at = $3
+WHERE user_id = $1 AND token = $2
+`
+
+type DisableDevicePushTokenParams struct {
+	UserID    uuid.UUID
+	Token     string
+	UpdatedAt time.Time
+}
+
+func (q *Queries) DisableDevicePushToken(ctx context.Context, arg DisableDevicePushTokenParams) error {
+	_, err := q.db.Exec(ctx, disableDevicePushToken, arg.UserID, arg.Token, arg.UpdatedAt)
+	return err
+}
+
 const getOTPCodeByEmail = `-- name: GetOTPCodeByEmail :one
 SELECT email, code_hash, attempts, verified, reset_token_hash, used, expires_at, reset_expires_at, created_at
 FROM auth_otp_codes
@@ -61,6 +115,28 @@ func (q *Queries) GetOTPCodeByEmail(ctx context.Context, email string) (AuthOtpC
 		&i.ExpiresAt,
 		&i.ResetExpiresAt,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getRefreshTokenByHash = `-- name: GetRefreshTokenByHash :one
+SELECT id, user_id, family_id, token_hash, revoked, expires_at, created_at, updated_at
+FROM refresh_tokens
+WHERE token_hash = $1
+`
+
+func (q *Queries) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error) {
+	row := q.db.QueryRow(ctx, getRefreshTokenByHash, tokenHash)
+	var i RefreshToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.FamilyID,
+		&i.TokenHash,
+		&i.Revoked,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -90,7 +166,8 @@ func (q *Queries) GetSessionByTokenHash(ctx context.Context, arg GetSessionByTok
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
 FROM users
 WHERE email = $1
 `
@@ -110,12 +187,18 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Username,
 		&i.BirthDate,
 		&i.AvatarKey,
+		&i.PushNotificationsEnabled,
+		&i.WhatsappAlertsEnabled,
+		&i.EmailReceiptsEnabled,
+		&i.BiometricLockEnabled,
+		&i.AutoSyncWifiOnly,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
 FROM users
 WHERE id = $1
 `
@@ -135,6 +218,11 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Username,
 		&i.BirthDate,
 		&i.AvatarKey,
+		&i.PushNotificationsEnabled,
+		&i.WhatsappAlertsEnabled,
+		&i.EmailReceiptsEnabled,
+		&i.BiometricLockEnabled,
+		&i.AutoSyncWifiOnly,
 	)
 	return i, err
 }
@@ -148,6 +236,109 @@ WHERE email = $1
 func (q *Queries) IncrementOTPAttempts(ctx context.Context, email string) error {
 	_, err := q.db.Exec(ctx, incrementOTPAttempts, email)
 	return err
+}
+
+const insertRefreshToken = `-- name: InsertRefreshToken :exec
+INSERT INTO refresh_tokens (id, user_id, family_id, token_hash, revoked, expires_at, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+type InsertRefreshTokenParams struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	FamilyID  uuid.UUID
+	TokenHash string
+	Revoked   bool
+	ExpiresAt time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error {
+	_, err := q.db.Exec(ctx, insertRefreshToken,
+		arg.ID,
+		arg.UserID,
+		arg.FamilyID,
+		arg.TokenHash,
+		arg.Revoked,
+		arg.ExpiresAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const listActiveAdminPushTokens = `-- name: ListActiveAdminPushTokens :many
+SELECT d.id, d.user_id, d.platform, d.token, d.app_variant, d.enabled, d.updated_at
+FROM device_push_tokens d
+INNER JOIN users u ON u.id = d.user_id
+WHERE d.enabled = TRUE
+  AND d.app_variant = 'admin'
+  AND u.push_notifications_enabled = TRUE
+ORDER BY d.updated_at DESC
+`
+
+func (q *Queries) ListActiveAdminPushTokens(ctx context.Context) ([]DevicePushToken, error) {
+	rows, err := q.db.Query(ctx, listActiveAdminPushTokens)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DevicePushToken
+	for rows.Next() {
+		var i DevicePushToken
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Platform,
+			&i.Token,
+			&i.AppVariant,
+			&i.Enabled,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listActivePushTokensByUserID = `-- name: ListActivePushTokensByUserID :many
+SELECT id, user_id, platform, token, app_variant, enabled, updated_at
+FROM device_push_tokens
+WHERE user_id = $1 AND enabled = TRUE
+ORDER BY updated_at DESC
+`
+
+func (q *Queries) ListActivePushTokensByUserID(ctx context.Context, userID uuid.UUID) ([]DevicePushToken, error) {
+	rows, err := q.db.Query(ctx, listActivePushTokensByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DevicePushToken
+	for rows.Next() {
+		var i DevicePushToken
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Platform,
+			&i.Token,
+			&i.AppVariant,
+			&i.Enabled,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAdminClients = `-- name: ListAdminClients :many
@@ -187,7 +378,8 @@ func (q *Queries) ListAdminClients(ctx context.Context) ([]AdminClient, error) {
 }
 
 const listAllUsers = `-- name: ListAllUsers :many
-SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key
+SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
 FROM users
 ORDER BY created_at ASC
 `
@@ -213,6 +405,11 @@ func (q *Queries) ListAllUsers(ctx context.Context) ([]User, error) {
 			&i.Username,
 			&i.BirthDate,
 			&i.AvatarKey,
+			&i.PushNotificationsEnabled,
+			&i.WhatsappAlertsEnabled,
+			&i.EmailReceiptsEnabled,
+			&i.BiometricLockEnabled,
+			&i.AutoSyncWifiOnly,
 		); err != nil {
 			return nil, err
 		}
@@ -291,6 +488,57 @@ func (q *Queries) MarkOTPVerified(ctx context.Context, arg MarkOTPVerifiedParams
 	return err
 }
 
+const revokeRefreshTokenByHash = `-- name: RevokeRefreshTokenByHash :exec
+UPDATE refresh_tokens
+SET revoked = TRUE,
+    updated_at = $2
+WHERE token_hash = $1
+`
+
+type RevokeRefreshTokenByHashParams struct {
+	TokenHash string
+	UpdatedAt time.Time
+}
+
+func (q *Queries) RevokeRefreshTokenByHash(ctx context.Context, arg RevokeRefreshTokenByHashParams) error {
+	_, err := q.db.Exec(ctx, revokeRefreshTokenByHash, arg.TokenHash, arg.UpdatedAt)
+	return err
+}
+
+const revokeRefreshTokenFamily = `-- name: RevokeRefreshTokenFamily :exec
+UPDATE refresh_tokens
+SET revoked = TRUE,
+    updated_at = $2
+WHERE family_id = $1
+`
+
+type RevokeRefreshTokenFamilyParams struct {
+	FamilyID  uuid.UUID
+	UpdatedAt time.Time
+}
+
+func (q *Queries) RevokeRefreshTokenFamily(ctx context.Context, arg RevokeRefreshTokenFamilyParams) error {
+	_, err := q.db.Exec(ctx, revokeRefreshTokenFamily, arg.FamilyID, arg.UpdatedAt)
+	return err
+}
+
+const revokeRefreshTokensByUser = `-- name: RevokeRefreshTokensByUser :exec
+UPDATE refresh_tokens
+SET revoked = TRUE,
+    updated_at = $2
+WHERE user_id = $1
+`
+
+type RevokeRefreshTokensByUserParams struct {
+	UserID    uuid.UUID
+	UpdatedAt time.Time
+}
+
+func (q *Queries) RevokeRefreshTokensByUser(ctx context.Context, arg RevokeRefreshTokensByUserParams) error {
+	_, err := q.db.Exec(ctx, revokeRefreshTokensByUser, arg.UserID, arg.UpdatedAt)
+	return err
+}
+
 const updateUserPasswordByEmail = `-- name: UpdateUserPasswordByEmail :exec
 UPDATE users
 SET password_hash = $2
@@ -320,6 +568,37 @@ type UpdateUserPasswordByIDParams struct {
 
 func (q *Queries) UpdateUserPasswordByID(ctx context.Context, arg UpdateUserPasswordByIDParams) error {
 	_, err := q.db.Exec(ctx, updateUserPasswordByID, arg.ID, arg.PasswordHash)
+	return err
+}
+
+const updateUserPreferencesByID = `-- name: UpdateUserPreferencesByID :exec
+UPDATE users
+SET push_notifications_enabled = $2,
+    whatsapp_alerts_enabled = $3,
+    email_receipts_enabled = $4,
+    biometric_lock_enabled = $5,
+    auto_sync_wifi_only = $6
+WHERE id = $1
+`
+
+type UpdateUserPreferencesByIDParams struct {
+	ID                       uuid.UUID
+	PushNotificationsEnabled bool
+	WhatsappAlertsEnabled    bool
+	EmailReceiptsEnabled     bool
+	BiometricLockEnabled     bool
+	AutoSyncWifiOnly         bool
+}
+
+func (q *Queries) UpdateUserPreferencesByID(ctx context.Context, arg UpdateUserPreferencesByIDParams) error {
+	_, err := q.db.Exec(ctx, updateUserPreferencesByID,
+		arg.ID,
+		arg.PushNotificationsEnabled,
+		arg.WhatsappAlertsEnabled,
+		arg.EmailReceiptsEnabled,
+		arg.BiometricLockEnabled,
+		arg.AutoSyncWifiOnly,
+	)
 	return err
 }
 
@@ -378,6 +657,36 @@ func (q *Queries) UpsertAdminClient(ctx context.Context, arg UpsertAdminClientPa
 		arg.EventsCount,
 		arg.TotalSpentDop,
 		arg.BalanceDop,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
+const upsertDevicePushToken = `-- name: UpsertDevicePushToken :exec
+INSERT INTO device_push_tokens (id, user_id, platform, token, app_variant, enabled, updated_at)
+VALUES ($1, $2, $3, $4, $5, TRUE, $6)
+ON CONFLICT (user_id, platform, token) DO UPDATE SET
+    app_variant = EXCLUDED.app_variant,
+    enabled = TRUE,
+    updated_at = EXCLUDED.updated_at
+`
+
+type UpsertDevicePushTokenParams struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	Platform   string
+	Token      string
+	AppVariant string
+	UpdatedAt  time.Time
+}
+
+func (q *Queries) UpsertDevicePushToken(ctx context.Context, arg UpsertDevicePushTokenParams) error {
+	_, err := q.db.Exec(ctx, upsertDevicePushToken,
+		arg.ID,
+		arg.UserID,
+		arg.Platform,
+		arg.Token,
+		arg.AppVariant,
 		arg.UpdatedAt,
 	)
 	return err
@@ -500,8 +809,13 @@ func (q *Queries) UpsertStaffMember(ctx context.Context, arg UpsertStaffMemberPa
 }
 
 const upsertUser = `-- name: UpsertUser :exec
-INSERT INTO users (id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+INSERT INTO users (
+    id, full_name, email, phone, password_hash, role, permissions, created_at,
+    username, birth_date, avatar_key,
+    push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled,
+    biometric_lock_enabled, auto_sync_wifi_only
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     email = EXCLUDED.email,
@@ -511,21 +825,31 @@ ON CONFLICT (id) DO UPDATE SET
     permissions = EXCLUDED.permissions,
     username = EXCLUDED.username,
     birth_date = EXCLUDED.birth_date,
-    avatar_key = EXCLUDED.avatar_key
+    avatar_key = EXCLUDED.avatar_key,
+    push_notifications_enabled = EXCLUDED.push_notifications_enabled,
+    whatsapp_alerts_enabled = EXCLUDED.whatsapp_alerts_enabled,
+    email_receipts_enabled = EXCLUDED.email_receipts_enabled,
+    biometric_lock_enabled = EXCLUDED.biometric_lock_enabled,
+    auto_sync_wifi_only = EXCLUDED.auto_sync_wifi_only
 `
 
 type UpsertUserParams struct {
-	ID           uuid.UUID
-	FullName     string
-	Email        string
-	Phone        string
-	PasswordHash string
-	Role         string
-	Permissions  string
-	CreatedAt    time.Time
-	Username     string
-	BirthDate    string
-	AvatarKey    string
+	ID                       uuid.UUID
+	FullName                 string
+	Email                    string
+	Phone                    string
+	PasswordHash             string
+	Role                     string
+	Permissions              string
+	CreatedAt                time.Time
+	Username                 string
+	BirthDate                string
+	AvatarKey                string
+	PushNotificationsEnabled bool
+	WhatsappAlertsEnabled    bool
+	EmailReceiptsEnabled     bool
+	BiometricLockEnabled     bool
+	AutoSyncWifiOnly         bool
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) error {
@@ -541,6 +865,11 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) error {
 		arg.Username,
 		arg.BirthDate,
 		arg.AvatarKey,
+		arg.PushNotificationsEnabled,
+		arg.WhatsappAlertsEnabled,
+		arg.EmailReceiptsEnabled,
+		arg.BiometricLockEnabled,
+		arg.AutoSyncWifiOnly,
 	)
 	return err
 }

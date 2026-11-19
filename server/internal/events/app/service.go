@@ -1,7 +1,9 @@
+// Package app implementa la orquestación de eventos, invitados, cronogramas y reservas asociadas.
 package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -12,7 +14,19 @@ import (
 	"github.com/Jeudry/rosafiesta/server/internal/events/domain"
 	"github.com/Jeudry/rosafiesta/server/internal/platform/clock"
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
+	realtimedomain "github.com/Jeudry/rosafiesta/server/internal/realtime/domain"
 )
+
+// StockReservationManager administra reservas temporales o confirmadas de artículos por evento.
+type StockReservationManager interface {
+	ReserveEventStock(ctx context.Context, eventID, quoteID, dateOrISO, status string, items []domain.EventItem) error
+	TransitionEventStock(ctx context.Context, eventID, status string) error
+}
+
+// PaymentReminderDispatcher envía recordatorios de pago por los canales habilitados y registra notificación.
+type PaymentReminderDispatcher interface {
+	DispatchPaymentReminder(ctx context.Context, event domain.Event, channel, message string) (bool, error)
+}
 
 type RefundRecorder interface {
 	RecordCancellationRefund(
@@ -49,6 +63,8 @@ type CreateEventCommand struct {
 	ClientName     string
 	ClientEmail    string
 	DateLabel      string
+	EventDateISO   string
+	QuoteID        string
 	DaysUntilEvent int
 	Venue          string
 	Zone           string
@@ -66,6 +82,7 @@ type UpdateEventCommand struct {
 	Venue          *string
 	Zone           *string
 	DateLabel      *string
+	EventDateISO   *string
 	DaysUntilEvent *int
 	Guests         *int
 	Status         *string
@@ -74,17 +91,37 @@ type UpdateEventCommand struct {
 	Items          *[]domain.EventItem
 }
 
+// ProvisionFromQuoteCommand contiene los datos de una cotización firmada para crear o enlazar su evento.
+type ProvisionFromQuoteCommand struct {
+	EventID      string
+	QuoteID      string
+	ClientID     uuid.UUID
+	ClientEmail  string
+	ClientName   string
+	Title        string
+	EventType    string
+	DateLabel    string
+	EventDateISO string
+	Venue        string
+	Guests       int
+	TotalRD      int
+	Items        []domain.EventItem
+}
+
 type Service struct {
-	mu             sync.RWMutex
-	clock          clock.Clock
-	store          Store
-	refundRecorder RefundRecorder
-	templates      []domain.EventTemplate
-	events         map[string]domain.Event
-	order          []string
-	guests         map[string][]domain.EventGuest
-	schedules      map[string][]domain.ScheduleBlock
-	messages       []domain.ChatMessage
+	mu                 sync.RWMutex
+	clock              clock.Clock
+	store              Store
+	refundRecorder     RefundRecorder
+	stockManager       StockReservationManager
+	reminderDispatcher PaymentReminderDispatcher
+	realtimePub        realtimedomain.Publisher
+	templates          []domain.EventTemplate
+	events             map[string]domain.Event
+	order              []string
+	guests             map[string][]domain.EventGuest
+	schedules          map[string][]domain.ScheduleBlock
+	messages           []domain.ChatMessage
 }
 
 func NewService() *Service {
@@ -105,6 +142,30 @@ func (s *Service) WithClock(clk clock.Clock) *Service {
 func (s *Service) WithRefundRecorder(recorder RefundRecorder) *Service {
 	s.mu.Lock()
 	s.refundRecorder = recorder
+	s.mu.Unlock()
+	return s
+}
+
+// WithStockManager configura el gestor de reservas de inventario del servicio.
+func (s *Service) WithStockManager(mgr StockReservationManager) *Service {
+	s.mu.Lock()
+	s.stockManager = mgr
+	s.mu.Unlock()
+	return s
+}
+
+// WithRealtimePublisher configura el publicador SSE para notificaciones de eventos y chat.
+func (s *Service) WithRealtimePublisher(pub realtimedomain.Publisher) *Service {
+	s.mu.Lock()
+	s.realtimePub = pub
+	s.mu.Unlock()
+	return s
+}
+
+// WithPaymentReminderDispatcher configura el despachador multicanal de recordatorios de pago.
+func (s *Service) WithPaymentReminderDispatcher(dispatcher PaymentReminderDispatcher) *Service {
+	s.mu.Lock()
+	s.reminderDispatcher = dispatcher
 	s.mu.Unlock()
 	return s
 }
@@ -287,31 +348,45 @@ func (s *Service) CreateEvent(
 	cmd CreateEventCommand,
 	caller platformhttp.Principal,
 ) (domain.Event, error) {
+	return s.CreateEventForCaller(ctx, cmd, caller)
+}
+
+// CreateEventForCaller crea un nuevo evento tras reservar inventario para la fecha solicitada.
+func (s *Service) CreateEventForCaller(
+	ctx context.Context,
+	cmd CreateEventCommand,
+	caller platformhttp.Principal,
+) (domain.Event, error) {
 	title := strings.TrimSpace(cmd.Title)
 	if title == "" {
 		return domain.Event{}, domain.ErrInvalidEventInput
 	}
-	if cmd.Guests <= 0 {
+	if cmd.Guests < 0 {
 		return domain.Event{}, domain.ErrInvalidGuestCount
 	}
 	now := s.clock.Now()
 	newEvt := buildCreatedEvent(cmd, title, caller, now)
-	s.mu.Lock()
-	s.events[newEvt.ID] = newEvt
-	s.order = append(s.order, newEvt.ID)
-	store := s.store
-	s.mu.Unlock()
-	if store != nil {
-		if store.Enabled() {
-			if err := store.UpsertEvent(ctx, newEvt, now); err != nil {
-				return domain.Event{}, err
-			}
-		}
+	applyEventDateRange(&newEvt, now.Year())
+	if err := s.reserveStockForEvent(ctx, newEvt, reservationStatusForEvent(newEvt.Status)); err != nil {
+		return domain.Event{}, err
+	}
+	if err := s.saveAndPublishEvent(ctx, newEvt, now, true); err != nil {
+		return domain.Event{}, err
 	}
 	return newEvt, nil
 }
 
 func (s *Service) UpdateEvent(
+	ctx context.Context,
+	id string,
+	cmd UpdateEventCommand,
+	caller platformhttp.Principal,
+) (domain.Event, error) {
+	return s.UpdateEventForCaller(ctx, id, cmd, caller)
+}
+
+// UpdateEventForCaller actualiza campos del evento y sincroniza reservas cuando cambian fecha o artículos.
+func (s *Service) UpdateEventForCaller(
 	ctx context.Context,
 	id string,
 	cmd UpdateEventCommand,
@@ -326,16 +401,16 @@ func (s *Service) UpdateEvent(
 		return domain.Event{}, err
 	}
 	now := s.clock.Now()
-	s.mu.Lock()
-	s.events[id] = updated
-	store := s.store
-	s.mu.Unlock()
-	if store != nil {
-		if store.Enabled() {
-			if err := store.UpsertEvent(ctx, updated, now); err != nil {
-				return domain.Event{}, err
-			}
+	if patchChangesDate(cmd) {
+		applyEventDateRange(&updated, now.Year())
+	}
+	if patchRequiresStockSync(cmd) {
+		if err := s.reserveStockForEvent(ctx, updated, reservationStatusForEvent(updated.Status)); err != nil {
+			return domain.Event{}, err
 		}
+	}
+	if err := s.saveAndPublishEvent(ctx, updated, now, false); err != nil {
+		return domain.Event{}, err
 	}
 	return updated, nil
 }
@@ -345,35 +420,26 @@ func (s *Service) DuplicateEvent(
 	id string,
 	caller platformhttp.Principal,
 ) (domain.Event, error) {
+	return s.DuplicateEventForCaller(ctx, id, caller)
+}
+
+// DuplicateEventForCaller clona un evento existente como borrador validando disponibilidad de inventario.
+func (s *Service) DuplicateEventForCaller(
+	ctx context.Context,
+	id string,
+	caller platformhttp.Principal,
+) (domain.Event, error) {
 	source, err := s.GetEventForCaller(ctx, id, caller, true)
 	if err != nil {
 		return domain.Event{}, err
 	}
 	now := s.clock.Now()
-	suffix := uuid.NewString()[:8]
-	itemsCopy := make([]domain.EventItem, len(source.Items))
-	copy(itemsCopy, source.Items)
-	duplicated := source
-	duplicated.ID = "evt-" + suffix
-	duplicated.Code = "RF-DUP-" + strings.ToUpper(suffix[:4])
-	duplicated.Title = "Copia de " + source.Title
-	duplicated.PaidDepositRD = 0
-	duplicated.Status = domain.StatusDraft
-	duplicated.DateChangesUsed = 0
-	duplicated.CancellationReason = ""
-	duplicated.Items = itemsCopy
-
-	s.mu.Lock()
-	s.events[duplicated.ID] = duplicated
-	s.order = append(s.order, duplicated.ID)
-	store := s.store
-	s.mu.Unlock()
-	if store != nil {
-		if store.Enabled() {
-			if err := store.UpsertEvent(ctx, duplicated, now); err != nil {
-				return domain.Event{}, err
-			}
-		}
+	duplicated := cloneEventAsDraft(source, now)
+	if err := s.reserveStockForEvent(ctx, duplicated, "held"); err != nil {
+		return domain.Event{}, err
+	}
+	if err := s.saveAndPublishEvent(ctx, duplicated, now, true); err != nil {
+		return domain.Event{}, err
 	}
 	return duplicated, nil
 }
@@ -394,18 +460,18 @@ func (s *Service) RequestDateChangeForCaller(
 		return domain.Event{}, domain.DateChangeEvaluation{}, err
 	}
 	evt.DateLabel = strings.TrimSpace(newDateLabel)
+	evt.EventDateISO = ""
+	applyEventDateRange(&evt, s.clock.Now().Year())
 	evt.DaysUntilEvent = newDaysUntilEvent
 	evt.DateChangesUsed = eval.NextCount
 	evt.TotalRD += eval.FeeRD
-	s.mu.Lock()
-	s.events[id] = evt
-	store := s.store
-	s.mu.Unlock()
-	if store != nil {
-		if store.Enabled() {
-			_ = store.UpdateDate(ctx, evt)
-		}
+	if err := s.reserveStockForEvent(ctx, evt, reservationStatusForEvent(evt.Status)); err != nil {
+		return domain.Event{}, domain.DateChangeEvaluation{}, err
 	}
+	if err := s.persistDateChange(ctx, evt); err != nil {
+		return domain.Event{}, domain.DateChangeEvaluation{}, err
+	}
+	s.publishEventUpdated(evt)
 	return evt, eval, nil
 }
 
@@ -422,10 +488,7 @@ func (s *Service) CancelEventForCaller(
 	if evt.Status == domain.StatusCompleted {
 		return domain.Event{}, domain.RefundPolicyResult{}, domain.ErrCannotCancelCompleted
 	}
-	cleanReason := strings.TrimSpace(reason)
-	if cleanReason == "" {
-		cleanReason = "Cancellation requested by client"
-	}
+	cleanReason := defaultTrimmed(reason, "Cancellation requested by client")
 	refund := domain.CalculateCancellationRefund(evt.PaidDepositRD, evt.DaysUntilEvent)
 	evt.Status = domain.StatusCancelled
 	evt.CancellationReason = cleanReason
@@ -441,19 +504,124 @@ func (s *Service) CancelEventForCaller(
 			_ = store.UpdateStatusAndReason(ctx, id, evt.Status, evt.CancellationReason)
 		}
 	}
-	if recorder != nil {
-		_ = recorder.RecordCancellationRefund(
-			ctx,
-			evt.ID,
-			evt.Title,
-			evt.ClientName,
-			evt.CancellationReason,
-			evt.PaidDepositRD,
-			refund.RefundRD,
-			refund.PolicyTier,
-		)
-	}
+	_ = s.transitionStockForEvent(ctx, id, "cancelled")
+	s.recordCancellationRefund(ctx, recorder, evt, refund)
+	s.publishEventUpdated(evt)
 	return evt, refund, nil
+}
+
+// ProvisionFromSignedQuote crea o actualiza un evento enlazado a una cotización firmada y retiene su stock.
+func (s *Service) ProvisionFromSignedQuote(
+	ctx context.Context,
+	cmd ProvisionFromQuoteCommand,
+) (domain.Event, error) {
+	now := s.clock.Now()
+	s.mu.Lock()
+	s.syncFromStoreLocked(ctx)
+	existing, found := s.findExistingEventForQuoteLocked(cmd.EventID, cmd.QuoteID)
+	s.mu.Unlock()
+
+	var candidate domain.Event
+	if found {
+		candidate = mergeProvisionedEvent(existing, cmd)
+	} else {
+		candidate = buildProvisionedEvent(cmd, now)
+	}
+	applyEventDateRange(&candidate, now.Year())
+	if err := s.reserveStockForEvent(ctx, candidate, "held"); err != nil {
+		return domain.Event{}, err
+	}
+	if err := s.saveAndPublishEvent(ctx, candidate, now, !found); err != nil {
+		return domain.Event{}, err
+	}
+	return candidate, nil
+}
+
+// ApplyVerifiedPayment incrementa el anticipo pagado y confirma evento y stock al alcanzar el mínimo.
+func (s *Service) ApplyVerifiedPayment(
+	ctx context.Context,
+	eventID string,
+	verifiedAmountRD int,
+) (domain.Event, bool, error) {
+	evt, found := s.findEventByID(ctx, strings.TrimSpace(eventID))
+	if !found {
+		return domain.Event{}, false, domain.ErrEventNotFound
+	}
+	transitioned := evt.ApplyPaidDeposit(verifiedAmountRD)
+	if transitioned {
+		if err := s.transitionStockForEvent(ctx, evt.ID, "confirmed"); err != nil {
+			return domain.Event{}, false, err
+		}
+	}
+	if err := s.saveAndPublishEvent(ctx, evt, s.clock.Now(), false); err != nil {
+		return domain.Event{}, false, err
+	}
+	return evt, transitioned, nil
+}
+
+// CompleteCloseoutForCaller ejecuta el cierre del evento por personal autorizado y libera el inventario.
+func (s *Service) CompleteCloseoutForCaller(
+	ctx context.Context,
+	eventID string,
+	notes string,
+	caller platformhttp.Principal,
+) (domain.Event, error) {
+	if !caller.IsAdminOrStaff() {
+		return domain.Event{}, domain.ErrEventForbidden
+	}
+	evt, found := s.findEventByID(ctx, strings.TrimSpace(eventID))
+	if !found {
+		return domain.Event{}, domain.ErrEventNotFound
+	}
+	if err := evt.CompleteCloseout(notes); err != nil {
+		return domain.Event{}, err
+	}
+	if err := s.transitionStockForEvent(ctx, evt.ID, "released"); err != nil {
+		return domain.Event{}, err
+	}
+	if err := s.saveAndPublishEvent(ctx, evt, s.clock.Now(), false); err != nil {
+		return domain.Event{}, err
+	}
+	return evt, nil
+}
+
+// SendPaymentReminderForCaller registra y envía un recordatorio de saldo pendiente al cliente.
+func (s *Service) SendPaymentReminderForCaller(
+	ctx context.Context,
+	eventID string,
+	channel string,
+	customMessage string,
+	caller platformhttp.Principal,
+) (domain.Event, bool, error) {
+	if !caller.IsAdminOrStaff() {
+		return domain.Event{}, false, domain.ErrEventForbidden
+	}
+	evt, found := s.findEventByID(ctx, strings.TrimSpace(eventID))
+	if !found {
+		return domain.Event{}, false, domain.ErrEventNotFound
+	}
+	cleanChannel := strings.ToLower(strings.TrimSpace(channel))
+	if cleanChannel == "" {
+		cleanChannel = "email"
+	}
+	now := s.clock.Now()
+	s.mu.RLock()
+	dispatcher := s.reminderDispatcher
+	s.mu.RUnlock()
+	dispatched := false
+	if dispatcher != nil {
+		ok, err := dispatcher.DispatchPaymentReminder(ctx, evt, cleanChannel, strings.TrimSpace(customMessage))
+		if err != nil {
+			return domain.Event{}, false, err
+		}
+		dispatched = ok
+	}
+	evt.LastPaymentReminderAt = now.UTC().Format(time.RFC3339)
+	evt.LastPaymentReminderChannel = cleanChannel
+	if err := s.saveAndPublishEvent(ctx, evt, now, false); err != nil {
+		return domain.Event{}, false, err
+	}
+	return evt, dispatched, nil
 }
 
 func buildCreatedEvent(
@@ -490,6 +658,8 @@ func buildCreatedEvent(
 		Title:          title,
 		EventType:      eventType,
 		DateLabel:      strings.TrimSpace(cmd.DateLabel),
+		EventDateISO:   strings.TrimSpace(cmd.EventDateISO),
+		QuoteID:        strings.TrimSpace(cmd.QuoteID),
 		DaysUntilEvent: daysUntil,
 		Venue:          strings.TrimSpace(cmd.Venue),
 		Zone:           strings.TrimSpace(cmd.Zone),
@@ -548,6 +718,9 @@ func applyEventPatch(existing domain.Event, cmd UpdateEventCommand) (domain.Even
 	if cmd.DateLabel != nil {
 		updated.DateLabel = strings.TrimSpace(*cmd.DateLabel)
 	}
+	if cmd.EventDateISO != nil {
+		updated.EventDateISO = strings.TrimSpace(*cmd.EventDateISO)
+	}
 	if cmd.DaysUntilEvent != nil {
 		updated.DaysUntilEvent = *cmd.DaysUntilEvent
 	}
@@ -556,7 +729,7 @@ func applyEventPatch(existing domain.Event, cmd UpdateEventCommand) (domain.Even
 
 func applyEventDetailsPatch(updated domain.Event, cmd UpdateEventCommand) (domain.Event, error) {
 	if cmd.Guests != nil {
-		if *cmd.Guests <= 0 {
+		if *cmd.Guests < 0 {
 			return domain.Event{}, domain.ErrInvalidGuestCount
 		}
 		updated.Guests = *cmd.Guests
@@ -639,8 +812,272 @@ func mergeEventFromDB(existing, dbEvt domain.Event) domain.Event {
 	if merged.AssignedLead == "" {
 		merged.AssignedLead = existing.AssignedLead
 	}
+	if merged.EventDateISO == "" {
+		merged.EventDateISO = existing.EventDateISO
+		merged.PickupDateISO = existing.PickupDateISO
+		merged.ReturnDateISO = existing.ReturnDateISO
+	}
+	if merged.QuoteID == "" {
+		merged.QuoteID = existing.QuoteID
+	}
 	if len(merged.Items) == 0 {
 		merged.Items = existing.Items
 	}
 	return merged
+}
+
+func cloneEventAsDraft(source domain.Event, now time.Time) domain.Event {
+	suffix := uuid.NewString()[:8]
+	itemsCopy := make([]domain.EventItem, len(source.Items))
+	copy(itemsCopy, source.Items)
+	duplicated := source
+	duplicated.ID = "evt-" + suffix
+	duplicated.Code = "RF-DUP-" + strings.ToUpper(suffix[:4])
+	duplicated.Title = "Copia de " + source.Title
+	duplicated.PaidDepositRD = 0
+	duplicated.Status = domain.StatusDraft
+	duplicated.DateChangesUsed = 0
+	duplicated.CancellationReason = ""
+	duplicated.QuoteID = ""
+	duplicated.CloseoutCompleted = false
+	duplicated.CloseoutNotes = ""
+	duplicated.Items = itemsCopy
+	applyEventDateRange(&duplicated, now.Year())
+	return duplicated
+}
+
+func patchChangesDate(cmd UpdateEventCommand) bool {
+	if cmd.DateLabel != nil {
+		return true
+	}
+	return cmd.EventDateISO != nil
+}
+
+func patchRequiresStockSync(cmd UpdateEventCommand) bool {
+	if cmd.Items != nil {
+		return true
+	}
+	return patchChangesDate(cmd)
+}
+
+func applyEventDateRange(evt *domain.Event, referenceYear int) {
+	eventISO, pickupISO, returnISO := domain.ComputeEventDateRange(evt.EventDateISO, evt.DateLabel, referenceYear)
+	if eventISO == "" {
+		return
+	}
+	evt.EventDateISO = eventISO
+	evt.PickupDateISO = pickupISO
+	evt.ReturnDateISO = returnISO
+}
+
+func reservationStatusForEvent(status domain.EventStatus) string {
+	if status == domain.StatusConfirmed {
+		return "confirmed"
+	}
+	if status == domain.StatusInProgress {
+		return "confirmed"
+	}
+	return "held"
+}
+
+func (s *Service) reserveStockForEvent(ctx context.Context, evt domain.Event, status string) error {
+	s.mu.RLock()
+	mgr := s.stockManager
+	s.mu.RUnlock()
+	if mgr == nil {
+		return nil
+	}
+	dateTarget := evt.EventDateISO
+	if dateTarget == "" {
+		dateTarget = evt.DateLabel
+	}
+	if err := mgr.ReserveEventStock(ctx, evt.ID, evt.QuoteID, dateTarget, status, evt.Items); err != nil {
+		if errors.Is(err, domain.ErrInsufficientStock) {
+			return err
+		}
+		return fmt.Errorf("%w: %w", domain.ErrInsufficientStock, err)
+	}
+	return nil
+}
+
+func (s *Service) transitionStockForEvent(ctx context.Context, eventID, status string) error {
+	s.mu.RLock()
+	mgr := s.stockManager
+	s.mu.RUnlock()
+	if mgr == nil {
+		return nil
+	}
+	return mgr.TransitionEventStock(ctx, eventID, status)
+}
+
+func (s *Service) saveAndPublishEvent(ctx context.Context, evt domain.Event, now time.Time, appendOrder bool) error {
+	s.mu.Lock()
+	s.events[evt.ID] = evt
+	if appendOrder {
+		s.order = append(s.order, evt.ID)
+	}
+	store := s.store
+	s.mu.Unlock()
+	if store != nil {
+		if store.Enabled() {
+			if err := store.UpsertEvent(ctx, evt, now); err != nil {
+				return err
+			}
+		}
+	}
+	s.publishEventUpdated(evt)
+	return nil
+}
+
+func (s *Service) persistDateChange(ctx context.Context, evt domain.Event) error {
+	s.mu.Lock()
+	s.events[evt.ID] = evt
+	store := s.store
+	s.mu.Unlock()
+	if store != nil {
+		if store.Enabled() {
+			return store.UpdateDate(ctx, evt)
+		}
+	}
+	return nil
+}
+
+func (s *Service) findEventByID(ctx context.Context, eventID string) (domain.Event, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.syncFromStoreLocked(ctx)
+	evt, ok := s.events[eventID]
+	return evt, ok
+}
+
+func (s *Service) findExistingEventForQuoteLocked(eventID, quoteID string) (domain.Event, bool) {
+	trimmedEvent := strings.TrimSpace(eventID)
+	if trimmedEvent != "" {
+		if evt, ok := s.events[trimmedEvent]; ok {
+			return evt, true
+		}
+	}
+	trimmedQuote := strings.TrimSpace(quoteID)
+	if trimmedQuote == "" {
+		return domain.Event{}, false
+	}
+	for _, id := range s.order {
+		candidate := s.events[id]
+		if candidate.QuoteID == trimmedQuote {
+			return candidate, true
+		}
+	}
+	return domain.Event{}, false
+}
+
+func buildProvisionedEvent(cmd ProvisionFromQuoteCommand, now time.Time) domain.Event {
+	suffix := uuid.NewString()[:8]
+	items := make([]domain.EventItem, len(cmd.Items))
+	copy(items, cmd.Items)
+	articleCount, computedTotal := sumEventItems(items)
+	totalRD := cmd.TotalRD
+	if totalRD <= 0 {
+		totalRD = computedTotal
+	}
+	guests := cmd.Guests
+	if guests <= 0 {
+		guests = 1
+	}
+	upperSuffix := strings.ToUpper(suffix[:4])
+	return domain.Event{
+		ID:             "evt-" + suffix,
+		Code:           fmt.Sprintf("RF-%d-%s", now.Year(), upperSuffix),
+		ClientID:       cmd.ClientID,
+		ClientEmail:    strings.TrimSpace(cmd.ClientEmail),
+		ClientName:     strings.TrimSpace(cmd.ClientName),
+		Title:          defaultTrimmed(cmd.Title, "Evento RosaFiesta"),
+		EventType:      defaultTrimmed(cmd.EventType, "Evento"),
+		DateLabel:      strings.TrimSpace(cmd.DateLabel),
+		EventDateISO:   strings.TrimSpace(cmd.EventDateISO),
+		QuoteID:        strings.TrimSpace(cmd.QuoteID),
+		DaysUntilEvent: 14,
+		Venue:          strings.TrimSpace(cmd.Venue),
+		Guests:         guests,
+		ArticleCount:   articleCount,
+		TotalRD:        totalRD,
+		Status:         domain.StatusPending,
+		SketchJSON:     "{}",
+		Items:          items,
+	}
+}
+
+func mergeProvisionedEvent(existing domain.Event, cmd ProvisionFromQuoteCommand) domain.Event {
+	merged := existing
+	merged.QuoteID = defaultTrimmed(cmd.QuoteID, existing.QuoteID)
+	merged.Title = defaultTrimmed(cmd.Title, existing.Title)
+	merged.EventType = defaultTrimmed(cmd.EventType, existing.EventType)
+	merged.DateLabel = defaultTrimmed(cmd.DateLabel, existing.DateLabel)
+	merged.EventDateISO = defaultTrimmed(cmd.EventDateISO, existing.EventDateISO)
+	merged.Venue = defaultTrimmed(cmd.Venue, existing.Venue)
+	if cmd.Guests > 0 {
+		merged.Guests = cmd.Guests
+	}
+	if len(cmd.Items) > 0 {
+		items := make([]domain.EventItem, len(cmd.Items))
+		copy(items, cmd.Items)
+		merged.Items = items
+		merged.ArticleCount, _ = sumEventItems(items)
+	}
+	if cmd.TotalRD > 0 {
+		merged.TotalRD = cmd.TotalRD
+	}
+	if merged.ClientID == uuid.Nil {
+		merged.ClientID = cmd.ClientID
+	}
+	merged.ClientEmail = defaultTrimmed(existing.ClientEmail, cmd.ClientEmail)
+	merged.ClientName = defaultTrimmed(existing.ClientName, cmd.ClientName)
+	return merged
+}
+
+func (s *Service) recordCancellationRefund(
+	ctx context.Context,
+	recorder RefundRecorder,
+	evt domain.Event,
+	refund domain.RefundPolicyResult,
+) {
+	if recorder == nil {
+		return
+	}
+	_ = recorder.RecordCancellationRefund(
+		ctx,
+		evt.ID,
+		evt.Title,
+		evt.ClientName,
+		evt.CancellationReason,
+		evt.PaidDepositRD,
+		refund.RefundRD,
+		refund.PolicyTier,
+	)
+}
+
+func (s *Service) publishEventUpdated(evt domain.Event) {
+	s.mu.RLock()
+	pub := s.realtimePub
+	s.mu.RUnlock()
+	if pub == nil {
+		return
+	}
+	clientID := ""
+	audience := realtimedomain.AudienceAdmin
+	if evt.ClientID != uuid.Nil {
+		clientID = evt.ClientID.String()
+		audience = realtimedomain.AudienceClient
+	}
+	pub.Publish(realtimedomain.RealtimeEvent{
+		Type:     realtimedomain.EventEventUpdated,
+		Audience: audience,
+		ClientID: clientID,
+		EntityID: evt.ID,
+		Payload: map[string]any{
+			"eventId":           evt.ID,
+			"status":            string(evt.Status),
+			"closeoutCompleted": evt.CloseoutCompleted,
+			"paidDepositRD":     evt.PaidDepositRD,
+		},
+	})
 }

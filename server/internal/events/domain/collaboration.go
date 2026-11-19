@@ -57,8 +57,41 @@ type ChatMessage struct {
 	RecipientLabel string    `json:"recipientLabel,omitempty"`
 	Body           string    `json:"body"`
 	AttachmentName string    `json:"attachmentName,omitempty"`
+	AttachmentURL  string    `json:"attachmentUrl,omitempty"`
 	Unread         bool      `json:"unread"`
 	CreatedAt      time.Time `json:"createdAt"`
+}
+
+// ComputeEventDateRange resuelve la fecha ISO del evento y las fechas de retiro (-1d) y devolución (+1d).
+func ComputeEventDateRange(explicitISO, dateLabel string, referenceYear int) (eventISO, pickupISO, returnISO string) {
+	resolved := resolveSingleISODate(explicitISO, referenceYear)
+	if resolved == "" {
+		resolved = resolveSingleISODate(dateLabel, referenceYear)
+	}
+	if resolved == "" {
+		return "", "", ""
+	}
+	parsed, err := time.Parse("2006-01-02", resolved)
+	if err != nil {
+		return resolved, "", ""
+	}
+	pickupISO = parsed.AddDate(0, 0, -1).Format("2006-01-02")
+	returnISO = parsed.AddDate(0, 0, 1).Format("2006-01-02")
+	return resolved, pickupISO, returnISO
+}
+
+func resolveSingleISODate(raw string, referenceYear int) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+	if len(trimmed) >= 10 {
+		prefix := trimmed[:10]
+		if parsedSlash, err := time.Parse("02/01/2006", prefix); err == nil {
+			return parsedSlash.Format("2006-01-02")
+		}
+	}
+	return EventISODate(trimmed, referenceYear)
 }
 
 func EventISODate(dateLabel string, referenceYear int) string {
@@ -69,23 +102,9 @@ func EventISODate(dateLabel string, referenceYear int) string {
 			return prefix
 		}
 	}
-	tokens := strings.Fields(trimmed)
-	day := 0
-	month := 0
-	for _, tok := range tokens {
-		cleaned := strings.Trim(tok, ",.")
-		lower := strings.ToLower(cleaned)
-		if parsedDay, err := strconv.Atoi(lower); err == nil {
-			if parsedDay >= 1 {
-				if parsedDay <= 31 {
-					day = parsedDay
-				}
-			}
-			continue
-		}
-		if parsedMonth := spanishMonthNumber(lower); parsedMonth > 0 {
-			month = parsedMonth
-		}
+	day, month, parsedYear := parseSpanishDateTokens(strings.Fields(trimmed))
+	if parsedYear > 0 {
+		referenceYear = parsedYear
 	}
 	if day == 0 {
 		return ""
@@ -97,6 +116,31 @@ func EventISODate(dateLabel string, referenceYear int) string {
 		referenceYear = 2026
 	}
 	return fmt.Sprintf("%04d-%02d-%02d", referenceYear, month, day)
+}
+
+func parseSpanishDateTokens(tokens []string) (day, month, year int) {
+	for _, token := range tokens {
+		cleaned := strings.Trim(token, ",.")
+		lower := strings.ToLower(cleaned)
+		if numericVal, err := strconv.Atoi(lower); err == nil {
+			if numericVal >= 1900 {
+				if numericVal <= 2100 {
+					year = numericVal
+				}
+				continue
+			}
+			if numericVal >= 1 {
+				if numericVal <= 31 {
+					day = numericVal
+				}
+			}
+			continue
+		}
+		if parsedMonth := spanishMonthNumber(lower); parsedMonth > 0 {
+			month = parsedMonth
+		}
+	}
+	return day, month, year
 }
 
 func spanishMonthNumber(lower string) int {

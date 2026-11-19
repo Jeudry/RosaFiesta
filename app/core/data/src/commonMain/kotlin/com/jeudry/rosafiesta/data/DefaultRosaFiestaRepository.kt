@@ -6,6 +6,7 @@ import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.core.engine.StaffPermission
 import com.jeudry.rosafiesta.domain.ArticleAvailabilityCalendar
 import com.jeudry.rosafiesta.domain.AuditLogRecord
+import com.jeudry.rosafiesta.domain.AvailabilityRangeCheck
 import com.jeudry.rosafiesta.domain.BalloonProduct
 import com.jeudry.rosafiesta.domain.BotFaqRecord
 import com.jeudry.rosafiesta.domain.BotKeywordRecord
@@ -13,7 +14,10 @@ import com.jeudry.rosafiesta.domain.BotThreadRecord
 import com.jeudry.rosafiesta.domain.BusinessMetrics
 import com.jeudry.rosafiesta.domain.BusinessSettings
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.CardSessionResult
 import com.jeudry.rosafiesta.domain.CatalogArticle
+import com.jeudry.rosafiesta.domain.CatalogCategory
+import com.jeudry.rosafiesta.domain.CatalogTrend
 import com.jeudry.rosafiesta.domain.ChatMessageRecord
 import com.jeudry.rosafiesta.domain.ChatThread
 import com.jeudry.rosafiesta.domain.ChecklistStep
@@ -30,17 +34,24 @@ import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.EventTypeTemplate
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
 import com.jeudry.rosafiesta.domain.LeadRecord
+import com.jeudry.rosafiesta.domain.MediaUploadAsset
 import com.jeudry.rosafiesta.domain.NotificationRecord
+import com.jeudry.rosafiesta.domain.OAuthProviderConfig
 import com.jeudry.rosafiesta.domain.OfflineQueueItem
 import com.jeudry.rosafiesta.domain.OtpChallengeOutcome
 import com.jeudry.rosafiesta.domain.PaymentRecord
+import com.jeudry.rosafiesta.domain.PaymentReminderOutcome
+import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
+import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReportExportResult
 import com.jeudry.rosafiesta.domain.ReviewRecord
 import com.jeudry.rosafiesta.domain.RosaChatReply
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
+import com.jeudry.rosafiesta.domain.RosaSketchProposal
+import com.jeudry.rosafiesta.domain.SeasonBanner
 import com.jeudry.rosafiesta.domain.StaffMember
 import com.jeudry.rosafiesta.domain.SupplierRecord
 import com.jeudry.rosafiesta.domain.VoiceTranscriptionOutcome
@@ -48,16 +59,20 @@ import com.jeudry.rosafiesta.domain.security.AuthOutcome
 import com.jeudry.rosafiesta.domain.security.JwtAuthManager
 import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
+import com.jeudry.rosafiesta.domain.security.UserPreferences
 import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * Reactive multiplatform implementation of [RosaFiestaRepository] seeded with [CanonicalSampleData]
@@ -67,6 +82,7 @@ public class DefaultRosaFiestaRepository(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val apiClient: RosaFiestaApiClient? = null,
     private val seedDemoData: Boolean = true,
+    private val snapshotCache: LocalSnapshotCache? = createDefaultLocalSnapshotCacheOrNull(),
 ) : RosaFiestaRepository {
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val initialSeedAccounts: List<RegisteredUserAccount> = if (seedDemoData) {
@@ -145,8 +161,16 @@ public class DefaultRosaFiestaRepository(
         currentAuthenticatedUserFlow = _currentAuthenticatedUser,
         userAccountsFlow = userAccountsState,
         seedDemoData = seedDemoData,
+        onPersistAccountAndSession = { _, _ -> persistBrowserSnapshot() },
+        onPersistCoreSync = { persistBrowserSnapshot() },
     )
 
+    override val catalogCategories: StateFlow<List<CatalogCategory>>
+        get() = submodules.catalogCategories
+    override val catalogTrends: StateFlow<List<CatalogTrend>>
+        get() = submodules.catalogTrends
+    override val seasonBanner: StateFlow<SeasonBanner>
+        get() = submodules.seasonBanner
     override val packages: StateFlow<List<EventPackage>>
         get() = submodules.packages
     override val templates: StateFlow<List<EventTypeTemplate>>
@@ -193,6 +217,7 @@ public class DefaultRosaFiestaRepository(
         get() = submodules.botThreads
 
     init {
+        restoreBrowserSnapshotIfPresent()
         submodules.propagateSessionTokenToApi(_currentSessionJwt.value)
         if (apiClient != null) {
             scope.launch {
@@ -653,6 +678,41 @@ public class DefaultRosaFiestaRepository(
 
     override suspend fun loginWithOAuth(provider: String, idToken: String): AuthOutcome = submodules.loginWithOAuth(provider, idToken)
 
+    override suspend fun startOAuthAuthorization(
+        provider: String,
+        redirectUri: String,
+        codeChallenge: String,
+        state: String,
+    ): Result<String> = submodules.startOAuthAuthorization(provider, redirectUri, codeChallenge, state)
+
+    override suspend fun exchangeOAuthCode(
+        provider: String,
+        code: String,
+        codeVerifier: String,
+        redirectUri: String,
+    ): AuthOutcome = submodules.exchangeOAuthCode(provider, code, codeVerifier, redirectUri)
+
+    override suspend fun refreshSession(refreshToken: String): AuthOutcome = submodules.refreshSession(refreshToken)
+
+    override fun setRefreshToken(token: String?) {
+        submodules.setRefreshToken(token)
+    }
+
+    override fun setSessionLifecycleCallbacks(
+        onTokensRefreshed: suspend (accessToken: String, refreshToken: String) -> Unit,
+        onSessionExpired: suspend () -> Unit,
+    ) {
+        submodules.setSessionLifecycleCallbacks(onTokensRefreshed, onSessionExpired)
+    }
+
+    override suspend fun registerDevicePushToken(
+        platform: String,
+        token: String,
+        appVariant: String,
+    ): Result<Boolean> = submodules.registerDevicePushToken(platform, token, appVariant)
+
+    override suspend fun unregisterDevicePushToken(token: String): Result<Boolean> = submodules.unregisterDevicePushToken(token)
+
     override fun changeUserPassword(currentPassword: String, newPassword: String): AuthOutcome = submodules.changeUserPassword(currentPassword, newPassword)
 
     override fun logoutSession() {
@@ -693,6 +753,7 @@ public class DefaultRosaFiestaRepository(
     override fun clearSession() {
         _currentSessionJwt.value = null
         apiClient?.setAccessToken(null)
+        persistBrowserSnapshot()
     }
 
     override fun deleteCurrentAccount(): Boolean {
@@ -841,9 +902,29 @@ public class DefaultRosaFiestaRepository(
         pricePerDayDop: Int,
         totalStock: Int,
     ) {
+        createArticleWithMedia(
+            code = code,
+            name = name,
+            category = category,
+            pricePerDayDop = pricePerDayDop,
+            totalStock = totalStock,
+            photoUrl = "",
+        )
+    }
+
+    override fun createArticleWithMedia(
+        code: String,
+        name: String,
+        category: String,
+        pricePerDayDop: Int,
+        totalStock: Int,
+        photoUrl: String,
+    ) {
         val cleanCode = code.trim()
         val cleanName = name.trim()
-        val cleanCategory = category.trim().ifEmpty { "Mobiliario" }
+        val cleanCategory = category.trim()
+        val resolvedCategoryId = submodules.resolveCategoryWireId(cleanCategory)
+        val cleanPhotoUrl = photoUrl.trim()
         if (cleanCode.isEmpty()) return
         if (cleanName.isEmpty()) return
         if (pricePerDayDop <= 0) return
@@ -860,7 +941,8 @@ public class DefaultRosaFiestaRepository(
             totalStock = totalStock,
             availableOct23 = totalStock,
             photo = photo,
-            variants = listOf("Estándar"),
+            variants = emptyList(),
+            photoUrl = cleanPhotoUrl,
         )
         _articles.update { list ->
             val filtered = list.filterNot { candidate ->
@@ -876,13 +958,14 @@ public class DefaultRosaFiestaRepository(
                     CreateArticleInputDto(
                         id = newArticle.id,
                         name = newArticle.name,
-                        categoryId = newArticle.category,
+                        categoryId = resolvedCategoryId,
                         photoKey = photo.key,
                         dailyPriceDop = pricePerDayDop.toLong(),
                         totalStock = totalStock.toLong(),
                         availableStock = totalStock.toLong(),
                         description = newArticle.description,
                         visible = true,
+                        photoUrl = cleanPhotoUrl.ifBlank { null },
                     ),
                 )
             }
@@ -904,9 +987,10 @@ public class DefaultRosaFiestaRepository(
         if (cleanClient.isEmpty()) return
         if (cleanDate.isEmpty()) return
         if (cleanVenue.isEmpty()) return
-        if (guests <= 0) return
+        if (guests < 0) return
 
-        val proposal = RosaFiestaEngine.buildRosaProposal(cleanTitle, guests)
+        val safeProposalGuests = guests.coerceAtLeast(10)
+        val proposal = RosaFiestaEngine.buildRosaProposal(cleanTitle, safeProposalGuests)
         val lines = proposal.lines.map { line ->
             EventLineItem(
                 articleCode = line.code,
@@ -1049,9 +1133,29 @@ public class DefaultRosaFiestaRepository(
         amountDop: Int,
         methodLabel: String,
         referenceCode: String,
+    ): PaymentRecord? = registerDetailedPayment(
+        eventId = eventId,
+        amountDop = amountDop,
+        methodLabel = methodLabel,
+        referenceCode = referenceCode,
+    )
+
+    override fun registerDetailedPayment(
+        eventId: String,
+        amountDop: Int,
+        methodLabel: String,
+        referenceCode: String,
+        voucherUrl: String,
+        ncfType: String,
+        clientRnc: String,
+        bankName: String,
+        kindLabel: String,
     ): PaymentRecord? {
         val cleanMethod = methodLabel.trim()
         val cleanRef = referenceCode.trim().ifEmpty { "REF-2026" }
+        val cleanVoucher = voucherUrl.trim()
+        val cleanNcfType = ncfType.trim().ifEmpty { "B02" }.uppercase()
+        val cleanRnc = clientRnc.trim()
         if (amountDop <= 0) return null
         if (cleanMethod.isEmpty()) return null
 
@@ -1063,6 +1167,15 @@ public class DefaultRosaFiestaRepository(
         val shortDateLabel = DomainClockFormatter.currentShortDateLabel()
         val fullDateLabel = DomainClockFormatter.currentFullDateLabel()
         val normalizedPayment = RosaFiestaBackendMappers.normalizePaymentMethod(cleanMethod)
+        val resolvedBank = bankName.trim().ifEmpty { normalizedPayment.bankName.orEmpty() }
+        val isTransferMethod = normalizedPayment.canonicalMethod.equals("TRANSFER", ignoreCase = true)
+        val requiresVerification = if (isTransferMethod) true else cleanVoucher.isNotEmpty()
+        val resolvedVerified = !requiresVerification
+        val subtotalDop = (amountDop * 100) / 118
+        val itbisDop = amountDop - subtotalDop
+        val resolvedKind = kindLabel.trim().ifEmpty {
+            if (amountDop >= targetEvent.balanceDop) "Liquidación" else "Abono"
+        }
         val record = PaymentRecord(
             id = "pay-${_payments.value.size + 1}",
             receiptNumber = receipt,
@@ -1071,29 +1184,37 @@ public class DefaultRosaFiestaRepository(
             clientName = targetEvent.clientName,
             amountDop = amountDop,
             methodLabel = "$cleanMethod · $shortDateLabel",
-            kindLabel = if (amountDop >= targetEvent.balanceDop) "Liquidación" else "Abono",
+            kindLabel = resolvedKind,
             dateLabel = fullDateLabel,
             referenceCode = cleanRef,
-            verified = true,
+            verified = resolvedVerified,
+            voucherUrl = cleanVoucher,
+            referenceNumber = cleanRef,
+            ncfType = cleanNcfType,
+            clientRnc = cleanRnc,
+            subtotalDop = subtotalDop,
+            itbisDop = itbisDop,
         )
         _payments.update { existing -> listOf(record) + existing }
-        _events.update { list ->
-            list.map { evt ->
-                if (evt.id == targetEvent.id) {
-                    evt.copy(
-                        paidDepositDop = (evt.paidDepositDop + amountDop).coerceAtMost(evt.totalDop),
-                        depositMethodLabel = cleanMethod,
-                    )
-                } else {
-                    evt
+        if (resolvedVerified) {
+            _events.update { list ->
+                list.map { evt ->
+                    if (evt.id == targetEvent.id) {
+                        evt.copy(
+                            paidDepositDop = (evt.paidDepositDop + amountDop).coerceAtMost(evt.totalDop),
+                            depositMethodLabel = cleanMethod,
+                        )
+                    } else {
+                        evt
+                    }
                 }
             }
-        }
-        _metrics.update { current ->
-            current.copy(
-                octoberRevenueDop = current.octoberRevenueDop + amountDop,
-                accountsReceivableDop = (current.accountsReceivableDop - amountDop).coerceAtLeast(0),
-            )
+            _metrics.update { current ->
+                current.copy(
+                    octoberRevenueDop = current.octoberRevenueDop + amountDop,
+                    accountsReceivableDop = (current.accountsReceivableDop - amountDop).coerceAtLeast(0),
+                )
+            }
         }
         scope.launch {
             runCatching {
@@ -1106,7 +1227,11 @@ public class DefaultRosaFiestaRepository(
                         method = normalizedPayment.canonicalMethod,
                         kind = record.kindLabel,
                         referenceCode = cleanRef,
-                        bankName = normalizedPayment.bankName,
+                        bankName = resolvedBank.ifBlank { null },
+                        voucherUrl = cleanVoucher.ifBlank { null },
+                        ncfType = cleanNcfType,
+                        clientRnc = cleanRnc.ifBlank { null },
+                        referenceNumber = cleanRef,
                     ),
                 )
             }
@@ -1125,6 +1250,8 @@ public class DefaultRosaFiestaRepository(
         deliveryFeeDop: Int,
         discountDop: Int,
         eventId: String,
+        notes: String,
+        sendImmediately: Boolean,
     ): QuoteRecord = submodules.createQuote(
         eventTitle = eventTitle,
         clientName = clientName,
@@ -1136,6 +1263,30 @@ public class DefaultRosaFiestaRepository(
         deliveryFeeDop = deliveryFeeDop,
         discountDop = discountDop,
         eventId = eventId,
+        notes = notes,
+        sendImmediately = sendImmediately,
+    )
+
+    override fun sendQuote(
+        quoteId: String,
+        eventTitle: String,
+        venue: String,
+        dateLabel: String,
+        guests: Int,
+        lines: List<EventLineItem>,
+        deliveryFeeDop: Int?,
+        discountDop: Int?,
+        notes: String,
+    ): QuoteRecord? = submodules.sendQuote(
+        quoteId = quoteId,
+        eventTitle = eventTitle,
+        venue = venue,
+        dateLabel = dateLabel,
+        guests = guests,
+        lines = lines,
+        deliveryFeeDop = deliveryFeeDop,
+        discountDop = discountDop,
+        notes = notes,
     )
 
     override fun approveQuote(quoteId: String, signedByName: String, signatureSvg: String): QuoteRecord? = submodules.approveQuote(quoteId, signedByName, signatureSvg)
@@ -1327,6 +1478,33 @@ public class DefaultRosaFiestaRepository(
         visibleInCatalog = visibleInCatalog,
     )
 
+    override suspend fun createCategory(
+        name: String,
+        illoKey: String,
+    ): Result<CatalogCategory> = submodules.createCategoryAsync(name = name, illoKey = illoKey)
+
+    override suspend fun updateCategory(
+        categoryId: String,
+        name: String,
+        illoKey: String,
+    ): Result<CatalogCategory> = submodules.updateCategoryAsync(
+        categoryId = categoryId,
+        name = name,
+        illoKey = illoKey,
+    )
+
+    override suspend fun deleteCategory(categoryId: String): Result<Unit> = submodules.deleteCategoryAsync(categoryId)
+
+    override suspend fun createTrend(trend: CatalogTrend): Result<CatalogTrend> = submodules.createTrendAsync(trend)
+
+    override suspend fun updateTrend(trend: CatalogTrend): Result<CatalogTrend> = submodules.updateTrendAsync(trend)
+
+    override suspend fun deleteTrend(trendId: String): Result<Unit> = submodules.deleteTrendAsync(trendId)
+
+    override suspend fun saveSeasonBanner(banner: SeasonBanner): Result<SeasonBanner> = submodules.saveSeasonBannerAsync(banner)
+
+    override suspend fun deleteArticle(articleId: String): Result<Unit> = submodules.deleteArticleAsync(articleId)
+
     override fun updateArticle(
         articleId: String,
         name: String?,
@@ -1396,4 +1574,327 @@ public class DefaultRosaFiestaRepository(
     ): BotThreadRecord? = submodules.updateBotThread(threadId, botPaused, assignedAgent, lastMessage)
 
     override suspend fun exportReport(reportType: String, period: String): ReportExportResult = submodules.exportReport(reportType, period)
+
+    override suspend fun uploadMedia(
+        filename: String,
+        mimeType: String,
+        purpose: String,
+        bytes: ByteArray,
+    ): Result<MediaUploadAsset> = submodules.uploadMedia(filename, mimeType, purpose, bytes)
+
+    override suspend fun fetchMediaBytes(urlOrId: String): Result<ByteArray> = submodules.fetchMediaBytes(urlOrId)
+
+    override suspend fun verifyPayment(
+        paymentId: String,
+        notes: String,
+    ): Result<PaymentRecord> = submodules.verifyPayment(paymentId, notes)
+
+    override suspend fun rejectPayment(
+        paymentId: String,
+        reason: String,
+    ): Result<PaymentRecord> = submodules.rejectPayment(paymentId, reason)
+
+    override suspend fun createCardPaymentSession(
+        eventId: String,
+        amountDop: Int,
+        ncfType: String,
+        clientRnc: String,
+    ): Result<CardSessionResult> = submodules.createCardPaymentSession(eventId, amountDop, ncfType, clientRnc)
+
+    override suspend fun completeEventCloseout(
+        eventId: String,
+        notes: String,
+    ): Result<ClientEvent> = submodules.completeEventCloseout(eventId, notes)
+
+    override suspend fun resolveDamageIncident(
+        incidentId: String,
+        notes: String,
+    ): Result<DamageIncident> = submodules.resolveDamageIncident(incidentId, notes)
+
+    override suspend fun checkRangeAvailability(
+        date: String,
+        articleId: String,
+        quantity: Int,
+        excludeEventId: String,
+    ): Result<AvailabilityRangeCheck> = submodules.checkRangeAvailability(date, articleId, quantity, excludeEventId)
+
+    override suspend fun sendWhatsAppBotReply(
+        threadId: String,
+        phone: String,
+        message: String,
+    ): Result<BotThreadRecord> = submodules.sendWhatsAppBotReply(threadId, phone, message)
+
+    override suspend fun exportDgii607Csv(period: String): Result<String> = submodules.exportDgii607Csv(period)
+
+    override fun observeRealtimeEvents(): Flow<RealtimeStreamEvent> = submodules.observeRealtimeEvents()
+
+    override fun inviteStaffMemberWithPassword(
+        fullName: String,
+        email: String,
+        roleLabel: String,
+        role: String,
+        phone: String,
+        permissions: List<String>,
+        initialPassword: String,
+    ): StaffMember = submodules.inviteStaffMemberWithPassword(
+        fullName = fullName,
+        email = email,
+        roleLabel = roleLabel,
+        role = role,
+        phone = phone,
+        permissions = permissions,
+        initialPassword = initialPassword,
+    )
+
+    override fun updateArticleWithMedia(
+        articleId: String,
+        name: String?,
+        category: String?,
+        description: String?,
+        pricePerDayDop: Int?,
+        totalStock: Int?,
+        availableStock: Int?,
+        dimensions: String?,
+        material: String?,
+        visibleInCatalog: Boolean?,
+        photoUrl: String?,
+    ): CatalogArticle? = submodules.updateArticleWithMedia(
+        articleId = articleId,
+        name = name,
+        category = category,
+        description = description,
+        pricePerDayDop = pricePerDayDop,
+        totalStock = totalStock,
+        availableStock = availableStock,
+        dimensions = dimensions,
+        material = material,
+        visibleInCatalog = visibleInCatalog,
+        photoUrl = photoUrl,
+    )
+
+    override fun reportDamageWithMedia(
+        eventId: String,
+        articleCode: String,
+        articleName: String,
+        damagedUnits: Int,
+        missingUnits: Int,
+        replacementDop: Int,
+        notes: String,
+        photoUrl: String,
+    ): DamageIncident = submodules.reportDamageWithMedia(
+        eventId = eventId,
+        articleCode = articleCode,
+        articleName = articleName,
+        damagedUnits = damagedUnits,
+        missingUnits = missingUnits,
+        replacementDop = replacementDop,
+        notes = notes,
+        photoUrl = photoUrl,
+    )
+
+    override suspend fun fetchOAuthConfig(): Result<OAuthProviderConfig> = submodules.fetchOAuthConfig()
+
+    override suspend fun recoverUsernameByIdentifier(identifier: String): Result<String> = submodules.recoverUsernameByIdentifier(identifier)
+
+    override suspend fun updateUserPreferences(
+        pushNotificationsEnabled: Boolean?,
+        whatsappAlertsEnabled: Boolean?,
+        emailReceiptsEnabled: Boolean?,
+        biometricLockEnabled: Boolean?,
+        autoSyncWifiOnly: Boolean?,
+    ): Result<RegisteredUserAccount> = submodules.updateUserPreferences(
+        pushNotificationsEnabled = pushNotificationsEnabled,
+        whatsappAlertsEnabled = whatsappAlertsEnabled,
+        emailReceiptsEnabled = emailReceiptsEnabled,
+        biometricLockEnabled = biometricLockEnabled,
+        autoSyncWifiOnly = autoSyncWifiOnly,
+    )
+
+    override suspend fun sendEventPaymentReminder(
+        eventId: String,
+        channel: String,
+        message: String,
+    ): Result<PaymentReminderOutcome> = submodules.sendEventPaymentReminder(
+        eventId = eventId,
+        channel = channel,
+        message = message,
+    )
+
+    override suspend fun confirmCardCheckoutSession(sessionId: String): Result<PaymentRecord> = submodules.confirmCardCheckoutSession(sessionId)
+
+    override suspend fun fetchPaymentsAnalytics(range: String): Result<PaymentsAnalyticsSummary> = submodules.fetchPaymentsAnalytics(range)
+
+    override suspend fun requestRosaSketch(
+        prompt: String,
+        eventType: String,
+        guests: Int,
+    ): Result<RosaSketchProposal> = submodules.requestRosaSketch(
+        prompt = prompt,
+        eventType = eventType,
+        guests = guests,
+    )
+
+    override suspend fun updateEventItems(
+        eventId: String,
+        items: List<EventLineItem>,
+    ): Result<ClientEvent> = submodules.updateEventItems(eventId = eventId, items = items)
+
+    override suspend fun verifyAccountPassword(password: String): Result<Boolean> = submodules.verifyAccountPassword(password)
+
+    private fun persistBrowserSnapshot() {
+        val cache = snapshotCache ?: return
+        val currentUser = _currentAuthenticatedUser.value
+        val snapshot = BrowserRepositorySnapshot(
+            activeSessionJwt = _currentSessionJwt.value.orEmpty(),
+            activeUserId = currentUser?.id.orEmpty(),
+            activeRole = _activeRole.value,
+            activeEmail = _currentUserEmail.value,
+            favorites = _favorites.value.toList(),
+            chatMessages = _chatMessages.value,
+            offlineQueue = _offlineQueue.value.map { item ->
+                PersistedOfflineItem(
+                    id = item.id,
+                    actionLabel = item.actionLabel,
+                    entityCode = item.entityCode,
+                    timeAgo = item.timeAgo,
+                    synced = item.synced,
+                    operationType = item.operationType,
+                    payloadJson = item.payloadJson,
+                    idempotencyKey = item.idempotencyKey,
+                )
+            },
+            accounts = userAccountsState.value.map { account ->
+                PersistedBrowserAccount(
+                    id = account.id,
+                    username = account.username,
+                    email = account.email,
+                    fullName = account.fullName,
+                    passwordHash = account.passwordHash,
+                    salt = account.salt,
+                    birthDate = account.birthDate,
+                    phone = account.phone,
+                    role = account.role,
+                    pushNotificationsEnabled = account.preferences.pushNotificationsEnabled,
+                    whatsappAlertsEnabled = account.preferences.whatsappAlertsEnabled,
+                    emailReceiptsEnabled = account.preferences.emailReceiptsEnabled,
+                    biometricLockEnabled = account.preferences.biometricLockEnabled,
+                    autoSyncWifiOnly = account.preferences.autoSyncWifiOnly,
+                )
+            },
+        )
+        runCatching {
+            val encoded = browserSnapshotJson.encodeToString(BrowserRepositorySnapshot.serializer(), snapshot)
+            cache.writeSnapshot(BROWSER_SNAPSHOT_KEY, encoded)
+        }
+    }
+
+    private fun restoreBrowserSnapshotIfPresent() {
+        val cache = snapshotCache ?: return
+        val raw = cache.readSnapshot(BROWSER_SNAPSHOT_KEY) ?: return
+        if (raw.isBlank()) return
+        val snapshot = runCatching {
+            browserSnapshotJson.decodeFromString(BrowserRepositorySnapshot.serializer(), raw)
+        }.getOrNull() ?: return
+
+        if (snapshot.accounts.isNotEmpty()) {
+            userAccountsState.value = snapshot.accounts.map { saved ->
+                RegisteredUserAccount(
+                    id = saved.id,
+                    username = saved.username,
+                    email = saved.email,
+                    fullName = saved.fullName,
+                    passwordHash = saved.passwordHash,
+                    salt = saved.salt,
+                    birthDate = saved.birthDate,
+                    phone = saved.phone,
+                    role = saved.role,
+                    preferences = UserPreferences(
+                        pushNotificationsEnabled = saved.pushNotificationsEnabled,
+                        whatsappAlertsEnabled = saved.whatsappAlertsEnabled,
+                        emailReceiptsEnabled = saved.emailReceiptsEnabled,
+                        biometricLockEnabled = saved.biometricLockEnabled,
+                        autoSyncWifiOnly = saved.autoSyncWifiOnly,
+                    ),
+                )
+            }
+        }
+        if (snapshot.favorites.isNotEmpty()) {
+            _favorites.value = snapshot.favorites.toSet()
+        }
+        if (snapshot.chatMessages.isNotEmpty()) {
+            _chatMessages.value = snapshot.chatMessages
+        }
+        if (snapshot.offlineQueue.isNotEmpty()) {
+            _offlineQueue.value = snapshot.offlineQueue.map { saved ->
+                OfflineQueueItem(
+                    id = saved.id,
+                    actionLabel = saved.actionLabel,
+                    entityCode = saved.entityCode,
+                    timeAgo = saved.timeAgo,
+                    synced = saved.synced,
+                    operationType = saved.operationType,
+                    payloadJson = saved.payloadJson,
+                    idempotencyKey = saved.idempotencyKey,
+                )
+            }
+        }
+        if (snapshot.activeSessionJwt.isNotBlank()) {
+            val matchedUser = userAccountsState.value.firstOrNull { account -> account.id == snapshot.activeUserId }
+            if (matchedUser != null) {
+                _currentAuthenticatedUser.value = matchedUser
+                _currentSessionJwt.value = snapshot.activeSessionJwt
+                _currentUserEmail.value = matchedUser.email
+                _activeRole.value = matchedUser.role
+            } else {
+                restoreSessionFromJwt(snapshot.activeSessionJwt)
+            }
+        }
+    }
+
+    private companion object {
+        const val BROWSER_SNAPSHOT_KEY: String = "rosafiesta.browser.repo.v1"
+        val browserSnapshotJson: Json = Json { ignoreUnknownKeys = true }
+    }
 }
+
+@Serializable
+private data class PersistedOfflineItem(
+    val id: String,
+    val actionLabel: String,
+    val entityCode: String,
+    val timeAgo: String,
+    val synced: Boolean,
+    val operationType: String = "",
+    val payloadJson: String = "{}",
+    val idempotencyKey: String = "",
+)
+
+@Serializable
+private data class PersistedBrowserAccount(
+    val id: String,
+    val username: String,
+    val email: String,
+    val fullName: String,
+    val passwordHash: String,
+    val salt: String,
+    val birthDate: String,
+    val phone: String,
+    val role: String,
+    val pushNotificationsEnabled: Boolean = true,
+    val whatsappAlertsEnabled: Boolean = true,
+    val emailReceiptsEnabled: Boolean = true,
+    val biometricLockEnabled: Boolean = false,
+    val autoSyncWifiOnly: Boolean = false,
+)
+
+@Serializable
+private data class BrowserRepositorySnapshot(
+    val activeSessionJwt: String = "",
+    val activeUserId: String = "",
+    val activeRole: String = "",
+    val activeEmail: String = "",
+    val favorites: List<String> = emptyList(),
+    val chatMessages: List<String> = emptyList(),
+    val offlineQueue: List<PersistedOfflineItem> = emptyList(),
+    val accounts: List<PersistedBrowserAccount> = emptyList(),
+)

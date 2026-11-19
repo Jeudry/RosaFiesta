@@ -49,7 +49,7 @@ func TestPostgresIntegration_SeedsAndQueriesAllModules(t *testing.T) {
 
 	seededTables := []string{
 		"users", "sessions", "admin_clients", "staff_members",
-		"categories", "articles", "packages", "events", "quotes",
+		"categories", "articles", "packages", "catalog_trends", "season_banners", "events", "quotes",
 		"payments", "refunds", "leads", "suppliers", "reviews",
 		"damage_incidents", "offline_queue", "business_settings",
 		"delivery_zones", "notifications", "insurance_policies",

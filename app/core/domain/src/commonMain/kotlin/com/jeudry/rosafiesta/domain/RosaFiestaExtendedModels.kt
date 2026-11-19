@@ -45,6 +45,11 @@ public data class QuoteRecord(
     public val depositDop: Int = (totalDop * depositPercent) / 100,
     public val signedByName: String = "",
     public val rejectionReason: String = "",
+    public val notes: String = "",
+    public val eventDateIso: String = "",
+    public val packageId: String = "",
+    public val contractPdfUrl: String = "",
+    public val signedAtIso: String = "",
 ) {
     public val balanceDop: Int
         get() = (totalDop - depositDop).coerceAtLeast(0)
@@ -67,6 +72,8 @@ public data class RefundRequest(
     public val requestedAtLabel: String,
     public val approvedBy: String = "",
     public val approvedAtLabel: String = "",
+    public val gatewayRefundId: String = "",
+    public val gatewayStatus: String = "",
 )
 
 /**
@@ -177,6 +184,7 @@ public data class ChatMessageRecord(
     public val attachmentName: String = "",
     public val timestampLabel: String,
     public val unreadCount: Int = 0,
+    public val attachmentUrl: String = "",
 )
 
 /**
@@ -361,6 +369,60 @@ public data class ReportExportResult(
 )
 
 /**
+ * Uploaded binary asset returned by the backend media endpoint.
+ */
+public data class MediaUploadAsset(
+    public val id: String,
+    public val url: String,
+    public val mimeType: String,
+    public val byteSize: Long,
+    public val filename: String,
+)
+
+/**
+ * Checkout session handle returned when initiating a hosted card payment.
+ */
+public data class CardSessionResult(
+    public val sessionId: String,
+    public val checkoutUrl: String,
+    public val provider: String,
+)
+
+/**
+ * Stock conflict detail for a catalog article within a requested logistics window.
+ */
+public data class AvailabilityConflictItem(
+    public val articleId: String,
+    public val articleName: String,
+    public val requested: Int,
+    public val available: Int,
+    public val dateRange: String,
+)
+
+/**
+ * Result of validating multi-day pickup/event/return availability against active reservations.
+ */
+public data class AvailabilityRangeCheck(
+    public val available: Boolean,
+    public val eventDateIso: String,
+    public val pickupDateIso: String,
+    public val returnDateIso: String,
+    public val conflicts: List<AvailabilityConflictItem> = emptyList(),
+)
+
+/**
+ * Real-time SSE event pushed by the backend sync stream.
+ */
+public data class RealtimeStreamEvent(
+    public val seq: Long,
+    public val type: String,
+    public val entityId: String,
+    public val clientId: String = "",
+    public val audience: String = "all",
+    public val summary: String = "",
+)
+
+/**
  * Deterministic multiplatform civil clock and Spanish date parser anchored to Dominican Republic time (UTC-4).
  */
 public object DomainClockFormatter {
@@ -420,6 +482,16 @@ public object DomainClockFormatter {
         val civil = toLocalCivilDate(epochSeconds)
         val paddedMonth = civil.month.toString().padStart(2, '0')
         return "${civil.year}-$paddedMonth"
+    }
+
+    /**
+     * Returns the current Dominican civil calendar date as `(year, month, day)`.
+     */
+    public fun currentCivilDateTriple(
+        epochSeconds: Long = JwtAuthManager.currentEpochSeconds(),
+    ): Triple<Int, Int, Int> {
+        val civil = toLocalCivilDate(epochSeconds)
+        return Triple(civil.year, civil.month, civil.day)
     }
 
     /**
@@ -602,3 +674,86 @@ public object DomainClockFormatter {
         return era * 146_097L + dayOfEra - 719_468L
     }
 }
+
+/**
+ * OAuth provider availability and configured client IDs from `/v1/auth/oauth/config`.
+ */
+public data class OAuthProviderConfig(
+    public val googleEnabled: Boolean = false,
+    public val appleEnabled: Boolean = false,
+    public val googleClientId: String = "",
+    public val appleClientId: String = "",
+    public val webPushVapidPublicKey: String = "",
+)
+
+/**
+ * Result of dispatching a payment reminder for an event via `/v1/events/{id}/payment-reminder`.
+ */
+public data class PaymentReminderOutcome(
+    public val event: ClientEvent,
+    public val sent: Boolean,
+    public val channel: String,
+)
+
+/**
+ * Monthly financial bar point returned by `/v1/payments/analytics`.
+ */
+public data class MonthlyAnalyticsBar(
+    public val monthKey: String,
+    public val monthLabel: String,
+    public val revenueDop: Int,
+    public val expensesDop: Int,
+    public val eventsCount: Int,
+)
+
+/**
+ * Event volume grouped by canonical event type.
+ */
+public data class EventTypeCount(
+    public val eventType: String,
+    public val count: Int,
+)
+
+/**
+ * Real aggregated analytics metrics and charts returned by `/v1/payments/analytics`.
+ */
+public data class PaymentsAnalyticsSummary(
+    public val range: String = "30d",
+    public val monthlySeries: List<MonthlyAnalyticsBar> = emptyList(),
+    public val totalRevenueDop: Int = 0,
+    public val totalExpensesDop: Int = 0,
+    public val netMarginPercent: Int = 0,
+    public val totalEventsCount: Int = 0,
+    public val confirmedEventsCount: Int = 0,
+    public val pendingEventsCount: Int = 0,
+    public val completedEventsCount: Int = 0,
+    public val cancelledEventsCount: Int = 0,
+    public val eventTypesBreakdown: List<EventTypeCount> = emptyList(),
+    public val uniqueClientsCount: Int = 0,
+    public val repeatClientsCount: Int = 0,
+    public val collectionRatePercent: Int = 0,
+)
+
+/**
+ * Positioned floorplan element generated by `/v1/quotes/rosa/sketch`.
+ */
+public data class RosaSketchElement(
+    public val id: String,
+    public val kind: String,
+    public val label: String,
+    public val xRatio: Double,
+    public val yRatio: Double,
+    public val capacity: Int = 0,
+)
+
+/**
+ * AI-generated 2D floorplan sketch proposal returned by `/v1/quotes/rosa/sketch`.
+ */
+public data class RosaSketchProposal(
+    public val reply: String,
+    public val elements: List<RosaSketchElement> = emptyList(),
+    public val eventWidthMeters: Double = 14.0,
+    public val eventDepthMeters: Double = 10.0,
+    public val provider: String = "",
+    public val model: String = "",
+)

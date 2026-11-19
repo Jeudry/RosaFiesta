@@ -22,29 +22,78 @@ const (
 )
 
 const (
-	defaultPort        = 8788
-	defaultSMTPPort    = 587
-	minJWTSecretLength = 32
+	defaultPort            = 8788
+	defaultSMTPPort        = 587
+	defaultMediaMaxBytes   = 10 << 20
+	minJWTSecretLength     = 32
+	defaultPublicBaseURL   = "http://localhost:8788"
+	defaultMediaStorageDir = "./var/media"
+	defaultAIProvider      = "gemini"
+	defaultGeminiModel     = "gemini-2.5-flash-lite"
+	defaultGroqAIModel     = "llama-3.3-70b-versatile"
+	defaultOpenAIModel     = "gpt-4o-mini"
+	defaultGroqSTTModel    = "whisper-large-v3-turbo"
+	defaultOpenAISTTModel  = "gpt-4o-mini-transcribe"
 )
 
+// Config centraliza la configuración cargada desde variables de entorno.
 type Config struct {
-	Env                Environment
-	Port               int
-	SeedMode           string
-	DatabaseURL        string
-	JWTSecret          string
-	CORSAllowedOrigins []string
-	SMTPHost           string
-	SMTPPort           int
-	SMTPFrom           string
-	SMTPUsername       string
-	SMTPPassword       string
-	GoogleClientID     string
-	AppleClientID      string
-	STTAPIURL          string
-	AIProviderAPIKey   string
+	Env                    Environment
+	Port                   int
+	SeedMode               string
+	DatabaseURL            string
+	JWTSecret              string
+	CORSAllowedOrigins     []string
+	PublicAppBaseURL       string
+	MediaStorageBackend    string
+	MediaStorageDir        string
+	MediaMaxBytes          int64
+	S3Endpoint             string
+	S3Bucket               string
+	S3Region               string
+	S3AccessKeyID          string
+	S3SecretAccessKey      string
+	S3PublicBaseURL        string
+	SMTPHost               string
+	SMTPPort               int
+	SMTPFrom               string
+	SMTPUsername           string
+	SMTPPassword           string
+	RequireConfiguredSMTP  bool
+	GoogleClientID         string
+	GoogleClientSecret     string
+	AppleClientID          string
+	AppleClientSecret      string
+	AppleTeamID            string
+	AppleKeyID             string
+	ApplePrivateKey        string
+	FCMServerURL           string
+	FCMServerKey           string
+	FCMProjectID           string
+	FCMServiceAccountJSON  string
+	APNSKeyID              string
+	APNSTeamID             string
+	APNSBundleID           string
+	APNSPrivateKey         string
+	APNSUseSandbox         bool
+	WebPushVAPIDPublicKey  string
+	WebPushVAPIDPrivateKey string
+	WebPushVAPIDSubject    string
+	AIProvider             string
+	AIModel                string
+	AIProviderAPIKey       string
+	STTProvider            string
+	STTModel               string
+	STTAPIURL              string
+	STTAPIKey              string
+	StripeSecretKey        string
+	StripeWebhookSecret    string
+	WhatsAppPhoneNumberID  string
+	WhatsAppAccessToken    string
+	WhatsAppVerifyToken    string
 }
 
+// Load lee y valida la configuración del servidor a partir de getenv.
 func Load(getenv func(string) string) (Config, error) {
 	env, err := parseEnvironment(getenv)
 	if err != nil {
@@ -66,31 +115,85 @@ func Load(getenv func(string) string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	smtpPort, err := parsePort(getenv("SMTP_PORT"), defaultSMTPPort, "SMTP_PORT")
-	if err != nil {
+	cfg := Config{
+		Env:                 env,
+		Port:                port,
+		SeedMode:            resolveSeedMode(getenv("ROSAFIESTA_SEED_MODE")),
+		DatabaseURL:         dbURL,
+		JWTSecret:           jwtSecret,
+		CORSAllowedOrigins:  corsOrigins,
+		PublicAppBaseURL:    fallbackString(getenv("PUBLIC_APP_BASE_URL"), defaultPublicBaseURL),
+		MediaStorageBackend: fallbackString(getenv("MEDIA_STORAGE_BACKEND"), "local"),
+		MediaStorageDir:     fallbackString(getenv("MEDIA_STORAGE_DIR"), defaultMediaStorageDir),
+	}
+	if err := populateIntegrations(getenv, &cfg); err != nil {
 		return Config{}, err
 	}
-	smtpFrom := strings.TrimSpace(getenv("SMTP_FROM"))
-	if smtpFrom == "" {
-		smtpFrom = "no-reply@rosafiesta.do"
+	return cfg, nil
+}
+
+func populateIntegrations(getenv func(string) string, cfg *Config) error {
+	smtpPort, err := parsePort(getenv("SMTP_PORT"), defaultSMTPPort, "SMTP_PORT")
+	if err != nil {
+		return err
 	}
-	return Config{
-		Env:                env,
-		Port:               port,
-		SeedMode:           resolveSeedMode(getenv("ROSAFIESTA_SEED_MODE")),
-		DatabaseURL:        dbURL,
-		JWTSecret:          jwtSecret,
-		CORSAllowedOrigins: corsOrigins,
-		SMTPHost:           strings.TrimSpace(getenv("SMTP_HOST")),
-		SMTPPort:           smtpPort,
-		SMTPFrom:           smtpFrom,
-		SMTPUsername:       strings.TrimSpace(getenv("SMTP_USERNAME")),
-		SMTPPassword:       strings.TrimSpace(getenv("SMTP_PASSWORD")),
-		GoogleClientID:     strings.TrimSpace(getenv("GOOGLE_CLIENT_ID")),
-		AppleClientID:      strings.TrimSpace(getenv("APPLE_CLIENT_ID")),
-		STTAPIURL:          strings.TrimSpace(getenv("STT_API_URL")),
-		AIProviderAPIKey:   strings.TrimSpace(getenv("AI_PROVIDER_API_KEY")),
-	}, nil
+	mediaMaxBytes, err := parsePositiveInt64(getenv("MEDIA_MAX_BYTES"), defaultMediaMaxBytes, "MEDIA_MAX_BYTES")
+	if err != nil {
+		return err
+	}
+	aiProvider := resolveProviderName(getenv("AI_PROVIDER"), defaultAIProvider)
+	sttProvider := resolveProviderName(getenv("STT_PROVIDER"), aiProvider)
+	aiAPIKey := strings.TrimSpace(getenv("AI_PROVIDER_API_KEY"))
+
+	cfg.MediaMaxBytes = mediaMaxBytes
+	populateStorageAndPushIntegrations(getenv, cfg)
+	cfg.SMTPHost = strings.TrimSpace(getenv("SMTP_HOST"))
+	cfg.SMTPPort = smtpPort
+	cfg.SMTPFrom = fallbackString(getenv("SMTP_FROM"), "no-reply@rosafiesta.do")
+	cfg.SMTPUsername = strings.TrimSpace(getenv("SMTP_USERNAME"))
+	cfg.SMTPPassword = strings.TrimSpace(getenv("SMTP_PASSWORD"))
+	cfg.RequireConfiguredSMTP = !parseBool(getenv("ALLOW_SIMULATED_OTP"))
+	cfg.GoogleClientID = strings.TrimSpace(getenv("GOOGLE_CLIENT_ID"))
+	cfg.GoogleClientSecret = strings.TrimSpace(getenv("GOOGLE_CLIENT_SECRET"))
+	cfg.AppleClientID = strings.TrimSpace(getenv("APPLE_CLIENT_ID"))
+	cfg.AppleClientSecret = strings.TrimSpace(getenv("APPLE_CLIENT_SECRET"))
+	cfg.AppleTeamID = strings.TrimSpace(getenv("APPLE_TEAM_ID"))
+	cfg.AppleKeyID = strings.TrimSpace(getenv("APPLE_KEY_ID"))
+	cfg.ApplePrivateKey = strings.TrimSpace(getenv("APPLE_PRIVATE_KEY"))
+	cfg.AIProvider = aiProvider
+	cfg.AIModel = resolveAIModel(aiProvider, getenv("AI_MODEL"))
+	cfg.AIProviderAPIKey = aiAPIKey
+	cfg.STTProvider = sttProvider
+	cfg.STTModel = resolveSTTModel(sttProvider, getenv("STT_MODEL"))
+	cfg.STTAPIURL = strings.TrimSpace(getenv("STT_API_URL"))
+	cfg.STTAPIKey = resolveSTTAPIKey(getenv("STT_API_KEY"), aiAPIKey, sttProvider, aiProvider)
+	cfg.StripeSecretKey = strings.TrimSpace(getenv("STRIPE_SECRET_KEY"))
+	cfg.StripeWebhookSecret = strings.TrimSpace(getenv("STRIPE_WEBHOOK_SECRET"))
+	cfg.WhatsAppPhoneNumberID = strings.TrimSpace(getenv("WHATSAPP_PHONE_NUMBER_ID"))
+	cfg.WhatsAppAccessToken = strings.TrimSpace(getenv("WHATSAPP_ACCESS_TOKEN"))
+	cfg.WhatsAppVerifyToken = strings.TrimSpace(getenv("WHATSAPP_VERIFY_TOKEN"))
+	return nil
+}
+
+func populateStorageAndPushIntegrations(getenv func(string) string, cfg *Config) {
+	cfg.S3Endpoint = strings.TrimSpace(getenv("S3_ENDPOINT"))
+	cfg.S3Bucket = strings.TrimSpace(getenv("S3_BUCKET"))
+	cfg.S3Region = fallbackString(getenv("S3_REGION"), "auto")
+	cfg.S3AccessKeyID = strings.TrimSpace(getenv("S3_ACCESS_KEY_ID"))
+	cfg.S3SecretAccessKey = strings.TrimSpace(getenv("S3_SECRET_ACCESS_KEY"))
+	cfg.S3PublicBaseURL = strings.TrimSpace(getenv("S3_PUBLIC_BASE_URL"))
+	cfg.FCMServerURL = strings.TrimSpace(getenv("FCM_SERVER_URL"))
+	cfg.FCMServerKey = strings.TrimSpace(getenv("FCM_SERVER_KEY"))
+	cfg.FCMProjectID = strings.TrimSpace(getenv("FCM_PROJECT_ID"))
+	cfg.FCMServiceAccountJSON = strings.TrimSpace(getenv("FCM_SERVICE_ACCOUNT_JSON"))
+	cfg.APNSKeyID = strings.TrimSpace(getenv("APNS_KEY_ID"))
+	cfg.APNSTeamID = strings.TrimSpace(getenv("APNS_TEAM_ID"))
+	cfg.APNSBundleID = fallbackString(getenv("APNS_BUNDLE_ID"), "com.jeudry.rosafiesta")
+	cfg.APNSPrivateKey = strings.TrimSpace(getenv("APNS_PRIVATE_KEY"))
+	cfg.APNSUseSandbox = parseBool(getenv("APNS_USE_SANDBOX"))
+	cfg.WebPushVAPIDPublicKey = strings.TrimSpace(getenv("WEB_PUSH_VAPID_PUBLIC_KEY"))
+	cfg.WebPushVAPIDPrivateKey = strings.TrimSpace(getenv("WEB_PUSH_VAPID_PRIVATE_KEY"))
+	cfg.WebPushVAPIDSubject = fallbackString(getenv("WEB_PUSH_VAPID_SUBJECT"), "mailto:hola@rosafiesta.do")
 }
 
 func parseEnvironment(getenv func(string) string) (Environment, error) {
@@ -210,4 +313,79 @@ func fallbackString(raw, fallback string) string {
 		return fallback
 	}
 	return trimmed
+}
+
+func parsePositiveInt64(raw string, fallback int64, fieldName string) (int64, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s %q", fieldName, raw)
+	}
+	if parsed <= 0 {
+		return 0, fmt.Errorf("invalid %s %q", fieldName, raw)
+	}
+	return parsed, nil
+}
+
+func parseBool(raw string) bool {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "true", "1", "yes":
+		return true
+	default:
+		return false
+	}
+}
+
+func resolveProviderName(raw, fallback string) string {
+	normalized := strings.ToLower(strings.TrimSpace(raw))
+	switch normalized {
+	case "gemini", "groq", "openai":
+		return normalized
+	default:
+		return fallback
+	}
+}
+
+func resolveAIModel(provider, raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed != "" {
+		return trimmed
+	}
+	switch provider {
+	case "groq":
+		return defaultGroqAIModel
+	case "openai":
+		return defaultOpenAIModel
+	default:
+		return defaultGeminiModel
+	}
+}
+
+func resolveSTTModel(provider, raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed != "" {
+		return trimmed
+	}
+	switch provider {
+	case "groq":
+		return defaultGroqSTTModel
+	case "openai":
+		return defaultOpenAISTTModel
+	default:
+		return defaultGeminiModel
+	}
+}
+
+func resolveSTTAPIKey(explicitSTTKey, aiKey, sttProvider, aiProvider string) string {
+	trimmedSTT := strings.TrimSpace(explicitSTTKey)
+	if trimmedSTT != "" {
+		return trimmedSTT
+	}
+	if sttProvider == aiProvider {
+		return aiKey
+	}
+	return ""
 }

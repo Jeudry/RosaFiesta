@@ -6,14 +6,17 @@ import com.jeudry.rosafiesta.core.engine.DateChangeResult
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.domain.ArticleAvailabilityCalendar
 import com.jeudry.rosafiesta.domain.AuditLogRecord
+import com.jeudry.rosafiesta.domain.AvailabilityRangeCheck
 import com.jeudry.rosafiesta.domain.BalloonProduct
 import com.jeudry.rosafiesta.domain.BotFaqRecord
 import com.jeudry.rosafiesta.domain.BotKeywordRecord
 import com.jeudry.rosafiesta.domain.BotThreadRecord
 import com.jeudry.rosafiesta.domain.BusinessMetrics
 import com.jeudry.rosafiesta.domain.BusinessSettings
-import com.jeudry.rosafiesta.domain.CanonicalSampleData
+import com.jeudry.rosafiesta.domain.CardSessionResult
 import com.jeudry.rosafiesta.domain.CatalogArticle
+import com.jeudry.rosafiesta.domain.CatalogCategory
+import com.jeudry.rosafiesta.domain.CatalogTrend
 import com.jeudry.rosafiesta.domain.ChatMessageRecord
 import com.jeudry.rosafiesta.domain.ChatThread
 import com.jeudry.rosafiesta.domain.ChecklistStep
@@ -30,19 +33,28 @@ import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.EventTypeTemplate
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
 import com.jeudry.rosafiesta.domain.LeadRecord
+import com.jeudry.rosafiesta.domain.MediaUploadAsset
 import com.jeudry.rosafiesta.domain.NotificationRecord
+import com.jeudry.rosafiesta.domain.OAuthProviderConfig
 import com.jeudry.rosafiesta.domain.OfflineQueueItem
 import com.jeudry.rosafiesta.domain.PaymentRecord
+import com.jeudry.rosafiesta.domain.PaymentReminderOutcome
+import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
+import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReviewRecord
 import com.jeudry.rosafiesta.domain.RosaChatReply
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
+import com.jeudry.rosafiesta.domain.RosaSketchProposal
+import com.jeudry.rosafiesta.domain.SeasonBanner
 import com.jeudry.rosafiesta.domain.StaffMember
 import com.jeudry.rosafiesta.domain.SupplierRecord
 import com.jeudry.rosafiesta.domain.platform.Dgii607SaleRecord
 import com.jeudry.rosafiesta.domain.platform.DgiiIdentificationType
+import com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge
+import com.jeudry.rosafiesta.domain.platform.ExternalPaymentReturn
 import com.jeudry.rosafiesta.domain.platform.FinancialReportCsvRow
 import com.jeudry.rosafiesta.domain.platform.NoOpPlatformActions
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
@@ -53,6 +65,7 @@ import com.jeudry.rosafiesta.domain.platform.ReceiptPdfLineItem
 import com.jeudry.rosafiesta.domain.platform.ReportCsvBuilder
 import com.jeudry.rosafiesta.domain.security.AuthOutcome
 import com.jeudry.rosafiesta.domain.security.InMemorySecureStorage
+import com.jeudry.rosafiesta.domain.security.JwtAuthManager
 import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import com.jeudry.rosafiesta.domain.security.SecureStorage
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
@@ -66,14 +79,26 @@ import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import com.jeudry.rosafiesta.domain.validation.InputValidator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.random.Random
 
 /**
  * Origin context from which voice input capture is initiated.
@@ -82,6 +107,7 @@ public enum class VoiceInputOrigin {
     NONE,
     SEARCH,
     ROSA_WIZARD,
+    NOTES_INLINE,
 }
 
 public data class CompanyReviewUiModel(
@@ -94,6 +120,18 @@ public data class CompanyReviewUiModel(
     public val isVerified: Boolean = true,
     public val avatarBgHex: Long = 0xFFFDE6F2,
     public val avatarInkHex: Long = 0xFFC2338F,
+)
+
+/**
+ * Compact item preview shown briefly when an article is saved to the event draft.
+ */
+public data class SavedCartItemPreview(
+    public val articleId: String,
+    public val title: String,
+    public val quantity: Int,
+    public val unitPriceDop: Int,
+    public val photoUrl: String = "",
+    public val photo: PhotoAsset = PhotoAsset.SILLA_TIFFANY,
 )
 
 public data class DirectChatMessageUiModel(
@@ -182,6 +220,9 @@ public class RosaFiestaViewModel(
     public val staffMembers: StateFlow<List<StaffMember>> = repository.staffMembers
     public val chatMessages: StateFlow<List<String>> = repository.chatMessages
 
+    public val catalogCategories: StateFlow<List<CatalogCategory>> = repository.catalogCategories
+    public val catalogTrends: StateFlow<List<CatalogTrend>> = repository.catalogTrends
+    public val seasonBanner: StateFlow<SeasonBanner> = repository.seasonBanner
     public val packages: StateFlow<List<EventPackage>> = repository.packages
     public val templates: StateFlow<List<EventTypeTemplate>> = repository.templates
     public val balloonProducts: StateFlow<List<BalloonProduct>> = repository.balloonProducts
@@ -285,7 +326,7 @@ public class RosaFiestaViewModel(
     private val _draftQuantities = MutableStateFlow<Map<String, Int>>(emptyMap())
     public val draftQuantities: StateFlow<Map<String, Int>> = _draftQuantities.asStateFlow()
 
-    private val _rosaEventType = MutableStateFlow("Boda Real Rosa & Dorado")
+    private val _rosaEventType = MutableStateFlow("")
     public val rosaEventType: StateFlow<String> = _rosaEventType.asStateFlow()
 
     private val _rosaGuestsCount = MutableStateFlow(120)
@@ -319,14 +360,35 @@ public class RosaFiestaViewModel(
     private val _voiceInputOrigin = MutableStateFlow(VoiceInputOrigin.NONE)
     public val voiceInputOrigin: StateFlow<VoiceInputOrigin> = _voiceInputOrigin.asStateFlow()
 
-    public val isVoiceListening: StateFlow<Boolean> = voiceInputMonitor.isListening
-    public val isVoiceTranscribing: StateFlow<Boolean> = voiceInputMonitor.isTranscribing
-    public val voiceAmplitude: StateFlow<Float> = voiceInputMonitor.amplitudeLevel
-    public val hasHardwareMicrophone: StateFlow<Boolean> = voiceInputMonitor.hasHardwareMicrophone
-    public val voiceErrorMessage: StateFlow<String?> = voiceInputMonitor.errorMessage
-
     private val _voiceTranscript = MutableStateFlow("")
     public val voiceTranscript: StateFlow<String> = _voiceTranscript.asStateFlow()
+
+    private val _isRemoteVoiceTranscribing = MutableStateFlow(false)
+    public val isRemoteVoiceTranscribing: StateFlow<Boolean> = _isRemoteVoiceTranscribing.asStateFlow()
+
+    private val remoteVoiceErrorState = MutableStateFlow<String?>(null)
+
+    public val isVoiceListening: StateFlow<Boolean> = voiceInputMonitor.isListening
+    public val isVoiceTranscribing: StateFlow<Boolean> = combine(
+        voiceInputMonitor.isTranscribing,
+        _isRemoteVoiceTranscribing,
+    ) { localTranscribing, remoteTranscribing ->
+        listOf(localTranscribing, remoteTranscribing).any { active -> active }
+    }.stateIn(securityScope, SharingStarted.Eagerly, false)
+    public val voiceAmplitude: StateFlow<Float> = voiceInputMonitor.amplitudeLevel
+    public val hasHardwareMicrophone: StateFlow<Boolean> = voiceInputMonitor.hasHardwareMicrophone
+    public val voiceErrorMessage: StateFlow<String?> = combine(
+        voiceInputMonitor.errorMessage,
+        remoteVoiceErrorState,
+    ) { hardwareError, remoteError ->
+        remoteError ?: hardwareError
+    }.stateIn(securityScope, SharingStarted.Eagerly, null)
+
+    private var inlineNotesBaseText: String = ""
+    private var hasNativeTranscriptForSession: Boolean = false
+    private var voiceCaptureSessionId: Long = 0L
+    private var transcribedSessionId: Long = -1L
+    private var activeTranscriptionJob: Job? = null
 
     private val _loginEmail = MutableStateFlow("")
     public val loginEmail: StateFlow<String> = _loginEmail.asStateFlow()
@@ -358,31 +420,31 @@ public class RosaFiestaViewModel(
     private val _eventNotesInput = MutableStateFlow("")
     public val eventNotesInput: StateFlow<String> = _eventNotesInput.asStateFlow()
 
-    private val _newEventTitle = MutableStateFlow("Quinceañera Cristal")
+    private val _newEventTitle = MutableStateFlow("")
     public val newEventTitle: StateFlow<String> = _newEventTitle.asStateFlow()
 
-    private val _newEventClient = MutableStateFlow("Sofía Méndez")
+    private val _newEventClient = MutableStateFlow("")
     public val newEventClient: StateFlow<String> = _newEventClient.asStateFlow()
 
-    private val _newEventDate = MutableStateFlow("Sáb 14 nov")
+    private val _newEventDate = MutableStateFlow("")
     public val newEventDate: StateFlow<String> = _newEventDate.asStateFlow()
 
-    private val _newEventVenue = MutableStateFlow("Salón Piantini")
+    private val _newEventVenue = MutableStateFlow("")
     public val newEventVenue: StateFlow<String> = _newEventVenue.asStateFlow()
 
-    private val _newEventGuests = MutableStateFlow("100")
+    private val _newEventGuests = MutableStateFlow("")
     public val newEventGuests: StateFlow<String> = _newEventGuests.asStateFlow()
 
-    private val _paymentAmountInput = MutableStateFlow("3150")
+    private val _paymentAmountInput = MutableStateFlow("")
     public val paymentAmountInput: StateFlow<String> = _paymentAmountInput.asStateFlow()
 
-    private val _paymentMethodInput = MutableStateFlow("Transferencia Banreservas")
+    private val _paymentMethodInput = MutableStateFlow("")
     public val paymentMethodInput: StateFlow<String> = _paymentMethodInput.asStateFlow()
 
-    private val _paymentRefInput = MutableStateFlow("BR-2026-9941")
+    private val _paymentRefInput = MutableStateFlow("")
     public val paymentRefInput: StateFlow<String> = _paymentRefInput.asStateFlow()
 
-    private val _dateChangeInput = MutableStateFlow("Vie 30 oct")
+    private val _dateChangeInput = MutableStateFlow("")
     public val dateChangeInput: StateFlow<String> = _dateChangeInput.asStateFlow()
 
     private val _dateChangeBanner = MutableStateFlow("Primer cambio gratis con al menos 48h de antelación.")
@@ -439,83 +501,18 @@ public class RosaFiestaViewModel(
     private val _pendingOtpEmail = MutableStateFlow("")
     public val pendingOtpEmail: StateFlow<String> = _pendingOtpEmail.asStateFlow()
 
-    private val _eventTimelineItems = MutableStateFlow(
-        listOf(
-            EventTimelineItemUiModel(
-                id = "tl-1",
-                startTime = "06:38",
-                endTime = "09:08",
-                title = "Descarga y montaje de mobiliario",
-                subtitle = "Llega el camión con sillas Tiffany y mesas",
-                dotColorHex = 0xFFF7B500,
-                ringColorHex = 0xFFFFF2C9,
-            ),
-            EventTimelineItemUiModel(
-                id = "tl-2",
-                startTime = "09:38",
-                endTime = "12:38",
-                title = "Arco orgánico y flores",
-                subtitle = "Montaje del backdrop principal y centros de mesa",
-                dotColorHex = 0xFFEA4EA9,
-                ringColorHex = 0xFFFDE6F2,
-            ),
-            EventTimelineItemUiModel(
-                id = "tl-3",
-                startTime = "13:08",
-                endTime = "14:38",
-                title = "Pruebas de sonido e iluminación",
-                subtitle = "Microfonía, luces ambientales y playlist lista",
-                dotColorHex = 0xFF1FBDC0,
-                ringColorHex = 0xFFDDF4F3,
-            ),
-            EventTimelineItemUiModel(
-                id = "tl-4",
-                startTime = "15:38",
-                endTime = "16:38",
-                title = "Recepción de invitados",
-                subtitle = "Cóctel de bienvenida en el área de la terraza",
-                dotColorHex = 0xFF865DEC,
-                ringColorHex = 0xFFEFE8FD,
-            ),
-        ),
-    )
+    private val _eventTimelineItems = MutableStateFlow<List<EventTimelineItemUiModel>>(emptyList())
     public val eventTimelineItems: StateFlow<List<EventTimelineItemUiModel>> = _eventTimelineItems.asStateFlow()
 
-    private val _eventTasksList = MutableStateFlow(
-        listOf(
-            EventTaskUiModel("tsk-1", "Realizar pago inicial de reserva (30%)", "Vence hoy", isUrgent = true, completed = false),
-            EventTaskUiModel("tsk-2", "Inspección técnica de iluminación exterior", "Mañana", isUrgent = false, completed = false),
-            EventTaskUiModel("tsk-3", "Confirmar paleta floral blanco y rosa pastel", "18 oct", isUrgent = false, completed = true),
-            EventTaskUiModel("tsk-4", "Aprobar plano de mesas imperial y sillas Tiffany", "15 oct", isUrgent = false, completed = true),
-        ),
-    )
+    private val tasksByEventId = mutableMapOf<String, List<EventTaskUiModel>>()
+
+    private val _eventTasksList = MutableStateFlow<List<EventTaskUiModel>>(emptyList())
     public val eventTasksList: StateFlow<List<EventTaskUiModel>> = _eventTasksList.asStateFlow()
 
     private val _eventGuestsList = MutableStateFlow<List<EventGuestUiModel>>(emptyList())
     public val eventGuestsList: StateFlow<List<EventGuestUiModel>> = _eventGuestsList.asStateFlow()
 
-    private val _companyReviews = MutableStateFlow(
-        listOf(
-            CompanyReviewUiModel(
-                id = "rev-1",
-                author = "Camila R.",
-                initial = "C",
-                dateLabel = "18 oct 2026",
-                rating = 5,
-                comment = "El montaje de nuestra boda superó todas las expectativas. Las sillas Tiffany y el arco floral quedaron de revista.",
-                isVerified = true,
-            ),
-            CompanyReviewUiModel(
-                id = "rev-2",
-                author = "Laura M.",
-                initial = "L",
-                dateLabel = "15 oct 2026",
-                rating = 5,
-                comment = "Puntualidad impecable y atención personalizada con Rosa IA. ¡Recomendados 100%!",
-                isVerified = true,
-            ),
-        ),
-    )
+    private val _companyReviews = MutableStateFlow<List<CompanyReviewUiModel>>(emptyList())
     public val companyReviews: StateFlow<List<CompanyReviewUiModel>> = _companyReviews.asStateFlow()
 
     private val _suppliersList = MutableStateFlow(
@@ -555,34 +552,34 @@ public class RosaFiestaViewModel(
     )
     public val directChatMessages: StateFlow<List<DirectChatMessageUiModel>> = _directChatMessages.asStateFlow()
 
-    private val _supportSubject = MutableStateFlow("Ajuste de sillas doradas")
+    private val _supportSubject = MutableStateFlow("")
     public val supportSubject: StateFlow<String> = _supportSubject.asStateFlow()
 
-    private val _supportMessage = MutableStateFlow("Necesitamos confirmar 10 sillas adicionales para la terraza.")
+    private val _supportMessage = MutableStateFlow("")
     public val supportMessage: StateFlow<String> = _supportMessage.asStateFlow()
 
     private val _chatInput = MutableStateFlow("")
     public val chatInput: StateFlow<String> = _chatInput.asStateFlow()
 
-    private val _newArticleCode = MutableStateFlow("RF-007")
+    private val _newArticleCode = MutableStateFlow("")
     public val newArticleCode: StateFlow<String> = _newArticleCode.asStateFlow()
 
-    private val _newArticleName = MutableStateFlow("Silla Chiavari Cristal")
+    private val _newArticleName = MutableStateFlow("")
     public val newArticleName: StateFlow<String> = _newArticleName.asStateFlow()
 
-    private val _newArticleCategory = MutableStateFlow("Mobiliario")
+    private val _newArticleCategory = MutableStateFlow(repository.catalogCategories.value.firstOrNull()?.name.orEmpty())
     public val newArticleCategory: StateFlow<String> = _newArticleCategory.asStateFlow()
 
-    private val _newArticlePrice = MutableStateFlow("120")
+    private val _newArticlePrice = MutableStateFlow("")
     public val newArticlePrice: StateFlow<String> = _newArticlePrice.asStateFlow()
 
-    private val _newArticleStock = MutableStateFlow("60")
+    private val _newArticleStock = MutableStateFlow("")
     public val newArticleStock: StateFlow<String> = _newArticleStock.asStateFlow()
 
-    private val _promoCodeInput = MutableStateFlow("ROSA10")
+    private val _promoCodeInput = MutableStateFlow("")
     public val promoCodeInput: StateFlow<String> = _promoCodeInput.asStateFlow()
 
-    private val _promoDiscountInput = MutableStateFlow("10")
+    private val _promoDiscountInput = MutableStateFlow("")
     public val promoDiscountInput: StateFlow<String> = _promoDiscountInput.asStateFlow()
 
     private val _depositPercentInput = MutableStateFlow("30")
@@ -623,17 +620,277 @@ public class RosaFiestaViewModel(
     private val _formFeedback = MutableStateFlow<String?>(null)
     public val formFeedback: StateFlow<String?> = _formFeedback.asStateFlow()
 
+    private val _actionToast = MutableStateFlow<String?>(null)
+    public val actionToast: StateFlow<String?> = _actionToast.asStateFlow()
+
+    public fun clearActionToast() {
+        _actionToast.value = null
+    }
+
+    public fun showActionToast(message: String) {
+        val cleanMessage = message.trim()
+        if (cleanMessage.isNotEmpty()) {
+            _savedItemPreview.value = null
+            _actionToast.value = cleanMessage
+        }
+    }
+
+    private val _savedItemPreview = MutableStateFlow<SavedCartItemPreview?>(null)
+    public val savedItemPreview: StateFlow<SavedCartItemPreview?> = _savedItemPreview.asStateFlow()
+
+    public fun showSavedItemPreview(article: CatalogArticle, quantity: Int) {
+        _actionToast.value = null
+        _savedItemPreview.value = SavedCartItemPreview(
+            articleId = article.id,
+            title = article.name,
+            quantity = quantity.coerceAtLeast(1),
+            unitPriceDop = article.pricePerDayDop,
+            photoUrl = article.photoUrl,
+            photo = article.photo,
+        )
+    }
+
+    public fun showSavedPackagePreview(packageItem: EventPackage) {
+        _actionToast.value = null
+        _savedItemPreview.value = SavedCartItemPreview(
+            articleId = packageItem.id,
+            title = packageItem.name,
+            quantity = 1,
+            unitPriceDop = packageItem.priceDop,
+            photoUrl = packageItem.photoUrl,
+            photo = packageItem.photo,
+        )
+    }
+
+    private fun showSavedPreviewForItemId(itemId: String, quantity: Int) {
+        val matchedArticle = articles.value.firstOrNull { candidate -> candidate.id == itemId }
+        if (matchedArticle != null) {
+            showSavedItemPreview(matchedArticle, quantity)
+            return
+        }
+        val matchedBalloon = balloonProducts.value.firstOrNull { candidate -> candidate.id == itemId }
+        if (matchedBalloon != null) {
+            _actionToast.value = null
+            _savedItemPreview.value = SavedCartItemPreview(
+                articleId = matchedBalloon.id,
+                title = matchedBalloon.name,
+                quantity = quantity.coerceAtLeast(1),
+                unitPriceDop = matchedBalloon.priceDop,
+                photo = matchedBalloon.photo,
+            )
+        }
+    }
+
+    public fun clearSavedItemPreview() {
+        _savedItemPreview.value = null
+    }
+
     private val _isSubmitting = MutableStateFlow(false)
     public val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
 
+    private val _mediaBytesCache = MutableStateFlow<Map<String, ByteArray>>(emptyMap())
+    public val mediaBytesCache: StateFlow<Map<String, ByteArray>> = _mediaBytesCache.asStateFlow()
+    private val mediaFetchMutex = Mutex()
+    private val draftStorageMutex = Mutex()
+    private val activeMediaFetchUrls = mutableSetOf<String>()
+
+    private val _newArticlePhotoUrl = MutableStateFlow("")
+    public val newArticlePhotoUrl: StateFlow<String> = _newArticlePhotoUrl.asStateFlow()
+
+    private val _paymentNcfType = MutableStateFlow("B02")
+    public val paymentNcfType: StateFlow<String> = _paymentNcfType.asStateFlow()
+
+    private val _paymentClientRnc = MutableStateFlow("")
+    public val paymentClientRnc: StateFlow<String> = _paymentClientRnc.asStateFlow()
+
+    private val _paymentVoucherUrl = MutableStateFlow("")
+    public val paymentVoucherUrl: StateFlow<String> = _paymentVoucherUrl.asStateFlow()
+
+    private val _dateAvailabilityWarning = MutableStateFlow<String?>(null)
+    public val dateAvailabilityWarning: StateFlow<String?> = _dateAvailabilityWarning.asStateFlow()
+
+    private val _isRealtimeConnected = MutableStateFlow(false)
+    public val isRealtimeConnected: StateFlow<Boolean> = _isRealtimeConnected.asStateFlow()
+
+    private val _oauthConfig = MutableStateFlow(OAuthProviderConfig())
+    public val oauthConfig: StateFlow<OAuthProviderConfig> = _oauthConfig.asStateFlow()
+
+    private val _isAppLocked = MutableStateFlow(false)
+    public val isAppLocked: StateFlow<Boolean> = _isAppLocked.asStateFlow()
+
+    private val _appLockError = MutableStateFlow<String?>(null)
+    public val appLockError: StateFlow<String?> = _appLockError.asStateFlow()
+
+    private val _pendingCardCheckoutSession = MutableStateFlow<CardSessionResult?>(null)
+    public val pendingCardCheckoutSession: StateFlow<CardSessionResult?> = _pendingCardCheckoutSession.asStateFlow()
+
+    private val _analyticsSummary = MutableStateFlow<PaymentsAnalyticsSummary?>(null)
+    public val analyticsSummary: StateFlow<PaymentsAnalyticsSummary?> = _analyticsSummary.asStateFlow()
+
+    private val _wifiSyncBlockedNotice = MutableStateFlow<String?>(null)
+    public val wifiSyncBlockedNotice: StateFlow<String?> = _wifiSyncBlockedNotice.asStateFlow()
+
+    private val _requiresReauthentication = MutableStateFlow(false)
+    public val requiresReauthentication: StateFlow<Boolean> = _requiresReauthentication.asStateFlow()
+
+    @kotlin.concurrent.Volatile
+    private var mutatedPreferenceKeys: Set<String> = emptySet()
+
     init {
+        registerRepositorySessionCallbacks()
+        observeExternalPaymentReturns()
+        observeCapturedVoiceAudio()
         restorePersistedAccountOnStartup()
+        observeRealtimeUpdates()
+        loadOAuthConfig()
+    }
+
+    /**
+     * Clears the pending reauthentication prompt flag after navigating back to login.
+     */
+    public fun consumeSessionExpiredPrompt() {
+        _requiresReauthentication.value = false
+    }
+
+    private fun registerRepositorySessionCallbacks() {
+        repository.setSessionLifecycleCallbacks(
+            onTokensRefreshed = { newAccessToken, newRefreshToken ->
+                secureStorage.put(SecureStorage.KEY_ACCESS_TOKEN, newAccessToken)
+                if (newRefreshToken.isNotBlank()) {
+                    secureStorage.put(SecureStorage.KEY_REFRESH_TOKEN, newRefreshToken)
+                }
+            },
+            onSessionExpired = {
+                handleExpiredSessionCleanup()
+            },
+        )
+    }
+
+    private suspend fun handleExpiredSessionCleanup() {
+        secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
+        secureStorage.remove(SecureStorage.KEY_REFRESH_TOKEN)
+        secureStorage.remove(SecureStorage.KEY_USER_ROLE)
+        repository.setRefreshToken(null)
+        repository.clearSession()
+        _isExplicitGuestSession.value = true
+        _pendingCardCheckoutSession.value = null
+        _formError.value = "Tu sesión expiró. Inicia sesión nuevamente."
+        _requiresReauthentication.value = true
+    }
+
+    private fun observeExternalPaymentReturns() {
+        securityScope.launch {
+            ExternalPaymentCallbackBridge.paymentReturns.collect { paymentReturn ->
+                handleExternalPaymentReturn(paymentReturn)
+            }
+        }
+    }
+
+    override fun onCleared() {
+        securityScope.cancel()
+        super.onCleared()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeRealtimeUpdates() {
+        securityScope.launch {
+            currentSessionJwt
+                .flatMapLatest { token ->
+                    if (token.isNullOrBlank()) {
+                        _isRealtimeConnected.value = false
+                        emptyFlow()
+                    } else {
+                        _isRealtimeConnected.value = true
+                        repository.observeRealtimeEvents()
+                    }
+                }
+                .collectLatest { streamEvent ->
+                    handleRealtimeStreamEvent(streamEvent)
+                }
+        }
+    }
+
+    private suspend fun handleRealtimeStreamEvent(streamEvent: RealtimeStreamEvent) {
+        if (!isWifiSyncPermitted()) {
+            _wifiSyncBlockedNotice.value = "Sincronización en segundo plano pausada: solo por Wi‑Fi activado."
+            return
+        }
+        _wifiSyncBlockedNotice.value = null
+        repository.syncFromBackendAsync()
+        val readableNotice = when (streamEvent.type) {
+            "payment.verified" -> "Pago verificado en tiempo real."
+            "payment.rejected" -> "Transferencia marcada como rechazada."
+            "quote.signed" -> "Cotización firmada y reservación actualizada."
+            "whatsapp.message" -> "Nuevo mensaje de WhatsApp sincronizado."
+            else -> ""
+        }
+        if (readableNotice.isNotEmpty()) {
+            _formFeedback.value = readableNotice
+            if (_pushNotificationsEnabled.value) {
+                platformActions.showLocalNotification("RosaFiesta", readableNotice)
+            }
+        }
+    }
+
+    private suspend fun restoreBooleanPrefIfUntouched(
+        storageKey: String,
+        applyValue: (Boolean) -> Unit,
+    ) {
+        if (storageKey in mutatedPreferenceKeys) return
+        val savedValue = secureStorage.get(storageKey) ?: return
+        if (storageKey !in mutatedPreferenceKeys) {
+            applyValue(savedValue == "true")
+        }
+    }
+
+    private fun resolveUntouchedBool(
+        storageKey: String,
+        savedValue: String?,
+        fallback: Boolean,
+    ): Boolean {
+        if (storageKey in mutatedPreferenceKeys) return fallback
+        return if (savedValue != null) savedValue == "true" else fallback
+    }
+
+    private fun resolveUntouchedVolume(
+        savedVolume: Float?,
+        fallback: Float,
+    ): Float {
+        if (SecureStorage.KEY_AUDIO_VOLUME in mutatedPreferenceKeys) return fallback
+        return savedVolume?.coerceIn(0f, 1f) ?: fallback
+    }
+
+    private suspend fun restoreAudioConfigIfUntouched() {
+        val savedEnabled = secureStorage.get(SecureStorage.KEY_AUDIO_ENABLED)
+        val savedVolume = secureStorage.get(SecureStorage.KEY_AUDIO_VOLUME)?.toFloatOrNull()
+        val savedInteraction = secureStorage.get(SecureStorage.KEY_AUDIO_INTERACTION)
+        val savedRosa = secureStorage.get(SecureStorage.KEY_AUDIO_ROSA)
+        val savedAlerts = secureStorage.get(SecureStorage.KEY_AUDIO_ALERTS)
+        val current = _audioConfig.value
+        val nextEnabled = resolveUntouchedBool(SecureStorage.KEY_AUDIO_ENABLED, savedEnabled, current.soundEffectsEnabled)
+        val nextVolume = resolveUntouchedVolume(savedVolume, current.masterVolume)
+        val nextInteraction = resolveUntouchedBool(SecureStorage.KEY_AUDIO_INTERACTION, savedInteraction, current.interactionSoundsEnabled)
+        val nextRosa = resolveUntouchedBool(SecureStorage.KEY_AUDIO_ROSA, savedRosa, current.rosaAssistantSoundsEnabled)
+        val nextAlerts = resolveUntouchedBool(SecureStorage.KEY_AUDIO_ALERTS, savedAlerts, current.paymentAlertSoundsEnabled)
+        val restored = current.copy(
+            soundEffectsEnabled = nextEnabled,
+            masterVolume = nextVolume,
+            interactionSoundsEnabled = nextInteraction,
+            rosaAssistantSoundsEnabled = nextRosa,
+            paymentAlertSoundsEnabled = nextAlerts,
+        )
+        if (restored != current) {
+            applyAudioConfig(restored, persist = false)
+        }
     }
 
     private fun restorePersistedAccountOnStartup() {
         val currentRepoUser = repository.currentAuthenticatedUser.value
         if (currentRepoUser != null) {
-            applyProfileFieldsFromAccount(currentRepoUser)
+            applyProfileFieldsFromAccount(
+                account = currentRepoUser,
+                persistPreferencesToStorage = false,
+            )
         }
         val settings = repository.businessSettings.value
         _depositPercentInput.value = settings.depositPercent.toString()
@@ -641,13 +898,46 @@ public class RosaFiestaViewModel(
         _deliveryBaseInput.value = firstZoneFee.toString()
 
         securityScope.launch {
+            restorePersistedDraftAndEventState()
+        }
+
+        securityScope.launch {
+            val savedRefresh = secureStorage.get(SecureStorage.KEY_REFRESH_TOKEN)?.trim().orEmpty()
+            if (savedRefresh.isNotEmpty()) {
+                repository.setRefreshToken(savedRefresh)
+            }
             val savedToken = secureStorage.get(SecureStorage.KEY_ACCESS_TOKEN)
+            var sessionRestored = false
             if (!savedToken.isNullOrBlank()) {
                 val restoredAccount = repository.restoreSessionFromJwt(savedToken)
                 if (restoredAccount != null) {
-                    applyProfileFieldsFromAccount(restoredAccount)
+                    applyProfileFieldsFromAccount(
+                        account = restoredAccount,
+                        persistPreferencesToStorage = false,
+                    )
+                    sessionRestored = true
                 } else {
                     secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
+                }
+            }
+            val canAttemptRefresh = if (!sessionRestored) savedRefresh.isNotEmpty() else false
+            if (canAttemptRefresh) {
+                val refreshOutcome = repository.refreshSession(savedRefresh)
+                val refreshedAccount = refreshOutcome.account
+                val refreshSucceeded = if (refreshOutcome.success) refreshedAccount != null else false
+                if (refreshSucceeded) {
+                    val account = refreshedAccount ?: return@launch
+                    applyAuthenticatedAccount(account, refreshOutcome.accessToken, refreshOutcome.refreshToken)
+                } else {
+                    val isRejectedCode = refreshOutcome.errorCode in setOf(
+                        "AUTH_SESSION_EXPIRED",
+                        "AUTH_UNAUTHORIZED",
+                        "HTTP_401",
+                        "HTTP_403",
+                    )
+                    if (isRejectedCode) {
+                        handleExpiredSessionCleanup()
+                    }
                 }
             }
             val savedDark = secureStorage.get(SecureStorage.KEY_DARK_THEME)
@@ -682,40 +972,17 @@ public class RosaFiestaViewModel(
             if (savedTables != null) {
                 _sketchTableCount.value = savedTables.coerceIn(2, 12)
             }
-            val savedPush = secureStorage.get("rf_pref_push")
-            if (savedPush != null) {
-                _pushNotificationsEnabled.value = savedPush == "true"
+            restoreBooleanPrefIfUntouched("rf_pref_push") { enabled -> _pushNotificationsEnabled.value = enabled }
+            restoreBooleanPrefIfUntouched("rf_pref_whatsapp") { enabled -> _whatsappAlertsEnabled.value = enabled }
+            restoreBooleanPrefIfUntouched("rf_pref_email_receipts") { enabled -> _emailReceiptsEnabled.value = enabled }
+            restoreBooleanPrefIfUntouched("rf_pref_biometric_lock") { enabled -> _biometricLockEnabled.value = enabled }
+            restoreBooleanPrefIfUntouched("rf_pref_auto_sync_wifi") { enabled -> _autoSyncWifiOnly.value = enabled }
+            val hasSession = hasValidAuthenticatedSession()
+            val shouldLock = if (_biometricLockEnabled.value) hasSession else false
+            if (shouldLock) {
+                _isAppLocked.value = true
             }
-            val savedWhatsapp = secureStorage.get("rf_pref_whatsapp")
-            if (savedWhatsapp != null) {
-                _whatsappAlertsEnabled.value = savedWhatsapp == "true"
-            }
-            val savedEmailReceipts = secureStorage.get("rf_pref_email_receipts")
-            if (savedEmailReceipts != null) {
-                _emailReceiptsEnabled.value = savedEmailReceipts == "true"
-            }
-            val savedBiometricLock = secureStorage.get("rf_pref_biometric_lock")
-            if (savedBiometricLock != null) {
-                _biometricLockEnabled.value = savedBiometricLock == "true"
-            }
-            val savedAutoSyncWifi = secureStorage.get("rf_pref_auto_sync_wifi")
-            if (savedAutoSyncWifi != null) {
-                _autoSyncWifiOnly.value = savedAutoSyncWifi == "true"
-            }
-            val savedAudioEnabled = secureStorage.get(SecureStorage.KEY_AUDIO_ENABLED)
-            val savedAudioVolume = secureStorage.get(SecureStorage.KEY_AUDIO_VOLUME)?.toFloatOrNull()
-            val savedInteractionAudio = secureStorage.get(SecureStorage.KEY_AUDIO_INTERACTION)
-            val savedRosaAudio = secureStorage.get(SecureStorage.KEY_AUDIO_ROSA)
-            val savedAlertsAudio = secureStorage.get(SecureStorage.KEY_AUDIO_ALERTS)
-            val currentAudio = _audioConfig.value
-            val restoredAudio = currentAudio.copy(
-                soundEffectsEnabled = if (savedAudioEnabled != null) savedAudioEnabled == "true" else currentAudio.soundEffectsEnabled,
-                masterVolume = savedAudioVolume?.coerceIn(0f, 1f) ?: currentAudio.masterVolume,
-                interactionSoundsEnabled = if (savedInteractionAudio != null) savedInteractionAudio == "true" else currentAudio.interactionSoundsEnabled,
-                rosaAssistantSoundsEnabled = if (savedRosaAudio != null) savedRosaAudio == "true" else currentAudio.rosaAssistantSoundsEnabled,
-                paymentAlertSoundsEnabled = if (savedAlertsAudio != null) savedAlertsAudio == "true" else currentAudio.paymentAlertSoundsEnabled,
-            )
-            applyAudioConfig(restoredAudio, persist = false)
+            restoreAudioConfigIfUntouched()
             val savedAddress = secureStorage.get("rf_pref_zone")
             if (!savedAddress.isNullOrBlank()) {
                 _profileZone.value = savedAddress
@@ -779,10 +1046,277 @@ public class RosaFiestaViewModel(
         }
     }
 
+    private suspend fun restorePersistedDraftAndEventState() {
+        val isCartMutated = SecureStorage.KEY_DRAFT_QUANTITIES in mutatedPreferenceKeys
+        if (!isCartMutated) {
+            val savedDraftRaw = secureStorage.get(SecureStorage.KEY_DRAFT_QUANTITIES).orEmpty()
+            val parsedCart = parseDraftQuantitiesFromStorage(savedDraftRaw)
+            if (parsedCart.isNotEmpty()) {
+                _draftQuantities.value = parsedCart
+            }
+            val savedDiscount = secureStorage.get(SecureStorage.KEY_DRAFT_DISCOUNT)?.toIntOrNull()
+            if (savedDiscount != null) {
+                _draftDiscountDop.value = savedDiscount.coerceAtLeast(0)
+            }
+        }
+        val isWizardMutated = SecureStorage.KEY_WIZARD_EVENT_DRAFT in mutatedPreferenceKeys
+        if (!isWizardMutated) {
+            val savedWizardRaw = secureStorage.get(SecureStorage.KEY_WIZARD_EVENT_DRAFT).orEmpty()
+            applyWizardDraftFromStorage(savedWizardRaw)
+        }
+        val isScheduleMutated = SecureStorage.KEY_WIZARD_SCHEDULE in mutatedPreferenceKeys
+        if (!isScheduleMutated) {
+            val savedScheduleRaw = secureStorage.get(SecureStorage.KEY_WIZARD_SCHEDULE).orEmpty()
+            val parsedSchedule = parseWizardScheduleFromStorage(savedScheduleRaw)
+            if (parsedSchedule.isNotEmpty()) {
+                _wizardScheduleItems.value = parsedSchedule
+            }
+        }
+        val isGuestsMutated = SecureStorage.KEY_EVENT_GUESTS in mutatedPreferenceKeys
+        if (!isGuestsMutated) {
+            val savedGuestsRaw = secureStorage.get(SecureStorage.KEY_EVENT_GUESTS).orEmpty()
+            val parsedGuests = parseWizardGuestsFromStorage(savedGuestsRaw)
+            if (parsedGuests.isNotEmpty()) {
+                _eventGuestsList.value = parsedGuests
+            }
+        }
+        val isTasksMutated = SecureStorage.KEY_EVENT_TASKS in mutatedPreferenceKeys
+        if (!isTasksMutated) {
+            val savedTasksRaw = secureStorage.get(SecureStorage.KEY_EVENT_TASKS).orEmpty()
+            val parsedTasksMap = parseTasksByEventFromStorage(savedTasksRaw)
+            tasksByEventId.clear()
+            tasksByEventId.putAll(parsedTasksMap)
+        }
+        val isSelectionMutated = SecureStorage.KEY_SELECTED_EVENT_ID in mutatedPreferenceKeys
+        if (!isSelectionMutated) {
+            val savedEventId = secureStorage.get(SecureStorage.KEY_SELECTED_EVENT_ID).orEmpty().trim()
+            if (savedEventId.isNotEmpty()) {
+                val existsInEvents = events.value.any { eventItem -> eventItem.id == savedEventId }
+                if (existsInEvents) {
+                    _selectedEventId.value = savedEventId
+                }
+            }
+        }
+        syncTasksForSelectedEvent()
+    }
+
+    private fun persistDraftCartToStorage() {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_DRAFT_QUANTITIES
+        securityScope.launch {
+            draftStorageMutex.withLock {
+                val snapshot = _draftQuantities.value
+                val discountSnapshot = _draftDiscountDop.value
+                val serializedCart = snapshot.entries
+                    .filter { entry -> entry.value > 0 }
+                    .joinToString("||") { entry -> "${entry.key.replace("::", "")}::${entry.value}" }
+                if (serializedCart.isEmpty()) {
+                    secureStorage.remove(SecureStorage.KEY_DRAFT_QUANTITIES)
+                } else {
+                    secureStorage.put(SecureStorage.KEY_DRAFT_QUANTITIES, serializedCart)
+                }
+                secureStorage.put(SecureStorage.KEY_DRAFT_DISCOUNT, discountSnapshot.toString())
+            }
+        }
+    }
+
+    private fun parseDraftQuantitiesFromStorage(serialized: String): Map<String, Int> {
+        if (serialized.isBlank()) return emptyMap()
+        val restored = mutableMapOf<String, Int>()
+        serialized.split("||").forEach { entry ->
+            val parts = entry.split("::")
+            if (parts.size == 2) {
+                val itemId = parts[0].trim()
+                val quantity = parts[1].toIntOrNull() ?: 0
+                val isValidEntry = if (itemId.isNotEmpty()) quantity > 0 else false
+                if (isValidEntry) {
+                    restored[itemId] = quantity
+                }
+            }
+        }
+        return restored
+    }
+
+    private fun persistWizardDraftToStorage() {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_WIZARD_EVENT_DRAFT
+        securityScope.launch {
+            draftStorageMutex.withLock {
+                val encodedFields = listOf(
+                    _eventTypeInput.value,
+                    _rosaEventType.value,
+                    _clientEventTitleInput.value,
+                    _eventDateInput.value,
+                    _eventVenueInput.value,
+                    _eventGuestsInput.value,
+                    _rosaBudgetDop.value.toString(),
+                    _eventNotesInput.value,
+                ).joinToString("||") { rawField ->
+                    rawField.replace("||", " ").replace("::", " ")
+                }
+                secureStorage.put(SecureStorage.KEY_WIZARD_EVENT_DRAFT, encodedFields)
+            }
+        }
+    }
+
+    private fun applyWizardDraftFromStorage(serialized: String) {
+        if (serialized.isBlank()) return
+        val parts = serialized.split("||")
+        if (parts.size < 8) return
+        if (parts[0].isNotBlank()) _eventTypeInput.value = parts[0]
+        if (parts[1].isNotBlank()) _rosaEventType.value = parts[1]
+        if (parts[2].isNotBlank()) _clientEventTitleInput.value = parts[2]
+        if (parts[3].isNotBlank()) _eventDateInput.value = parts[3]
+        if (parts[4].isNotBlank()) _eventVenueInput.value = parts[4]
+        if (parts[5].isNotBlank()) _eventGuestsInput.value = parts[5]
+        val restoredBudget = parts[6].toIntOrNull()
+        if (restoredBudget != null) {
+            if (restoredBudget > 0) _rosaBudgetDop.value = restoredBudget
+        }
+        if (parts[7].isNotBlank()) _eventNotesInput.value = parts[7]
+    }
+
+    private fun persistWizardScheduleToStorage() {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_WIZARD_SCHEDULE
+        securityScope.launch {
+            draftStorageMutex.withLock {
+                val serialized = _wizardScheduleItems.value.joinToString("||") { block ->
+                    val safeTitle = block.title.replace("::", " ").replace("||", " ")
+                    "${block.id}::${block.startTime}::${block.endTime}::$safeTitle"
+                }
+                if (serialized.isEmpty()) {
+                    secureStorage.remove(SecureStorage.KEY_WIZARD_SCHEDULE)
+                } else {
+                    secureStorage.put(SecureStorage.KEY_WIZARD_SCHEDULE, serialized)
+                }
+            }
+        }
+    }
+
+    private fun parseWizardScheduleFromStorage(serialized: String): List<EventTimelineItemUiModel> {
+        if (serialized.isBlank()) return emptyList()
+        return serialized.split("||").mapNotNull { entry ->
+            val parts = entry.split("::")
+            if (parts.size >= 4) {
+                EventTimelineItemUiModel(
+                    id = parts[0],
+                    startTime = parts[1],
+                    endTime = parts[2],
+                    title = parts[3],
+                    subtitle = "Definido por ti en la solicitud",
+                    dotColorHex = 0xFF865DEC,
+                    ringColorHex = 0xFFEFE8FD,
+                )
+            } else {
+                null
+            }
+        }
+    }
+
+    private fun persistWizardGuestsToStorage() {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_EVENT_GUESTS
+        val serialized = _eventGuestsList.value.joinToString("||") { guest ->
+            val safeName = guest.name.replace("::", " ").replace("||", " ")
+            val safeDetails = guest.details.replace("::", " ").replace("||", " ")
+            "${guest.id}::$safeName::$safeDetails::${guest.status}"
+        }
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_EVENT_GUESTS, serialized)
+        }
+    }
+
+    private fun parseWizardGuestsFromStorage(serialized: String): List<EventGuestUiModel> {
+        if (serialized.isBlank()) return emptyList()
+        return serialized.split("||").mapNotNull { entry ->
+            val parts = entry.split("::")
+            if (parts.size >= 4) {
+                EventGuestUiModel(
+                    id = parts[0],
+                    name = parts[1],
+                    details = parts[2],
+                    status = parts[3],
+                )
+            } else {
+                null
+            }
+        }
+    }
+
+    private fun persistEventTasksToStorage() {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_EVENT_TASKS
+        val serialized = tasksByEventId.entries.joinToString("@@") { eventEntry ->
+            val encodedTasks = eventEntry.value.joinToString("||") { taskItem ->
+                val safeTitle = taskItem.title.replace("::", " ").replace("||", " ").replace("@@", " ")
+                val safeBadge = taskItem.badgeText.replace("::", " ").replace("||", " ").replace("@@", " ")
+                "${taskItem.id}::$safeTitle::$safeBadge::${taskItem.isUrgent}::${taskItem.completed}"
+            }
+            "${eventEntry.key}==$encodedTasks"
+        }
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_EVENT_TASKS, serialized)
+        }
+    }
+
+    private fun parseTasksByEventFromStorage(serialized: String): Map<String, List<EventTaskUiModel>> {
+        if (serialized.isBlank()) return emptyMap()
+        val parsed = mutableMapOf<String, List<EventTaskUiModel>>()
+        serialized.split("@@").forEach { eventBlock ->
+            val splitEvent = eventBlock.split("==", limit = 2)
+            if (splitEvent.size == 2) {
+                val eventId = splitEvent[0].trim()
+                val rawTasks = splitEvent[1]
+                if (eventId.isNotEmpty()) {
+                    val items = if (rawTasks.isBlank()) {
+                        emptyList()
+                    } else {
+                        rawTasks.split("||").mapNotNull { taskEntry ->
+                            val fields = taskEntry.split("::")
+                            if (fields.size >= 5) {
+                                EventTaskUiModel(
+                                    id = fields[0],
+                                    title = fields[1],
+                                    badgeText = fields[2],
+                                    isUrgent = fields[3] == "true",
+                                    completed = fields[4] == "true",
+                                )
+                            } else {
+                                null
+                            }
+                        }
+                    }
+                    parsed[eventId] = items
+                }
+            }
+        }
+        return parsed
+    }
+
+    private fun syncTasksForSelectedEvent() {
+        val activeId = activeClientEventOrNull()?.id.orEmpty().ifBlank { _selectedEventId.value }
+        _eventTasksList.value = tasksByEventId[activeId].orEmpty()
+    }
+
+    public fun isWifiSyncPermitted(): Boolean {
+        val wifiOnly = _autoSyncWifiOnly.value
+        if (!wifiOnly) return true
+        return platformActions.isOnWifiNetwork()
+    }
+
+    public fun isOnWifiConnection(): Boolean = platformActions.isOnWifiNetwork()
+
     public fun syncWithServer(onComplete: (Boolean) -> Unit = {}) {
+        if (!isWifiSyncPermitted()) {
+            val notice = "Sincronización pausada: conéctate a una red Wi‑Fi o desactiva 'Sincronizar solo con Wi‑Fi'."
+            _wifiSyncBlockedNotice.value = notice
+            _formFeedback.value = notice
+            onComplete(false)
+            return
+        }
+        _wifiSyncBlockedNotice.value = null
         securityScope.launch {
             val synced = repository.syncFromBackendAsync()
             if (synced) {
+                repository.currentAuthenticatedUser.value?.let { syncedAccount ->
+                    applyPreferencesFromAccount(syncedAccount)
+                }
                 _formFeedback.value = "Datos sincronizados con el servidor."
                 _formError.value = null
             } else {
@@ -858,7 +1392,41 @@ public class RosaFiestaViewModel(
         "${msgItem.id}::${msgItem.senderName}::$safeBody::${msgItem.timeLabel}::${msgItem.isFromClient}::$safeAttachment"
     }
 
-    private fun applyProfileFieldsFromAccount(account: RegisteredUserAccount) {
+    private fun applyPreferencesFromAccount(
+        account: RegisteredUserAccount,
+        persistToStorage: Boolean = true,
+    ) {
+        val prefs = account.preferences
+        if ("rf_pref_push" !in mutatedPreferenceKeys) {
+            _pushNotificationsEnabled.value = prefs.pushNotificationsEnabled
+        }
+        if ("rf_pref_whatsapp" !in mutatedPreferenceKeys) {
+            _whatsappAlertsEnabled.value = prefs.whatsappAlertsEnabled
+        }
+        if ("rf_pref_email_receipts" !in mutatedPreferenceKeys) {
+            _emailReceiptsEnabled.value = prefs.emailReceiptsEnabled
+        }
+        if ("rf_pref_biometric_lock" !in mutatedPreferenceKeys) {
+            _biometricLockEnabled.value = prefs.biometricLockEnabled
+        }
+        if ("rf_pref_auto_sync_wifi" !in mutatedPreferenceKeys) {
+            _autoSyncWifiOnly.value = prefs.autoSyncWifiOnly
+        }
+        if (persistToStorage) {
+            securityScope.launch {
+                secureStorage.put("rf_pref_push", prefs.pushNotificationsEnabled.toString())
+                secureStorage.put("rf_pref_whatsapp", prefs.whatsappAlertsEnabled.toString())
+                secureStorage.put("rf_pref_email_receipts", prefs.emailReceiptsEnabled.toString())
+                secureStorage.put("rf_pref_biometric_lock", prefs.biometricLockEnabled.toString())
+                secureStorage.put("rf_pref_auto_sync_wifi", prefs.autoSyncWifiOnly.toString())
+            }
+        }
+    }
+
+    private fun applyProfileFieldsFromAccount(
+        account: RegisteredUserAccount,
+        persistPreferencesToStorage: Boolean = true,
+    ) {
         _isExplicitGuestSession.value = false
         _profileName.value = account.fullName
         _profileEmail.value = account.email
@@ -869,11 +1437,18 @@ public class RosaFiestaViewModel(
         if (account.phone.isNotEmpty()) {
             _profilePhone.value = account.phone
         }
+        applyPreferencesFromAccount(
+            account = account,
+            persistToStorage = persistPreferencesToStorage,
+        )
     }
 
     public fun enterGuestMode() {
         soundPlayer.playTap()
         _isExplicitGuestSession.value = true
+        _isAppLocked.value = false
+        _appLockError.value = null
+        _pendingCardCheckoutSession.value = null
         repository.clearSession()
         _profileName.value = "Invitado"
         _profileEmail.value = ""
@@ -965,6 +1540,7 @@ public class RosaFiestaViewModel(
         val articleCat = article.category.trim().lowercase()
         val articleName = article.name.trim().lowercase()
         if (articleCat.equals(normalizedSelected, ignoreCase = true)) return true
+        if (articleCat.contains(normalizedSelected)) return true
 
         return when {
             normalizedSelected.contains("silla") -> articleName.contains("silla")
@@ -1046,7 +1622,12 @@ public class RosaFiestaViewModel(
     }
 
     public fun selectEvent(eventId: String) {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_SELECTED_EVENT_ID
         _selectedEventId.value = eventId
+        _eventTasksList.value = tasksByEventId[eventId].orEmpty()
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_SELECTED_EVENT_ID, eventId)
+        }
     }
 
     public fun selectArticle(articleId: String) {
@@ -1139,20 +1720,40 @@ public class RosaFiestaViewModel(
                 _newArticleCategory.value = found.category
                 _newArticlePrice.value = found.pricePerDayDop.toString()
                 _newArticleStock.value = found.totalStock.toString()
+                _newArticlePhotoUrl.value = found.photoUrl
+                if (found.photoUrl.isNotBlank()) {
+                    ensureMediaLoaded(found.photoUrl)
+                }
             }
         } else {
             val nextNumber = articles.value.size + 1
             val paddedCode = nextNumber.toString().padStart(3, '0')
             _newArticleCode.value = "RF-$paddedCode"
             _newArticleName.value = ""
-            _newArticleCategory.value = "Mobiliario"
+            _newArticleCategory.value = catalogCategories.value.firstOrNull()?.name.orEmpty()
             _newArticlePrice.value = ""
             _newArticleStock.value = ""
+            _newArticlePhotoUrl.value = ""
         }
     }
 
     public fun startEditingPackage(packageId: String?) {
         _editingPackageId.value = packageId
+    }
+
+    /**
+     * Clears manual event creation draft fields when starting a brand-new event from scratch.
+     */
+    public fun startNewManualEvent() {
+        _newEventTitle.value = ""
+        _newEventClient.value = ""
+        _newEventDate.value = ""
+        _newEventVenue.value = ""
+        _newEventGuests.value = ""
+        _draftQuantities.value = emptyMap()
+        _draftDiscountDop.value = 0
+        _formError.value = null
+        persistDraftCartToStorage()
     }
 
     public fun setVoiceReturnScreenCode(screenCode: String) {
@@ -1170,9 +1771,14 @@ public class RosaFiestaViewModel(
 
     public fun setDraftDiscountDop(discountDop: Int) {
         _draftDiscountDop.value = discountDop.coerceAtLeast(0)
+        persistDraftCartToStorage()
     }
 
-    public fun adjustDraftQuantity(articleId: String, delta: Int) {
+    public fun adjustDraftQuantity(
+        articleId: String,
+        delta: Int,
+        showPreview: Boolean = true,
+    ) {
         soundPlayer.playCartAdd()
         val previous = _draftQuantities.value[articleId] ?: 0
         val next = (previous + delta).coerceAtLeast(0)
@@ -1181,6 +1787,11 @@ public class RosaFiestaViewModel(
         }
         _draftQuantities.update { current ->
             current + (articleId to next)
+        }
+        persistDraftCartToStorage()
+        val shouldShowPreview = if (delta > 0) showPreview else false
+        if (shouldShowPreview) {
+            showSavedPreviewForItemId(articleId, next)
         }
     }
 
@@ -1193,14 +1804,19 @@ public class RosaFiestaViewModel(
         _draftQuantities.update { current ->
             current + (articleId to clamped)
         }
+        persistDraftCartToStorage()
     }
 
     public fun clearDraftCart() {
         _draftQuantities.value = emptyMap()
         _draftDiscountDop.value = 0
+        persistDraftCartToStorage()
     }
 
-    public fun applyPackageToDraftCart(packageItem: EventPackage) {
+    public fun applyPackageToDraftCart(
+        packageItem: EventPackage,
+        showPreview: Boolean = true,
+    ) {
         soundPlayer.playCartAdd()
         val resolvedMap = mutableMapOf<String, Int>()
         for (lineDescription in packageItem.includedItems) {
@@ -1226,6 +1842,10 @@ public class RosaFiestaViewModel(
         }
         _draftDiscountDop.value = packageItem.savingsDop.coerceAtLeast(0)
         _selectedPackageId.value = packageItem.id
+        persistDraftCartToStorage()
+        if (showPreview) {
+            showSavedPackagePreview(packageItem)
+        }
     }
 
     public fun undoLastDraftAddition(): Boolean {
@@ -1235,6 +1855,7 @@ public class RosaFiestaViewModel(
         _draftQuantities.update { current ->
             current + (lastAdded.first to revertedQty)
         }
+        persistDraftCartToStorage()
         _lastAddedDraftItem.value = null
         _formFeedback.value = "Se deshizo el último artículo agregado al carrito."
         return true
@@ -1266,17 +1887,6 @@ public class RosaFiestaViewModel(
                     unitPriceDop = balloonItem.priceDop,
                     photo = balloonItem.photo,
                 )
-                continue
-            }
-            val extraWizardItem = CanonicalSampleData.rosaWizardExtras.firstOrNull { extra -> extra.id == itemId }
-            if (extraWizardItem != null) {
-                result += EventLineItem(
-                    articleCode = extraWizardItem.code,
-                    name = extraWizardItem.name,
-                    quantity = qty,
-                    unitPriceDop = extraWizardItem.pricePerDayDop,
-                    photo = extraWizardItem.photo,
-                )
             }
         }
         return result
@@ -1295,7 +1905,7 @@ public class RosaFiestaViewModel(
             .ifBlank { _eventTypeInput.value.trim() }
             .ifBlank { _rosaEventType.value.trim() }
             .ifBlank { "Evento Rosa Fiesta" }
-        val resolvedGuests = (_eventGuestsInput.value.trim().toIntOrNull() ?: _rosaGuestsCount.value).coerceAtLeast(1)
+        val resolvedGuests = (_eventGuestsInput.value.trim().toIntOrNull() ?: 0).coerceAtLeast(0)
         val created = repository.createQuote(
             eventTitle = resolvedTitle,
             clientName = clientLabel,
@@ -1307,6 +1917,7 @@ public class RosaFiestaViewModel(
             deliveryFeeDop = deliveryFee,
             discountDop = discount,
             eventId = _selectedEventId.value,
+            notes = _eventNotesInput.value.trim(),
         )
         _selectedQuoteId.value = created.id
         return created
@@ -1331,7 +1942,7 @@ public class RosaFiestaViewModel(
         palette: String = _rosaPalette.value,
     ) {
         soundPlayer.playRosaReply()
-        _rosaEventType.value = eventType.trim().ifEmpty { "Boda Real Rosa & Dorado" }
+        _rosaEventType.value = eventType.trim().ifEmpty { "Evento" }
         _rosaGuestsCount.value = guests.coerceIn(10, 500)
         _rosaBudgetDop.value = budgetDop.coerceAtLeast(0)
         _rosaPalette.value = palette.trim().ifEmpty { "Rosa & Dorado" }
@@ -1353,6 +1964,12 @@ public class RosaFiestaViewModel(
                 excludedCategories = _rosaOmittedCategories.value.toList(),
             )
             soundPlayer.playRosaReply()
+            if (reply.intent == "ERROR") {
+                _formError.value = reply.reply
+                soundPlayer.playAlertError()
+            } else {
+                _formError.value = null
+            }
             _rosaProposalMessage.value = reply.reply
             if (reply.suggestedLines.isNotEmpty()) {
                 val updatedMap = mutableMapOf<String, Int>()
@@ -1375,49 +1992,134 @@ public class RosaFiestaViewModel(
         _rosaProposalMessage.value = message.trim()
     }
 
-    public fun startVoiceInput(origin: VoiceInputOrigin, initialText: String = "") {
-        soundPlayer.playTap()
-        _voiceInputOrigin.value = origin
-        val cleanInitial = initialText.trim()
-        if (cleanInitial.isNotEmpty()) {
-            _voiceTranscript.value = cleanInitial
-        } else if (origin == VoiceInputOrigin.SEARCH) {
-            _voiceTranscript.value = _searchQuery.value.trim()
-        } else {
-            _voiceTranscript.value = ""
-        }
-        voiceInputMonitor.startListening { recognizedText ->
-            val cleanRecognized = recognizedText.trim()
-            if (cleanRecognized.isNotEmpty()) {
-                _voiceTranscript.value = cleanRecognized
-                if (_voiceInputOrigin.value == VoiceInputOrigin.SEARCH) {
-                    _searchQuery.value = cleanRecognized
-                }
+    private fun observeCapturedVoiceAudio() {
+        securityScope.launch {
+            voiceInputMonitor.capturedWavBytes.collect { capturedBytes ->
+                triggerRemoteTranscriptionIfNeeded(capturedBytes)
             }
         }
     }
 
-    @OptIn(ExperimentalEncodingApi::class)
+    public fun dismissVoiceError() {
+        remoteVoiceErrorState.value = null
+    }
+
+    public fun startVoiceInput(origin: VoiceInputOrigin, initialText: String = "") {
+        soundPlayer.playTap()
+        activeTranscriptionJob?.cancel()
+        activeTranscriptionJob = null
+        _isRemoteVoiceTranscribing.value = false
+        remoteVoiceErrorState.value = null
+        voiceCaptureSessionId += 1L
+        hasNativeTranscriptForSession = false
+        _voiceInputOrigin.value = origin
+        val cleanInitial = initialText.trim()
+        when (origin) {
+            VoiceInputOrigin.NOTES_INLINE -> {
+                inlineNotesBaseText = cleanInitial
+                _voiceTranscript.value = ""
+            }
+
+            VoiceInputOrigin.SEARCH -> {
+                _voiceTranscript.value = cleanInitial.ifEmpty { _searchQuery.value.trim() }
+            }
+
+            VoiceInputOrigin.ROSA_WIZARD, VoiceInputOrigin.NONE -> {
+                _voiceTranscript.value = cleanInitial
+            }
+        }
+        voiceInputMonitor.startListening { recognizedText ->
+            val cleanRecognized = recognizedText.trim()
+            if (cleanRecognized.isNotEmpty()) {
+                hasNativeTranscriptForSession = true
+                remoteVoiceErrorState.value = null
+                applyRecognizedVoiceTranscript(cleanRecognized)
+            }
+        }
+    }
+
+    private fun applyRecognizedVoiceTranscript(cleanTranscript: String) {
+        _voiceTranscript.value = cleanTranscript
+        when (_voiceInputOrigin.value) {
+            VoiceInputOrigin.SEARCH -> {
+                _searchQuery.value = cleanTranscript
+            }
+
+            VoiceInputOrigin.NOTES_INLINE -> {
+                val combinedNotes = if (inlineNotesBaseText.isBlank()) {
+                    cleanTranscript
+                } else {
+                    "$inlineNotesBaseText\n$cleanTranscript"
+                }
+                _eventNotesInput.value = combinedNotes.take(InputValidator.MAX_NOTES_LENGTH)
+            }
+
+            VoiceInputOrigin.ROSA_WIZARD, VoiceInputOrigin.NONE -> Unit
+        }
+    }
+
     public fun stopVoiceInput() {
         soundPlayer.playTap()
         voiceInputMonitor.stopListening()
-        val wavBytes = voiceInputMonitor.capturedWavBytes.value
-        val hasCapturedBytes = wavBytes != null && wavBytes.size > 44
-        val needsRemoteTranscription = if (hasCapturedBytes) _voiceTranscript.value.isBlank() else false
-        if (needsRemoteTranscription) {
-            val nonNullBytes = wavBytes ?: return
-            securityScope.launch {
-                val wavBase64 = Base64.encode(nonNullBytes)
-                val outcome = repository.transcribeVoicePrompt(wavBase64, locale = "es-DO")
-                val cleanTranscript = outcome.transcript.trim()
-                if (cleanTranscript.isNotEmpty()) {
-                    _voiceTranscript.value = cleanTranscript
-                    if (_voiceInputOrigin.value == VoiceInputOrigin.SEARCH) {
-                        _searchQuery.value = cleanTranscript
-                    }
-                }
+        triggerRemoteTranscriptionIfNeeded(voiceInputMonitor.capturedWavBytes.value)
+    }
+
+    private fun shouldTranscribeCapturedAudio(wavBytes: ByteArray?): Boolean {
+        val wavSize = wavBytes?.size ?: 0
+        val hasAudioPayload = wavSize > WAV_HEADER_MIN_BYTES
+        val hasActiveOrigin = _voiceInputOrigin.value != VoiceInputOrigin.NONE
+        val awaitingRemoteStt = !hasNativeTranscriptForSession
+        val sessionNotTranscribedYet = transcribedSessionId != voiceCaptureSessionId
+        return listOf(hasAudioPayload, hasActiveOrigin, awaitingRemoteStt, sessionNotTranscribedYet).all { ready -> ready }
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private fun triggerRemoteTranscriptionIfNeeded(wavBytes: ByteArray?) {
+        if (!shouldTranscribeCapturedAudio(wavBytes)) return
+        val nonNullBytes = wavBytes ?: return
+        val sessionId = voiceCaptureSessionId
+        transcribedSessionId = sessionId
+        _isRemoteVoiceTranscribing.value = true
+        remoteVoiceErrorState.value = null
+        activeTranscriptionJob?.cancel()
+        activeTranscriptionJob = securityScope.launch {
+            transcribeCapturedVoiceBytes(nonNullBytes, sessionId)
+        }
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    private suspend fun transcribeCapturedVoiceBytes(
+        wavBytes: ByteArray,
+        sessionId: Long,
+    ) {
+        try {
+            val wavBase64 = Base64.encode(wavBytes)
+            val outcome = repository.transcribeVoicePrompt(wavBase64, locale = "es-DO")
+            if (sessionId != voiceCaptureSessionId) return
+            val cleanTranscript = outcome.transcript.trim()
+            if (cleanTranscript.isNotEmpty()) {
+                remoteVoiceErrorState.value = null
+                _formError.value = null
+                applyRecognizedVoiceTranscript(cleanTranscript)
+                return
+            }
+            val errorDetail = extractVoiceTranscriptionError(outcome.provider)
+            remoteVoiceErrorState.value = errorDetail
+            _formError.value = errorDetail
+            soundPlayer.playAlertError()
+        } finally {
+            if (sessionId == voiceCaptureSessionId) {
+                _isRemoteVoiceTranscribing.value = false
             }
         }
+    }
+
+    private fun extractVoiceTranscriptionError(providerPayload: String): String {
+        if (providerPayload.contains(":")) {
+            val detail = providerPayload.substringAfter(":").trim()
+            if (detail.isNotEmpty()) return detail
+        }
+        return "No se reconoció voz clara en la grabación. Intenta hablar más cerca del micrófono."
     }
 
     public fun setVoiceTranscript(transcript: String) {
@@ -1435,6 +2137,17 @@ public class RosaFiestaViewModel(
             stopVoiceInput()
         } else {
             startVoiceInput(VoiceInputOrigin.SEARCH, _searchQuery.value)
+        }
+    }
+
+    public fun toggleInlineVoiceNotes(currentNotes: String) {
+        val currentlyListening = isVoiceListening.value
+        val isNotesOrigin = _voiceInputOrigin.value == VoiceInputOrigin.NOTES_INLINE
+        val shouldStop = if (currentlyListening) isNotesOrigin else false
+        if (shouldStop) {
+            stopVoiceInput()
+        } else {
+            startVoiceInput(VoiceInputOrigin.NOTES_INLINE, currentNotes)
         }
     }
 
@@ -1465,14 +2178,17 @@ public class RosaFiestaViewModel(
 
     public fun setEventTypeInput(value: String) {
         _eventTypeInput.value = value
+        persistWizardDraftToStorage()
     }
 
     public fun setClientEventTitleInput(value: String) {
         _clientEventTitleInput.value = value
+        persistWizardDraftToStorage()
     }
 
     public fun setRosaBudgetDop(value: Int) {
         _rosaBudgetDop.value = value.coerceAtLeast(0)
+        persistWizardDraftToStorage()
     }
 
     public fun setGuestsWizardMode(enabled: Boolean) {
@@ -1502,6 +2218,7 @@ public class RosaFiestaViewModel(
             ringColorHex = 0xFFEFE8FD,
         )
         _wizardScheduleItems.update { currentList -> currentList + item }
+        persistWizardScheduleToStorage()
     }
 
     public fun removeWizardScheduleItem(itemId: String) {
@@ -1509,6 +2226,7 @@ public class RosaFiestaViewModel(
         _wizardScheduleItems.update { currentList ->
             currentList.filterNot { item -> item.id == itemId }
         }
+        persistWizardScheduleToStorage()
     }
 
     public fun markCalendarPromptDismissed(eventId: String) {
@@ -1519,18 +2237,22 @@ public class RosaFiestaViewModel(
 
     public fun setEventDateInput(value: String) {
         _eventDateInput.value = value
+        persistWizardDraftToStorage()
     }
 
     public fun setEventVenueInput(value: String) {
         _eventVenueInput.value = value
+        persistWizardDraftToStorage()
     }
 
     public fun setEventGuestsInput(value: String) {
         _eventGuestsInput.value = value
+        persistWizardDraftToStorage()
     }
 
     public fun setEventNotesInput(value: String) {
         _eventNotesInput.value = value
+        persistWizardDraftToStorage()
     }
 
     public fun setNewEventTitle(value: String) {
@@ -1702,44 +2424,162 @@ public class RosaFiestaViewModel(
         _cancellationDaysInput.value = InputValidator.filterDigitsOnly(value, 3)
     }
 
+    private fun persistAndSyncPreference(
+        storageKey: String,
+        value: Boolean,
+        pushNotificationsEnabled: Boolean? = null,
+        whatsappAlertsEnabled: Boolean? = null,
+        emailReceiptsEnabled: Boolean? = null,
+        biometricLockEnabled: Boolean? = null,
+        autoSyncWifiOnly: Boolean? = null,
+    ) {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + storageKey
+        securityScope.launch {
+            secureStorage.put(storageKey, value.toString())
+            if (hasValidAuthenticatedSession()) {
+                val syncedResult = repository.updateUserPreferences(
+                    pushNotificationsEnabled = pushNotificationsEnabled,
+                    whatsappAlertsEnabled = whatsappAlertsEnabled,
+                    emailReceiptsEnabled = emailReceiptsEnabled,
+                    biometricLockEnabled = biometricLockEnabled,
+                    autoSyncWifiOnly = autoSyncWifiOnly,
+                )
+                syncedResult.onSuccess { updatedAccount ->
+                    secureStorage.put("rf_pref_push", updatedAccount.preferences.pushNotificationsEnabled.toString())
+                    secureStorage.put("rf_pref_whatsapp", updatedAccount.preferences.whatsappAlertsEnabled.toString())
+                    secureStorage.put("rf_pref_email_receipts", updatedAccount.preferences.emailReceiptsEnabled.toString())
+                    secureStorage.put("rf_pref_biometric_lock", updatedAccount.preferences.biometricLockEnabled.toString())
+                    secureStorage.put("rf_pref_auto_sync_wifi", updatedAccount.preferences.autoSyncWifiOnly.toString())
+                }
+            }
+        }
+    }
+
     public fun togglePushNotifications() {
         val next = !_pushNotificationsEnabled.value
         _pushNotificationsEnabled.value = next
-        securityScope.launch {
-            secureStorage.put("rf_pref_push", next.toString())
-        }
+        persistAndSyncPreference(
+            storageKey = "rf_pref_push",
+            value = next,
+            pushNotificationsEnabled = next,
+        )
+        syncPushTokenRegistration(next)
     }
 
     public fun toggleWhatsappAlerts() {
         val next = !_whatsappAlertsEnabled.value
         _whatsappAlertsEnabled.value = next
-        securityScope.launch {
-            secureStorage.put("rf_pref_whatsapp", next.toString())
-        }
+        persistAndSyncPreference(
+            storageKey = "rf_pref_whatsapp",
+            value = next,
+            whatsappAlertsEnabled = next,
+        )
     }
 
     public fun toggleEmailReceipts() {
         val next = !_emailReceiptsEnabled.value
         _emailReceiptsEnabled.value = next
-        securityScope.launch {
-            secureStorage.put("rf_pref_email_receipts", next.toString())
-        }
+        persistAndSyncPreference(
+            storageKey = "rf_pref_email_receipts",
+            value = next,
+            emailReceiptsEnabled = next,
+        )
     }
 
     public fun toggleBiometricLock() {
         val next = !_biometricLockEnabled.value
         _biometricLockEnabled.value = next
-        securityScope.launch {
-            secureStorage.put("rf_pref_biometric_lock", next.toString())
+        if (!next) {
+            _isAppLocked.value = false
+            _appLockError.value = null
         }
+        persistAndSyncPreference(
+            storageKey = "rf_pref_biometric_lock",
+            value = next,
+            biometricLockEnabled = next,
+        )
     }
 
     public fun toggleAutoSyncWifiOnly() {
         soundPlayer.playTap()
         val next = !_autoSyncWifiOnly.value
         _autoSyncWifiOnly.value = next
+        if (!next) {
+            _wifiSyncBlockedNotice.value = null
+        }
+        persistAndSyncPreference(
+            storageKey = "rf_pref_auto_sync_wifi",
+            value = next,
+            autoSyncWifiOnly = next,
+        )
+    }
+
+    /**
+     * Engages the app lock screen when biometric protection is enabled for a signed-in account.
+     */
+    public fun lockAppIfProtected() {
+        val isProtected = _biometricLockEnabled.value
+        val isSignedIn = hasValidAuthenticatedSession()
+        val shouldLock = if (isProtected) isSignedIn else false
+        if (shouldLock) {
+            _appLockError.value = null
+            _isAppLocked.value = true
+        }
+    }
+
+    /**
+     * Requests native OS biometric / device credential verification to unlock the app session.
+     */
+    public fun unlockAppWithBiometrics(onUnlocked: () -> Unit = {}) {
+        _appLockError.value = null
+        platformActions.authenticateDeviceOwner(
+            promptTitle = "Desbloquear RosaFiesta",
+            promptSubtitle = "Confirma tu identidad para continuar",
+        ) { authenticated, errorMessage ->
+            if (authenticated) {
+                _isAppLocked.value = false
+                _appLockError.value = null
+                soundPlayer.playPaymentSuccess()
+                onUnlocked()
+            } else {
+                soundPlayer.playAlertError()
+                val readableError = if (errorMessage == "DEVICE_AUTH_UNAVAILABLE") {
+                    "La autenticación biométrica no está disponible en este dispositivo. Ingresa tu contraseña para desbloquear."
+                } else {
+                    errorMessage ?: "No se pudo verificar tu identidad. Ingresa tu contraseña para desbloquear."
+                }
+                _appLockError.value = readableError
+            }
+        }
+    }
+
+    /**
+     * Unlocks the protected app session after verifying the account password against local/backend credentials.
+     */
+    public fun unlockAppWithPassword(
+        password: String,
+        onUnlocked: () -> Unit = {},
+    ) {
+        val cleanPassword = password.trim()
+        if (cleanPassword.isEmpty()) {
+            _appLockError.value = "Ingresa tu contraseña para desbloquear."
+            soundPlayer.playAlertError()
+            return
+        }
+        _appLockError.value = null
         securityScope.launch {
-            secureStorage.put("rf_pref_auto_sync_wifi", next.toString())
+            val verifiedResult = repository.verifyAccountPassword(password)
+            val isVerified = verifiedResult.getOrDefault(false)
+            if (isVerified) {
+                _isAppLocked.value = false
+                _appLockError.value = null
+                soundPlayer.playPaymentSuccess()
+                onUnlocked()
+            } else {
+                soundPlayer.playAlertError()
+                _appLockError.value = verifiedResult.exceptionOrNull()?.message
+                    ?: "Contraseña incorrecta. Intenta nuevamente."
+            }
         }
     }
 
@@ -1752,6 +2592,7 @@ public class RosaFiestaViewModel(
      * Enables or mutes all application UI sound effects and persists the choice.
      */
     public fun setSoundEffectsEnabled(enabled: Boolean) {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_AUDIO_ENABLED
         val updated = _audioConfig.value.copy(soundEffectsEnabled = enabled)
         applyAudioConfig(updated, persist = true)
         if (enabled) {
@@ -1763,6 +2604,7 @@ public class RosaFiestaViewModel(
      * Updates the master sound effects volume (`0.0f..1.0f`) and persists it.
      */
     public fun setSoundVolume(volume: Float) {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_AUDIO_VOLUME
         val clampedVolume = volume.coerceIn(0f, 1f)
         val updated = _audioConfig.value.copy(masterVolume = clampedVolume)
         applyAudioConfig(updated, persist = true)
@@ -1772,6 +2614,7 @@ public class RosaFiestaViewModel(
      * Adjusts the master sound effects volume by [deltaPercent] steps and plays a subtle preview.
      */
     public fun stepSoundVolume(deltaPercent: Int) {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_AUDIO_VOLUME
         val currentPercent = _audioConfig.value.volumePercent()
         val updated = _audioConfig.value.withVolumePercent(currentPercent + deltaPercent)
         applyAudioConfig(updated, persist = true)
@@ -1784,6 +2627,15 @@ public class RosaFiestaViewModel(
      * Enables or disables a specific [SoundEffectCategory] and persists audio preferences.
      */
     public fun setAudioCategoryEnabled(category: SoundEffectCategory, enabled: Boolean) {
+        val storageKey = when (category) {
+            SoundEffectCategory.INTERACTION -> SecureStorage.KEY_AUDIO_INTERACTION
+            SoundEffectCategory.ROSA_ASSISTANT -> SecureStorage.KEY_AUDIO_ROSA
+            SoundEffectCategory.PAYMENTS_ALERTS -> SecureStorage.KEY_AUDIO_ALERTS
+            SoundEffectCategory.NONE -> null
+        }
+        if (storageKey != null) {
+            mutatedPreferenceKeys = mutatedPreferenceKeys + storageKey
+        }
         val current = _audioConfig.value
         val updated = when (category) {
             SoundEffectCategory.INTERACTION -> current.copy(interactionSoundsEnabled = enabled)
@@ -1822,6 +2674,13 @@ public class RosaFiestaViewModel(
      * Restores audio settings to their default enabled state and volume (`75 %`).
      */
     public fun resetAudioDefaults() {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + setOf(
+            SecureStorage.KEY_AUDIO_ENABLED,
+            SecureStorage.KEY_AUDIO_VOLUME,
+            SecureStorage.KEY_AUDIO_INTERACTION,
+            SecureStorage.KEY_AUDIO_ROSA,
+            SecureStorage.KEY_AUDIO_ALERTS,
+        )
         applyAudioConfig(AppAudioConfig.DEFAULT, persist = true)
         soundPlayer.playRosaReply()
     }
@@ -1900,6 +2759,13 @@ public class RosaFiestaViewModel(
     public fun toggleFavorite(articleId: String) {
         soundPlayer.playTap()
         repository.toggleFavorite(articleId)
+        val isAdded = favorites.value.contains(articleId)
+        val articleName = articles.value.firstOrNull { item -> item.id == articleId }?.name
+        _actionToast.value = if (isAdded) {
+            if (!articleName.isNullOrBlank()) "$articleName agregado a favoritos." else "Agregado a favoritos."
+        } else {
+            if (!articleName.isNullOrBlank()) "$articleName quitado de favoritos." else "Quitado de favoritos."
+        }
     }
 
     public fun toggleStaffPaymentAccess(staffName: String) {
@@ -1950,7 +2816,7 @@ public class RosaFiestaViewModel(
         }
         val account = outcome.account
         if (account != null) {
-            applyAuthenticatedAccount(account, outcome.accessToken)
+            applyAuthenticatedAccount(account, outcome.accessToken, outcome.refreshToken)
         } else {
             applyUserIdentityFromLogin(_loginEmail.value)
         }
@@ -2020,7 +2886,7 @@ public class RosaFiestaViewModel(
         }
         val account = outcome.account
         if (account != null) {
-            applyAuthenticatedAccount(account, outcome.accessToken)
+            applyAuthenticatedAccount(account, outcome.accessToken, outcome.refreshToken)
         }
         soundPlayer.playPaymentSuccess()
         _formError.value = null
@@ -2107,6 +2973,9 @@ public class RosaFiestaViewModel(
     public fun logoutSession() {
         soundPlayer.playTap()
         _isExplicitGuestSession.value = true
+        _isAppLocked.value = false
+        _appLockError.value = null
+        _pendingCardCheckoutSession.value = null
         _loginEmail.value = ""
         _loginPassword.value = ""
         _registerName.value = ""
@@ -2129,6 +2998,7 @@ public class RosaFiestaViewModel(
         repository.logoutSession()
         securityScope.launch {
             secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
+            secureStorage.remove(SecureStorage.KEY_REFRESH_TOKEN)
             secureStorage.remove(SecureStorage.KEY_USER_ROLE)
             secureStorage.remove(SecureStorage.KEY_AVATAR_KEY)
             secureStorage.remove(SecureStorage.KEY_AVATAR_IMAGE_DATA)
@@ -2228,12 +3098,22 @@ public class RosaFiestaViewModel(
     private fun applyAuthenticatedAccount(
         account: RegisteredUserAccount,
         accessToken: String?,
+        refreshToken: String? = null,
     ) {
+        _requiresReauthentication.value = false
         applyProfileFieldsFromAccount(account)
+        val cleanRefresh = refreshToken?.trim().orEmpty()
+        if (cleanRefresh.isNotEmpty()) {
+            repository.setRefreshToken(cleanRefresh)
+        }
         if (!accessToken.isNullOrBlank()) {
             securityScope.launch {
                 secureStorage.put(SecureStorage.KEY_ACCESS_TOKEN, accessToken)
+                if (cleanRefresh.isNotEmpty()) {
+                    secureStorage.put(SecureStorage.KEY_REFRESH_TOKEN, cleanRefresh)
+                }
                 secureStorage.put(SecureStorage.KEY_USER_ROLE, account.role)
+                syncPushTokenRegistrationForRole(account.preferences.pushNotificationsEnabled, account.role)
             }
         }
     }
@@ -2299,7 +3179,63 @@ public class RosaFiestaViewModel(
         }
     }
 
-    public fun submitQuickClientEvent(): Boolean {
+    /**
+     * Submits the active client event and requests an official quote for any selected cart items,
+     * then clears the in-progress draft without deleting the persisted event or quote records.
+     */
+    public fun submitClientQuoteRequest(): Boolean {
+        val eventCreated = submitQuickClientEvent(clearDraftAfter = false)
+        if (!eventCreated) return false
+        val hasDraftItems = draftLineItems().isNotEmpty()
+        if (hasDraftItems) {
+            syncDraftToOfficialQuote()
+        }
+        clearEventDraftAfterSubmission()
+        return true
+    }
+
+    /**
+     * Clears only the in-progress event wizard and cart draft after a successful submission,
+     * keeping all persisted events, quotes, guests, schedules, and sketches intact in storage.
+     */
+    public fun clearEventDraftAfterSubmission() {
+        mutatedPreferenceKeys = mutatedPreferenceKeys + setOf(
+            SecureStorage.KEY_DRAFT_QUANTITIES,
+            SecureStorage.KEY_DRAFT_DISCOUNT,
+            SecureStorage.KEY_WIZARD_EVENT_DRAFT,
+            SecureStorage.KEY_WIZARD_SCHEDULE,
+            SecureStorage.KEY_EVENT_GUESTS,
+            "rf_sketch_layout_json",
+        )
+        _draftQuantities.value = emptyMap()
+        _draftDiscountDop.value = 0
+        _lastAddedDraftItem.value = null
+        _eventTypeInput.value = ""
+        _rosaEventType.value = ""
+        _clientEventTitleInput.value = ""
+        _eventDateInput.value = ""
+        _eventVenueInput.value = ""
+        _eventGuestsInput.value = ""
+        _rosaBudgetDop.value = 0
+        _eventNotesInput.value = ""
+        _wizardScheduleItems.value = emptyList()
+        _eventGuestsList.value = emptyList()
+        _guestsWizardMode.value = false
+        _rosaOmittedCategories.value = emptySet()
+        _sketchLayoutJson.value = ""
+        securityScope.launch {
+            draftStorageMutex.withLock {
+                secureStorage.remove(SecureStorage.KEY_DRAFT_QUANTITIES)
+                secureStorage.remove(SecureStorage.KEY_DRAFT_DISCOUNT)
+                secureStorage.remove(SecureStorage.KEY_WIZARD_EVENT_DRAFT)
+                secureStorage.remove(SecureStorage.KEY_WIZARD_SCHEDULE)
+                secureStorage.remove(SecureStorage.KEY_EVENT_GUESTS)
+                secureStorage.remove("rf_sketch_layout_json")
+            }
+        }
+    }
+
+    public fun submitQuickClientEvent(clearDraftAfter: Boolean = true): Boolean {
         if (_isSubmitting.value) return false
         _isSubmitting.value = true
         try {
@@ -2307,22 +3243,29 @@ public class RosaFiestaViewModel(
             val title = _clientEventTitleInput.value.trim().ifBlank { categoryLabel }
             val date = _eventDateInput.value.trim()
             val venue = _eventVenueInput.value.trim()
-            val guests = _eventGuestsInput.value.trim().toIntOrNull() ?: _rosaGuestsCount.value
+            val guests = _eventGuestsInput.value.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0
             val hasValidInputs = allConditionsTrue(
                 first = title.isNotEmpty(),
                 second = date.isNotEmpty(),
                 third = venue.isNotEmpty(),
-                fourth = guests > 0,
+                fourth = guests >= 0,
             )
             if (!hasValidInputs) {
-                _formError.value = "Completa el título o tipo de evento, fecha, lugar e invitados (> 0)."
+                _formError.value = "Completa el título o tipo de evento, fecha y lugar."
                 return false
             }
             val accountName = currentAuthenticatedUser.value?.fullName.orEmpty().trim()
             val resolvedClientName = accountName.ifEmpty { _profileName.value.trim().ifEmpty { "Cliente" } }
             repository.createEvent(title, resolvedClientName, date, venue, guests)
             repository.events.value.lastOrNull()?.id?.let { createdId ->
-                _selectedEventId.value = createdId
+                selectEvent(createdId)
+                val draftSketch = _sketchLayoutJson.value.trim()
+                if (draftSketch.isNotEmpty()) {
+                    repository.updateEventDetails(eventId = createdId, sketchJson = draftSketch)
+                }
+                tasksByEventId[createdId] = emptyList()
+                _eventTasksList.value = emptyList()
+                persistEventTasksToStorage()
                 val wizardBlocks = _wizardScheduleItems.value
                 if (wizardBlocks.isNotEmpty()) {
                     _eventTimelineItems.value = wizardBlocks
@@ -2364,6 +3307,9 @@ public class RosaFiestaViewModel(
                     )
                 }
             }
+            if (clearDraftAfter) {
+                clearEventDraftAfterSubmission()
+            }
             _formError.value = null
             _formFeedback.value = "Evento '$title' configurado."
             return true
@@ -2383,13 +3329,21 @@ public class RosaFiestaViewModel(
         try {
             val code = _newArticleCode.value.trim()
             val name = _newArticleName.value.trim()
-            val cat = _newArticleCategory.value.trim().ifEmpty { "Mobiliario" }
+            val cat = _newArticleCategory.value.trim().ifEmpty {
+                catalogCategories.value.firstOrNull()?.name.orEmpty()
+            }
+            val categoryError = if (cat.isEmpty()) {
+                "Crea y selecciona una categoría antes de guardar el artículo."
+            } else {
+                null
+            }
             val priceRaw = _newArticlePrice.value.trim()
             val stockRaw = _newArticleStock.value.trim()
             val cleanDescription = description.trim()
             val cleanDimensions = dimensions.trim()
             val cleanMaterial = material.trim()
             val validationError = firstNonBlankError(
+                categoryError,
                 validateArticleCode(code),
                 InputValidator.validateArticleName(name, isRequired = true),
                 InputValidator.validateMoneyAmount(
@@ -2426,8 +3380,9 @@ public class RosaFiestaViewModel(
             val price = priceRaw.toIntOrNull() ?: 0
             val stock = stockRaw.toIntOrNull() ?: 0
             val editingId = _editingArticleId.value
+            val uploadedPhotoUrl = _newArticlePhotoUrl.value.trim()
             if (editingId != null) {
-                repository.updateArticle(
+                repository.updateArticleWithMedia(
                     articleId = editingId,
                     name = name,
                     category = cat,
@@ -2437,13 +3392,21 @@ public class RosaFiestaViewModel(
                     dimensions = cleanDimensions.ifBlank { null },
                     material = cleanMaterial.ifBlank { null },
                     visibleInCatalog = visibleInCatalog,
+                    photoUrl = uploadedPhotoUrl,
                 )
             } else {
-                repository.createArticle(code, name, cat, price, stock)
-                val newlyCreated = repository.articles.value.firstOrNull { item -> item.code == code }
-                if (newlyCreated != null) {
+                repository.createArticleWithMedia(
+                    code = code,
+                    name = name,
+                    category = cat,
+                    pricePerDayDop = price,
+                    totalStock = stock,
+                    photoUrl = uploadedPhotoUrl,
+                )
+                val createdArticle = repository.articles.value.firstOrNull { article -> article.code == code }
+                if (createdArticle != null) {
                     repository.updateArticle(
-                        articleId = newlyCreated.id,
+                        articleId = createdArticle.id,
                         description = cleanDescription.ifBlank { null },
                         dimensions = cleanDimensions.ifBlank { null },
                         material = cleanMaterial.ifBlank { null },
@@ -2452,6 +3415,7 @@ public class RosaFiestaViewModel(
                 }
             }
             _editingArticleId.value = null
+            _newArticlePhotoUrl.value = ""
             _formError.value = null
             _formFeedback.value = "Artículo $code ($name) guardado en catálogo."
             return true
@@ -2898,11 +3862,13 @@ public class RosaFiestaViewModel(
 
     public fun toggleEventTask(taskId: String) {
         soundPlayer.playChecklistTick()
-        _eventTasksList.update { currentList ->
-            currentList.map { taskItem ->
-                if (taskItem.id == taskId) taskItem.copy(completed = !taskItem.completed) else taskItem
-            }
+        val updated = _eventTasksList.value.map { taskItem ->
+            if (taskItem.id == taskId) taskItem.copy(completed = !taskItem.completed) else taskItem
         }
+        _eventTasksList.value = updated
+        val activeId = activeClientEventOrNull()?.id.orEmpty().ifBlank { _selectedEventId.value }
+        tasksByEventId[activeId] = updated
+        persistEventTasksToStorage()
     }
 
     public fun addEventTask(customTitle: String = "", badgeLabel: String = "Pendiente") {
@@ -2917,7 +3883,11 @@ public class RosaFiestaViewModel(
             isUrgent = false,
             completed = false,
         )
-        _eventTasksList.update { currentList -> listOf(newTask) + currentList }
+        val updated = listOf(newTask) + _eventTasksList.value
+        _eventTasksList.value = updated
+        val activeId = activeEvt.id.ifBlank { _selectedEventId.value }
+        tasksByEventId[activeId] = updated
+        persistEventTasksToStorage()
     }
 
     public fun guestsForActiveEvent(): List<EventGuestUiModel> {
@@ -2982,6 +3952,7 @@ public class RosaFiestaViewModel(
                     }
                 }
             }
+            persistWizardGuestsToStorage()
             return
         }
         val activeEventId = activeClientEventOrNull()?.id ?: _selectedEventId.value
@@ -3030,6 +4001,7 @@ public class RosaFiestaViewModel(
                 status = cleanStatus,
             )
             _eventGuestsList.update { currentList -> currentList + newGuest }
+            persistWizardGuestsToStorage()
         } else {
             val targetEventId = activeClientEventOrNull()?.id ?: _selectedEventId.value
             if (targetEventId.isNotBlank()) {
@@ -3072,7 +4044,7 @@ public class RosaFiestaViewModel(
                 val isVerifiedOAuth = if (outcome.success) account != null else false
                 if (isVerifiedOAuth) {
                     val nonNullAccount = account ?: return@launch
-                    applyAuthenticatedAccount(nonNullAccount, outcome.accessToken)
+                    applyAuthenticatedAccount(nonNullAccount, outcome.accessToken, outcome.refreshToken)
                     soundPlayer.playPaymentSuccess()
                     _formError.value = null
                     _formFeedback.value = "Sesión iniciada con $cleanProvider."
@@ -3086,6 +4058,115 @@ public class RosaFiestaViewModel(
             }
         }
         return true
+    }
+
+    /**
+     * Initiates an external browser OAuth PKCE authorization flow for [provider] (`google` or `apple`).
+     */
+    public fun signInWithBrowserOAuth(
+        provider: String,
+        onComplete: (Boolean) -> Unit = {},
+    ) {
+        if (_isSubmitting.value) return
+        val normalizedProvider = provider.trim().lowercase()
+        val displayProvider = normalizedProvider.replaceFirstChar { ch -> ch.uppercase() }
+        val codeVerifier = JwtAuthManager.base64UrlEncode(Random.nextBytes(48))
+        val codeChallenge = JwtAuthManager.base64UrlEncode(JwtAuthManager.sha256(codeVerifier.encodeToByteArray()))
+        val state = JwtAuthManager.base64UrlEncode(Random.nextBytes(24))
+        _isSubmitting.value = true
+        _formError.value = null
+        _formFeedback.value = null
+        securityScope.launch {
+            try {
+                val browserOutcome = platformActions.launchOAuthBrowserFlow { redirectUri ->
+                    repository.startOAuthAuthorization(
+                        provider = normalizedProvider,
+                        redirectUri = redirectUri,
+                        codeChallenge = codeChallenge,
+                        state = state,
+                    ).getOrNull()
+                }
+                val code = browserOutcome.code?.trim().orEmpty()
+                if (code.isEmpty()) {
+                    soundPlayer.playAlertError()
+                    _formError.value = translateBrowserOAuthError(displayProvider, browserOutcome.errorCode)
+                    onComplete(false)
+                    return@launch
+                }
+                val returnedState = browserOutcome.state?.trim().orEmpty()
+                val hasStateMismatch = if (returnedState.isNotEmpty()) returnedState != state else false
+                if (hasStateMismatch) {
+                    soundPlayer.playAlertError()
+                    _formError.value = "Validación de estado OAuth inválida para $displayProvider."
+                    onComplete(false)
+                    return@launch
+                }
+                val exchangeOutcome = repository.exchangeOAuthCode(
+                    provider = normalizedProvider,
+                    code = code,
+                    codeVerifier = codeVerifier,
+                    redirectUri = browserOutcome.redirectUri,
+                )
+                val account = exchangeOutcome.account
+                val isVerified = if (exchangeOutcome.success) account != null else false
+                if (isVerified) {
+                    val authenticatedAccount = account ?: return@launch
+                    applyAuthenticatedAccount(authenticatedAccount, exchangeOutcome.accessToken, exchangeOutcome.refreshToken)
+                    soundPlayer.playPaymentSuccess()
+                    _formError.value = null
+                    _formFeedback.value = "Sesión iniciada con $displayProvider."
+                    onComplete(true)
+                } else {
+                    soundPlayer.playAlertError()
+                    _formError.value = exchangeOutcome.errorMessage
+                        ?: "No se pudo verificar tu cuenta de $displayProvider."
+                    onComplete(false)
+                }
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    private fun translateBrowserOAuthError(displayProvider: String, errorCode: String?): String = when (errorCode) {
+        "OAUTH_START_FAILED" -> "$displayProvider OAuth no está habilitado en el servidor."
+        "OAUTH_CANCELLED" -> "Inicio de sesión con $displayProvider cancelado."
+        "OAUTH_TIMEOUT" -> "Tiempo de espera agotado al autenticar con $displayProvider."
+        else -> "No se pudo abrir el navegador para $displayProvider. Ingresa con tu correo y contraseña."
+    }
+
+    private fun syncPushTokenRegistration(enabled: Boolean) {
+        if (!hasValidAuthenticatedSession()) return
+        val role = currentAuthenticatedUser.value?.role ?: activeRole.value
+        syncPushTokenRegistrationForRole(enabled, role)
+    }
+
+    private fun syncPushTokenRegistrationForRole(enabled: Boolean, role: String) {
+        val isAdminRole = role == "admin"
+        val isStaffRole = role == "staff"
+        val isPrivilegedRole = if (isAdminRole) true else isStaffRole
+        val appVariant = if (isPrivilegedRole) "admin" else "personal"
+        if (!enabled) {
+            securityScope.launch {
+                repository.unregisterDevicePushToken()
+            }
+            return
+        }
+        platformActions.registerPushNotificationsWithConfig(
+            appVariant = appVariant,
+            vapidPublicKey = _oauthConfig.value.webPushVapidPublicKey,
+        ) { platform, token ->
+            val cleanToken = token?.trim().orEmpty()
+            if (cleanToken.isNotEmpty()) {
+                securityScope.launch {
+                    repository.registerDevicePushToken(
+                        platform = platform,
+                        token = cleanToken,
+                        appVariant = appVariant,
+                    )
+                }
+            }
+        }
     }
 
     public fun requestPasswordResetOtp(emailInput: String): Boolean {
@@ -3165,7 +4246,7 @@ public class RosaFiestaViewModel(
     public fun sharePlainText(title: String, text: String): Boolean {
         val shared = platformActions.shareContent(title = title, text = text)
         if (shared) {
-            _formFeedback.value = "Contenido listo para compartir."
+            _actionToast.value = "Copiado al portapapeles para compartir."
         }
         return shared
     }
@@ -3187,6 +4268,22 @@ public class RosaFiestaViewModel(
                 unitPriceDop = item.unitPriceDop.toLong(),
             )
         }
+        val netSubtotalDop = if (payment != null) {
+            if (payment.subtotalDop > 0) payment.subtotalDop.toLong() else ((paidAmount * 100L) / 118L)
+        } else {
+            ((event.totalDop * 100L) / 118L)
+        }
+        val computedItbisDop = if (payment != null) {
+            if (payment.itbisDop > 0) payment.itbisDop.toLong() else (paidAmount.toLong() - netSubtotalDop).coerceAtLeast(0L)
+        } else {
+            (event.totalDop.toLong() - netSubtotalDop).coerceAtLeast(0L)
+        }
+        val resolvedStatusLabel = when {
+            payment == null -> "VERIFICADO"
+            payment.rejectionReason.isNotBlank() -> "RECHAZADO"
+            !payment.verified -> "PENDIENTE DE VERIFICACIÓN"
+            else -> "VERIFICADO"
+        }
         val pdfDoc = ReceiptPdfDocument(
             receiptNumber = receiptNo,
             issuedAtText = payment?.dateLabel ?: DomainClockFormatter.currentFullDateLabel(),
@@ -3196,12 +4293,17 @@ public class RosaFiestaViewModel(
             eventDateText = event.dateLabel,
             paymentMethod = payment?.methodLabel ?: event.depositMethodLabel,
             paymentReference = payment?.referenceCode.orEmpty(),
-            verificationStatus = if (payment?.verified == false) "EN REVISIÓN" else "VERIFICADO",
+            verificationStatus = resolvedStatusLabel,
             companyName = settings.businessName,
             companyRnc = settings.rnc,
-            subtotalDop = event.totalDop.toLong(),
+            ncfNumber = payment?.ncfNumber.orEmpty(),
+            ncfType = payment?.ncfType ?: "B02",
+            clientRnc = payment?.clientRnc.orEmpty(),
+            subtotalDop = netSubtotalDop,
+            itbisDop = computedItbisDop,
             paidAmountDop = paidAmount.toLong(),
             remainingBalanceDop = remaining.toLong(),
+            securityDepositDop = (payment?.securityDepositDop ?: 0).toLong(),
             lineItems = lineItems,
         )
         val pdfBytes = ReceiptPdfBuilder.buildPdfBytes(pdfDoc)
@@ -3234,25 +4336,34 @@ public class RosaFiestaViewModel(
         securityScope.launch {
             val exported = repository.exportReport(reportType = reportType, period = period)
             val csvBytes = if (reportType.equals("dgii607", ignoreCase = true)) {
-                val records = payments.value.mapIndexed { index, payment ->
-                    val netAmount = ((payment.amountDop * 100) / 118).toLong()
-                    val taxAmount = payment.amountDop.toLong() - netAmount
-                    val paddedSeq = (index + 1).toString().padStart(8, '0')
-                    Dgii607SaleRecord(
-                        customerTaxId = "101554219",
-                        identificationType = DgiiIdentificationType.RNC,
-                        ncfNumber = "B02$paddedSeq",
-                        invoiceDateYyyymmdd = "20261020",
-                        invoicedSubtotalDop = netAmount,
-                        invoicedItbisDop = taxAmount,
-                        transferOrCheckAmountDop = payment.amountDop.toLong(),
+                val remoteCsvResult = repository.exportDgii607Csv(period)
+                val remoteCsv = remoteCsvResult.getOrNull().orEmpty().trim()
+                if (remoteCsv.isNotEmpty()) {
+                    val utf8Remote = remoteCsv.encodeToByteArray()
+                    byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) + utf8Remote
+                } else {
+                    val records = payments.value.mapIndexed { index, payment ->
+                        val netAmount = ((payment.amountDop * 100) / 118).toLong()
+                        val taxAmount = payment.amountDop.toLong() - netAmount
+                        val paddedSeq = (index + 1).toString().padStart(8, '0')
+                        val resolvedNcf = payment.ncfNumber.ifBlank { "${payment.ncfType.ifBlank { "B02" }}$paddedSeq" }
+                        val resolvedTaxId = payment.clientRnc.ifBlank { "000000000" }
+                        Dgii607SaleRecord(
+                            customerTaxId = resolvedTaxId,
+                            identificationType = DgiiIdentificationType.RNC,
+                            ncfNumber = resolvedNcf,
+                            invoiceDateYyyymmdd = "20261020",
+                            invoicedSubtotalDop = netAmount,
+                            invoicedItbisDop = taxAmount,
+                            transferOrCheckAmountDop = payment.amountDop.toLong(),
+                        )
+                    }
+                    ReportCsvBuilder.buildDgii607CsvBytes(
+                        companyRnc = businessSettings.value.rnc,
+                        periodYyyymm = period,
+                        records = records,
                     )
                 }
-                ReportCsvBuilder.buildDgii607CsvBytes(
-                    companyRnc = businessSettings.value.rnc,
-                    periodYyyymm = period,
-                    records = records,
-                )
             } else if (exported.csvContent.isNotBlank()) {
                 val utf8Body = exported.csvContent.encodeToByteArray()
                 byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) + utf8Body
@@ -3297,7 +4408,18 @@ public class RosaFiestaViewModel(
         return "$wholePart.$decimalPart"
     }
 
+    public fun hasCompletedOrUsedRental(): Boolean = clientEventsForCurrentUser().any { eventItem ->
+        val isCompleted = eventItem.status == EventStatus.COMPLETED
+        val isInSetup = eventItem.status == EventStatus.IN_SETUP
+        isCompleted || isInSetup
+    }
+
     public fun submitCompanyReview(comment: String, rating: Int = 5): Boolean {
+        if (!hasCompletedOrUsedRental()) {
+            soundPlayer.playAlertError()
+            _formError.value = "Solo puedes escribir una reseña después de alquilar o usar un producto."
+            return false
+        }
         val trimmedComment = comment.trim()
         if (trimmedComment.length < 6) {
             soundPlayer.playAlertError()
@@ -3306,7 +4428,7 @@ public class RosaFiestaViewModel(
         }
         val cleanRating = rating.coerceIn(1, 5)
         val authorName = _profileName.value.trim().ifBlank { "Cliente Rosa Fiesta" }
-        val initialChar = authorName.firstOrNull()?.uppercaseChar()?.toString() ?: "C"
+        val initialChar = InputValidator.extractInitials(authorName, fallback = "C", maxInitials = 1)
         val createdDomainReview = repository.createReview(
             eventId = _selectedEventId.value,
             authorName = authorName,
@@ -3485,6 +4607,304 @@ public class RosaFiestaViewModel(
         return true
     }
 
+    /**
+     * Creates a new catalog category in the backend and updates local article category choices.
+     */
+    public fun createCategory(
+        name: String,
+        illoKey: String = "mobiliario",
+        onComplete: (Result<CatalogCategory>) -> Unit = {},
+    ) {
+        val cleanName = name.trim()
+        val validationError = InputValidator.validateCategoryName(cleanName, isRequired = true)
+        if (validationError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = validationError
+            onComplete(Result.failure(IllegalArgumentException(validationError)))
+            return
+        }
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
+        securityScope.launch {
+            try {
+                val result = repository.createCategory(name = cleanName, illoKey = illoKey)
+                if (result.isSuccess) {
+                    val created = result.getOrNull()
+                    if (created != null) {
+                        if (_newArticleCategory.value.isBlank()) {
+                            _newArticleCategory.value = created.name
+                        }
+                        _formFeedback.value = "Categoría \"${created.name}\" creada."
+                    }
+                    _formError.value = null
+                    soundPlayer.playPaymentSuccess()
+                } else {
+                    val message = result.exceptionOrNull()?.message ?: "No se pudo crear la categoría."
+                    _formError.value = message
+                    soundPlayer.playAlertError()
+                }
+                onComplete(result)
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    /**
+     * Updates an existing catalog category's display name and icon key.
+     */
+    public fun updateCategory(
+        categoryId: String,
+        name: String,
+        illoKey: String = "mobiliario",
+        onComplete: (Result<CatalogCategory>) -> Unit = {},
+    ) {
+        val cleanName = name.trim()
+        val validationError = InputValidator.validateCategoryName(cleanName, isRequired = true)
+        if (validationError != null) {
+            soundPlayer.playAlertError()
+            _formError.value = validationError
+            onComplete(Result.failure(IllegalArgumentException(validationError)))
+            return
+        }
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
+        val previousName = catalogCategories.value.firstOrNull { cat ->
+            cat.id.equals(categoryId.trim(), ignoreCase = true)
+        }?.name.orEmpty()
+        securityScope.launch {
+            try {
+                val result = repository.updateCategory(
+                    categoryId = categoryId,
+                    name = cleanName,
+                    illoKey = illoKey,
+                )
+                if (result.isSuccess) {
+                    val updated = result.getOrNull()
+                    if (updated != null) {
+                        if (_newArticleCategory.value.equals(previousName, ignoreCase = true)) {
+                            _newArticleCategory.value = updated.name
+                        }
+                        if (_selectedCategory.value.equals(previousName, ignoreCase = true)) {
+                            _selectedCategory.value = updated.name
+                        }
+                        _formFeedback.value = "Categoría actualizada a \"${updated.name}\"."
+                    }
+                    _formError.value = null
+                    soundPlayer.playPaymentSuccess()
+                } else {
+                    val message = result.exceptionOrNull()?.message ?: "No se pudo actualizar la categoría."
+                    _formError.value = message
+                    soundPlayer.playAlertError()
+                }
+                onComplete(result)
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    /**
+     * Deletes an unused catalog category and refreshes catalog filters.
+     */
+    public fun deleteCategory(
+        categoryId: String,
+        onComplete: (Result<Unit>) -> Unit = {},
+    ) {
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
+        val targetName = catalogCategories.value.firstOrNull { cat ->
+            cat.id.equals(categoryId.trim(), ignoreCase = true)
+        }?.name.orEmpty()
+        securityScope.launch {
+            try {
+                val result = repository.deleteCategory(categoryId)
+                if (result.isSuccess) {
+                    if (_newArticleCategory.value.equals(targetName, ignoreCase = true)) {
+                        _newArticleCategory.value = catalogCategories.value.firstOrNull()?.name.orEmpty()
+                    }
+                    if (_selectedCategory.value.equals(targetName, ignoreCase = true)) {
+                        _selectedCategory.value = "Todos"
+                    }
+                    _formError.value = null
+                    _formFeedback.value = "Categoría \"$targetName\" eliminada."
+                    soundPlayer.playTap()
+                } else {
+                    val message = result.exceptionOrNull()?.message ?: "No se pudo eliminar la categoría."
+                    _formError.value = message
+                    soundPlayer.playAlertError()
+                }
+                onComplete(result)
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    /**
+     * Creates a seasonal trend card and reloads catalog feedback cleanly.
+     */
+    public fun createTrend(
+        trend: CatalogTrend,
+        onComplete: (Result<CatalogTrend>) -> Unit = {},
+    ) {
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
+        securityScope.launch {
+            try {
+                val result = repository.createTrend(trend)
+                handleTrendMutationOutcome(
+                    result = result,
+                    successMessage = "Tendencia \"${result.getOrNull()?.title.orEmpty()}\" creada.",
+                    fallbackError = "No se pudo crear la tendencia.",
+                    onComplete = onComplete,
+                )
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    /**
+     * Updates an existing seasonal trend card.
+     */
+    public fun updateTrend(
+        trend: CatalogTrend,
+        onComplete: (Result<CatalogTrend>) -> Unit = {},
+    ) {
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
+        securityScope.launch {
+            try {
+                val result = repository.updateTrend(trend)
+                handleTrendMutationOutcome(
+                    result = result,
+                    successMessage = "Tendencia \"${result.getOrNull()?.title.orEmpty()}\" actualizada.",
+                    fallbackError = "No se pudo actualizar la tendencia.",
+                    onComplete = onComplete,
+                )
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    /**
+     * Deletes a seasonal trend card by [trendId].
+     */
+    public fun deleteTrend(
+        trendId: String,
+        onComplete: (Result<Unit>) -> Unit = {},
+    ) {
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
+        val targetTitle = catalogTrends.value.firstOrNull { item ->
+            item.id.equals(trendId.trim(), ignoreCase = true)
+        }?.title.orEmpty()
+        securityScope.launch {
+            try {
+                val result = repository.deleteTrend(trendId)
+                if (result.isSuccess) {
+                    _formError.value = null
+                    _formFeedback.value = "Tendencia \"$targetTitle\" eliminada."
+                    soundPlayer.playTap()
+                } else {
+                    _formError.value = result.exceptionOrNull()?.message ?: "No se pudo eliminar la tendencia."
+                    soundPlayer.playAlertError()
+                }
+                onComplete(result)
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    /**
+     * Saves the Personal Home seasonal hero banner configuration from Admin.
+     */
+    public fun saveSeasonBanner(
+        banner: SeasonBanner,
+        onComplete: (Result<SeasonBanner>) -> Unit = {},
+    ) {
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
+        securityScope.launch {
+            try {
+                val result = repository.saveSeasonBanner(banner)
+                if (result.isSuccess) {
+                    _formError.value = null
+                    _formFeedback.value = "Banner de temporada actualizado."
+                    soundPlayer.playPaymentSuccess()
+                } else {
+                    _formError.value = result.exceptionOrNull()?.message ?: "No se pudo guardar el banner."
+                    soundPlayer.playAlertError()
+                }
+                onComplete(result)
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    private fun handleTrendMutationOutcome(
+        result: Result<CatalogTrend>,
+        successMessage: String,
+        fallbackError: String,
+        onComplete: (Result<CatalogTrend>) -> Unit,
+    ) {
+        if (result.isSuccess) {
+            _formError.value = null
+            _formFeedback.value = successMessage
+            soundPlayer.playPaymentSuccess()
+        } else {
+            _formError.value = result.exceptionOrNull()?.message ?: fallbackError
+            soundPlayer.playAlertError()
+        }
+        onComplete(result)
+    }
+
+    /**
+     * Deletes an unused catalog article and clears any selection referencing it.
+     */
+    public fun deleteArticle(
+        articleId: String,
+        onComplete: (Result<Unit>) -> Unit = {},
+    ) {
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
+        val trimmedId = articleId.trim()
+        val targetName = articles.value.firstOrNull { item ->
+            item.id.equals(trimmedId, ignoreCase = true)
+        }?.name.orEmpty()
+        securityScope.launch {
+            try {
+                val result = repository.deleteArticle(trimmedId)
+                if (result.isSuccess) {
+                    if (_selectedArticleId.value.equals(trimmedId, ignoreCase = true)) {
+                        _selectedArticleId.value = articles.value.firstOrNull()?.id.orEmpty()
+                    }
+                    if (_editingArticleId.value?.equals(trimmedId, ignoreCase = true) == true) {
+                        _editingArticleId.value = null
+                    }
+                    _formError.value = null
+                    _formFeedback.value = if (targetName.isNotEmpty()) {
+                        "Artículo \"$targetName\" eliminado."
+                    } else {
+                        "Artículo eliminado."
+                    }
+                    soundPlayer.playTap()
+                } else {
+                    val message = result.exceptionOrNull()?.message ?: "No se pudo eliminar el artículo."
+                    _formError.value = message
+                    soundPlayer.playAlertError()
+                }
+                onComplete(result)
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
     public fun deleteCurrentUserAccount(): Boolean {
         if (activeClientEventCount() > 0) {
             postError("No puedes eliminar tu cuenta mientras tengas eventos activos pendientes.")
@@ -3497,8 +4917,10 @@ public class RosaFiestaViewModel(
             return false
         }
         _isExplicitGuestSession.value = true
+        repository.setRefreshToken(null)
         securityScope.launch {
             secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
+            secureStorage.remove(SecureStorage.KEY_REFRESH_TOKEN)
             secureStorage.remove(SecureStorage.KEY_USER_ROLE)
         }
         _profileName.value = "Invitado"
@@ -3566,6 +4988,17 @@ public class RosaFiestaViewModel(
         return duplicated
     }
 
+    public fun approveAndSendQuoteFromAdmin(quoteId: String): QuoteRecord? {
+        val sentQuote = repository.sendQuote(quoteId = quoteId)
+        if (sentQuote != null) {
+            _selectedQuoteId.value = sentQuote.id
+            soundPlayer.playPaymentSuccess()
+            _formError.value = null
+            _formFeedback.value = "Cotización ${sentQuote.code} aprobada y enviada al cliente."
+        }
+        return sentQuote
+    }
+
     public fun createFormalQuoteFromAdmin(
         eventTitle: String,
         clientName: String,
@@ -3576,6 +5009,8 @@ public class RosaFiestaViewModel(
         lines: List<EventLineItem>,
         deliveryFeeDop: Int = 350,
         discountDop: Int = 0,
+        notes: String = "",
+        existingQuoteId: String? = null,
     ): QuoteRecord? {
         if (lines.isEmpty()) {
             postError("Agrega al menos una línea a la cotización antes de enviarla.")
@@ -3612,7 +5047,23 @@ public class RosaFiestaViewModel(
             postError(validationError)
             return null
         }
-        val created = repository.createQuote(
+        val cleanNotes = notes.trim()
+        val cleanExistingId = existingQuoteId.orEmpty().trim()
+        val persistedQuote = if (cleanExistingId.isNotEmpty()) {
+            repository.sendQuote(
+                quoteId = cleanExistingId,
+                eventTitle = cleanTitle,
+                venue = cleanVenue,
+                dateLabel = cleanDate,
+                guests = guests,
+                lines = lines,
+                deliveryFeeDop = deliveryFeeDop,
+                discountDop = discountDop,
+                notes = cleanNotes,
+            )
+        } else {
+            null
+        } ?: repository.createQuote(
             eventTitle = cleanTitle,
             clientName = cleanClient,
             clientEmail = cleanEmail.lowercase(),
@@ -3622,12 +5073,14 @@ public class RosaFiestaViewModel(
             lines = lines,
             deliveryFeeDop = deliveryFeeDop,
             discountDop = discountDop,
+            notes = cleanNotes,
+            sendImmediately = true,
         )
-        _selectedQuoteId.value = created.id
+        _selectedQuoteId.value = persistedQuote.id
         soundPlayer.playPaymentSuccess()
         _formError.value = null
-        _formFeedback.value = "Cotización ${created.code} enviada a ${created.clientName}."
-        return created
+        _formFeedback.value = "Cotización ${persistedQuote.code} aprobada y enviada a ${persistedQuote.clientName}."
+        return persistedQuote
     }
 
     public fun approveSelectedRefund(): RefundRequest? {
@@ -3776,27 +5229,42 @@ public class RosaFiestaViewModel(
         roleLabel: String,
         phone: String = "",
         permissions: List<String> = emptyList(),
+        initialPassword: String = "",
     ): StaffMember? {
         val cleanName = fullName.trim()
         val cleanEmail = email.trim().lowercase()
         val cleanPhone = phone.trim()
+        val cleanPassword = initialPassword.trim()
+        val passwordError = if (cleanPassword.isEmpty()) null else InputValidator.validatePassword(cleanPassword)
         val validationError = firstNonBlankError(
             InputValidator.validateFullName(cleanName),
             InputValidator.validateEmail(cleanEmail),
             InputValidator.validateOptionalPhone(cleanPhone),
+            passwordError,
         )
         if (validationError != null) {
             postError(validationError)
             return null
         }
         val formattedPhone = if (cleanPhone.isEmpty()) "" else InputValidator.formatPhoneDisplay(cleanPhone)
-        val invited = repository.inviteStaffMember(
-            fullName = cleanName,
-            email = cleanEmail,
-            roleLabel = roleLabel.trim().ifBlank { "Operaciones" },
-            phone = formattedPhone,
-            permissions = permissions,
-        )
+        val invited = if (cleanPassword.isNotEmpty()) {
+            repository.inviteStaffMemberWithPassword(
+                fullName = cleanName,
+                email = cleanEmail,
+                roleLabel = roleLabel.trim().ifBlank { "Operaciones" },
+                phone = formattedPhone,
+                permissions = permissions,
+                initialPassword = cleanPassword,
+            )
+        } else {
+            repository.inviteStaffMember(
+                fullName = cleanName,
+                email = cleanEmail,
+                roleLabel = roleLabel.trim().ifBlank { "Operaciones" },
+                phone = formattedPhone,
+                permissions = permissions,
+            )
+        }
         soundPlayer.playPaymentSuccess()
         _formError.value = null
         _formFeedback.value = "Invitación enviada a $cleanName ($cleanEmail)."
@@ -4130,7 +5598,703 @@ public class RosaFiestaViewModel(
         )
     }
 
+    public fun setNewArticlePhotoUrl(photoUrl: String) {
+        _newArticlePhotoUrl.value = photoUrl.trim()
+    }
+
+    public fun setPaymentNcfType(ncfType: String) {
+        val normalized = ncfType.trim().uppercase()
+        _paymentNcfType.value = if (normalized == "B01") "B01" else "B02"
+    }
+
+    public fun setPaymentClientRnc(rnc: String) {
+        _paymentClientRnc.value = InputValidator.filterDigitsOnly(rnc, 11)
+    }
+
+    public fun setPaymentVoucherUrl(url: String) {
+        _paymentVoucherUrl.value = url.trim()
+    }
+
+    public fun canCurrentUserManageFinances(): Boolean {
+        val roleKey = activeRole.value.trim().lowercase()
+        val isFinanceRole = when (roleKey) {
+            "admin", "finanzas" -> true
+            else -> false
+        }
+        if (isFinanceRole) {
+            return true
+        }
+        val currentUser = currentAuthenticatedUser.value
+        val userRole = currentUser?.role?.trim()?.lowercase().orEmpty()
+        val isAuthenticatedFinance = when (userRole) {
+            "admin", "finanzas" -> true
+            else -> false
+        }
+        if (isAuthenticatedFinance) {
+            return true
+        }
+        val isStaff = roleKey.startsWith("staff_")
+        if (isStaff) {
+            val staffKey = roleKey.removePrefix("staff_")
+            val matched = staffMembers.value.firstOrNull { member -> member.name.equals(staffKey, ignoreCase = true) }
+            return matched?.canViewPayments ?: false
+        }
+        return false
+    }
+
+    public fun ensureMediaLoaded(urlOrId: String) {
+        val cleanUrl = urlOrId.trim()
+        if (cleanUrl.isBlank()) {
+            return
+        }
+        if (_mediaBytesCache.value.containsKey(cleanUrl)) {
+            return
+        }
+        securityScope.launch {
+            var shouldFetch = false
+            mediaFetchMutex.withLock {
+                val cachedNow = _mediaBytesCache.value.containsKey(cleanUrl)
+                val alreadyFetching = activeMediaFetchUrls.contains(cleanUrl)
+                val canStartFetch = if (cachedNow) false else !alreadyFetching
+                if (canStartFetch) {
+                    activeMediaFetchUrls.add(cleanUrl)
+                    shouldFetch = true
+                }
+            }
+            if (!shouldFetch) {
+                return@launch
+            }
+            try {
+                repository.fetchMediaBytes(cleanUrl).onSuccess { decodedBytes ->
+                    if (decodedBytes.isNotEmpty()) {
+                        _mediaBytesCache.update { currentCache ->
+                            currentCache + (cleanUrl to decodedBytes)
+                        }
+                    }
+                }
+            } finally {
+                mediaFetchMutex.withLock {
+                    activeMediaFetchUrls.remove(cleanUrl)
+                }
+            }
+        }
+    }
+
+    public fun uploadAndAttachMedia(
+        purpose: String,
+        file: PickedMediaFile,
+        onError: (String) -> Unit = {},
+        onUploaded: (String) -> Unit = {},
+    ) {
+        securityScope.launch {
+            val result = repository.uploadMedia(
+                filename = file.fileName,
+                mimeType = file.mimeType,
+                purpose = purpose,
+                bytes = file.bytes,
+            )
+            result.onSuccess { uploadedAsset ->
+                _mediaBytesCache.update { currentCache ->
+                    currentCache + (uploadedAsset.url to file.bytes)
+                }
+                _formError.value = null
+                _formFeedback.value = "Archivo '${file.fileName}' subido correctamente."
+                onUploaded(uploadedAsset.url)
+            }.onFailure { error ->
+                val errorMessage = error.message?.trim().orEmpty().ifBlank { "No se pudo subir '${file.fileName}'." }
+                _formError.value = errorMessage
+                soundPlayer.playAlertError()
+                onError(errorMessage)
+            }
+        }
+    }
+
+    public fun submitDetailedPaymentFlow(
+        eventId: String = _selectedEventId.value,
+        amountDop: Int,
+        methodLabel: String,
+        bankName: String = "",
+        referenceCode: String = "",
+        voucherUrl: String = _paymentVoucherUrl.value,
+        ncfType: String = _paymentNcfType.value,
+        clientRnc: String = _paymentClientRnc.value,
+        kindLabel: String = "Abono",
+    ): PaymentRecord? {
+        if (_isSubmitting.value) return null
+        val normalizedNcf = if (ncfType.trim().uppercase() == "B01") "B01" else "B02"
+        val cleanRnc = InputValidator.filterDigitsOnly(clientRnc, 11)
+        if (normalizedNcf == "B01") {
+            val isValidRnc = isValidDominicanTaxId(cleanRnc)
+            if (!isValidRnc) {
+                soundPlayer.playAlertError()
+                _formError.value = "Para comprobante B01 debes ingresar un RNC (9 dígitos) o Cédula (11 dígitos) válido."
+                return null
+            }
+        }
+        _isSubmitting.value = true
+        try {
+            val recorded = repository.registerDetailedPayment(
+                eventId = eventId,
+                amountDop = amountDop,
+                methodLabel = methodLabel,
+                referenceCode = referenceCode.trim(),
+                voucherUrl = voucherUrl.trim(),
+                ncfType = normalizedNcf,
+                clientRnc = cleanRnc,
+                bankName = bankName.trim(),
+                kindLabel = kindLabel,
+            )
+            if (recorded != null) {
+                soundPlayer.playPaymentSuccess()
+                _paymentVoucherUrl.value = ""
+                _formError.value = null
+                val hasRejectionReason = recorded.rejectionReason.isNotBlank()
+                val isPendingVerification = if (hasRejectionReason) false else !recorded.verified
+                val pendingSuffix = if (isPendingVerification) {
+                    " · En revisión de finanzas"
+                } else {
+                    ""
+                }
+                _formFeedback.value = "Pago registrado (${recorded.receiptNumber})$pendingSuffix."
+            }
+            return recorded
+        } finally {
+            _isSubmitting.value = false
+        }
+    }
+
+    public fun startCardCheckoutSession(
+        eventId: String = _selectedEventId.value,
+        amountDop: Int,
+        ncfType: String = _paymentNcfType.value,
+        clientRnc: String = _paymentClientRnc.value,
+        onSessionReady: (CardSessionResult) -> Unit = {},
+        onUnavailableOrError: (String) -> Unit = {},
+    ) {
+        val normalizedNcf = if (ncfType.trim().uppercase() == "B01") "B01" else "B02"
+        val cleanRnc = InputValidator.filterDigitsOnly(clientRnc, 11)
+        if (normalizedNcf == "B01") {
+            val isValidRnc = isValidDominicanTaxId(cleanRnc)
+            if (!isValidRnc) {
+                val errorText = "Para comprobante B01 debes ingresar un RNC (9 dígitos) o Cédula (11 dígitos) válido."
+                _formError.value = errorText
+                soundPlayer.playAlertError()
+                onUnavailableOrError(errorText)
+                return
+            }
+        }
+        securityScope.launch {
+            val result = repository.createCardPaymentSession(
+                eventId = eventId,
+                amountDop = amountDop,
+                ncfType = normalizedNcf,
+                clientRnc = cleanRnc,
+            )
+            result.onSuccess { session ->
+                _pendingCardCheckoutSession.value = session
+                _formError.value = null
+                _formFeedback.value = "Abriendo pasarela segura de tarjeta..."
+                platformActions.openExternalUrl(session.checkoutUrl)
+                onSessionReady(session)
+            }.onFailure { error ->
+                val message = error.message?.trim().orEmpty().ifBlank {
+                    "La pasarela de pago con tarjeta no está configurada. Usa transferencia bancaria con comprobante."
+                }
+                _formError.value = message
+                soundPlayer.playAlertError()
+                onUnavailableOrError(message)
+            }
+        }
+    }
+
+    /**
+     * Handles a deep link (`rosafiesta://payment/success?session_id=...` or `/cancel`) returned from Stripe Checkout.
+     */
+    public fun handleExternalPaymentDeepLink(rawUrl: String): Boolean {
+        val parsed = ExternalPaymentCallbackBridge.parsePaymentReturnUrl(rawUrl) ?: return false
+        handleExternalPaymentReturn(parsed)
+        return true
+    }
+
+    private fun handleExternalPaymentReturn(paymentReturn: ExternalPaymentReturn) {
+        if (paymentReturn.cancelled) {
+            _pendingCardCheckoutSession.value = null
+            _formError.value = null
+            _formFeedback.value = "Pago con tarjeta cancelado. No se realizó ningún cargo."
+            return
+        }
+        val sessionId = paymentReturn.sessionId.ifBlank { _pendingCardCheckoutSession.value?.sessionId.orEmpty() }
+        if (sessionId.isNotBlank()) {
+            confirmPendingCardCheckout(sessionId = sessionId)
+        }
+    }
+
+    /**
+     * Clears any pending Stripe card checkout session indicator.
+     */
+    public fun clearPendingCardCheckoutSession() {
+        _pendingCardCheckoutSession.value = null
+    }
+
+    /**
+     * Verifies and records a completed card checkout session against the backend payment confirmation endpoint.
+     */
+    public fun confirmPendingCardCheckout(
+        sessionId: String = _pendingCardCheckoutSession.value?.sessionId.orEmpty(),
+        onConfirmed: (PaymentRecord) -> Unit = {},
+        onError: (String) -> Unit = {},
+    ) {
+        val cleanSessionId = sessionId.trim()
+        if (cleanSessionId.isEmpty()) {
+            val errorText = "No hay ninguna sesión de pago con tarjeta pendiente por verificar."
+            postError(errorText)
+            onError(errorText)
+            return
+        }
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
+        _formError.value = null
+        securityScope.launch {
+            try {
+                val outcome = repository.confirmCardCheckoutSession(cleanSessionId)
+                outcome.onSuccess { recorded ->
+                    _pendingCardCheckoutSession.value = null
+                    soundPlayer.playPaymentSuccess()
+                    _formError.value = null
+                    _formFeedback.value = "Pago con tarjeta verificado (${recorded.receiptNumber})."
+                    onConfirmed(recorded)
+                }.onFailure { error ->
+                    val message = error.message?.trim().orEmpty().ifBlank {
+                        "El pago con tarjeta aún no figura confirmado. Si ya pagaste en Stripe, intenta verificar de nuevo en unos segundos."
+                    }
+                    postError(message)
+                    onError(message)
+                }
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    public fun verifyPendingPayment(paymentId: String, notes: String = "") {
+        if (!canCurrentUserManageFinances()) {
+            postError("Tu rol no tiene permisos de finanzas para verificar transferencias.")
+            return
+        }
+        securityScope.launch {
+            val result = repository.verifyPayment(paymentId = paymentId, notes = notes.trim())
+            result.onSuccess { verified ->
+                soundPlayer.playPaymentSuccess()
+                _formError.value = null
+                _formFeedback.value = "Transferencia ${verified.receiptNumber} verificada (NCF ${verified.ncfNumber.ifBlank { verified.ncfType }})."
+            }.onFailure { error ->
+                postError(error.message ?: "No se pudo verificar el pago.")
+            }
+        }
+    }
+
+    public fun rejectPendingPayment(paymentId: String, reason: String) {
+        if (!canCurrentUserManageFinances()) {
+            postError("Tu rol no tiene permisos de finanzas para rechazar transferencias.")
+            return
+        }
+        val cleanReason = reason.trim()
+        if (cleanReason.length < 4) {
+            postError("Indica el motivo del rechazo (mínimo 4 caracteres).")
+            return
+        }
+        securityScope.launch {
+            val result = repository.rejectPayment(paymentId = paymentId, reason = cleanReason)
+            result.onSuccess { rejected ->
+                soundPlayer.playAlertError()
+                _formError.value = null
+                _formFeedback.value = "Pago ${rejected.receiptNumber} marcado como rechazado."
+            }.onFailure { error ->
+                postError(error.message ?: "No se pudo rechazar el pago.")
+            }
+        }
+    }
+
+    public fun checkDraftAvailabilityForDate(
+        dateText: String,
+        excludeEventId: String = "",
+    ) {
+        val cleanDate = dateText.trim()
+        if (cleanDate.isBlank()) {
+            _dateAvailabilityWarning.value = null
+            return
+        }
+        val activeLines = draftLineItems()
+        val targetArticleId = activeLines.firstOrNull()?.articleCode
+            ?.let { code -> articles.value.firstOrNull { item -> item.code == code }?.id }
+            ?: articles.value.firstOrNull()?.id
+            ?: return
+        val requestedQty = activeLines.firstOrNull()?.quantity ?: 1
+        securityScope.launch {
+            val result = repository.checkRangeAvailability(
+                date = cleanDate,
+                articleId = targetArticleId,
+                quantity = requestedQty.coerceAtLeast(1),
+                excludeEventId = excludeEventId,
+            )
+            result.onSuccess { check ->
+                val hasConflict = if (!check.available) check.conflicts.isNotEmpty() else false
+                if (hasConflict) {
+                    val conflictSummary = check.conflicts.joinToString("; ")
+                    _dateAvailabilityWarning.value = "Conflicto de agenda (+/- 1 día montaje/retorno): $conflictSummary"
+                } else {
+                    _dateAvailabilityWarning.value = null
+                }
+            }
+        }
+    }
+
+    public fun reportEventDamageWithPhoto(
+        eventId: String,
+        articleCode: String,
+        articleName: String,
+        damagedUnits: Int,
+        missingUnits: Int,
+        replacementDop: Int,
+        notes: String,
+        photoUrl: String,
+    ): DamageIncident {
+        val created = repository.reportDamageWithMedia(
+            eventId = eventId,
+            articleCode = articleCode,
+            articleName = articleName,
+            damagedUnits = damagedUnits.coerceAtLeast(0),
+            missingUnits = missingUnits.coerceAtLeast(0),
+            replacementDop = replacementDop.coerceAtLeast(0),
+            notes = notes.trim(),
+            photoUrl = photoUrl.trim(),
+        )
+        soundPlayer.playChecklistTick()
+        _formFeedback.value = "Incidencia registrada con evidencia para $articleName."
+        return created
+    }
+
+    public fun resolveDamageIncidentById(incidentId: String, notes: String = "Reparado y liberado a almacén") {
+        securityScope.launch {
+            val result = repository.resolveDamageIncident(incidentId = incidentId, notes = notes.trim())
+            result.onSuccess { resolved ->
+                soundPlayer.playPaymentSuccess()
+                _formError.value = null
+                _formFeedback.value = "Cuarentena liberada para ${resolved.articleName}."
+            }.onFailure { error ->
+                postError(error.message ?: "No se pudo cerrar la incidencia.")
+            }
+        }
+    }
+
+    public fun completeCloseoutWithServer(eventId: String, notes: String = "") {
+        securityScope.launch {
+            val result = repository.completeEventCloseout(eventId = eventId, notes = notes.trim())
+            result.onSuccess { closedEvent ->
+                soundPlayer.playPaymentSuccess()
+                _formError.value = null
+                _formFeedback.value = "Cierre completado para ${closedEvent.title} · Stock liberado."
+            }.onFailure {
+                completeEventInspection(eventId)
+            }
+        }
+    }
+
+    public fun sendBotThreadReply(
+        threadId: String,
+        phone: String,
+        message: String,
+        onSent: () -> Unit = {},
+    ) {
+        val cleanMsg = message.trim()
+        if (cleanMsg.isEmpty()) {
+            postError("Escribe el mensaje antes de enviar por WhatsApp.")
+            return
+        }
+        securityScope.launch {
+            val result = repository.sendWhatsAppBotReply(
+                threadId = threadId,
+                phone = phone.trim(),
+                message = cleanMsg,
+            )
+            result.onSuccess {
+                soundPlayer.playRosaSend()
+                _formError.value = null
+                _formFeedback.value = "Mensaje enviado por WhatsApp."
+                onSent()
+            }.onFailure { error ->
+                postError(error.message ?: "WhatsApp Cloud API no está configurado en el servidor.")
+            }
+        }
+    }
+
+    private fun findArticleIdByCodeOrId(code: String, fallbackId: String): String? {
+        val matched = articles.value.firstOrNull { item ->
+            val matchesCode = item.code == code
+            val matchesId = item.id == fallbackId
+            if (matchesCode) true else matchesId
+        }
+        return matched?.id
+    }
+
+    /**
+     * Loads OAuth provider readiness configuration from the backend.
+     */
+    public fun loadOAuthConfig() {
+        securityScope.launch {
+            repository.fetchOAuthConfig().onSuccess { config ->
+                _oauthConfig.value = config
+                val hasPushKey = config.webPushVapidPublicKey.isNotBlank()
+                val shouldSyncWebPush = if (hasPushKey) hasValidAuthenticatedSession() else false
+                if (shouldSyncWebPush) {
+                    val user = currentAuthenticatedUser.value
+                    val pushEnabled = user?.preferences?.pushNotificationsEnabled ?: false
+                    if (pushEnabled) {
+                        syncPushTokenRegistrationForRole(true, user.role)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Triggers privacy-safe username recovery for the supplied email or phone identifier.
+     */
+    public fun recoverUsername(
+        identifier: String,
+        onComplete: (Boolean, String) -> Unit = { _, _ -> },
+    ) {
+        val cleanIdentifier = identifier.trim()
+        if (cleanIdentifier.length < 3) {
+            val errorMsg = "Ingresa un correo, teléfono o referencia válida (mínimo 3 caracteres)."
+            postError(errorMsg)
+            onComplete(false, errorMsg)
+            return
+        }
+        securityScope.launch {
+            val result = repository.recoverUsernameByIdentifier(cleanIdentifier)
+            result.onSuccess { serverMessage ->
+                soundPlayer.playTap()
+                _formError.value = null
+                val finalMessage = serverMessage.ifBlank {
+                    "Si existe una cuenta asociada, te enviamos un correo con el usuario registrado."
+                }
+                _formFeedback.value = finalMessage
+                onComplete(true, finalMessage)
+            }.onFailure { error ->
+                val msg = error.message?.trim().orEmpty().ifBlank {
+                    "No se pudo procesar la recuperación de usuario en este momento."
+                }
+                postError(msg)
+                onComplete(false, msg)
+            }
+        }
+    }
+
+    /**
+     * Sends a live balance payment reminder to the event client via the configured channel.
+     */
+    public fun sendEventPaymentReminder(
+        eventId: String,
+        channel: String = "whatsapp",
+        message: String = "",
+        onComplete: (Boolean, PaymentReminderOutcome?) -> Unit = { _, _ -> },
+    ) {
+        if (eventId.isBlank()) {
+            postError("Selecciona un evento válido para enviar el recordatorio.")
+            onComplete(false, null)
+            return
+        }
+        securityScope.launch {
+            val result = repository.sendEventPaymentReminder(
+                eventId = eventId,
+                channel = channel,
+                message = message,
+            )
+            result.onSuccess { outcome ->
+                soundPlayer.playRosaSend()
+                _formError.value = null
+                val recipientLabel = outcome.event.clientName.ifBlank { "cliente" }
+                _formFeedback.value = if (outcome.sent) {
+                    "Recordatorio (${outcome.channel}) enviado a $recipientLabel."
+                } else {
+                    "Recordatorio (${outcome.channel}) registrado para $recipientLabel."
+                }
+                onComplete(true, outcome)
+            }.onFailure { error ->
+                val msg = error.message?.trim().orEmpty().ifBlank {
+                    "No se pudo enviar el recordatorio de pago."
+                }
+                postError(msg)
+                onComplete(false, null)
+            }
+        }
+    }
+
+    /**
+     * Loads real aggregated analytics for reports and charts across the requested range (`30d`, `90d`, `180d`, `365d`, `all`).
+     */
+    public fun loadAnalytics(range: String = "30d") {
+        securityScope.launch {
+            repository.fetchPaymentsAnalytics(range).onSuccess { summary ->
+                _analyticsSummary.value = summary
+            }
+        }
+    }
+
+    /**
+     * Requests a Rosa IA floorplan sketch arrangement from the backend quote engine.
+     */
+    public fun requestRosaSketch(
+        prompt: String,
+        eventType: String = _rosaEventType.value,
+        guests: Int = _rosaGuestsCount.value,
+        onResult: (RosaSketchProposal?) -> Unit,
+    ) {
+        securityScope.launch {
+            val result = repository.requestRosaSketch(
+                prompt = prompt,
+                eventType = eventType,
+                guests = guests.coerceAtLeast(16),
+            )
+            result.onSuccess { proposal ->
+                val tablesCount = proposal.elements.count { item ->
+                    val normalizedKind = item.kind.lowercase()
+                    normalizedKind.contains("table")
+                }
+                if (tablesCount > 0) {
+                    _sketchTableCount.value = tablesCount.coerceIn(2, 12)
+                }
+                soundPlayer.playRosaReply()
+                _formError.value = null
+                onResult(proposal)
+            }.onFailure { error ->
+                val msg = error.message?.trim().orEmpty().ifBlank {
+                    "No se pudo conectar con Rosa IA para generar el boceto."
+                }
+                postError(msg)
+                onResult(null)
+            }
+        }
+    }
+
+    /**
+     * Merges suggested catalog item quantities into an event (or draft cart when no persisted event matches) and syncs with the backend.
+     */
+    public fun applySuggestedItemsToEvent(
+        eventId: String,
+        additionalQuantities: Map<String, Int>,
+        feedbackMessage: String,
+        onComplete: (Boolean) -> Unit = {},
+    ) {
+        if (additionalQuantities.isEmpty()) {
+            onComplete(false)
+            return
+        }
+        val targetEvent = events.value.firstOrNull { candidate -> candidate.id == eventId }
+        if (targetEvent == null) {
+            additionalQuantities.forEach { (articleId, qtyDelta) ->
+                adjustDraftQuantity(articleId, qtyDelta)
+            }
+            _formFeedback.value = feedbackMessage
+            onComplete(true)
+            return
+        }
+        val mergedItems = mergeAdditionalEventItems(
+            existingItems = targetEvent.items,
+            additionalQuantities = additionalQuantities,
+        )
+        securityScope.launch {
+            val updatedResult = repository.updateEventItems(eventId = targetEvent.id, items = mergedItems)
+            updatedResult.onSuccess {
+                soundPlayer.playCartAdd()
+                _formError.value = null
+                _formFeedback.value = feedbackMessage
+                onComplete(true)
+            }.onFailure { error ->
+                postError(error.message ?: "No se pudieron agregar los artículos sugeridos al evento.")
+                onComplete(false)
+            }
+        }
+    }
+
+    private fun mergeAdditionalEventItems(
+        existingItems: List<EventLineItem>,
+        additionalQuantities: Map<String, Int>,
+    ): List<EventLineItem> {
+        val mergedByCode = linkedMapOf<String, EventLineItem>()
+        for (existing in existingItems) {
+            mergedByCode[existing.articleCode] = existing
+        }
+        val catalogById = articles.value.associateBy { article -> article.id }
+        val catalogByCode = articles.value.associateBy { article -> article.code }
+        for ((articleKey, deltaQty) in additionalQuantities) {
+            if (deltaQty <= 0) continue
+            val catalogArticle = catalogById[articleKey] ?: catalogByCode[articleKey] ?: continue
+            val previous = mergedByCode[catalogArticle.code]
+            if (previous != null) {
+                val nextQty = (previous.quantity + deltaQty).coerceAtMost(catalogArticle.totalStock)
+                mergedByCode[catalogArticle.code] = previous.copy(quantity = nextQty)
+            } else {
+                val cappedQty = deltaQty.coerceAtMost(catalogArticle.totalStock.coerceAtLeast(1))
+                mergedByCode[catalogArticle.code] = EventLineItem(
+                    articleCode = catalogArticle.code,
+                    name = catalogArticle.name,
+                    quantity = cappedQty,
+                    unitPriceDop = catalogArticle.pricePerDayDop,
+                    photo = catalogArticle.photo,
+                )
+            }
+        }
+        return mergedByCode.values.toList()
+    }
+
+    public fun syncDraftQuantitiesToSketch(eventId: String = _selectedEventId.value) {
+        val currentMap = _draftQuantities.value
+        val roundTables = findArticleIdByCodeOrId("RF-002", "art-mesa-redonda")?.let { articleId -> currentMap[articleId] ?: 0 } ?: 0
+        val rectTables = findArticleIdByCodeOrId("RF-003", "art-mesa-plegable")?.let { articleId -> currentMap[articleId] ?: 0 } ?: 0
+        val chairs = findArticleIdByCodeOrId("RF-001", "art-silla-tiffany")?.let { articleId -> currentMap[articleId] ?: 0 } ?: 0
+        val arch = findArticleIdByCodeOrId("RF-005", "art-arco-rosa")?.let { articleId -> currentMap[articleId] ?: 0 } ?: 0
+        val elements = mutableListOf<String>()
+        var serial = 1
+        repeat(roundTables.coerceAtMost(12)) { index ->
+            val col = (index % 3) * 0.25f + 0.25f
+            val row = (index / 3) * 0.20f + 0.30f
+            elements.add("ROUND_TABLE|el-sync-$serial|${col.coerceIn(0.12f, 0.88f)}|${row.coerceIn(0.18f, 0.85f)}|0xFF865DEC|Mesa ${index + 1}")
+            serial += 1
+        }
+        repeat(rectTables.coerceAtMost(8)) { index ->
+            val col = (index % 2) * 0.35f + 0.32f
+            val row = 0.72f
+            elements.add("RECT_TABLE|el-sync-$serial|$col|$row|0xFF1FBDC0|Mesa Rect ${index + 1}")
+            serial += 1
+        }
+        if (arch > 0) {
+            elements.add("ARCH_STAGE|el-sync-$serial|0.50|0.12|0xFFEA4EA9|Tarima")
+            serial += 1
+        }
+        if (chairs > 0) {
+            val chairGroups = ((chairs + 5) / 6).coerceAtMost(16)
+            repeat(chairGroups) { index ->
+                val col = (index % 4) * 0.20f + 0.20f
+                val row = 0.55f + (index / 4) * 0.12f
+                elements.add("CHAIR_GROUP|el-sync-$serial|${col.coerceIn(0.12f, 0.88f)}|${row.coerceIn(0.15f, 0.88f)}|0xFF8DB52C|Grupo Sillas")
+                serial += 1
+            }
+        }
+        if (elements.isNotEmpty()) {
+            val payload = elements.joinToString("\n")
+            saveSketchLayoutJson(payload, eventId)
+        }
+    }
+
+    public fun isValidDominicanTaxId(cleanDigits: String): Boolean = when (cleanDigits.length) {
+        9, 11 -> true
+        else -> false
+    }
+
     private companion object {
         private const val MAX_DELIVERY_FEE_DOP: Int = 50_000
+        private const val WAV_HEADER_MIN_BYTES: Int = 44
     }
 }

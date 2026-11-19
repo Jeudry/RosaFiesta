@@ -21,6 +21,7 @@ public interface SecureStorage {
 
     public companion object {
         public const val KEY_ACCESS_TOKEN: String = "rf_access_token"
+        public const val KEY_REFRESH_TOKEN: String = "rf_refresh_token"
         public const val KEY_SESSION_METADATA: String = "rf_session_metadata"
         public const val KEY_ACTIVE_VIEW: String = "rf_active_view"
         public const val KEY_USER_ROLE: String = "rf_user_role"
@@ -37,6 +38,11 @@ public interface SecureStorage {
         public const val KEY_EVENT_GUESTS: String = "rf_event_guests"
         public const val KEY_SKETCH_TABLES: String = "rf_sketch_tables"
         public const val KEY_SUPPLIERS: String = "rf_suppliers"
+        public const val KEY_SELECTED_EVENT_ID: String = "rf_selected_event_id"
+        public const val KEY_DRAFT_QUANTITIES: String = "rf_draft_quantities"
+        public const val KEY_DRAFT_DISCOUNT: String = "rf_draft_discount"
+        public const val KEY_WIZARD_EVENT_DRAFT: String = "rf_wizard_event_draft"
+        public const val KEY_WIZARD_SCHEDULE: String = "rf_wizard_schedule"
         public const val KEY_AUDIO_ENABLED: String = "rf_audio_enabled"
         public const val KEY_AUDIO_VOLUME: String = "rf_audio_volume"
         public const val KEY_AUDIO_INTERACTION: String = "rf_audio_interaction"

@@ -3,6 +3,17 @@ package com.jeudry.rosafiesta.domain.security
 import kotlin.time.Clock
 
 /**
+ * Synced user privacy, notification, and security preferences.
+ */
+public data class UserPreferences(
+    public val pushNotificationsEnabled: Boolean = true,
+    public val whatsappAlertsEnabled: Boolean = true,
+    public val emailReceiptsEnabled: Boolean = true,
+    public val biometricLockEnabled: Boolean = false,
+    public val autoSyncWifiOnly: Boolean = false,
+)
+
+/**
  * Persistent user account model containing salted password hash and identity metadata.
  */
 public data class RegisteredUserAccount(
@@ -15,6 +26,7 @@ public data class RegisteredUserAccount(
     public val birthDate: String,
     public val phone: String,
     public val role: String,
+    public val preferences: UserPreferences = UserPreferences(),
 )
 
 /**
@@ -71,18 +83,21 @@ public data class AuthOutcome(
     public val errorCode: String? = null,
     public val errorMessage: String? = null,
     public val accessToken: String? = null,
+    public val refreshToken: String? = null,
     public val account: RegisteredUserAccount? = null,
 ) {
     public companion object {
         /**
-         * Builds a successful authentication outcome with an access token and account.
+         * Builds a successful authentication outcome with an access token, optional refresh token, and account.
          */
         public fun authenticated(
             accessToken: String,
             account: RegisteredUserAccount,
+            refreshToken: String? = null,
         ): AuthOutcome = AuthOutcome(
             success = true,
             accessToken = accessToken,
+            refreshToken = refreshToken?.trim()?.ifEmpty { null },
             account = account,
         )
 

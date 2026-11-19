@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +59,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
+import com.jeudry.rosafiesta.designsystem.RfButton
+import com.jeudry.rosafiesta.designsystem.RfButtonStyle
 import com.jeudry.rosafiesta.designsystem.RfIcon
+import com.jeudry.rosafiesta.designsystem.RfIconButton
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
@@ -69,6 +73,7 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfTrackValidationFocus
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.ClientEvent
 import com.jeudry.rosafiesta.domain.EventLineItem
@@ -251,6 +256,10 @@ internal fun RenderMyEventsScreenS37(
     val observedUser = viewModel?.currentAuthenticatedUser?.collectAsState()?.value
     val observedGuestSession = viewModel?.isExplicitGuestSession?.collectAsState()?.value
     val observedProfileName = viewModel?.profileName?.collectAsState()?.value
+    val draftQuantitiesState = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
+    val totalDraftCartCount = remember(draftQuantitiesState, viewModel) {
+        viewModel?.totalDraftCartUnits() ?: 0
+    }
 
     val userEvents = remember(viewModel, observedEvents, observedUser, observedGuestSession, observedProfileName) {
         if (viewModel != null) {
@@ -302,34 +311,28 @@ internal fun RenderMyEventsScreenS37(
                 style = TextStyle(
                     fontFamily = typo.displayFamily,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 26.sp,
+                    fontSize = 22.sp,
                     color = RfThemeState.currentPalette.ink,
                 ),
             )
 
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(RfThemeState.currentPalette.surface)
-                    .clickable { onSelectScreenCode("s39") },
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.CALENDAR, tint = RfThemeState.currentPalette.ink, size = 20.dp)
-            }
+            RfIconButton(
+                icon = RfIconKind.CALENDAR,
+                accessibilityLabel = "Calendario",
+                onClick = { onSelectScreenCode("s39") },
+            )
 
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfPrimaryButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(RosaButtonGradient)
-                    .clickable { onSelectScreenCode("s38") },
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 22.dp)
-            }
+            RfDraftCartPillButton(
+                count = totalDraftCartCount,
+                onClick = { onSelectScreenCode("s25") },
+            )
+
+            RfRoundGradientIconButton(
+                icon = RfIconKind.PLUS,
+                accessibilityLabel = "Nuevo evento",
+                isAdmin = false,
+                onClick = { onSelectScreenCode("s38") },
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -426,46 +429,16 @@ internal fun RenderMyEventsScreenS37(
                             color = RfThemeState.currentPalette.muted,
                         ),
                     )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(RosaButtonGradient)
-                            .clickable { onSelectScreenCode("s26") },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BasicText(
-                            text = "Crear con Rosa IA",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = Color.White,
-                            ),
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(46.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(RfThemeState.currentPalette.chipBg)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(14.dp))
-                            .clickable { onSelectScreenCode("s38") },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BasicText(
-                            text = "Crear manualmente",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                    }
+                    RfButton(
+                        label = "Crear con Rosa IA",
+                        style = RfButtonStyle.PRIMARY,
+                        onClick = { onSelectScreenCode("s26") },
+                    )
+                    RfButton(
+                        label = "Crear evento desde cero",
+                        style = RfButtonStyle.SECONDARY,
+                        onClick = { onSelectScreenCode("s38") },
+                    )
                 }
             }
         } else {
@@ -501,7 +474,7 @@ internal fun RenderMyEventsScreenS37(
             }
         }
 
-        Spacer(modifier = Modifier.height(110.dp))
+        Spacer(modifier = Modifier.height(88.dp))
     }
 }
 
@@ -659,10 +632,16 @@ internal fun RenderNewEventScreenS38(
     var forceShowStepThreeErrors by remember { mutableStateOf(false) }
     var localValidationError by remember { mutableStateOf<String?>(null) }
 
+    val customTitleBlur = rememberFieldBlurState()
+    val dateFieldBlur = rememberFieldBlurState()
+    val venueFieldBlur = rememberFieldBlurState()
+    val guestsFieldBlur = rememberFieldBlurState()
+
     val customTitleError = rememberDebouncedValidationError(
         value = customEventTitle,
         hasInteracted = hasInteractedTitle,
         forceShowError = false,
+        hasBlurred = customTitleBlur.hasBlurred,
     ) { rawTitle ->
         if (rawTitle.isBlank()) null else InputValidator.validateEventName(rawTitle)
     }
@@ -671,6 +650,7 @@ internal fun RenderNewEventScreenS38(
         value = dateInput,
         hasInteracted = hasInteractedDate,
         forceShowError = forceShowAnyStepError,
+        hasBlurred = dateFieldBlur.hasBlurred,
     ) { rawDate ->
         InputValidator.validateEventDate(rawDate, isRequired = true)
     }
@@ -678,6 +658,7 @@ internal fun RenderNewEventScreenS38(
         value = venueInput,
         hasInteracted = hasInteractedVenue,
         forceShowError = forceShowAnyStepError,
+        hasBlurred = venueFieldBlur.hasBlurred,
     ) { rawVenue ->
         InputValidator.validateAddress(rawVenue)
     }
@@ -685,12 +666,20 @@ internal fun RenderNewEventScreenS38(
         value = guestsInput,
         hasInteracted = hasInteractedGuests,
         forceShowError = forceShowStepThreeErrors,
+        hasBlurred = guestsFieldBlur.hasBlurred,
     ) { rawGuests ->
         InputValidator.validateGuestCount(rawGuests)
     }
 
     val resolvedEventTitle = customEventTitle.trim().ifEmpty { selectedType }
     val activeErrorMessage = localValidationError ?: vmFormError
+    val availabilityWarning = viewModel?.dateAvailabilityWarning?.collectAsState()?.value
+
+    LaunchedEffect(dateInput) {
+        if (InputValidator.validateEventDate(dateInput, isRequired = true) == null) {
+            viewModel?.checkDraftAvailabilityForDate(dateInput)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -714,330 +703,218 @@ internal fun RenderNewEventScreenS38(
             )
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 120.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .clickable {
-                            if (currentStep > 1) {
-                                localValidationError = null
-                                currentStep -= 1
-                            } else {
-                                onSelectScreenCode("BACK:s37")
-                            }
-                        },
-                    contentAlignment = Alignment.Center,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
-                }
-                BasicText(
-                    text = "Nuevo evento",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp,
-                        letterSpacing = (-0.40).sp,
-                        color = RfThemeState.currentPalette.ink,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
-                BasicText(
-                    text = "$currentStep de 3",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        color = RfThemeState.currentPalette.muted,
-                    ),
-                )
-            }
-
-            val stepLabels = listOf(
-                1 to "Tipo",
-                2 to "Fecha y lugar",
-                3 to "Invitados",
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    stepLabels.forEach { (stepNumber, _) ->
-                        val isCompletedOrActive = stepNumber <= currentStep
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(if (isCompletedOrActive) Color(0xFFEA4EA9) else Color(0xFFE6DEEA))
-                                .clickable(enabled = stepNumber <= currentStep) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.surface)
+                            .clickable {
+                                if (currentStep > 1) {
                                     localValidationError = null
-                                    currentStep = stepNumber
-                                },
-                        )
+                                    currentStep -= 1
+                                } else {
+                                    onSelectScreenCode("BACK:s37")
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
                     }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    stepLabels.forEach { (stepNumber, label) ->
-                        val isCurrent = stepNumber == currentStep
-                        BasicText(
-                            text = label,
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
-                                fontSize = 12.sp,
-                                color = if (isCurrent) Color(0xFFC2338F) else Color(0xFF62627A),
-                            ),
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
-
-            if (activeErrorMessage != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFFCE8E8))
-                        .border(1.dp, Color(0xFFF5B6C4), RoundedCornerShape(14.dp))
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                ) {
                     BasicText(
-                        text = activeErrorMessage,
+                        text = "Nuevo evento",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            letterSpacing = (-0.40).sp,
+                            color = RfThemeState.currentPalette.ink,
+                        ),
+                        modifier = Modifier.weight(1f),
+                    )
+                    BasicText(
+                        text = "$currentStep de 3",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            color = Color(0xFFB42345),
+                            fontSize = 14.sp,
+                            color = RfThemeState.currentPalette.muted,
                         ),
                     )
                 }
-            }
 
-            when (currentStep) {
-                1 -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                val stepLabels = listOf(
+                    1 to "Tipo",
+                    2 to "Fecha y lugar",
+                    3 to "Invitados",
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        stepLabels.forEach { (stepNumber, _) ->
+                            val isCompletedOrActive = stepNumber <= currentStep
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(if (isCompletedOrActive) Color(0xFFEA4EA9) else Color(0xFFE6DEEA))
+                                    .clickable(enabled = stepNumber <= currentStep) {
+                                        localValidationError = null
+                                        currentStep = stepNumber
+                                    },
+                            )
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                        stepLabels.forEach { (stepNumber, label) ->
+                            val isCurrent = stepNumber == currentStep
+                            BasicText(
+                                text = label,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = if (isCurrent) Color(0xFFC2338F) else Color(0xFF62627A),
+                                ),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+
+                if (activeErrorMessage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFFCE8E8))
+                            .border(1.dp, Color(0xFFF5B6C4), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
                         BasicText(
-                            text = "¿Qué tipo de evento planeas?",
+                            text = activeErrorMessage,
                             style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 24.sp,
-                                letterSpacing = (-0.48).sp,
-                                lineHeight = 28.sp,
-                                color = RfThemeState.currentPalette.ink,
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                color = Color(0xFFB42345),
                             ),
                         )
-                        BasicText(
-                            text = "Elige la categoría y continúa para indicar fecha, lugar e invitados.",
-                            style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
-                        )
                     }
+                }
 
-                    val eventTypes = listOf(
-                        EventTypeCard("Cumpleaños", Color(0xFFFFF2C9), EventTypeIllus.CUMPLE),
-                        EventTypeCard("Boda", Color(0xFFFDE6F2), EventTypeIllus.BODA),
-                        EventTypeCard("Quinceañera", Color(0xFFEFE8FD), EventTypeIllus.QUINCEANERA),
-                        EventTypeCard("Baby shower", Color(0xFFDDF4F3), EventTypeIllus.BABY_SHOWER),
-                        EventTypeCard("Graduación", RfThemeState.currentPalette.chipBg, EventTypeIllus.GRADUACION),
-                        EventTypeCard("Corporativo", Color(0xFFEEF6D6), EventTypeIllus.CORPORATIVO),
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        eventTypes.chunked(2).forEach { rowCards ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                rowCards.forEach { cardItem ->
-                                    val isSelected = cardItem.name == selectedType
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(108.dp)
-                                            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                                            .clip(RoundedCornerShape(20.dp))
-                                            .background(cardItem.bg)
-                                            .then(
-                                                if (isSelected) {
-                                                    Modifier.border(2.5.dp, Color(0xFFB754CB), RoundedCornerShape(20.dp))
-                                                } else {
-                                                    Modifier
-                                                },
-                                            )
-                                            .clickable {
-                                                selectedType = cardItem.name
-                                                localValidationError = null
-                                                viewModel?.updateRosaParameters(eventType = cardItem.name)
-                                            },
-                                    ) {
-                                        if (isSelected) {
-                                            Box(
-                                                contentAlignment = Alignment.Center,
-                                                modifier = Modifier
-                                                    .size(26.dp)
-                                                    .align(Alignment.TopStart)
-                                                    .offset(x = 12.dp, y = 12.dp)
-                                                    .shadow(8.dp, CircleShape, spotColor = Color(0xB36664E9))
-                                                    .clip(CircleShape)
-                                                    .background(
-                                                        Brush.linearGradient(
-                                                            listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)),
-                                                        ),
-                                                    ),
-                                            ) {
-                                                RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
-                                            }
-                                        }
-                                        EventTypeIllustrationCanvas38(
-                                            illustration = cardItem.illus,
+                when (currentStep) {
+                    1 -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BasicText(
+                                text = "¿Qué tipo de evento planeas?",
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 20.sp,
+                                    letterSpacing = (-0.48).sp,
+                                    lineHeight = 28.sp,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                            BasicText(
+                                text = "Elige la categoría y continúa para indicar fecha, lugar e invitados.",
+                                style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
+                            )
+                        }
+
+                        val eventTypes = listOf(
+                            EventTypeCard("Cumpleaños", Color(0xFFFFF2C9), EventTypeIllus.CUMPLE),
+                            EventTypeCard("Boda", Color(0xFFFDE6F2), EventTypeIllus.BODA),
+                            EventTypeCard("Quinceañera", Color(0xFFEFE8FD), EventTypeIllus.QUINCEANERA),
+                            EventTypeCard("Baby shower", Color(0xFFDDF4F3), EventTypeIllus.BABY_SHOWER),
+                            EventTypeCard("Graduación", RfThemeState.currentPalette.chipBg, EventTypeIllus.GRADUACION),
+                            EventTypeCard("Corporativo", Color(0xFFEEF6D6), EventTypeIllus.CORPORATIVO),
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            eventTypes.chunked(2).forEach { rowCards ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                    rowCards.forEach { cardItem ->
+                                        val isSelected = cardItem.name == selectedType
+                                        Box(
                                             modifier = Modifier
-                                                .size(84.dp)
-                                                .align(Alignment.TopEnd)
-                                                .offset(x = 4.dp, y = 2.dp),
-                                        )
-                                        BasicText(
-                                            text = cardItem.name,
-                                            style = TextStyle(
-                                                fontFamily = typo.displayFamily,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                fontSize = 17.sp,
-                                                letterSpacing = (-0.34).sp,
-                                                color = RfThemeState.currentPalette.ink,
-                                            ),
-                                            modifier = Modifier.align(Alignment.BottomStart).padding(start = 14.dp, bottom = 12.dp),
-                                        )
+                                                .weight(1f)
+                                                .height(86.dp)
+                                                .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                                                .clip(RoundedCornerShape(20.dp))
+                                                .background(cardItem.bg)
+                                                .then(
+                                                    if (isSelected) {
+                                                        Modifier.border(2.5.dp, Color(0xFFB754CB), RoundedCornerShape(20.dp))
+                                                    } else {
+                                                        Modifier
+                                                    },
+                                                )
+                                                .clickable {
+                                                    selectedType = cardItem.name
+                                                    localValidationError = null
+                                                    viewModel?.updateRosaParameters(eventType = cardItem.name)
+                                                },
+                                        ) {
+                                            if (isSelected) {
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier
+                                                        .size(26.dp)
+                                                        .align(Alignment.TopStart)
+                                                        .offset(x = 12.dp, y = 12.dp)
+                                                        .shadow(8.dp, CircleShape, spotColor = Color(0xB36664E9))
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            Brush.linearGradient(
+                                                                listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)),
+                                                            ),
+                                                        ),
+                                                ) {
+                                                    RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
+                                                }
+                                            }
+                                            EventTypeIllustrationCanvas38(
+                                                illustration = cardItem.illus,
+                                                modifier = Modifier
+                                                    .size(68.dp)
+                                                    .align(Alignment.TopEnd)
+                                                    .offset(x = 4.dp, y = 2.dp),
+                                            )
+                                            BasicText(
+                                                text = cardItem.name,
+                                                style = TextStyle(
+                                                    fontFamily = typo.displayFamily,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    fontSize = 17.sp,
+                                                    letterSpacing = (-0.34).sp,
+                                                    color = RfThemeState.currentPalette.ink,
+                                                ),
+                                                modifier = Modifier.align(Alignment.BottomStart).padding(start = 14.dp, bottom = 12.dp),
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        BasicText(
-                            text = "Nombre del evento (opcional)",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                        val titleBorderColor = if (customTitleError != null) Color(0xFFB42345) else RfThemeState.currentPalette.line
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .rfInputShadow(RoundedCornerShape(14.dp))
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(RfThemeState.currentPalette.surface)
-                                .border(1.dp, titleBorderColor, RoundedCornerShape(14.dp))
-                                .padding(horizontal = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            BasicTextField(
-                                value = customEventTitle,
-                                onValueChange = { updatedText ->
-                                    customEventTitle = updatedText.take(InputValidator.MAX_EVENT_NAME_LENGTH)
-                                    hasInteractedTitle = true
-                                    localValidationError = null
-                                },
-                                singleLine = true,
-                                textStyle = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontSize = 14.sp,
-                                    color = RfThemeState.currentPalette.ink,
-                                ),
-                                cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                modifier = Modifier.fillMaxWidth(),
-                                decorationBox = { innerTextField ->
-                                    if (customEventTitle.isEmpty()) {
-                                        BasicText(
-                                            text = "Ej. $selectedType de Camila",
-                                            style = TextStyle(
-                                                fontFamily = typo.bodyFamily,
-                                                fontSize = 14.sp,
-                                                color = RfThemeState.currentPalette.muted,
-                                            ),
-                                        )
-                                    }
-                                    innerTextField()
-                                },
-                            )
-                        }
-                        RfValidationErrorText(errorMessage = customTitleError)
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFFFDE6F2))
-                            .border(1.dp, Color(0xFFF2C2DF), RoundedCornerShape(16.dp))
-                            .clickable {
-                                viewModel?.setEventTypeInput(resolvedEventTitle)
-                                viewModel?.updateRosaParameters(eventType = selectedType)
-                                onSelectScreenCode("s30")
-                            }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        RfIcon(kind = RfIconKind.SPARKLE, tint = Color(0xFFC2338F), size = 18.dp)
-                        BasicText(
-                            text = "¿Prefieres crearlo con Rosa IA?",
-                            modifier = Modifier.weight(1f),
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = Color(0xFFC2338F),
-                            ),
-                        )
-                        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFFC2338F), size = 18.dp)
-                    }
-                }
-
-                2 -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        BasicText(
-                            text = "Fecha y lugar",
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 24.sp,
-                                letterSpacing = (-0.48).sp,
-                                lineHeight = 28.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                        BasicText(
-                            text = "Selecciona cuándo será tu $selectedType y el salón o dirección.",
-                            style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
-                        )
-                    }
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             BasicText(
-                                text = "Fecha del evento",
+                                text = "Nombre del evento (opcional)",
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = FontWeight.Bold,
@@ -1045,67 +922,42 @@ internal fun RenderNewEventScreenS38(
                                     color = RfThemeState.currentPalette.ink,
                                 ),
                             )
-                            RfMaskedDateField(
-                                value = dateInput,
-                                onValueChange = { updatedDate ->
-                                    dateInput = updatedDate
-                                    hasInteractedDate = true
-                                    localValidationError = null
-                                    viewModel?.setEventDateInput(updatedDate)
-                                },
-                                onOpenCalendar = { showCalendarModal = true },
-                                placeholder = "Elegir fecha del evento",
-                                hasError = dateFieldError != null,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            RfValidationErrorText(errorMessage = dateFieldError)
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            BasicText(
-                                text = "Salón o dirección",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = RfThemeState.currentPalette.ink,
-                                ),
-                            )
-                            val venueBorderColor = if (venueFieldError != null) Color(0xFFB42345) else Color(0xFFD9B8EC)
+                            val titleBorderColor = if (customTitleError != null) Color(0xFFB42345) else RfThemeState.currentPalette.line
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(52.dp)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .height(48.dp)
+                                    .rfInputShadow(RoundedCornerShape(14.dp))
+                                    .clip(RoundedCornerShape(14.dp))
                                     .background(RfThemeState.currentPalette.surface)
-                                    .border(1.5.dp, venueBorderColor, RoundedCornerShape(16.dp))
+                                    .border(1.dp, titleBorderColor, RoundedCornerShape(14.dp))
                                     .padding(horizontal = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                RfIcon(kind = RfIconKind.LOCATION, tint = Color(0xFFC2338F), size = 18.dp)
                                 BasicTextField(
-                                    value = venueInput,
-                                    onValueChange = { updatedVenue ->
-                                        val cappedVenue = updatedVenue.take(InputValidator.MAX_ADDRESS_LENGTH)
-                                        venueInput = cappedVenue
-                                        hasInteractedVenue = true
+                                    value = customEventTitle,
+                                    onValueChange = { updatedText ->
+                                        customEventTitle = updatedText.take(InputValidator.MAX_EVENT_NAME_LENGTH)
+                                        hasInteractedTitle = true
                                         localValidationError = null
-                                        viewModel?.setEventVenueInput(cappedVenue)
                                     },
                                     singleLine = true,
                                     textStyle = TextStyle(
                                         fontFamily = typo.bodyFamily,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 15.sp,
+                                        fontSize = 14.sp,
                                         color = RfThemeState.currentPalette.ink,
                                     ),
                                     cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .rfTrackValidationFocus(
+                                            focusKey = customTitleBlur,
+                                            onFocusChanged = customTitleBlur::onFocusStateChanged,
+                                        ),
                                     decorationBox = { innerTextField ->
-                                        if (venueInput.isEmpty()) {
+                                        if (customEventTitle.isEmpty()) {
                                             BasicText(
-                                                text = "Ej. Jardín Los Rosales, Piantini",
+                                                text = "Ej. $selectedType de Camila",
                                                 style = TextStyle(
                                                     fontFamily = typo.bodyFamily,
                                                     fontSize = 14.sp,
@@ -1117,317 +969,500 @@ internal fun RenderNewEventScreenS38(
                                     },
                                 )
                             }
+                            RfValidationErrorText(errorMessage = customTitleError)
                         }
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFFFDE6F2))
+                                .border(1.dp, Color(0xFFF2C2DF), RoundedCornerShape(16.dp))
+                                .clickable {
+                                    viewModel?.setEventTypeInput(resolvedEventTitle)
+                                    viewModel?.updateRosaParameters(eventType = selectedType)
+                                    onSelectScreenCode("s30")
+                                }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            listOf("Jardín Botánico", "Salón Piantini", "Terraza Colonial").forEach { suggestedVenue ->
-                                val isChosenVenue = venueInput.trim().equals(suggestedVenue, ignoreCase = true)
-                                Box(
+                            RfIcon(kind = RfIconKind.SPARKLE, tint = Color(0xFFC2338F), size = 18.dp)
+                            BasicText(
+                                text = "¿Prefieres crearlo con Rosa IA?",
+                                modifier = Modifier.weight(1f),
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = Color(0xFFC2338F),
+                                ),
+                            )
+                            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFFC2338F), size = 18.dp)
+                        }
+                    }
+
+                    2 -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BasicText(
+                                text = "Fecha y lugar",
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 20.sp,
+                                    letterSpacing = (-0.48).sp,
+                                    lineHeight = 28.sp,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                            BasicText(
+                                text = "Selecciona cuándo será tu $selectedType y el salón o dirección.",
+                                style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(22.dp))
+                                .background(RfThemeState.currentPalette.surface)
+                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
+                                .padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                BasicText(
+                                    text = "Fecha del evento",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = RfThemeState.currentPalette.ink,
+                                    ),
+                                )
+                                RfMaskedDateField(
+                                    value = dateInput,
+                                    onValueChange = { updatedDate ->
+                                        dateInput = updatedDate
+                                        hasInteractedDate = true
+                                        localValidationError = null
+                                        viewModel?.setEventDateInput(updatedDate)
+                                    },
+                                    onOpenCalendar = { showCalendarModal = true },
+                                    placeholder = "Elegir fecha del evento",
+                                    hasError = dateFieldError != null,
+                                    onFocusChanged = dateFieldBlur::onFocusStateChanged,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                RfValidationErrorText(errorMessage = dateFieldError)
+                                if (!availabilityWarning.isNullOrBlank()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color(0xFFFFF2C9))
+                                            .border(1.dp, Color(0xFF7A5700), RoundedCornerShape(12.dp))
+                                            .padding(10.dp),
+                                    ) {
+                                        BasicText(
+                                            text = availabilityWarning,
+                                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF7A5700)),
+                                        )
+                                    }
+                                }
+                            }
+
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                BasicText(
+                                    text = "Salón o dirección",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = RfThemeState.currentPalette.ink,
+                                    ),
+                                )
+                                val venueBorderColor = if (venueFieldError != null) Color(0xFFB42345) else Color(0xFFD9B8EC)
+                                Row(
                                     modifier = Modifier
-                                        .height(32.dp)
-                                        .clip(RoundedCornerShape(999.dp))
-                                        .background(if (isChosenVenue) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
-                                        .clickable {
-                                            venueInput = suggestedVenue
-                                            localValidationError = null
-                                            viewModel?.setEventVenueInput(suggestedVenue)
-                                        }
-                                        .padding(horizontal = 12.dp),
-                                    contentAlignment = Alignment.Center,
+                                        .fillMaxWidth()
+                                        .height(52.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(RfThemeState.currentPalette.surface)
+                                        .border(1.5.dp, venueBorderColor, RoundedCornerShape(16.dp))
+                                        .padding(horizontal = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    BasicText(
-                                        text = suggestedVenue,
-                                        style = TextStyle(
+                                    RfIcon(kind = RfIconKind.LOCATION, tint = Color(0xFFC2338F), size = 18.dp)
+                                    BasicTextField(
+                                        value = venueInput,
+                                        onValueChange = { updatedVenue ->
+                                            val cappedVenue = updatedVenue.take(InputValidator.MAX_ADDRESS_LENGTH)
+                                            venueInput = cappedVenue
+                                            hasInteractedVenue = true
+                                            localValidationError = null
+                                            viewModel?.setEventVenueInput(cappedVenue)
+                                        },
+                                        singleLine = true,
+                                        textStyle = TextStyle(
                                             fontFamily = typo.bodyFamily,
                                             fontWeight = FontWeight.SemiBold,
-                                            fontSize = 12.sp,
-                                            color = if (isChosenVenue) Color(0xFFC2338F) else RfThemeState.currentPalette.ink,
+                                            fontSize = 15.sp,
+                                            color = RfThemeState.currentPalette.ink,
                                         ),
+                                        cursorBrush = SolidColor(Color(0xFFC2338F)),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .rfTrackValidationFocus(
+                                                focusKey = venueFieldBlur,
+                                                onFocusChanged = venueFieldBlur::onFocusStateChanged,
+                                            ),
+                                        decorationBox = { innerTextField ->
+                                            if (venueInput.isEmpty()) {
+                                                BasicText(
+                                                    text = "Ej. Jardín Los Rosales, Piantini",
+                                                    style = TextStyle(
+                                                        fontFamily = typo.bodyFamily,
+                                                        fontSize = 14.sp,
+                                                        color = RfThemeState.currentPalette.muted,
+                                                    ),
+                                                )
+                                            }
+                                            innerTextField()
+                                        },
                                     )
+                                }
+                                RfValidationErrorText(errorMessage = venueFieldError)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                listOf("Jardín Botánico", "Salón Piantini", "Terraza Colonial").forEach { suggestedVenue ->
+                                    val isChosenVenue = venueInput.trim().equals(suggestedVenue, ignoreCase = true)
+                                    Box(
+                                        modifier = Modifier
+                                            .height(32.dp)
+                                            .clip(RoundedCornerShape(999.dp))
+                                            .background(if (isChosenVenue) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
+                                            .clickable {
+                                                venueInput = suggestedVenue
+                                                localValidationError = null
+                                                viewModel?.setEventVenueInput(suggestedVenue)
+                                            }
+                                            .padding(horizontal = 12.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        BasicText(
+                                            text = suggestedVenue,
+                                            style = TextStyle(
+                                                fontFamily = typo.bodyFamily,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 12.sp,
+                                                color = if (isChosenVenue) Color(0xFFC2338F) else RfThemeState.currentPalette.ink,
+                                            ),
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                else -> {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        BasicText(
-                            text = "Invitados y confirmación",
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 24.sp,
-                                letterSpacing = (-0.48).sp,
-                                lineHeight = 28.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                        BasicText(
-                            text = "Indica el número estimado de asistentes y revisa el resumen antes de crear el evento.",
-                            style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
-                        )
-                    }
+                    else -> {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BasicText(
+                                text = "Invitados y confirmación",
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 20.sp,
+                                    letterSpacing = (-0.48).sp,
+                                    lineHeight = 28.sp,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                            BasicText(
+                                text = "Indica el número estimado de asistentes y revisa el resumen antes de crear el evento.",
+                                style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted),
+                            )
+                        }
 
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        BasicText(
-                            text = "Cantidad de invitados",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                        val guestsBorderColor = if (guestsFieldError != null) Color(0xFFB42345) else Color(0xFFD9B8EC)
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(22.dp))
                                 .background(RfThemeState.currentPalette.surface)
-                                .border(1.5.dp, guestsBorderColor, RoundedCornerShape(16.dp))
-                                .padding(horizontal = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
+                                .padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            RfIcon(kind = RfIconKind.GUESTS, tint = Color(0xFFC2338F), size = 18.dp)
-                            BasicTextField(
-                                value = guestsInput,
-                                onValueChange = { updatedText ->
-                                    val digitsOnly = InputValidator.filterDigitsOnly(updatedText, 5)
-                                    guestsInput = digitsOnly
-                                    hasInteractedGuests = true
-                                    localValidationError = null
-                                    viewModel?.setEventGuestsInput(digitsOnly)
-                                },
-                                singleLine = true,
-                                textStyle = TextStyle(
+                            BasicText(
+                                text = "Cantidad de invitados",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = RfThemeState.currentPalette.ink,
+                                ),
+                            )
+                            val guestsBorderColor = if (guestsFieldError != null) Color(0xFFB42345) else Color(0xFFD9B8EC)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(RfThemeState.currentPalette.surface)
+                                    .border(1.5.dp, guestsBorderColor, RoundedCornerShape(16.dp))
+                                    .padding(horizontal = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                RfIcon(kind = RfIconKind.GUESTS, tint = Color(0xFFC2338F), size = 18.dp)
+                                BasicTextField(
+                                    value = guestsInput,
+                                    onValueChange = { updatedText ->
+                                        val digitsOnly = InputValidator.filterDigitsOnly(updatedText, 5)
+                                        guestsInput = digitsOnly
+                                        hasInteractedGuests = true
+                                        localValidationError = null
+                                        viewModel?.setEventGuestsInput(digitsOnly)
+                                    },
+                                    singleLine = true,
+                                    textStyle = TextStyle(
+                                        fontFamily = typo.displayFamily,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 18.sp,
+                                        color = RfThemeState.currentPalette.ink,
+                                    ),
+                                    cursorBrush = SolidColor(Color(0xFFC2338F)),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .rfTrackValidationFocus(
+                                            focusKey = guestsFieldBlur,
+                                            onFocusChanged = guestsFieldBlur::onFocusStateChanged,
+                                        ),
+                                    decorationBox = { innerTextField ->
+                                        if (guestsInput.isEmpty()) {
+                                            BasicText(
+                                                text = "Ej. 120",
+                                                style = TextStyle(
+                                                    fontFamily = typo.bodyFamily,
+                                                    fontSize = 15.sp,
+                                                    color = RfThemeState.currentPalette.muted,
+                                                ),
+                                            )
+                                        }
+                                        innerTextField()
+                                    },
+                                )
+                                BasicText(
+                                    text = "personas",
+                                    style = TextStyle(
+                                        fontFamily = typo.bodyFamily,
+                                        fontSize = 13.sp,
+                                        color = RfThemeState.currentPalette.muted,
+                                    ),
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                listOf(40, 80, 120, 150).forEach { guestPreset ->
+                                    val isPresetSelected = guestsInput == guestPreset.toString()
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(34.dp)
+                                            .clip(RoundedCornerShape(999.dp))
+                                            .background(if (isPresetSelected) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
+                                            .clickable {
+                                                guestsInput = guestPreset.toString()
+                                                hasInteractedGuests = true
+                                                localValidationError = null
+                                                viewModel?.setEventGuestsInput(guestPreset.toString())
+                                            },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        BasicText(
+                                            text = "$guestPreset",
+                                            style = TextStyle(
+                                                fontFamily = typo.bodyFamily,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                color = if (isPresetSelected) Color(0xFFC2338F) else RfThemeState.currentPalette.ink,
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+                            RfValidationErrorText(errorMessage = guestsFieldError)
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFFFDF8FC))
+                                .border(1.dp, Color(0xFFF0DCEF), RoundedCornerShape(20.dp))
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            BasicText(
+                                text = "RESUMEN DEL EVENTO",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    letterSpacing = 0.8.sp,
+                                    color = Color(0xFFC2338F),
+                                ),
+                            )
+                            BasicText(
+                                text = resolvedEventTitle,
+                                style = TextStyle(
                                     fontFamily = typo.displayFamily,
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 18.sp,
                                     color = RfThemeState.currentPalette.ink,
                                 ),
-                                cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                modifier = Modifier.weight(1f),
-                                decorationBox = { innerTextField ->
-                                    if (guestsInput.isEmpty()) {
-                                        BasicText(
-                                            text = "Ej. 120",
-                                            style = TextStyle(
-                                                fontFamily = typo.bodyFamily,
-                                                fontSize = 15.sp,
-                                                color = RfThemeState.currentPalette.muted,
-                                            ),
-                                        )
-                                    }
-                                    innerTextField()
-                                },
                             )
                             BasicText(
-                                text = "personas",
-                                style = TextStyle(
-                                    fontFamily = typo.bodyFamily,
-                                    fontSize = 13.sp,
-                                    color = RfThemeState.currentPalette.muted,
-                                ),
+                                text = "Categoría: $selectedType",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                            )
+                            val formattedSummaryDate = if (dateInput.isBlank()) {
+                                "Por definir"
+                            } else {
+                                formatReadableSpanishDateText(dateInput)
+                            }
+                            BasicText(
+                                text = "Fecha: $formattedSummaryDate",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                            )
+                            BasicText(
+                                text = "Lugar: ${venueInput.ifBlank { "Por definir" }}",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                            )
+                            BasicText(
+                                text = "Invitados: ${guestsInput.ifBlank { "0" }} personas",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink),
                             )
                         }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            listOf(40, 80, 120, 150).forEach { guestPreset ->
-                                val isPresetSelected = guestsInput == guestPreset.toString()
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(34.dp)
-                                        .clip(RoundedCornerShape(999.dp))
-                                        .background(if (isPresetSelected) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg)
-                                        .clickable {
-                                            guestsInput = guestPreset.toString()
-                                            hasInteractedGuests = true
-                                            localValidationError = null
-                                            viewModel?.setEventGuestsInput(guestPreset.toString())
-                                        },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    BasicText(
-                                        text = "$guestPreset",
-                                        style = TextStyle(
-                                            fontFamily = typo.bodyFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            color = if (isPresetSelected) Color(0xFFC2338F) else RfThemeState.currentPalette.ink,
-                                        ),
-                                    )
-                                }
-                            }
-                        }
-                        RfValidationErrorText(errorMessage = guestsFieldError)
-                    }
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFFFDF8FC))
-                            .border(1.dp, Color(0xFFF0DCEF), RoundedCornerShape(20.dp))
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        BasicText(
-                            text = "RESUMEN DEL EVENTO",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                letterSpacing = 0.8.sp,
-                                color = Color(0xFFC2338F),
-                            ),
-                        )
-                        BasicText(
-                            text = resolvedEventTitle,
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 18.sp,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                        BasicText(
-                            text = "Categoría: $selectedType",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
-                        )
-                        val formattedSummaryDate = if (dateInput.isBlank()) {
-                            "Por definir"
-                        } else {
-                            formatReadableSpanishDateText(dateInput)
-                        }
-                        BasicText(
-                            text = "Fecha: $formattedSummaryDate",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
-                        )
-                        BasicText(
-                            text = "Lugar: ${venueInput.ifBlank { "Por definir" }}",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
-                        )
-                        BasicText(
-                            text = "Invitados: ${guestsInput.ifBlank { "0" }} personas",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink),
-                        )
                     }
                 }
             }
-        }
 
-        val primaryButtonLabel = when (currentStep) {
-            1 -> "Siguiente: fecha y lugar"
-            2 -> "Siguiente: invitados"
-            else -> if (isSubmitting) "Creando evento..." else "Crear evento"
-        }
+            val primaryButtonLabel = when (currentStep) {
+                1 -> "Siguiente: fecha y lugar"
+                2 -> "Siguiente: invitados"
+                else -> if (isSubmitting) "Creando evento..." else "Crear evento"
+            }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 36.dp)
-                .fillMaxWidth()
-                .height(56.dp)
-                .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                .clip(RoundedCornerShape(16.dp))
-                .background(RosaButtonGradient)
-                .clickable(enabled = !isSubmitting) {
-                    when (currentStep) {
-                        1 -> {
-                            val titleError = if (customEventTitle.isBlank()) null else InputValidator.validateEventName(customEventTitle)
-                            if (titleError != null) {
-                                hasInteractedTitle = true
-                                localValidationError = titleError
-                            } else {
-                                localValidationError = null
-                                viewModel?.setEventTypeInput(resolvedEventTitle)
-                                viewModel?.updateRosaParameters(eventType = selectedType)
-                                currentStep = 2
-                            }
-                        }
-
-                        2 -> {
-                            hasInteractedDate = true
-                            hasInteractedVenue = true
-                            forceShowStepTwoErrors = true
-                            val cleanDate = dateInput.trim()
-                            val cleanVenue = venueInput.trim()
-                            val dateError = InputValidator.validateEventDate(cleanDate, isRequired = true)
-                            val venueError = InputValidator.validateAddress(cleanVenue)
-                            val stepTwoError = dateError ?: venueError
-                            if (stepTwoError != null) {
-                                localValidationError = stepTwoError
-                            } else {
-                                localValidationError = null
-                                viewModel?.setEventDateInput(cleanDate)
-                                viewModel?.setEventVenueInput(cleanVenue)
-                                currentStep = 3
-                            }
-                        }
-
-                        else -> {
-                            hasInteractedDate = true
-                            hasInteractedVenue = true
-                            hasInteractedGuests = true
-                            forceShowStepThreeErrors = true
-                            val cleanDate = dateInput.trim()
-                            val cleanVenue = venueInput.trim()
-                            val dateError = InputValidator.validateEventDate(cleanDate, isRequired = true)
-                            val venueError = InputValidator.validateAddress(cleanVenue)
-                            val guestsError = InputValidator.validateGuestCount(guestsInput)
-                            val stepThreeError = dateError ?: venueError ?: guestsError
-                            if (stepThreeError != null) {
-                                localValidationError = stepThreeError
-                            } else {
-                                val parsedGuests = guestsInput.trim().toIntOrNull() ?: 1
-                                localValidationError = null
-                                viewModel?.setEventTypeInput(resolvedEventTitle)
-                                viewModel?.setEventDateInput(cleanDate)
-                                viewModel?.setEventVenueInput(cleanVenue)
-                                viewModel?.setEventGuestsInput(parsedGuests.toString())
-                                viewModel?.updateRosaParameters(guests = parsedGuests, eventType = selectedType)
-                                val createdSuccessfully = if (viewModel != null) {
-                                    viewModel.submitQuickClientEvent()
-                                } else {
-                                    true
-                                }
-                                if (createdSuccessfully) {
-                                    onSelectScreenCode("s40")
-                                }
-                            }
-                        }
-                    }
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                BasicText(
-                    text = primaryButtonLabel,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(RfThemeState.currentPalette.surface),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(RfThemeState.currentPalette.line),
                 )
-                RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RosaButtonGradient)
+                        .clickable(enabled = !isSubmitting) {
+                            when (currentStep) {
+                                1 -> {
+                                    val titleError = if (customEventTitle.isBlank()) null else InputValidator.validateEventName(customEventTitle)
+                                    if (titleError != null) {
+                                        hasInteractedTitle = true
+                                        localValidationError = titleError
+                                    } else {
+                                        localValidationError = null
+                                        viewModel?.setEventTypeInput(resolvedEventTitle)
+                                        viewModel?.updateRosaParameters(eventType = selectedType)
+                                        currentStep = 2
+                                    }
+                                }
+
+                                2 -> {
+                                    hasInteractedDate = true
+                                    hasInteractedVenue = true
+                                    forceShowStepTwoErrors = true
+                                    val cleanDate = dateInput.trim()
+                                    val cleanVenue = venueInput.trim()
+                                    val dateError = InputValidator.validateEventDate(cleanDate, isRequired = true)
+                                    val venueError = InputValidator.validateAddress(cleanVenue)
+                                    val stepTwoError = dateError ?: venueError
+                                    if (stepTwoError != null) {
+                                        localValidationError = stepTwoError
+                                    } else {
+                                        localValidationError = null
+                                        viewModel?.setEventDateInput(cleanDate)
+                                        viewModel?.setEventVenueInput(cleanVenue)
+                                        currentStep = 3
+                                    }
+                                }
+
+                                else -> {
+                                    hasInteractedDate = true
+                                    hasInteractedVenue = true
+                                    hasInteractedGuests = true
+                                    forceShowStepThreeErrors = true
+                                    val cleanDate = dateInput.trim()
+                                    val cleanVenue = venueInput.trim()
+                                    val dateError = InputValidator.validateEventDate(cleanDate, isRequired = true)
+                                    val venueError = InputValidator.validateAddress(cleanVenue)
+                                    val guestsError = InputValidator.validateGuestCount(guestsInput)
+                                    val stepThreeError = dateError ?: venueError ?: guestsError
+                                    if (stepThreeError != null) {
+                                        localValidationError = stepThreeError
+                                    } else {
+                                        val parsedGuests = guestsInput.trim().toIntOrNull() ?: 1
+                                        localValidationError = null
+                                        viewModel?.setEventTypeInput(resolvedEventTitle)
+                                        viewModel?.setEventDateInput(cleanDate)
+                                        viewModel?.setEventVenueInput(cleanVenue)
+                                        viewModel?.setEventGuestsInput(parsedGuests.toString())
+                                        viewModel?.updateRosaParameters(guests = parsedGuests, eventType = selectedType)
+                                        val createdSuccessfully = if (viewModel != null) {
+                                            viewModel.submitQuickClientEvent()
+                                        } else {
+                                            true
+                                        }
+                                        if (createdSuccessfully) {
+                                            onSelectScreenCode("s40")
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        BasicText(
+                            text = primaryButtonLabel,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                        )
+                        RfIcon(kind = RfIconKind.ARROW_RIGHT, tint = Color.White, size = 20.dp)
+                    }
+                }
             }
         }
 
@@ -1443,11 +1478,8 @@ internal fun RenderNewEventScreenS38(
                 title = "Fecha del evento",
                 subtitle = "Elige el día de tu celebración",
                 currentDateText = dateInput,
-                minYear = 2026,
-                maxYear = 2032,
-                defaultYear = 2026,
-                quickYears = listOf(2026, 2027, 2028, 2029),
                 isAdmin = false,
+                dateMode = RfCalendarDateMode.EVENT_UPCOMING,
                 onSelectDate = { formattedDate ->
                     dateInput = formattedDate
                     hasInteractedDate = true
@@ -1638,6 +1670,10 @@ internal fun RenderCalendarScreenS39(
     val observedUser = viewModel?.currentAuthenticatedUser?.collectAsState()?.value
     val observedGuestSession = viewModel?.isExplicitGuestSession?.collectAsState()?.value
     val observedProfileName = viewModel?.profileName?.collectAsState()?.value
+    val draftQuantitiesState = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
+    val totalDraftCartCount = remember(draftQuantitiesState, viewModel) {
+        viewModel?.totalDraftCartUnits() ?: 0
+    }
 
     val userEvents = remember(viewModel, observedEvents, observedUser, observedGuestSession, observedProfileName) {
         if (viewModel != null) {
@@ -1993,7 +2029,7 @@ internal fun RenderCalendarScreenS39(
                 }
             }
 
-            Spacer(modifier = Modifier.height(110.dp))
+            Spacer(modifier = Modifier.height(88.dp))
         }
     }
 }
@@ -2009,6 +2045,10 @@ internal fun RenderEventDetailScreenS40(
     val observedUser = viewModel?.currentAuthenticatedUser?.collectAsState()?.value
     val observedGuestSession = viewModel?.isExplicitGuestSession?.collectAsState()?.value
     val observedProfileName = viewModel?.profileName?.collectAsState()?.value
+    val draftQuantitiesState = viewModel?.draftQuantities?.collectAsState()?.value.orEmpty()
+    val totalDraftCartCount = remember(draftQuantitiesState, viewModel) {
+        viewModel?.totalDraftCartUnits() ?: 0
+    }
     val activeEvent = remember(viewModel, eventsState, selectedEventId, observedUser, observedGuestSession, observedProfileName) {
         viewModel?.activeClientEventOrNull()
             ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
@@ -2171,158 +2211,89 @@ internal fun RenderEventDetailScreenS40(
                     }
                 }
 
-                Column(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(Color(0xFFFAF5FF))
+                        .border(1.dp, Color(0xFFE5D7FA), RoundedCornerShape(22.dp))
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    val communicationTitle = if (isQuotePendingApproval) {
+                        "Cotización en revisión · Habla con Rosa"
+                    } else {
+                        "Habla con Rosa"
+                    }
+                    val communicationSubtitle = if (isQuotePendingApproval) {
+                        "Nuestro equipo prepara los detalles de tu evento. ¿Quieres ajustar algo ahora?"
+                    } else {
+                        "Coordina cambios, artículos o dudas directo con nuestro equipo."
+                    }
+                    BasicText(
+                        text = communicationTitle,
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 15.sp,
+                            color = Color(0xFF5D34B5),
+                        ),
+                    )
+                    BasicText(
+                        text = communicationSubtitle,
+                        style = TextStyle(
+                            fontFamily = typo.bodyFamily,
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp,
+                            color = RfThemeState.currentPalette.muted,
+                        ),
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Column(
+                        Box(
                             modifier = Modifier
-                                .height(44.dp)
-                                .width(IntrinsicSize.Max),
-                            verticalArrangement = Arrangement.SpaceBetween,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Box(
-                                modifier = Modifier.weight(1f),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText(
-                                    text = "Detalles",
-                                    style = TextStyle(
-                                        fontFamily = typo.bodyFamily,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFD63F98),
-                                    ),
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(2.5.dp)
-                                    .background(Color(0xFFEA4EA9)),
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .height(44.dp)
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFEFE8FD))
                                 .clickable { onSelectScreenCode("s41") },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
                             BasicText(
-                                text = "Chat",
+                                text = "Chat en la app",
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = RfThemeState.currentPalette.muted,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF7A4FD8),
                                 ),
                             )
-                            Box(
-                                modifier = Modifier
-                                    .height(20.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFFFFD45C))
-                                    .padding(horizontal = 6.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText(
-                                    text = "2",
-                                    style = TextStyle(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFF2E1A47),
-                                    ),
-                                )
-                            }
                         }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(Color(0xFFE9E6EE)),
-                    )
-                }
-
-                if (isQuotePendingApproval) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(Color(0xFFFAF5FF))
-                            .border(1.dp, Color(0xFFE5D7FA), RoundedCornerShape(22.dp))
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        BasicText(
-                            text = "Cotización en revisión · Habla con Rosa",
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 15.sp,
-                                color = Color(0xFF5D34B5),
-                            ),
-                        )
-                        BasicText(
-                            text = "Nuestro equipo prepara los detalles y tareas de tu evento. ¿Quieres ajustar algo ahora?",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
-                                color = RfThemeState.currentPalette.muted,
-                            ),
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFE7F9EE))
+                                .clickable {
+                                    viewModel?.openWhatsAppChat(
+                                        message = "Hola Rosa Fiesta, quiero conversar sobre mi solicitud para $eventTitle ($eventSubtitle).",
+                                    )
+                                },
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFEFE8FD))
-                                    .clickable { onSelectScreenCode("s41") },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText(
-                                    text = "Chat en la app",
-                                    style = TextStyle(
-                                        fontFamily = typo.bodyFamily,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = Color(0xFF7A4FD8),
-                                    ),
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(40.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFE7F9EE))
-                                    .clickable {
-                                        viewModel?.openWhatsAppChat(
-                                            message = "Hola Rosa Fiesta, quiero conversar sobre mi solicitud para $eventTitle ($eventSubtitle).",
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                BasicText(
-                                    text = "WhatsApp Rosa",
-                                    style = TextStyle(
-                                        fontFamily = typo.bodyFamily,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = Color(0xFF1E7E45),
-                                    ),
-                                )
-                            }
+                            BasicText(
+                                text = "WhatsApp Rosa",
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF1E7E45),
+                                ),
+                            )
                         }
                     }
                 }
@@ -2330,7 +2301,7 @@ internal fun RenderEventDetailScreenS40(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(110.dp)
+                        .height(88.dp)
                         .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                         .clip(RoundedCornerShape(22.dp))
                         .background(RfThemeState.currentPalette.surface)
@@ -2391,51 +2362,10 @@ internal fun RenderEventDetailScreenS40(
                     }
                 }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 6.dp,
-                            shape = RoundedCornerShape(22.dp),
-                            spotColor = Color(0x60463C8C),
-                            ambientColor = Color(0x20463C8C),
-                        )
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                        .clickable { onSelectScreenCode("s43") }
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        BasicText(
-                            text = "Modo ejecución",
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 18.sp,
-                                color = Color.White,
-                            ),
-                        )
-                        BasicText(
-                            text = "Checklist para el día del evento",
-                            style = TextStyle(
-                                fontFamily = typo.bodyFamily,
-                                fontSize = 13.sp,
-                                color = Color(0xFFE4E2F2),
-                            ),
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .rfIconButtonShadow(CircleShape, isAdmin = false)
-                            .clip(CircleShape)
-                            .background(Color(0xFFFFD45C)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        RfIcon(kind = RfIconKind.PLAY, tint = Color.Black, size = 20.dp, filled = true)
-                    }
+                val tasksSubtitle = if (totalTasksCount == 0) {
+                    "Sin tareas aún · Toca para agregar"
+                } else {
+                    "$completedTasksCount de $totalTasksCount completadas"
                 }
 
                 Column(
@@ -2449,7 +2379,7 @@ internal fun RenderEventDetailScreenS40(
                 ) {
                     ActionMenuRow(
                         title = "Tareas",
-                        subtitle = "$completedTasksCount de $totalTasksCount completadas",
+                        subtitle = tasksSubtitle,
                         icon = RfIconKind.CHECKLIST,
                         iconBg = Color(0xFFDDF4F3),
                         iconTint = Color(0xFF2E9C96),
@@ -2944,9 +2874,9 @@ private fun CountdownUnit(
             style = TextStyle(
                 fontFamily = typo.displayFamily,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 40.sp,
+                fontSize = 22.sp,
                 color = color,
-                lineHeight = 40.sp,
+                lineHeight = 28.sp,
             ),
         )
         BasicText(
@@ -3102,7 +3032,7 @@ internal fun RenderExecutionModeScreenS43(
                         horizontalArrangement = Arrangement.spacedBy(18.dp),
                     ) {
                         Box(
-                            modifier = Modifier.size(84.dp),
+                            modifier = Modifier.size(68.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -3142,7 +3072,7 @@ internal fun RenderExecutionModeScreenS43(
                                     fontFamily = typo.displayFamily,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color.White,
-                                    fontSize = 24.sp,
+                                    fontSize = 20.sp,
                                     lineHeight = 25.sp,
                                     letterSpacing = (-0.5).sp,
                                 ),
@@ -3332,8 +3262,8 @@ internal fun RenderTimelineScreenS44(
     }
 
     var showAddBlockModal by remember { mutableStateOf(false) }
-    var startTimeInput by remember { mutableStateOf("18:00") }
-    var endTimeInput by remember { mutableStateOf("20:00") }
+    var startTimeInput by remember { mutableStateOf("") }
+    var endTimeInput by remember { mutableStateOf("") }
     var blockTitleInput by remember { mutableStateOf("") }
     var blockSubtitleInput by remember { mutableStateOf("") }
     var hasInteractedStartTime by remember { mutableStateOf(false) }
@@ -3782,7 +3712,7 @@ private fun TimelineRow44(
                     modifier = Modifier
                         .padding(top = 28.dp)
                         .width(2.dp)
-                        .height(110.dp)
+                        .height(88.dp)
                         .background(Color(0xFFEADFE7)),
                 )
             }
@@ -3853,14 +3783,7 @@ internal fun RenderTasksScreenS45(
     val event = viewModel?.activeClientEvent() ?: eventsState.first()
     val vmTasks = viewModel?.eventTasksList?.collectAsState()?.value
     var fallbackTasks by remember {
-        mutableStateOf(
-            listOf(
-                EventTaskRowState("tsk-1", "Realizar pago inicial de reserva (30%)", "Vence hoy", true, false),
-                EventTaskRowState("tsk-2", "Inspección técnica de iluminación exterior", "Mañana", false, false),
-                EventTaskRowState("tsk-3", "Confirmar paleta floral blanco y rosa pastel", "18 oct", false, true),
-                EventTaskRowState("tsk-4", "Aprobar plano de mesas imperial y sillas Tiffany", "15 oct", false, true),
-            ),
-        )
+        mutableStateOf(emptyList<EventTaskRowState>())
     }
 
     var showAddTaskModal by remember { mutableStateOf(false) }
@@ -4006,7 +3929,7 @@ internal fun RenderTasksScreenS45(
                             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 BasicText(
                                     text = "$completedCount",
-                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = RfThemeState.currentPalette.ink),
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, color = RfThemeState.currentPalette.ink),
                                 )
                                 BasicText(
                                     text = "de ${taskItems.size} hechas",
@@ -4055,6 +3978,22 @@ internal fun RenderTasksScreenS45(
                         BasicText(
                             text = "Agregar tarea",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
+                        )
+                    }
+                }
+
+                if (taskItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
+                            .padding(18.dp),
+                    ) {
+                        BasicText(
+                            text = "Aún no hay tareas para este evento. Usa «+ Agregar tarea» para crear tu lista.",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 19.sp, color = RfThemeState.currentPalette.muted),
                         )
                     }
                 }
@@ -4739,8 +4678,8 @@ internal fun RenderGuestsScreenS47(
 
     var showAddGuestModal by remember { mutableStateOf(false) }
     var guestNameInput by remember { mutableStateOf("") }
-    var tableLabelInput by remember { mutableStateOf("Mesa 5") }
-    var partySizeInput by remember { mutableStateOf("2") }
+    var tableLabelInput by remember { mutableStateOf("") }
+    var partySizeInput by remember { mutableStateOf("1") }
     var newGuestStatus by remember { mutableStateOf("Confirmado") }
     var hasInteractedGuestName by remember { mutableStateOf(false) }
     var hasInteractedTableLabel by remember { mutableStateOf(false) }
@@ -4819,7 +4758,7 @@ internal fun RenderGuestsScreenS47(
                                 .clickable {
                                     if (isWizardMode) {
                                         viewModel.setGuestsWizardMode(false)
-                                        onSelectScreenCode("BACK:s36")
+                                        onSelectScreenCode("BACK:s32")
                                     } else {
                                         onSelectScreenCode("BACK:s40")
                                     }
@@ -4902,7 +4841,7 @@ internal fun RenderGuestsScreenS47(
                                 )
                                 BasicText(
                                     text = "$confirmedCount",
-                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10), fontSize = 24.sp),
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF4E6A10), fontSize = 20.sp),
                                 )
                             }
                         }
@@ -4933,7 +4872,7 @@ internal fun RenderGuestsScreenS47(
                                 )
                                 BasicText(
                                     text = "$pendingCount",
-                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7A5700), fontSize = 24.sp),
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFF7A5700), fontSize = 20.sp),
                                 )
                             }
                         }
@@ -4964,7 +4903,7 @@ internal fun RenderGuestsScreenS47(
                                 )
                                 BasicText(
                                     text = "$declinedCount",
-                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFB42345), fontSize = 24.sp),
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, color = Color(0xFFB42345), fontSize = 20.sp),
                                 )
                             }
                         }
@@ -5440,6 +5379,24 @@ internal fun RenderGuestsScreenS47(
     }
 }
 
+private enum class ClientQuoteStageS48 {
+    UNKNOWN,
+    PENDING_ADMIN,
+    READY_TO_ACCEPT,
+    SIGNED,
+    DECLINED,
+}
+
+private fun resolveClientQuoteStageS48(rawStatus: String?): ClientQuoteStageS48 {
+    val normalized = rawStatus.orEmpty().trim().uppercase()
+    return when (normalized) {
+        "SIGNED", "FIRMADA", "CONFIRMADA" -> ClientQuoteStageS48.SIGNED
+        "SENT", "ENVIADA", "APPROVED", "APROBADA" -> ClientQuoteStageS48.READY_TO_ACCEPT
+        "DECLINED", "REJECTED", "RECHAZADA", "CANCELLED" -> ClientQuoteStageS48.DECLINED
+        else -> ClientQuoteStageS48.PENDING_ADMIN
+    }
+}
+
 @Composable
 internal fun RenderQuoteScreenS48(
     onSelectScreenCode: (String) -> Unit = {},
@@ -5469,7 +5426,15 @@ internal fun RenderQuoteScreenS48(
     val quoteDateLabel = formatReadableSpanishDateText(activeQuote?.dateLabel ?: fallbackEvent.dateLabel)
     val quoteVenue = activeQuote?.venue ?: fallbackEvent.venue
     val quoteGuests = activeQuote?.guests ?: fallbackEvent.guests
-    val quoteStatusLabel = activeQuote?.status?.ifBlank { "Lista para aprobar" } ?: "Lista para aprobar"
+    val quoteStage = resolveClientQuoteStageS48(activeQuote?.status)
+    val quoteNotes = activeQuote?.notes.orEmpty().trim()
+    val quoteRejectionReason = activeQuote?.rejectionReason.orEmpty().trim()
+    val quoteStatusLabel = when (quoteStage) {
+        ClientQuoteStageS48.READY_TO_ACCEPT -> "Lista para aceptar"
+        ClientQuoteStageS48.SIGNED -> "Aceptada"
+        ClientQuoteStageS48.DECLINED -> "Ajuste solicitado"
+        ClientQuoteStageS48.PENDING_ADMIN, ClientQuoteStageS48.UNKNOWN -> "En revisión"
+    }
 
     val resolvedLines: List<EventLineItem> = remember(activeQuote, fallbackEvent) {
         val quoteLines = activeQuote?.lines.orEmpty()
@@ -5580,10 +5545,10 @@ internal fun RenderQuoteScreenS48(
                     modifier = Modifier.weight(1f),
                 )
 
-                val (statusChipBg, statusChipColor) = when {
-                    quoteStatusLabel.contains("Aprob", ignoreCase = true) -> Color(0xFFEEF6D6) to Color(0xFF4E6A10)
-                    quoteStatusLabel.contains("Rechaz", ignoreCase = true) -> Color(0xFFFCE8E8) to Color(0xFFB42345)
-                    else -> Color(0xFFDDF4F3) to Color(0xFF1F8A84)
+                val (statusChipBg, statusChipColor) = when (quoteStage) {
+                    ClientQuoteStageS48.READY_TO_ACCEPT, ClientQuoteStageS48.SIGNED -> Color(0xFFEEF6D6) to Color(0xFF4E6A10)
+                    ClientQuoteStageS48.DECLINED -> Color(0xFFFCE8E8) to Color(0xFFB42345)
+                    ClientQuoteStageS48.PENDING_ADMIN, ClientQuoteStageS48.UNKNOWN -> Color(0xFFFFF2C9) to Color(0xFF7A5700)
                 }
                 Box(
                     modifier = Modifier
@@ -5709,138 +5674,230 @@ internal fun RenderQuoteScreenS48(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             BasicText("Total", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink))
-                            BasicText("RD$ $totalDop", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, color = RfThemeState.currentPalette.ink))
+                            BasicText("RD$ $totalDop", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = RfThemeState.currentPalette.ink))
                         }
                     }
                 }
             }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                BasicText(
-                    text = "Firma digital del contrato",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
-                )
-                val signerBorderColor = if (signerNameError != null) Color(0xFFB42345) else RfThemeState.currentPalette.line
+            if (quoteStage == ClientQuoteStageS48.PENDING_ADMIN) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(RfThemeState.currentPalette.chipBg)
-                        .border(1.dp, signerBorderColor, RoundedCornerShape(14.dp))
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.CenterStart,
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFFFF7DC))
+                        .border(1.dp, Color(0xFFF3DE9A), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                 ) {
-                    BasicTextField(
-                        value = signerName,
-                        onValueChange = { updatedText ->
-                            signerName = InputValidator.filterPersonNameInput(
-                                rawValue = updatedText,
-                                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFFFE7A3)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.CLOCK, tint = Color(0xFF7A5700), size = 18.dp)
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            BasicText(
+                                text = "En revisión por Rosa Fiesta",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7A5700)),
                             )
-                            hasInteractedSigner = true
-                            localContractError = null
-                        },
-                        singleLine = true,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
-                        cursorBrush = SolidColor(Color(0xFFC2338F)),
-                        modifier = Modifier.fillMaxWidth(),
-                        decorationBox = { innerTextField ->
-                            if (signerName.isEmpty()) {
-                                BasicText(
-                                    text = "Escribe tu nombre completo para firmar",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
-                                )
-                            }
-                            innerTextField()
-                        },
+                            BasicText(
+                                text = "Nuestro equipo está revisando disponibilidad, transporte y detalles finales. Cuando aprueben y envíen tu cotización oficial, podrás aceptarla y firmar el contrato aquí.",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, lineHeight = 19.sp, color = RfThemeState.currentPalette.ink),
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (quoteStage == ClientQuoteStageS48.SIGNED) {
+                val signedByDisplay = activeQuote?.signedByName.orEmpty().trim().ifBlank { quoteTitle }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFEEF6D6))
+                        .border(1.dp, Color(0xFFD5E6A3), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 20.dp)
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            BasicText(
+                                text = "Cotización aceptada y firmada",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF4E6A10)),
+                            )
+                            BasicText(
+                                text = "Firmado digitalmente por $signedByDisplay · Anticipo 30%: RD$ ${(totalDop * 30) / 100}",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.ink),
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (quoteStage == ClientQuoteStageS48.DECLINED) {
+                val reasonDisplay = quoteRejectionReason.ifBlank { "Solicitaste un ajuste antes de aceptar esta propuesta." }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFFCE8E8))
+                        .border(1.dp, Color(0xFFF5B6C4), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                        RfIcon(kind = RfIconKind.INFO, tint = Color(0xFFB42345), size = 18.dp)
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            BasicText(
+                                text = "Ajuste solicitado",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFB42345)),
+                            )
+                            BasicText(
+                                text = reasonDisplay,
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = RfThemeState.currentPalette.ink),
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (quoteStage == ClientQuoteStageS48.READY_TO_ACCEPT) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    BasicText(
+                        text = "Firma digital del contrato",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = RfThemeState.currentPalette.ink),
                     )
-                }
-                RfValidationErrorText(errorMessage = signerNameError)
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(74.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (isSignatureAccepted) Color(0xFFFDF5FA) else RfThemeState.currentPalette.chipBg)
-                        .border(
-                            1.5.dp,
-                            if (isSignatureAccepted) Color(0xFFC2338F) else RfThemeState.currentPalette.line,
-                            RoundedCornerShape(16.dp),
-                        )
-                        .clickable {
-                            isSignatureAccepted = !isSignatureAccepted
-                            localContractError = null
-                        }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        ChecklistBox46(checked = isSignatureAccepted, ringColor = Color(0xFFCDBFCB))
-                        Column(modifier = Modifier.weight(1f)) {
-                            BasicText(
-                                text = if (isSignatureAccepted) "Firma digital aplicada" else "Aceptar y firmar contrato digital",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink),
-                            )
-                            BasicText(
-                                text = "Anticipo de reserva: 30% (RD$ ${(totalDop * 30) / 100})",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
-                            )
-                        }
-                        if (isSignatureAccepted) {
-                            Canvas(modifier = Modifier.width(68.dp).height(34.dp)) {
-                                val sigPath = Path().apply {
-                                    moveTo(size.width * 0.08f, size.height * 0.72f)
-                                    cubicTo(
-                                        size.width * 0.28f,
-                                        size.height * 0.14f,
-                                        size.width * 0.55f,
-                                        size.height * 0.85f,
-                                        size.width * 0.92f,
-                                        size.height * 0.30f,
-                                    )
-                                }
-                                drawPath(sigPath, color = Color(0xFFC2338F), style = Stroke(width = 2.5f * density))
-                            }
-                        }
-                    }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFFFF2C9))
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val signerBorderColor = if (signerNameError != null) Color(0xFFB42345) else RfThemeState.currentPalette.line
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(RfThemeState.currentPalette.surface),
-                        contentAlignment = Alignment.Center,
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(RfThemeState.currentPalette.chipBg)
+                            .border(1.dp, signerBorderColor, RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.CenterStart,
                     ) {
-                        BasicText("M", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF7A5700)))
+                        BasicTextField(
+                            value = signerName,
+                            onValueChange = { updatedText ->
+                                signerName = InputValidator.filterPersonNameInput(
+                                    rawValue = updatedText,
+                                    maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                                )
+                                hasInteractedSigner = true
+                                localContractError = null
+                            },
+                            singleLine = true,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                if (signerName.isEmpty()) {
+                                    BasicText(
+                                        text = "Escribe tu nombre completo para firmar",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
+                                    )
+                                }
+                                innerTextField()
+                            },
+                        )
                     }
-                    Column {
-                        BasicText("Nota de María · Rosa Fiesta", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF7A5700)))
-                        BasicText("Incluye transporte, montaje puntual y revisión final en salón.", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.ink))
+                    RfValidationErrorText(errorMessage = signerNameError)
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(74.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (isSignatureAccepted) Color(0xFFFDF5FA) else RfThemeState.currentPalette.chipBg)
+                            .border(
+                                1.5.dp,
+                                if (isSignatureAccepted) Color(0xFFC2338F) else RfThemeState.currentPalette.line,
+                                RoundedCornerShape(16.dp),
+                            )
+                            .clickable {
+                                isSignatureAccepted = !isSignatureAccepted
+                                localContractError = null
+                            }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            ChecklistBox46(checked = isSignatureAccepted, ringColor = Color(0xFFCDBFCB))
+                            Column(modifier = Modifier.weight(1f)) {
+                                BasicText(
+                                    text = if (isSignatureAccepted) "Firma digital aplicada" else "Aceptar y firmar contrato digital",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink),
+                                )
+                                BasicText(
+                                    text = "Anticipo de reserva: 30% (RD$ ${(totalDop * 30) / 100})",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = RfThemeState.currentPalette.muted),
+                                )
+                            }
+                            if (isSignatureAccepted) {
+                                Canvas(modifier = Modifier.width(68.dp).height(34.dp)) {
+                                    val sigPath = Path().apply {
+                                        moveTo(size.width * 0.08f, size.height * 0.72f)
+                                        cubicTo(
+                                            size.width * 0.28f,
+                                            size.height * 0.14f,
+                                            size.width * 0.55f,
+                                            size.height * 0.85f,
+                                            size.width * 0.92f,
+                                            size.height * 0.30f,
+                                        )
+                                    }
+                                    drawPath(sigPath, color = Color(0xFFC2338F), style = Stroke(width = 2.5f * density))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (quoteNotes.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFEFE8FD))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(RfThemeState.currentPalette.surface),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            RfIcon(kind = RfIconKind.INFO, tint = Color(0xFF7A4FD8), size = 18.dp)
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            BasicText("Notas de la cotización", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF5D3AA8)))
+                            BasicText(quoteNotes, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = RfThemeState.currentPalette.ink))
+                        }
                     }
                 }
             }
@@ -5854,83 +5911,138 @@ internal fun RenderQuoteScreenS48(
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(RosaButtonGradient)
-                    .clickable {
-                        hasInteractedSigner = true
-                        forceShowSignerError = true
-                        val cleanSigner = signerName.trim()
-                        val signerValidationError = InputValidator.validateFullName(cleanSigner)
-                        if (signerValidationError != null) {
-                            localContractError = signerValidationError
-                            viewModel?.postError(signerValidationError)
-                        } else if (!isSignatureAccepted) {
-                            val missingCheckMsg = "Marca la firma digital del contrato antes de aprobar."
-                            localContractError = missingCheckMsg
-                            viewModel?.postError(missingCheckMsg)
-                        } else {
-                            val generatedSignatureSvg = "<svg viewBox='0 0 180 48'><path d='M12 34 Q52 8 94 28 T168 20' stroke='#C2338F' stroke-width='3' fill='none'/></svg>"
-                            if (viewModel != null) {
-                                val resolvedQuoteId = activeQuote?.id
-                                    ?: viewModel.syncDraftToOfficialQuote()?.id
-                                    ?: viewModel.selectedQuoteId.value
-                                val approvedRecord = viewModel.approveQuoteById(
-                                    quoteId = resolvedQuoteId,
-                                    signedByName = cleanSigner,
-                                    signatureSvg = generatedSignatureSvg,
-                                )
-                                if (approvedRecord != null) {
-                                    localContractError = null
-                                    viewModel.setPaymentCheckoutMode("DEPOSIT")
-                                    onSelectScreenCode("s50")
+            when (quoteStage) {
+                ClientQuoteStageS48.READY_TO_ACCEPT -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RosaButtonGradient)
+                            .clickable {
+                                hasInteractedSigner = true
+                                forceShowSignerError = true
+                                val cleanSigner = signerName.trim()
+                                val signerValidationError = InputValidator.validateFullName(cleanSigner)
+                                if (signerValidationError != null) {
+                                    localContractError = signerValidationError
+                                    viewModel?.postError(signerValidationError)
+                                } else if (!isSignatureAccepted) {
+                                    val missingCheckMsg = "Marca la firma digital del contrato antes de aceptar."
+                                    localContractError = missingCheckMsg
+                                    viewModel?.postError(missingCheckMsg)
                                 } else {
-                                    localContractError = viewModel.formError.value ?: "No se pudo firmar la cotización."
+                                    val generatedSignatureSvg = "<svg viewBox='0 0 180 48'><path d='M12 34 Q52 8 94 28 T168 20' stroke='#C2338F' stroke-width='3' fill='none'/></svg>"
+                                    if (viewModel != null) {
+                                        val resolvedQuoteId = activeQuote?.id ?: viewModel.selectedQuoteId.value
+                                        val approvedRecord = viewModel.approveQuoteById(
+                                            quoteId = resolvedQuoteId,
+                                            signedByName = cleanSigner,
+                                            signatureSvg = generatedSignatureSvg,
+                                        )
+                                        if (approvedRecord != null) {
+                                            localContractError = null
+                                            viewModel.setPaymentCheckoutMode("DEPOSIT")
+                                            onSelectScreenCode("s50")
+                                        } else {
+                                            localContractError = viewModel.formError.value ?: "No se pudo firmar la cotización."
+                                        }
+                                    } else {
+                                        localContractError = null
+                                        onSelectScreenCode("s50")
+                                    }
                                 }
-                            } else {
-                                localContractError = null
-                                onSelectScreenCode("s50")
-                            }
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText(
-                    text = "Aprobar cotización",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = Color.White,
-                    ),
-                )
-            }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Aceptar y firmar cotización",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color.White,
+                            ),
+                        )
+                    }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clickable {
-                        if (activeQuote != null) {
-                            viewModel?.declineQuoteById(activeQuote.id, "Solicita ajuste")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clickable {
+                                if (activeQuote != null) {
+                                    viewModel?.declineQuoteById(activeQuote.id, "Solicita ajuste")
+                                }
+                                onSelectScreenCode("s42")
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Rechazar / Solicitar ajuste",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = Color(0xFFB42345),
+                            ),
+                        )
+                    }
+                }
+
+                ClientQuoteStageS48.SIGNED -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RosaButtonGradient)
+                            .clickable {
+                                viewModel?.setPaymentCheckoutMode("DEPOSIT")
+                                onSelectScreenCode("s50")
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Ir a pagos y recibos",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                        )
+                    }
+                }
+
+                ClientQuoteStageS48.PENDING_ADMIN, ClientQuoteStageS48.DECLINED, ClientQuoteStageS48.UNKNOWN -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(54.dp)
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RosaButtonGradient)
+                            .clickable { onSelectScreenCode("BACK:s40") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "Volver a mis eventos",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
+                        )
+                    }
+                    if (quoteStage == ClientQuoteStageS48.PENDING_ADMIN) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(42.dp)
+                                .clickable { onSelectScreenCode("s31") },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = "Editar detalles del evento",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF7A4FD8)),
+                            )
                         }
-                        onSelectScreenCode("s42")
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText(
-                    text = "Rechazar / Solicitar ajuste",
-                    style = TextStyle(
-                        fontFamily = typo.bodyFamily,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = Color(0xFFB42345),
-                    ),
-                )
+                    }
+                }
             }
         }
     }

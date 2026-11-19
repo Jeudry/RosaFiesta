@@ -64,13 +64,53 @@ public data class CatalogArticle(
     public val availableOct23: Int,
     public val photo: PhotoAsset,
     public val variants: List<String>,
-    public val dimensions: String = "Estándar",
-    public val material: String = "Resina y acabado premium",
+    public val dimensions: String = "",
+    public val material: String = "",
     public val visibleInCatalog: Boolean = true,
+    public val photoUrl: String = "",
+    public val damagedStock: Int = 0,
 ) {
     public val formattedDailyRate: String
         get() = RosaFiestaEngine.formatDailyRateDop(pricePerDayDop)
 }
+
+/**
+ * Categoría administrativa del catálogo de artículos (`A40`, `A09`, `A10`, `s18`, `s19`).
+ */
+public data class CatalogCategory(
+    public val id: String,
+    public val name: String,
+    public val illoKey: String = "mobiliario",
+    public val itemCount: Int = 0,
+)
+
+/**
+ * Tendencia estacional configurable desde Admin y visible en Inicio Personal (`A41`, `s14`, `s15`).
+ */
+public data class CatalogTrend(
+    public val id: String,
+    public val title: String,
+    public val eventsLabel: String = "",
+    public val photo: PhotoAsset = PhotoAsset.BODA,
+    public val photoUrl: String = "",
+    public val photoBgHex: String = "#F3EEF6",
+    public val linkedCategory: String = "",
+    public val linkedPackageId: String = "",
+    public val sortOrder: Int = 0,
+    public val active: Boolean = true,
+)
+
+/**
+ * Banner configurable de temporada mostrado en la portada de Inicio Personal (`A41`, `s14`, `s15`).
+ */
+public data class SeasonBanner(
+    public val id: String = "default",
+    public val badgeLabel: String = "",
+    public val title: String = "",
+    public val ctaLabel: String = "",
+    public val targetScreenCode: String = "s21",
+    public val active: Boolean = false,
+)
 
 /**
  * Paquete preconfigurado de evento (`s21`, `s22`, `A24`).
@@ -86,6 +126,7 @@ public data class EventPackage(
     public val includedItems: List<String>,
     public val eventType: String = "Boda",
     public val visibleInCatalog: Boolean = true,
+    public val photoUrl: String = "",
 )
 
 /**
@@ -154,6 +195,14 @@ public data class ClientEvent(
     public val clientEmail: String = "",
     public val cancellationReason: String = "",
     public val sketchJson: String = "",
+    public val eventDateIso: String = "",
+    public val pickupDateIso: String = "",
+    public val returnDateIso: String = "",
+    public val quoteId: String = "",
+    public val closeoutCompleted: Boolean = false,
+    public val closeoutNotes: String = "",
+    public val lastPaymentReminderAt: String = "",
+    public val lastPaymentReminderChannel: String = "",
 ) {
     public val balanceDop: Int
         get() = (totalDop - paidDepositDop).coerceAtLeast(0)
@@ -177,6 +226,19 @@ public data class PaymentRecord(
     public val dateLabel: String,
     public val referenceCode: String,
     public val verified: Boolean,
+    public val voucherUrl: String = "",
+    public val referenceNumber: String = "",
+    public val verifiedBy: String = "",
+    public val verifiedAtIso: String = "",
+    public val rejectionReason: String = "",
+    public val ncfType: String = "B02",
+    public val ncfNumber: String = "",
+    public val clientRnc: String = "",
+    public val subtotalDop: Int = 0,
+    public val itbisDop: Int = 0,
+    public val securityDepositDop: Int = 0,
+    public val gatewaySessionId: String = "",
+    public val gatewayPaymentIntentId: String = "",
 )
 
 /**
@@ -218,6 +280,9 @@ public data class DamageIncident(
     public val notes: String,
     public val eventId: String = "evt-boda-real",
     public val articleCode: String = "RF-004",
+    public val photoUrl: String = "",
+    public val resolutionNotes: String = "",
+    public val chargePaymentId: String = "",
 )
 
 /**
@@ -229,6 +294,9 @@ public data class OfflineQueueItem(
     public val entityCode: String,
     public val timeAgo: String,
     public val synced: Boolean,
+    public val operationType: String = "",
+    public val payloadJson: String = "{}",
+    public val idempotencyKey: String = "",
 )
 
 /**

@@ -40,6 +40,7 @@ var (
 	ErrUserNotFound                = errors.New("account not found")
 	ErrOTPInvalidOrExpired         = errors.New("verification code is invalid or expired")
 	ErrResetTokenInvalid           = errors.New("password reset token is missing, invalid, or expired")
+	ErrSMTPNotConfigured           = errors.New("smtp email provider is not configured on server")
 	ErrOAuthProviderNotConfigured  = errors.New("oauth provider is not configured on server")
 	ErrOAuthInvalidToken           = errors.New("oauth identity token is invalid or expired")
 )
@@ -50,24 +51,83 @@ var canonicalStaffPermissions = map[string]struct{}{
 	"tareas":     {},
 	"inventario": {},
 	"pagos":      {},
+	"finanzas":   {},
 	"reembolsos": {},
 	"reportes":   {},
 	"ajustes":    {},
 }
 
+type UserPreferences struct {
+	PushNotificationsEnabled bool `json:"pushNotificationsEnabled"`
+	WhatsAppAlertsEnabled    bool `json:"whatsappAlertsEnabled"`
+	EmailReceiptsEnabled     bool `json:"emailReceiptsEnabled"`
+	BiometricLockEnabled     bool `json:"biometricLockEnabled"`
+	AutoSyncWifiOnly         bool `json:"autoSyncWifiOnly"`
+}
+
+func DefaultUserPreferences() UserPreferences {
+	return UserPreferences{
+		PushNotificationsEnabled: true,
+		WhatsAppAlertsEnabled:    true,
+		EmailReceiptsEnabled:     true,
+		BiometricLockEnabled:     false,
+		AutoSyncWifiOnly:         false,
+	}
+}
+
 type User struct {
-	ID           uuid.UUID `json:"id"`
-	Username     string    `json:"username"`
-	FullName     string    `json:"fullName"`
-	Email        string    `json:"email"`
-	Phone        string    `json:"phone"`
-	BirthDate    string    `json:"birthDate"`
-	AvatarKey    string    `json:"avatarKey,omitempty"`
-	Role         Role      `json:"role"`
-	Permissions  []string  `json:"permissions"`
-	ActiveView   AppView   `json:"activeView"`
-	CreatedAt    time.Time `json:"createdAt"`
-	PasswordHash string    `json:"-"`
+	ID           uuid.UUID       `json:"id"`
+	Username     string          `json:"username"`
+	FullName     string          `json:"fullName"`
+	Email        string          `json:"email"`
+	Phone        string          `json:"phone"`
+	BirthDate    string          `json:"birthDate"`
+	AvatarKey    string          `json:"avatarKey,omitempty"`
+	Role         Role            `json:"role"`
+	Permissions  []string        `json:"permissions"`
+	ActiveView   AppView         `json:"activeView"`
+	Preferences  UserPreferences `json:"preferences"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	PasswordHash string          `json:"-"`
+}
+
+type DevicePushToken struct {
+	ID         uuid.UUID `json:"id"`
+	UserID     uuid.UUID `json:"userId"`
+	Platform   string    `json:"platform"`
+	Token      string    `json:"token"`
+	AppVariant string    `json:"appVariant"`
+	Enabled    bool      `json:"enabled"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
+var allowedPushPlatforms = map[string]struct{}{
+	"android": {},
+	"ios":     {},
+	"web":     {},
+	"desktop": {},
+}
+
+func NormalizePushPlatform(raw string) (string, error) {
+	clean := strings.ToLower(strings.TrimSpace(raw))
+	if _, ok := allowedPushPlatforms[clean]; ok {
+		return clean, nil
+	}
+	return "", ErrInvalidInput
+}
+
+func NormalizeAppVariant(raw string) (string, error) {
+	clean := strings.ToLower(strings.TrimSpace(raw))
+	if clean == "" {
+		return "personal", nil
+	}
+	if clean == "personal" {
+		return "personal", nil
+	}
+	if clean == "admin" {
+		return "admin", nil
+	}
+	return "", ErrInvalidInput
 }
 
 func (u User) CanAccessView(view AppView) bool {

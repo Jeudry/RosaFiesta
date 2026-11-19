@@ -6,6 +6,23 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<!-- Permite hablar con el servidor local (localhost) por http en desarrollo; el resto exige https. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.jeudry.rosafiesta.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>rosafiesta</string>
+			</array>
+		</dict>
+	</array>
+	<key>RosaFiestaApiUrl</key>
+	<string></string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

@@ -1,6 +1,15 @@
 package com.jeudry.rosafiesta.domain.validation
 
+import com.jeudry.rosafiesta.domain.DomainClockFormatter
 import kotlin.math.roundToLong
+
+/**
+ * Result of applying a digit-preserving mask edit together with its updated caret offset.
+ */
+public data class MaskedTextCursorResult(
+    public val text: String,
+    public val cursorIndex: Int,
+)
 
 /**
  * Pure domain validator, input mask filter, and presentation formatter for forms across RosaFiesta.
@@ -21,7 +30,9 @@ public object InputValidator {
     public const val MAX_PHONE_DIGITS: Int = 15
     public const val MAX_PHONE_LENGTH: Int = 18
     public const val MAX_BIRTH_DATE_LENGTH: Int = 10
-    public const val MIN_BIRTH_YEAR: Int = 1925
+    public const val MIN_AGE_YEARS: Int = 16
+    public const val MAX_AGE_YEARS: Int = 130
+    public const val MIN_BIRTH_YEAR: Int = 1896
     public const val MAX_BIRTH_YEAR: Int = 2010
 
     public const val MIN_BUSINESS_NAME_LENGTH: Int = 2
@@ -226,7 +237,19 @@ public object InputValidator {
     }
 
     /**
-     * Validates a birth date in DD/MM/YYYY format within the allowed year range (1925..2010).
+     * Returns dynamic `(minBirthYmd, maxBirthYmd)` bounds enforcing ages in [MIN_AGE_YEARS]..[MAX_AGE_YEARS].
+     */
+    public fun birthDateBounds(): Pair<Triple<Int, Int, Int>, Triple<Int, Int, Int>> {
+        val today = DomainClockFormatter.currentCivilDateTriple()
+        val minYear = today.first - MAX_AGE_YEARS
+        val maxYear = today.first - MIN_AGE_YEARS
+        val minDay = today.third.coerceAtMost(maxDaysInMonth(month = today.second, year = minYear))
+        val maxDay = today.third.coerceAtMost(maxDaysInMonth(month = today.second, year = maxYear))
+        return Triple(minYear, today.second, minDay) to Triple(maxYear, today.second, maxDay)
+    }
+
+    /**
+     * Validates a birth date in DD/MM/YYYY format ensuring user age is within 16..130 years.
      */
     public fun validateBirthDate(rawValue: String, isRequired: Boolean = true): String? {
         val trimmed = rawValue.trim()
@@ -250,14 +273,26 @@ public object InputValidator {
         if (isMonthOutOfRange) {
             return "El mes de nacimiento debe estar entre 01 y 12."
         }
-        val isYearOutOfRange = year !in MIN_BIRTH_YEAR..MAX_BIRTH_YEAR
-        if (isYearOutOfRange) {
-            return "El año de nacimiento debe estar entre $MIN_BIRTH_YEAR y $MAX_BIRTH_YEAR."
+        val (minBirthYmd, maxBirthYmd) = birthDateBounds()
+        val isYearTooOld = year < minBirthYmd.first
+        val isYearTooRecent = year > maxBirthYmd.first
+        val todayYmd = DomainClockFormatter.currentCivilDateTriple()
+        val candidateYmd = Triple(year, month, day)
+        if (compareYmd(candidateYmd, todayYmd) > 0) {
+            return "La fecha de nacimiento no puede estar en el futuro."
         }
         val maxDayInMonth = maxDaysInMonth(month = month, year = year)
         val isDayOutOfRange = day !in 1..maxDayInMonth
         if (isDayOutOfRange) {
             return "El día $day no es válido para el mes indicado (máximo $maxDayInMonth)."
+        }
+        val isBeforeMinBirth = if (isYearTooOld) true else compareYmd(candidateYmd, minBirthYmd) < 0
+        if (isBeforeMinBirth) {
+            return "La edad máxima permitida es de $MAX_AGE_YEARS años."
+        }
+        val isAfterMaxBirth = if (isYearTooRecent) true else compareYmd(candidateYmd, maxBirthYmd) > 0
+        if (isAfterMaxBirth) {
+            return "Debes tener al menos $MIN_AGE_YEARS años para registrarte en Rosa Fiesta."
         }
         return null
     }
@@ -384,6 +419,48 @@ public object InputValidator {
     )
 
     /**
+     * Validates a catalog category display name (2..40 characters).
+     */
+    public fun validateCategoryName(
+        rawValue: String,
+        isRequired: Boolean = true,
+    ): String? = validateEntityName(
+        rawValue = rawValue,
+        fieldLabel = "El nombre de la categoría",
+        minLength = MIN_NAME_LENGTH,
+        maxLength = 40,
+        isRequired = isRequired,
+    )
+
+    /**
+     * Validates a catalog trend card title (2..50 characters).
+     */
+    public fun validateTrendTitle(
+        rawValue: String,
+        isRequired: Boolean = true,
+    ): String? = validateEntityName(
+        rawValue = rawValue,
+        fieldLabel = "El título de la tendencia",
+        minLength = MIN_NAME_LENGTH,
+        maxLength = 50,
+        isRequired = isRequired,
+    )
+
+    /**
+     * Validates the main seasonal hero banner headline (2..80 characters).
+     */
+    public fun validateSeasonBannerTitle(
+        rawValue: String,
+        isRequired: Boolean = true,
+    ): String? = validateEntityName(
+        rawValue = rawValue,
+        fieldLabel = "El título del banner",
+        minLength = MIN_NAME_LENGTH,
+        maxLength = 80,
+        isRequired = isRequired,
+    )
+
+    /**
      * Validates an event title.
      */
     public fun validateEventName(
@@ -486,20 +563,104 @@ public object InputValidator {
     }
 
     /**
-     * Validates an event or booking date in DD/MM/YYYY format within [minYear]..[maxYear].
+     * Validates an event or booking date in DD/MM/YYYY (or `DD/MM/YYYY - DD/MM/YYYY` range) format.
+     * By default rejects dates in the past unless [allowPast] is true.
      */
     public fun validateEventDate(
         rawValue: String,
         isRequired: Boolean = true,
         minYear: Int = MIN_EVENT_YEAR,
         maxYear: Int = MAX_EVENT_YEAR,
-    ): String? = validateDateInRange(
-        rawValue = rawValue,
-        fieldLabel = "La fecha del evento",
-        isRequired = isRequired,
-        minYear = minYear,
-        maxYear = maxYear,
-    )
+        allowPast: Boolean = false,
+    ): String? {
+        val trimmed = rawValue.trim()
+        if (trimmed.isEmpty()) {
+            if (isRequired) return "La fecha del evento es obligatoria."
+            return null
+        }
+        if (trimmed.contains(" - ")) {
+            val rangeParts = trimmed.split(" - ")
+            if (rangeParts.size != 2) {
+                return "La fecha del evento debe usar el formato DD/MM/AAAA."
+            }
+            val startRaw = rangeParts[0].trim()
+            val endRaw = rangeParts[1].trim()
+            val startError = validateSingleEventDate(startRaw, minYear, maxYear, allowPast)
+            if (startError != null) return startError
+            val endError = validateSingleEventDate(endRaw, minYear, maxYear, allowPast)
+            if (endError != null) return endError
+            val startParsed = parseDateTriple(startRaw) ?: return "La fecha inicial no es válida."
+            val endParsed = parseDateTriple(endRaw) ?: return "La fecha final no es válida."
+            val startYmd = Triple(startParsed.third, startParsed.second, startParsed.first)
+            val endYmd = Triple(endParsed.third, endParsed.second, endParsed.first)
+            if (compareYmd(endYmd, startYmd) < 0) {
+                return "La fecha final debe ser igual o posterior a la fecha inicial."
+            }
+            return null
+        }
+        return validateSingleEventDate(trimmed, minYear, maxYear, allowPast)
+    }
+
+    /**
+     * Validates a recorded payment date in DD/MM/YYYY format ensuring it is not in the future.
+     */
+    public fun validatePaymentDate(
+        rawValue: String,
+        isRequired: Boolean = true,
+        minYear: Int = MIN_EVENT_YEAR,
+    ): String? {
+        val todayYmd = DomainClockFormatter.currentCivilDateTriple()
+        val formatError = validateDateInRange(
+            rawValue = rawValue,
+            fieldLabel = "La fecha de pago",
+            isRequired = isRequired,
+            minYear = minYear,
+            maxYear = todayYmd.first,
+        )
+        if (formatError != null) return formatError
+        val trimmed = rawValue.trim()
+        if (trimmed.isEmpty()) return null
+        val parsed = parseDateTriple(trimmed) ?: return "La fecha de pago no es válida."
+        val candidateYmd = Triple(parsed.third, parsed.second, parsed.first)
+        if (compareYmd(candidateYmd, todayYmd) > 0) {
+            return "La fecha de pago no puede estar en el futuro."
+        }
+        return null
+    }
+
+    private fun validateSingleEventDate(
+        trimmed: String,
+        minYear: Int,
+        maxYear: Int,
+        allowPast: Boolean,
+    ): String? {
+        val formatError = validateDateInRange(
+            rawValue = trimmed,
+            fieldLabel = "La fecha del evento",
+            isRequired = true,
+            minYear = minYear,
+            maxYear = maxYear,
+        )
+        if (formatError != null) return formatError
+        if (!allowPast) {
+            val parsed = parseDateTriple(trimmed) ?: return "La fecha del evento no es válida."
+            val todayYmd = DomainClockFormatter.currentCivilDateTriple()
+            val candidateYmd = Triple(parsed.third, parsed.second, parsed.first)
+            if (compareYmd(candidateYmd, todayYmd) < 0) {
+                return "La fecha del evento no puede estar en el pasado."
+            }
+        }
+        return null
+    }
+
+    private fun compareYmd(
+        firstYmd: Triple<Int, Int, Int>,
+        secondYmd: Triple<Int, Int, Int>,
+    ): Int {
+        if (firstYmd.first != secondYmd.first) return firstYmd.first.compareTo(secondYmd.first)
+        if (firstYmd.second != secondYmd.second) return firstYmd.second.compareTo(secondYmd.second)
+        return firstYmd.third.compareTo(secondYmd.third)
+    }
 
     /**
      * Validates a 24-hour clock string in HH:mm format.
@@ -1044,6 +1205,137 @@ public object InputValidator {
     }
 
     /**
+     * Applies progressive Dominican phone masking while preserving the logical digit cursor offset.
+     */
+    public fun filterPhoneInputWithCursor(
+        previousFormatted: String,
+        newRawText: String,
+        newSelectionEnd: Int,
+    ): MaskedTextCursorResult = applyDigitMaskEdit(
+        previousFormatted = previousFormatted,
+        newRawText = newRawText,
+        newSelectionEnd = newSelectionEnd,
+        maxDigits = 11,
+        formatter = ::filterPhoneInput,
+    )
+
+    /**
+     * Applies progressive Dominican RNC masking while preserving the logical digit cursor offset.
+     */
+    public fun filterRncInputWithCursor(
+        previousFormatted: String,
+        newRawText: String,
+        newSelectionEnd: Int,
+    ): MaskedTextCursorResult = applyDigitMaskEdit(
+        previousFormatted = previousFormatted,
+        newRawText = newRawText,
+        newSelectionEnd = newSelectionEnd,
+        maxDigits = RNC_PERSONAL_DIGITS,
+        formatter = ::filterRncInput,
+    )
+
+    /**
+     * Applies a digit-based formatting mask without reversing or trapping the caret around mask punctuation.
+     */
+    public fun applyDigitMaskEdit(
+        previousFormatted: String,
+        newRawText: String,
+        newSelectionEnd: Int,
+        maxDigits: Int,
+        formatter: (String) -> String,
+    ): MaskedTextCursorResult {
+        val clampedSelection = newSelectionEnd.coerceIn(0, newRawText.length)
+        val previousDigits = filterDigitsOnly(previousFormatted, maxDigits)
+        val rawDigits = filterDigitsOnly(newRawText, maxDigits)
+        val digitsBeforeCursor = countDigitsUpTo(newRawText, clampedSelection)
+        val isShorterByOneChar = newRawText.length == previousFormatted.length - 1
+        val keptAllDigits = rawDigits == previousDigits
+        val hasDigitsBefore = digitsBeforeCursor > 0
+        val deletedMaskSeparatorOnly = if (isShorterByOneChar) {
+            if (keptAllDigits) hasDigitsBefore else false
+        } else {
+            false
+        }
+        val effectiveInput = if (deletedMaskSeparatorOnly) {
+            removeDigitAtOrdinal(rawDigits, digitsBeforeCursor - 1)
+        } else {
+            newRawText
+        }
+        val targetDigitsBefore = if (deletedMaskSeparatorOnly) {
+            (digitsBeforeCursor - 1).coerceAtLeast(0)
+        } else {
+            digitsBeforeCursor.coerceAtMost(maxDigits)
+        }
+        val formattedText = formatter(effectiveInput)
+        val nextCursor = findCursorIndexAfterDigits(formattedText, targetDigitsBefore)
+        return MaskedTextCursorResult(text = formattedText, cursorIndex = nextCursor)
+    }
+
+    /**
+     * Extracts up to [maxInitials] uppercase alphanumeric initials from a display name, ignoring parentheses or symbols.
+     */
+    public fun extractInitials(
+        fullName: String,
+        fallback: String = "RF",
+        maxInitials: Int = 2,
+    ): String {
+        val initialsLimit = maxInitials.coerceAtLeast(1)
+        val initials = fullName
+            .trim()
+            .split(" ")
+            .mapNotNull { word -> word.firstOrNull { ch -> ch.isLetterOrDigit() }?.uppercaseChar()?.toString() }
+            .take(initialsLimit)
+            .joinToString("")
+        return initials.ifEmpty { fallback }
+    }
+
+    /**
+     * Filters numeric input to [maxDigits] digits while preserving logical caret position.
+     */
+    public fun filterDigitsOnlyWithCursor(
+        previousFormatted: String,
+        newRawText: String,
+        newSelectionEnd: Int,
+        maxDigits: Int,
+    ): MaskedTextCursorResult = applyDigitMaskEdit(
+        previousFormatted = previousFormatted,
+        newRawText = newRawText,
+        newSelectionEnd = newSelectionEnd,
+        maxDigits = maxDigits,
+        formatter = { rawValue -> filterDigitsOnly(rawValue, maxDigits) },
+    )
+
+    /**
+     * Applies progressive `MM/AA` card expiry masking while preserving logical caret position.
+     */
+    public fun filterCardExpiryInputWithCursor(
+        previousFormatted: String,
+        newRawText: String,
+        newSelectionEnd: Int,
+    ): MaskedTextCursorResult = applyDigitMaskEdit(
+        previousFormatted = previousFormatted,
+        newRawText = newRawText,
+        newSelectionEnd = newSelectionEnd,
+        maxDigits = 4,
+        formatter = ::filterCardExpiryInput,
+    )
+
+    /**
+     * Applies progressive 24-hour `HH:mm` time masking while preserving logical caret position.
+     */
+    public fun filterTimeInputWithCursor(
+        previousFormatted: String,
+        newRawText: String,
+        newSelectionEnd: Int,
+    ): MaskedTextCursorResult = applyDigitMaskEdit(
+        previousFormatted = previousFormatted,
+        newRawText = newRawText,
+        newSelectionEnd = newSelectionEnd,
+        maxDigits = 4,
+        formatter = ::filterTimeInput,
+    )
+
+    /**
      * Applies progressive Dominican RNC masking (`X-XX-XXXXX-X` for 9 digits, `XXX-XXXXXXX-X` for 11 digits).
      */
     public fun filterRncInput(rawValue: String): String {
@@ -1523,5 +1815,45 @@ public object InputValidator {
         val divisibleBy100 = year % 100 == 0
         if (divisibleBy100) return false
         return year % 4 == 0
+    }
+
+    private fun countDigitsUpTo(
+        rawValue: String,
+        endIndex: Int,
+    ): Int {
+        var count = 0
+        val limit = endIndex.coerceIn(0, rawValue.length)
+        for (index in 0 until limit) {
+            if (rawValue[index].isDigit()) {
+                count += 1
+            }
+        }
+        return count
+    }
+
+    private fun removeDigitAtOrdinal(
+        digitsOnly: String,
+        ordinalIndex: Int,
+    ): String {
+        if (ordinalIndex < 0) return digitsOnly
+        if (ordinalIndex >= digitsOnly.length) return digitsOnly
+        return digitsOnly.removeRange(ordinalIndex, ordinalIndex + 1)
+    }
+
+    private fun findCursorIndexAfterDigits(
+        formattedValue: String,
+        targetDigits: Int,
+    ): Int {
+        if (targetDigits <= 0) return 0
+        var seenDigits = 0
+        for (index in formattedValue.indices) {
+            if (formattedValue[index].isDigit()) {
+                seenDigits += 1
+                if (seenDigits >= targetDigits) {
+                    return index + 1
+                }
+            }
+        }
+        return formattedValue.length
     }
 }

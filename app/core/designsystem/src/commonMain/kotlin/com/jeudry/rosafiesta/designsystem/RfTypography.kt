@@ -103,55 +103,55 @@ public fun buildRfTypography(
     val rootTabTitle = TextStyle(
         fontFamily = display,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 26.sp,
-        lineHeight = 30.sp,
+        fontSize = 22.sp,
+        lineHeight = 26.sp,
         letterSpacing = (-0.02).em,
         color = inkColor,
     )
     val backScreenTitle = TextStyle(
         fontFamily = display,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 20.sp,
-        lineHeight = 24.sp,
+        fontSize = 18.sp,
+        lineHeight = 22.sp,
         letterSpacing = (-0.02).em,
         color = inkColor,
     )
     val sheetOrEmptyTitle = TextStyle(
         fontFamily = display,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 22.sp,
-        lineHeight = 26.sp,
+        fontSize = 19.sp,
+        lineHeight = 23.sp,
         letterSpacing = (-0.02).em,
         color = inkColor,
     )
     val bigAmount = TextStyle(
         fontFamily = display,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 34.sp,
-        lineHeight = 38.sp,
+        fontSize = 28.sp,
+        lineHeight = 32.sp,
         letterSpacing = (-0.02).em,
         color = inkColor,
     )
     val webKpi = TextStyle(
         fontFamily = display,
         fontWeight = FontWeight.ExtraBold,
-        fontSize = 30.sp,
-        lineHeight = 34.sp,
+        fontSize = 25.sp,
+        lineHeight = 29.sp,
         letterSpacing = (-0.02).em,
         color = inkColor,
     )
     val bodyStyle = TextStyle(
         fontFamily = body,
         fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        lineHeight = 20.sp,
+        fontSize = 14.sp,
+        lineHeight = 19.sp,
         color = inkColor,
     )
     val bodyStrongStyle = TextStyle(
         fontFamily = body,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 15.sp,
-        lineHeight = 20.sp,
+        fontSize = 14.sp,
+        lineHeight = 19.sp,
         color = inkColor,
     )
     val secondaryStyle = TextStyle(
@@ -179,8 +179,8 @@ public fun buildRfTypography(
     val buttonLabel = TextStyle(
         fontFamily = body,
         fontWeight = FontWeight.Bold,
-        fontSize = 16.sp,
-        lineHeight = 20.sp,
+        fontSize = 14.5.sp,
+        lineHeight = 18.sp,
         color = Color.White,
     )
 

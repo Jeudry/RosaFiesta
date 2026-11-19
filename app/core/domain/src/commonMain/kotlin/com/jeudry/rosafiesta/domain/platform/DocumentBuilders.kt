@@ -1,5 +1,7 @@
 package com.jeudry.rosafiesta.domain.platform
 
+import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
+import com.jeudry.rosafiesta.domain.PaymentRecord
 import kotlin.math.abs
 
 /**
@@ -35,6 +37,12 @@ public data class ReceiptPdfDocument(
     public val remainingBalanceDop: Long = 0L,
     public val lineItems: List<ReceiptPdfLineItem> = emptyList(),
     public val notes: String = "",
+    public val ncfType: String = "B02",
+    public val clientRnc: String = "",
+    public val securityDepositDop: Long = 0L,
+    public val documentTitle: String = "",
+    public val signedByName: String = "",
+    public val signedAtIso: String = "",
 )
 
 /**
@@ -143,7 +151,7 @@ public object ReceiptPdfBuilder {
         )
 
         stream.appendAscii("0.965 0.953 0.980 rg\n")
-        stream.appendAscii("36 628 523 106 re f\n")
+        stream.appendAscii("36 618 523 116 re f\n")
 
         var metaY = 714
         appendPdfText(
@@ -218,19 +226,52 @@ public object ReceiptPdfBuilder {
             rgb = "0.145 0.490 0.290",
             text = "Estado de verificacion: ${document.verificationStatus.trim()}",
         )
-        if (document.ncfNumber.isNotBlank()) {
+        val resolvedNcfType = document.ncfType.trim().uppercase().ifEmpty { "B02" }
+        val ncfLabelText = if (document.ncfNumber.isNotBlank()) {
+            "NCF ($resolvedNcfType): ${document.ncfNumber.trim()}"
+        } else {
+            "Tipo NCF: $resolvedNcfType"
+        }
+        appendPdfText(
+            stream = stream,
+            font = "F2",
+            fontSize = 10,
+            x = 330,
+            y = metaY,
+            rgb = "0.102 0.102 0.180",
+            text = ncfLabelText,
+        )
+        metaY -= 18
+        if (document.clientRnc.isNotBlank()) {
             appendPdfText(
                 stream = stream,
-                font = "F2",
+                font = "F1",
                 fontSize = 10,
-                x = 330,
+                x = 50,
                 y = metaY,
                 rgb = "0.102 0.102 0.180",
-                text = "NCF: ${document.ncfNumber.trim()}",
+                text = "RNC/Cedula: ${document.clientRnc.trim()}",
+            )
+        }
+        if (document.signedByName.isNotBlank()) {
+            val signedDateSuffix = if (document.signedAtIso.isNotBlank()) {
+                " (${document.signedAtIso.trim().take(10)})"
+            } else {
+                ""
+            }
+            appendPdfText(
+                stream = stream,
+                font = "F1",
+                fontSize = 9,
+                x = 330,
+                y = metaY,
+                rgb = "0.350 0.340 0.430",
+                text = "Firmado: ${document.signedByName.trim()}$signedDateSuffix",
             )
         }
 
         var cursorY = 598
+        val sectionHeading = document.documentTitle.trim().take(52).ifEmpty { "DESGLOSE DE CONCEPTOS EN RD$" }
         appendPdfText(
             stream = stream,
             font = "F2",
@@ -238,7 +279,7 @@ public object ReceiptPdfBuilder {
             x = 36,
             y = cursorY,
             rgb = "0.102 0.102 0.180",
-            text = "DESGLOSE DE CONCEPTOS EN RD$",
+            text = sectionHeading,
         )
         cursorY -= 12
         stream.appendAscii("0.880 0.860 0.910 RG 1 w 36 $cursorY m 559 $cursorY l S\n")
@@ -279,7 +320,7 @@ public object ReceiptPdfBuilder {
         cursorY -= 22
 
         val subtotalFormatted = formatDopAmount(document.subtotalDop)
-        appendPdfText(stream, font = "F1", fontSize = 10, x = 340, y = cursorY, rgb = "0.350 0.340 0.430", text = "Subtotal:")
+        appendPdfText(stream, font = "F1", fontSize = 10, x = 340, y = cursorY, rgb = "0.350 0.340 0.430", text = "Subtotal gravado:")
         appendPdfText(stream, font = "F2", fontSize = 10, x = 465, y = cursorY, rgb = "0.102 0.102 0.180", text = subtotalFormatted)
         cursorY -= 18
 
@@ -287,6 +328,14 @@ public object ReceiptPdfBuilder {
         appendPdfText(stream, font = "F1", fontSize = 10, x = 340, y = cursorY, rgb = "0.350 0.340 0.430", text = "ITBIS (18%):")
         appendPdfText(stream, font = "F2", fontSize = 10, x = 465, y = cursorY, rgb = "0.102 0.102 0.180", text = itbisFormatted)
         cursorY -= 18
+
+        val shouldShowDeposit = if (document.securityDepositDop > 0L) true else document.documentTitle.isNotBlank()
+        if (shouldShowDeposit) {
+            val depositFormatted = formatDopAmount(document.securityDepositDop)
+            appendPdfText(stream, font = "F1", fontSize = 10, x = 340, y = cursorY, rgb = "0.350 0.340 0.430", text = "Deposito reembolsable:")
+            appendPdfText(stream, font = "F2", fontSize = 10, x = 465, y = cursorY, rgb = "0.102 0.102 0.180", text = depositFormatted)
+            cursorY -= 18
+        }
 
         if (document.discountDop > 0L) {
             val discountFormatted = "-${formatDopAmount(document.discountDop)}"
@@ -431,6 +480,68 @@ public enum class DgiiIdentificationType(public val dgiiCode: String) {
 }
 
 /**
+ * Structured payload for generating an official RosaFiesta rental service contract PDF 1.4 document.
+ */
+public data class ContractPdfDocument(
+    public val contractNumber: String,
+    public val issuedAtText: String,
+    public val clientName: String,
+    public val clientRnc: String = "",
+    public val clientEmail: String = "",
+    public val eventTitle: String,
+    public val eventDateText: String = "",
+    public val paymentMethod: String = "Transferencia",
+    public val verificationStatus: String = "Verificado",
+    public val ncfType: String = "B02",
+    public val ncfNumber: String = "",
+    public val subtotalDop: Long,
+    public val itbisDop: Long,
+    public val securityDepositDop: Long = 0L,
+    public val totalDop: Long,
+    public val paidAmountDop: Long,
+    public val remainingBalanceDop: Long = (totalDop - paidAmountDop).coerceAtLeast(0L),
+    public val signedByName: String = "",
+    public val signedAtIso: String = "",
+    public val lineItems: List<ReceiptPdfLineItem> = emptyList(),
+    public val notes: String = "",
+)
+
+/**
+ * Pure-Kotlin PDF 1.4 official contract generator reusing RosaFiesta fiscal layout primitives.
+ */
+public object ContractPdfBuilder {
+    /**
+     * Generates a fiscalized rental contract PDF containing NCF, client tax ID, ITBIS, deposit, and signature metadata.
+     */
+    public fun buildPdfBytes(contract: ContractPdfDocument): ByteArray {
+        val document = ReceiptPdfDocument(
+            receiptNumber = contract.contractNumber,
+            issuedAtText = contract.issuedAtText,
+            clientName = contract.clientName,
+            eventTitle = contract.eventTitle,
+            paymentMethod = contract.paymentMethod,
+            verificationStatus = contract.verificationStatus,
+            subtotalDop = contract.subtotalDop,
+            paidAmountDop = contract.paidAmountDop,
+            ncfNumber = contract.ncfNumber,
+            clientDocumentOrEmail = contract.clientEmail,
+            eventDateText = contract.eventDateText,
+            itbisDop = contract.itbisDop,
+            remainingBalanceDop = contract.remainingBalanceDop,
+            lineItems = contract.lineItems,
+            notes = contract.notes,
+            ncfType = contract.ncfType,
+            clientRnc = contract.clientRnc,
+            securityDepositDop = contract.securityDepositDop,
+            documentTitle = "CONTRATO OFICIAL DE ALQUILER Y SERVICIOS",
+            signedByName = contract.signedByName,
+            signedAtIso = contract.signedAtIso,
+        )
+        return ReceiptPdfBuilder.buildPdfBytes(document)
+    }
+}
+
+/**
  * Single row for RosaFiesta financial and event revenue CSV exports (`RD$`).
  */
 public data class FinancialReportCsvRow(
@@ -481,19 +592,105 @@ public object ReportCsvBuilder {
         headers: List<String>,
         rows: List<List<String>>,
     ): ByteArray {
-        val textContent = buildString {
-            if (headers.isNotEmpty()) {
-                appendCsvRow(headers)
-            }
-            for (row in rows) {
-                appendCsvRow(row)
-            }
-        }
+        val textContent = buildCsvText(headers = headers, rows = rows)
         val bodyBytes = textContent.encodeToByteArray()
         val result = ByteArray(utf8BomBytes.size + bodyBytes.size)
         utf8BomBytes.copyInto(result, destinationOffset = 0)
         bodyBytes.copyInto(result, destinationOffset = utf8BomBytes.size)
         return result
+    }
+
+    /**
+     * Builds a DGII Formato 607 fiscal sales CSV string directly from verified [PaymentRecord] entries.
+     */
+    public fun buildDgii607Csv(
+        payments: List<PaymentRecord>,
+        periodYyyymm: String = "",
+    ): String {
+        val headers = listOf(
+            "RNC_Cedula",
+            "Tipo_NCF",
+            "NCF",
+            "Fecha_Pago",
+            "Evento_ID",
+            "Cliente",
+            "Subtotal_DOP",
+            "ITBIS_DOP",
+            "Deposito_Garantia_DOP",
+            "Total_DOP",
+            "Metodo_Pago",
+        )
+        val rows = payments
+            .filter { payment -> shouldIncludePaymentInDgii607(payment, periodYyyymm) }
+            .map { payment -> buildPaymentDgiiRow(payment) }
+        return buildCsvText(headers = headers, rows = rows)
+    }
+
+    private fun buildCsvText(
+        headers: List<String>,
+        rows: List<List<String>>,
+    ): String = buildString {
+        if (headers.isNotEmpty()) {
+            appendCsvRow(headers)
+        }
+        for (row in rows) {
+            appendCsvRow(row)
+        }
+    }
+
+    private fun shouldIncludePaymentInDgii607(
+        payment: PaymentRecord,
+        periodFilter: String,
+    ): Boolean {
+        if (!payment.verified) return false
+        if (payment.rejectionReason.isNotBlank()) return false
+        if (payment.ncfNumber.isBlank()) return false
+        return matchesPaymentPeriod(payment, periodFilter)
+    }
+
+    private fun matchesPaymentPeriod(
+        payment: PaymentRecord,
+        periodFilter: String,
+    ): Boolean {
+        val trimmedPeriod = periodFilter.trim()
+        if (trimmedPeriod.isEmpty()) return true
+        val compactPeriod = trimmedPeriod.replace("-", "")
+        val compactVerifiedDate = payment.verifiedAtIso.replace("-", "")
+        if (compactVerifiedDate.contains(compactPeriod)) return true
+        return payment.dateLabel.lowercase().contains(trimmedPeriod.lowercase())
+    }
+
+    private fun buildPaymentDgiiRow(payment: PaymentRecord): List<String> {
+        val hasExplicitBreakdown = if (payment.subtotalDop > 0) true else payment.itbisDop > 0
+        val resolvedSubtotal: Int
+        val resolvedItbis: Int
+        if (hasExplicitBreakdown) {
+            resolvedSubtotal = payment.subtotalDop
+            resolvedItbis = payment.itbisDop
+        } else {
+            val computed = RosaFiestaEngine.computeFiscalBreakdown(
+                totalDop = payment.amountDop,
+                ncfType = payment.ncfType,
+                rawTaxId = payment.clientRnc,
+                securityDepositDop = payment.securityDepositDop,
+            )
+            resolvedSubtotal = computed.subtotalDop
+            resolvedItbis = computed.itbisDop
+        }
+        val normalizedNcfType = payment.ncfType.trim().uppercase().ifEmpty { "B02" }
+        return listOf(
+            payment.clientRnc.trim(),
+            normalizedNcfType,
+            payment.ncfNumber.trim(),
+            payment.dateLabel.trim(),
+            payment.eventId.trim(),
+            payment.clientName.trim(),
+            resolvedSubtotal.toString(),
+            resolvedItbis.toString(),
+            payment.securityDepositDop.coerceAtLeast(0).toString(),
+            payment.amountDop.toString(),
+            payment.methodLabel.trim(),
+        )
     }
 
     /**

@@ -1,17 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:label="RosaFiesta"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <meta-data
+            android:name="com.jeudry.rosafiesta.API_BASE_URL"
+            android:value="${ROSAFIESTA_API_URL}" />
         <activity
             android:name=".MainActivity"
+            android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="rosafiesta"
+                    android:host="oauth"
+                    android:pathPrefix="/callback" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="rosafiesta"
+                    android:host="payment"
+                    android:pathPrefix="/success" />
+                <data
+                    android:scheme="rosafiesta"
+                    android:host="payment"
+                    android:pathPrefix="/cancel" />
             </intent-filter>
         </activity>
     </application>

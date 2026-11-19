@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +58,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TransformedText
@@ -83,6 +85,7 @@ import com.jeudry.rosafiesta.designsystem.rfHeroBannerShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfInputShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
+import com.jeudry.rosafiesta.designsystem.rfTrackValidationFocus
 import com.jeudry.rosafiesta.domain.BusinessMetrics
 import com.jeudry.rosafiesta.domain.BusinessSettings
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
@@ -92,6 +95,7 @@ import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.SupplierRecord
 import com.jeudry.rosafiesta.domain.validation.InputValidator
+import com.jeudry.rosafiesta.domain.validation.MaskedTextCursorResult
 import kotlinx.coroutines.delay
 
 private val RosaButtonGradient = Brush.horizontalGradient(
@@ -124,36 +128,34 @@ private data class QuoteHistoryItem49(
     companion object {
         fun fromQuoteRecord(quoteItem: QuoteRecord): QuoteHistoryItem49 {
             val normalizedStatus = quoteItem.status.trim().uppercase()
-            val isApproved = when (normalizedStatus) {
-                "APPROVED", "APROBADA", "SIGNED", "CONFIRMADA" -> true
-                else -> false
-            }
-            val isDeclined = when (normalizedStatus) {
-                "REJECTED", "DECLINED", "RECHAZADA", "CANCELLED" -> true
-                else -> false
-            }
+            val isSigned = normalizedStatus in setOf("SIGNED", "FIRMADA", "CONFIRMADA")
+            val isReadyToAccept = normalizedStatus in setOf("SENT", "ENVIADA", "APPROVED", "APROBADA")
+            val isDeclined = normalizedStatus in setOf("REJECTED", "DECLINED", "RECHAZADA", "CANCELLED")
+            val isAcceptedStage = if (isSigned) true else isReadyToAccept
             val tagText = when {
-                isApproved -> "Aprobada"
-                isDeclined -> "Rechazada"
-                else -> "Pendiente"
+                isSigned -> "Aceptada"
+                isReadyToAccept -> "Lista para aceptar"
+                isDeclined -> "Ajuste solicitado"
+                else -> "En revisión"
             }
             val tagBg = when {
-                isApproved -> Color(0xFFEEF6D6)
+                isAcceptedStage -> Color(0xFFEEF6D6)
                 isDeclined -> Color(0xFFFFEDF1)
                 else -> Color(0xFFFFF2C9)
             }
             val tagTextCol = when {
-                isApproved -> Color(0xFF4E6A10)
+                isAcceptedStage -> Color(0xFF4E6A10)
                 isDeclined -> Color(0xFFB42345)
                 else -> Color(0xFF7A5700)
             }
             val activeSteps = when {
-                isApproved -> 4
+                isSigned -> 4
+                isReadyToAccept -> 3
                 isDeclined -> 1
                 else -> 2
             }
             val stepColor = when {
-                isApproved -> Color(0xFF8DB52C)
+                isAcceptedStage -> Color(0xFF8DB52C)
                 isDeclined -> Color(0xFFD63F6A)
                 else -> Color(0xFFF7B500)
             }
@@ -573,6 +575,13 @@ internal fun RenderPaymentCheckoutScreenS50(
     var selectedMethod by remember { mutableStateOf(initialMethod) }
     var selectedBank by remember { mutableStateOf("Banreservas") }
     var transferRefInput by remember { mutableStateOf(persistedRef) }
+    var selectedNcfType by remember { mutableStateOf(viewModel?.paymentNcfType?.value ?: "B02") }
+    var clientRncInput by remember { mutableStateOf(viewModel?.paymentClientRnc?.value.orEmpty()) }
+    val uploadedVoucherUrl = viewModel?.paymentVoucherUrl?.collectAsState()?.value.orEmpty()
+    val pickedVoucherFile = viewModel?.pickedAttachmentFile?.collectAsState()?.value
+
+    val netSubtotalDop = (amountToPayDop * 100) / 118
+    val calculatedItbisDop = (amountToPayDop - netSubtotalDop).coerceAtLeast(0)
 
     var cardHolderName by remember { mutableStateOf("") }
     var cardNumberDigits by remember { mutableStateOf("") }
@@ -596,10 +605,19 @@ internal fun RenderPaymentCheckoutScreenS50(
     var hasInteractedContactPhone by remember { mutableStateOf(false) }
     var forceShowCheckoutErrors by remember { mutableStateOf(false) }
 
+    val deliveryAddressBlur = rememberFieldBlurState()
+    val transferRefBlur = rememberFieldBlurState()
+    val cardHolderBlur = rememberFieldBlurState()
+    val cardNumberBlur = rememberFieldBlurState()
+    val cardExpiryBlur = rememberFieldBlurState()
+    val cardCvvBlur = rememberFieldBlurState()
+    val contactPhoneBlur = rememberFieldBlurState()
+
     val debouncedAddressError = rememberDebouncedValidationError(
         value = draftDeliveryAddress,
         hasInteracted = hasInteractedDeliveryAddress,
         forceShowError = forceShowAddressError,
+        hasBlurred = deliveryAddressBlur.hasBlurred,
     ) { candidate ->
         InputValidator.validateAddress(
             rawValue = candidate,
@@ -611,6 +629,7 @@ internal fun RenderPaymentCheckoutScreenS50(
         value = transferRefInput,
         hasInteracted = hasInteractedTransferRef,
         forceShowError = forceShowCheckoutErrors,
+        hasBlurred = transferRefBlur.hasBlurred,
     ) { candidate ->
         if (selectedMethod != "Transferencia") {
             null
@@ -622,6 +641,7 @@ internal fun RenderPaymentCheckoutScreenS50(
         value = cardHolderName,
         hasInteracted = hasInteractedCardHolder,
         forceShowError = forceShowCheckoutErrors,
+        hasBlurred = cardHolderBlur.hasBlurred,
     ) { candidate ->
         if (selectedMethod != "Tarjeta") {
             null
@@ -633,6 +653,7 @@ internal fun RenderPaymentCheckoutScreenS50(
         value = cardNumberDigits,
         hasInteracted = hasInteractedCardNumber,
         forceShowError = forceShowCheckoutErrors,
+        hasBlurred = cardNumberBlur.hasBlurred,
     ) { candidate ->
         if (selectedMethod != "Tarjeta") {
             null
@@ -644,6 +665,7 @@ internal fun RenderPaymentCheckoutScreenS50(
         value = cardExpiryMmYy,
         hasInteracted = hasInteractedCardExpiry,
         forceShowError = forceShowCheckoutErrors,
+        hasBlurred = cardExpiryBlur.hasBlurred,
     ) { candidate ->
         if (selectedMethod != "Tarjeta") {
             null
@@ -655,6 +677,7 @@ internal fun RenderPaymentCheckoutScreenS50(
         value = cardCvvDigits,
         hasInteracted = hasInteractedCardCvv,
         forceShowError = forceShowCheckoutErrors,
+        hasBlurred = cardCvvBlur.hasBlurred,
     ) { candidate ->
         if (selectedMethod != "Tarjeta") {
             null
@@ -666,6 +689,7 @@ internal fun RenderPaymentCheckoutScreenS50(
         value = contactPhoneText,
         hasInteracted = hasInteractedContactPhone,
         forceShowError = forceShowCheckoutErrors,
+        hasBlurred = contactPhoneBlur.hasBlurred,
     ) { candidate ->
         InputValidator.validateDominicanPhone(
             rawValue = candidate,
@@ -843,6 +867,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                         modifier = Modifier.clickable {
                             draftDeliveryAddress = displayedDeliveryAddress
                             hasInteractedDeliveryAddress = false
+                            deliveryAddressBlur.reset()
                             forceShowAddressError = false
                             isEditingAddress = !isEditingAddress
                         },
@@ -879,7 +904,12 @@ internal fun RenderPaymentCheckoutScreenS50(
                                 singleLine = true,
                                 textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.ink),
                                 cursorBrush = SolidColor(Color(0xFFC2338F)),
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .rfTrackValidationFocus(
+                                        focusKey = deliveryAddressBlur,
+                                        onFocusChanged = deliveryAddressBlur::onFocusStateChanged,
+                                    ),
                             )
                         }
                         RfValidationErrorText(errorMessage = debouncedAddressError)
@@ -1045,6 +1075,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                         leadingIcon = RfIconKind.ORDERS,
                         isError = debouncedTransferRefError != null,
                         errorMessage = debouncedTransferRefError,
+                        onFocusChanged = transferRefBlur::onFocusStateChanged,
                         onValueChange = { nextRef ->
                             transferRefInput = nextRef.take(InputValidator.MAX_BANK_REFERENCE_LENGTH)
                             hasInteractedTransferRef = true
@@ -1052,6 +1083,65 @@ internal fun RenderPaymentCheckoutScreenS50(
                             localCheckoutError = null
                         },
                     )
+
+                    val hasUploadedVoucher = uploadedVoucherUrl.isNotBlank()
+                    val voucherLabel = when {
+                        hasUploadedVoucher -> "Comprobante subido (${pickedVoucherFile?.fileName ?: "archivo"})"
+                        pickedVoucherFile != null -> "Subiendo ${pickedVoucherFile.fileName}..."
+                        else -> "Adjuntar comprobante de transferencia (JPG/PNG/PDF)"
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (hasUploadedVoucher) Color(0xFFEEF6D6) else palette.chipBg)
+                            .border(
+                                width = 1.5.dp,
+                                color = if (hasUploadedVoucher) Color(0xFF4E6A10) else Color(0xFFD7D2EA),
+                                shape = RoundedCornerShape(14.dp),
+                            )
+                            .clickable {
+                                viewModel?.pickMediaAttachment(listOf("jpg", "jpeg", "png", "pdf")) { chosenFile ->
+                                    viewModel.uploadAndAttachMedia("voucher", chosenFile) { uploadedUrl ->
+                                        viewModel.setPaymentVoucherUrl(uploadedUrl)
+                                    }
+                                }
+                            }
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            RfIcon(
+                                kind = if (hasUploadedVoucher) RfIconKind.CHECK else RfIconKind.CAMERA,
+                                tint = if (hasUploadedVoucher) Color(0xFF4E6A10) else Color(0xFF5B3EC4),
+                                size = 18.dp,
+                            )
+                            BasicText(
+                                text = voucherLabel,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                    color = if (hasUploadedVoucher) Color(0xFF4E6A10) else palette.ink,
+                                ),
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    if (hasUploadedVoucher) {
+                        RfUploadedOrCatalogPhoto(
+                            photoUrl = uploadedVoucherUrl,
+                            fallbackPhotoKey = RfPhotoKey.BODA,
+                            contentDescription = "Vista previa del comprobante",
+                            viewModel = viewModel,
+                            modifier = Modifier.fillMaxWidth().height(110.dp),
+                            cornerRadius = 14.dp,
+                        )
+                    }
                 }
 
                 "Efectivo en tienda" -> {
@@ -1094,6 +1184,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                         leadingIcon = RfIconKind.USER,
                         isError = debouncedCardHolderError != null,
                         errorMessage = debouncedCardHolderError,
+                        onFocusChanged = cardHolderBlur::onFocusStateChanged,
                         onValueChange = { updatedName ->
                             cardHolderName = InputValidator.filterPersonNameInput(
                                 rawValue = updatedName,
@@ -1110,8 +1201,13 @@ internal fun RenderPaymentCheckoutScreenS50(
                         isError = debouncedCardNumberError != null,
                         errorMessage = debouncedCardNumberError,
                         visualTransformation = remember { CardNumberVisualTransformation() },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        cursorMask = { prev, next, sel ->
+                            InputValidator.filterDigitsOnlyWithCursor(prev, next, sel, InputValidator.MAX_CARD_DIGITS)
+                        },
+                        onFocusChanged = cardNumberBlur::onFocusStateChanged,
                         onValueChange = { updatedCard ->
-                            cardNumberDigits = InputValidator.filterDigitsOnly(updatedCard, InputValidator.MAX_CARD_DIGITS)
+                            cardNumberDigits = updatedCard
                             hasInteractedCardNumber = true
                             localCheckoutError = null
                         },
@@ -1124,8 +1220,11 @@ internal fun RenderPaymentCheckoutScreenS50(
                                 leadingIcon = null,
                                 isError = debouncedCardExpiryError != null,
                                 errorMessage = debouncedCardExpiryError,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                cursorMask = InputValidator::filterCardExpiryInputWithCursor,
+                                onFocusChanged = cardExpiryBlur::onFocusStateChanged,
                                 onValueChange = { updatedExpiry ->
-                                    cardExpiryMmYy = InputValidator.filterCardExpiryInput(updatedExpiry)
+                                    cardExpiryMmYy = updatedExpiry
                                     hasInteractedCardExpiry = true
                                     localCheckoutError = null
                                 },
@@ -1139,8 +1238,13 @@ internal fun RenderPaymentCheckoutScreenS50(
                                 isError = debouncedCardCvvError != null,
                                 errorMessage = debouncedCardCvvError,
                                 visualTransformation = remember { PasswordVisualTransformation() },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                cursorMask = { prev, next, sel ->
+                                    InputValidator.filterDigitsOnlyWithCursor(prev, next, sel, InputValidator.MAX_CVV_DIGITS)
+                                },
+                                onFocusChanged = cardCvvBlur::onFocusStateChanged,
                                 onValueChange = { updatedCvv ->
-                                    cardCvvDigits = InputValidator.filterDigitsOnly(updatedCvv, InputValidator.MAX_CVV_DIGITS)
+                                    cardCvvDigits = updatedCvv
                                     hasInteractedCardCvv = true
                                     localCheckoutError = null
                                 },
@@ -1156,12 +1260,159 @@ internal fun RenderPaymentCheckoutScreenS50(
                 leadingIcon = RfIconKind.PHONE,
                 isError = debouncedContactPhoneError != null,
                 errorMessage = debouncedContactPhoneError,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                cursorMask = InputValidator::filterPhoneInputWithCursor,
+                onFocusChanged = contactPhoneBlur::onFocusStateChanged,
                 onValueChange = { updatedPhone ->
-                    contactPhoneText = InputValidator.filterPhoneInput(updatedPhone)
+                    contactPhoneText = updatedPhone
                     hasInteractedContactPhone = true
                     localCheckoutError = null
                 },
             )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(16.dp))
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                BasicText(
+                    text = "Comprobante fiscal (NCF · DGII)",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink),
+                )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("B02" to "Consumidor Final (B02)", "B01" to "Crédito Fiscal (B01)").forEach { ncfPair ->
+                        val ncfCode = ncfPair.first
+                        val isNcfSelected = selectedNcfType == ncfCode
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isNcfSelected) Color(0xFFFDE6F2) else palette.chipBg)
+                                .border(
+                                    width = if (isNcfSelected) 1.5.dp else 1.dp,
+                                    color = if (isNcfSelected) Color(0xFFC2338F) else palette.line,
+                                    shape = RoundedCornerShape(12.dp),
+                                )
+                                .clickable {
+                                    selectedNcfType = ncfCode
+                                    viewModel?.setPaymentNcfType(ncfCode)
+                                    localCheckoutError = null
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BasicText(
+                                text = ncfPair.second,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(
+                                    fontFamily = typo.bodyFamily,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = if (isNcfSelected) Color(0xFFC2338F) else palette.ink,
+                                ),
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                            )
+                        }
+                    }
+                }
+                if (selectedNcfType == "B01") {
+                    CheckoutInputBox50(
+                        value = clientRncInput,
+                        placeholder = "RNC (9 dígitos) o Cédula (11 dígitos)",
+                        leadingIcon = RfIconKind.SHIELD,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        cursorMask = { prev, next, sel ->
+                            InputValidator.filterDigitsOnlyWithCursor(prev, next, sel, 11)
+                        },
+                        onValueChange = { cleanDigits ->
+                            clientRncInput = cleanDigits
+                            viewModel?.setPaymentClientRnc(cleanDigits)
+                            localCheckoutError = null
+                        },
+                    )
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    BasicText("Subtotal gravado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted))
+                    BasicText(RosaFiestaEngine.formatDop(netSubtotalDop), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = palette.ink))
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    BasicText("ITBIS (18%)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted))
+                    BasicText(RosaFiestaEngine.formatDop(calculatedItbisDop), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = palette.ink))
+                }
+                val estimatedDepositGuaranteeDop = ((activeEvent.totalDop * 10) / 100).coerceAtLeast(0)
+                if (estimatedDepositGuaranteeDop > 0) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        BasicText("Garantía reembolsable est. (10%)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF4E6A10)))
+                        BasicText(RosaFiestaEngine.formatDop(estimatedDepositGuaranteeDop), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4E6A10)))
+                    }
+                }
+            }
+
+            if (!localCheckoutError.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFFFEEF1))
+                        .border(1.dp, Color(0xFFB42345), RoundedCornerShape(14.dp))
+                        .padding(12.dp),
+                ) {
+                    BasicText(
+                        text = localCheckoutError!!,
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                    )
+                }
+            }
+
+            val pendingCardSession = viewModel?.pendingCardCheckoutSession?.collectAsState()?.value
+            if (pendingCardSession != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFF3ECFE))
+                        .border(1.dp, Color(0xFFD7C8FA), RoundedCornerShape(16.dp))
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    BasicText(
+                        text = "Pasarela Stripe abierta (${pendingCardSession.sessionId.takeLast(8)})",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = Color(0xFF5D3FD3)),
+                    )
+                    BasicText(
+                        text = "Cuando completes el pago en tu navegador, presiona verificar para emitir tu comprobante oficial.",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, lineHeight = 18.sp, color = Color(0xFF3E3B63)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(RosaButtonGradient)
+                            .clickable(enabled = !isSubmitting) {
+                                viewModel.confirmPendingCardCheckout(
+                                    sessionId = pendingCardSession.sessionId,
+                                    onConfirmed = {
+                                        localCheckoutError = null
+                                        onSelectScreenCode("s51")
+                                    },
+                                    onError = { errMsg -> localCheckoutError = errMsg },
+                                )
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = if (isSubmitting) "Verificando pago..." else "Verificar pago con tarjeta",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White),
+                        )
+                    }
+                }
+            }
         }
 
         Box(
@@ -1224,12 +1475,36 @@ internal fun RenderPaymentCheckoutScreenS50(
                         if (activeViewModel == null) {
                             localCheckoutError = null
                             onSelectScreenCode("s51")
+                        } else if (selectedMethod == "Tarjeta") {
+                            activeViewModel.startCardCheckoutSession(
+                                eventId = activeEvent.id,
+                                amountDop = amountToPayDop,
+                                ncfType = selectedNcfType,
+                                clientRnc = clientRncInput,
+                                onSessionReady = {
+                                    localCheckoutError = null
+                                    onSelectScreenCode("s51")
+                                },
+                                onUnavailableOrError = { gatewayError ->
+                                    localCheckoutError = gatewayError
+                                },
+                            )
                         } else {
                             activeViewModel.setPaymentAmountInput(amountToPayDop.toString())
                             activeViewModel.setPaymentMethodInput(resolvedMethodLabel)
                             activeViewModel.setPaymentRefInput(resolvedReference)
                             activeViewModel.setSavedPaymentMethod(resolvedMethodLabel)
-                            val paidRecord = activeViewModel.submitPayment(eventId = activeEvent.id)
+                            val paidRecord = activeViewModel.submitDetailedPaymentFlow(
+                                eventId = activeEvent.id,
+                                amountDop = amountToPayDop,
+                                methodLabel = resolvedMethodLabel,
+                                bankName = if (selectedMethod == "Transferencia") selectedBank else "",
+                                referenceCode = resolvedReference,
+                                voucherUrl = uploadedVoucherUrl,
+                                ncfType = selectedNcfType,
+                                clientRnc = clientRncInput,
+                                kindLabel = if (isBalanceMode) "Saldo" else "Abono",
+                            )
                             if (paidRecord != null) {
                                 localCheckoutError = null
                                 onSelectScreenCode("s51")
@@ -1269,10 +1544,14 @@ private fun CheckoutInputBox50(
     isError: Boolean = false,
     errorMessage: String? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    cursorMask: ((previousFormatted: String, newRawText: String, newSelectionEnd: Int) -> MaskedTextCursorResult)? = null,
+    onFocusChanged: ((Boolean) -> Unit)? = null,
     onValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
+    val fieldFocusKey = remember { Any() }
     val hasFieldError = if (isError) true else errorMessage != null
     val borderColor = if (hasFieldError) RfColors.Error else palette.line
 
@@ -1308,15 +1587,40 @@ private fun CheckoutInputBox50(
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, color = palette.muted),
                         )
                     }
-                    BasicTextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        singleLine = true,
-                        visualTransformation = visualTransformation,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
-                        cursorBrush = SolidColor(Color(0xFFC2338F)),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    if (cursorMask != null) {
+                        RfMaskedDigitBasicTextField(
+                            value = value,
+                            onValueChange = onValueChange,
+                            maskTransform = cursorMask,
+                            singleLine = true,
+                            visualTransformation = visualTransformation,
+                            keyboardOptions = keyboardOptions,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .rfTrackValidationFocus(
+                                    focusKey = fieldFocusKey,
+                                    onFocusChanged = { isFocused -> onFocusChanged?.invoke(isFocused) },
+                                ),
+                        )
+                    } else {
+                        BasicTextField(
+                            value = value,
+                            onValueChange = onValueChange,
+                            singleLine = true,
+                            keyboardOptions = keyboardOptions,
+                            visualTransformation = visualTransformation,
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = palette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .rfTrackValidationFocus(
+                                    focusKey = fieldFocusKey,
+                                    onFocusChanged = { isFocused -> onFocusChanged?.invoke(isFocused) },
+                                ),
+                        )
+                    }
                 }
             }
         }
@@ -1345,6 +1649,9 @@ internal fun RenderPaymentSuccessScreenS51(
     val paidAmountDop = latestPayment?.amountDop ?: fallbackPaid
     val receiptCode = latestPayment?.receiptNumber ?: "REC-${event.code}"
     val paymentMethodLabel = latestPayment?.methodLabel ?: event.depositMethodLabel
+    val pendingCardSession = viewModel?.pendingCardCheckoutSession?.collectAsState()?.value
+    val isSubmittingCardConfirm = viewModel?.isSubmitting?.collectAsState()?.value ?: false
+    var cardVerifyError by remember { mutableStateOf<String?>(null) }
     var shareConfirmed by remember { mutableStateOf(false) }
 
     Box(
@@ -1669,6 +1976,34 @@ internal fun RenderPaymentSuccessScreenS51(
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            if (pendingCardSession != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF5D3FD3))
+                        .clickable(enabled = !isSubmittingCardConfirm) {
+                            viewModel.confirmPendingCardCheckout(
+                                sessionId = pendingCardSession.sessionId,
+                                onConfirmed = { cardVerifyError = null },
+                                onError = { errorText -> cardVerifyError = errorText },
+                            )
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText(
+                        text = if (isSubmittingCardConfirm) "Verificando pago en Stripe..." else "Verificar pago con tarjeta",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
+                    )
+                }
+                if (!cardVerifyError.isNullOrBlank()) {
+                    BasicText(
+                        text = cardVerifyError.orEmpty(),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFFB42345)),
+                    )
+                }
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1809,301 +2144,315 @@ internal fun RenderPostEventReviewScreenS52(
             )
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 112.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(palette.surface)
-                        .clickable { onSelectScreenCode("BACK:s40") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = "Así salió tu evento",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = palette.ink),
-                    )
-                    BasicText(
-                        text = "${event.title} · ${formatReadableSpanishDateText(event.dateLabel)}",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
-                    )
-                }
-            }
-
-            Box(
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFEFE8FD))
-                    .padding(20.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
                 ) {
-                    Canvas(modifier = Modifier.size(92.dp)) {
-                        val strokeW = 10f * density
-                        drawCircle(color = Color.White, radius = 36f * density, center = Offset(46f * density, 46f * density), style = Stroke(width = strokeW))
-                        drawCircle(color = Color(0xFF8DB52C), radius = 36f * density, center = Offset(46f * density, 46f * density), style = Stroke(width = strokeW, cap = StrokeCap.Round))
-                        val checkPath = Path().apply {
-                            moveTo(34f * density, 47f * density)
-                            lineTo(42f * density, 55f * density)
-                            lineTo(58f * density, 38f * density)
-                        }
-                        drawPath(checkPath, color = Color(0xFF4E6A10), style = Stroke(width = 4.5f * density, cap = StrokeCap.Round))
-                    }
-
-                    Column {
-                        BasicText("Puntualidad", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF7A4FD8)))
-                        BasicText("100%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 42.sp, lineHeight = 42.sp, color = palette.ink))
-                        BasicText("Todo llegó a tiempo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
-                    }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(palette.surface)
-                    .border(1.dp, palette.line, RoundedCornerShape(22.dp))
-                    .padding(horizontal = 18.dp, vertical = 16.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    BasicText("Liquidación final", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            BasicText("Contratado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
-                            BasicText(RosaFiestaEngine.formatDop(estimatedBudgetDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
-                        }
-                        Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFE6DEEA)))
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            BasicText("Total cierre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
-                            BasicText(RosaFiestaEngine.formatDop(realBudgetDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
-                        }
-                        Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF8DB52C)))
-                    }
-
-                    val hasDamageCharges = damageChargeDop > 0
-                    val damageCardBg = if (hasDamageCharges) Color(0xFFFFF2C9) else Color(0xFFEEF6D6)
-                    val damageCardFg = if (hasDamageCharges) Color(0xFF7A5700) else Color(0xFF4E6A10)
-                    val damageSummaryLabel = if (hasDamageCharges) {
-                        "Cargos por daños (${eventDamages.size} incidencia)"
-                    } else {
-                        "Sin cargos por daños"
-                    }
-                    val damageAmountLabel = if (hasDamageCharges) {
-                        RosaFiestaEngine.formatDop(damageChargeDop)
-                    } else {
-                        "RD$ 0"
-                    }
-
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(damageCardBg)
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(palette.surface)
+                            .clickable { onSelectScreenCode("BACK:s40") },
+                        contentAlignment = Alignment.Center,
                     ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            text = "Así salió tu evento",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = palette.ink),
+                        )
+                        BasicText(
+                            text = "${event.title} · ${formatReadableSpanishDateText(event.dateLabel)}",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color(0xFFEFE8FD))
+                        .padding(20.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
+                        Canvas(modifier = Modifier.size(92.dp)) {
+                            val strokeW = 10f * density
+                            drawCircle(color = Color.White, radius = 36f * density, center = Offset(46f * density, 46f * density), style = Stroke(width = strokeW))
+                            drawCircle(color = Color(0xFF8DB52C), radius = 36f * density, center = Offset(46f * density, 46f * density), style = Stroke(width = strokeW, cap = StrokeCap.Round))
+                            val checkPath = Path().apply {
+                                moveTo(34f * density, 47f * density)
+                                lineTo(42f * density, 55f * density)
+                                lineTo(58f * density, 38f * density)
+                            }
+                            drawPath(checkPath, color = Color(0xFF4E6A10), style = Stroke(width = 4.5f * density, cap = StrokeCap.Round))
+                        }
+
+                        Column {
+                            BasicText("Puntualidad", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF7A4FD8)))
+                            BasicText("100%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 30.sp, lineHeight = 30.sp, color = palette.ink))
+                            BasicText("Todo llegó a tiempo", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, RoundedCornerShape(22.dp))
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        BasicText("Liquidación final", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                BasicText("Contratado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                                BasicText(RosaFiestaEngine.formatDop(estimatedBudgetDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
+                            }
+                            Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFE6DEEA)))
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                BasicText("Total cierre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                                BasicText(RosaFiestaEngine.formatDop(realBudgetDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
+                            }
+                            Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF8DB52C)))
+                        }
+
+                        val hasDamageCharges = damageChargeDop > 0
+                        val damageCardBg = if (hasDamageCharges) Color(0xFFFFF2C9) else Color(0xFFEEF6D6)
+                        val damageCardFg = if (hasDamageCharges) Color(0xFF7A5700) else Color(0xFF4E6A10)
+                        val damageSummaryLabel = if (hasDamageCharges) {
+                            "Cargos por daños (${eventDamages.size} incidencia)"
+                        } else {
+                            "Sin cargos por daños"
+                        }
+                        val damageAmountLabel = if (hasDamageCharges) {
+                            RosaFiestaEngine.formatDop(damageChargeDop)
+                        } else {
+                            "RD$ 0"
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(damageCardBg)
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                BasicText(
+                                    text = damageSummaryLabel,
+                                    modifier = Modifier.weight(1f),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = damageCardFg),
+                                )
+                                BasicText(
+                                    text = damageAmountLabel,
+                                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = damageCardFg),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, RoundedCornerShape(22.dp))
+                        .padding(vertical = 4.dp),
+                ) {
+                    Column {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp).clickable { onSelectScreenCode("s45") },
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            BasicText(
-                                text = damageSummaryLabel,
-                                modifier = Modifier.weight(1f),
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = damageCardFg),
-                            )
-                            BasicText(
-                                text = damageAmountLabel,
-                                style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, color = damageCardFg),
-                            )
+                            BasicText("Tareas completadas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = palette.ink))
+                            BasicText(taskSummaryText, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                        }
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(palette.lineSoft))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp).clickable { onSelectScreenCode("s44") },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BasicText("Cronograma ejecutado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = palette.ink))
+                            BasicText(timelineSummaryText, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
                         }
                     }
                 }
-            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(palette.surface)
-                    .border(1.dp, palette.line, RoundedCornerShape(22.dp))
-                    .padding(vertical = 4.dp),
-            ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, RoundedCornerShape(22.dp))
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp).clickable { onSelectScreenCode("s45") },
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        BasicText("Tareas completadas", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = palette.ink))
-                        BasicText(taskSummaryText, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                        BasicText(
+                            text = "Califica tu experiencia",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
+                        )
+                        BasicText(
+                            text = "$selectedRating de 5",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFC2338F)),
+                        )
                     }
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(palette.lineSoft))
+
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp).clickable { onSelectScreenCode("s44") },
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        BasicText("Cronograma ejecutado", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = palette.ink))
-                        BasicText(timelineSummaryText, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                        for (starValue in 1..5) {
+                            val isStarFilled = starValue <= selectedRating
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isStarFilled) Color(0xFFFFF2C9) else palette.chipBg)
+                                    .clickable {
+                                        selectedRating = starValue
+                                        localReviewError = null
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                RfIcon(
+                                    kind = RfIconKind.STAR,
+                                    tint = if (isStarFilled) Color(0xFFE5A000) else palette.muted,
+                                    size = 22.dp,
+                                )
+                            }
+                        }
                     }
+
+                    val activeReviewCommentError = localReviewError ?: debouncedReviewCommentError
+                    val commentBorderColor = if (activeReviewCommentError != null) RfColors.Error else palette.line
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(92.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(palette.bg)
+                            .border(1.dp, commentBorderColor, RoundedCornerShape(14.dp))
+                            .padding(12.dp),
+                    ) {
+                        if (reviewComment.isEmpty()) {
+                            BasicText(
+                                text = "Escribe tu reseña sobre el montaje y la atención (mínimo 6 caracteres)…",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted),
+                            )
+                        }
+                        BasicTextField(
+                            value = reviewComment,
+                            onValueChange = { nextText ->
+                                reviewComment = nextText.take(InputValidator.MAX_NOTES_LENGTH)
+                                hasInteractedReviewComment = true
+                                localReviewError = null
+                            },
+                            textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.ink),
+                            cursorBrush = SolidColor(Color(0xFFC2338F)),
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
+                    RfValidationErrorText(errorMessage = activeReviewCommentError)
                 }
             }
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(palette.surface)
-                    .border(1.dp, palette.line, RoundedCornerShape(22.dp))
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .background(palette.surface),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    BasicText(
-                        text = "Califica tu experiencia",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
-                    )
-                    BasicText(
-                        text = "$selectedRating de 5",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFC2338F)),
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    for (starValue in 1..5) {
-                        val isStarFilled = starValue <= selectedRating
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isStarFilled) Color(0xFFFFF2C9) else palette.chipBg)
-                                .clickable {
-                                    selectedRating = starValue
-                                    localReviewError = null
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            RfIcon(
-                                kind = RfIconKind.STAR,
-                                tint = if (isStarFilled) Color(0xFFE5A000) else palette.muted,
-                                size = 22.dp,
-                            )
-                        }
-                    }
-                }
-
-                val activeReviewCommentError = localReviewError ?: debouncedReviewCommentError
-                val commentBorderColor = if (activeReviewCommentError != null) RfColors.Error else palette.line
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(92.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(palette.bg)
-                        .border(1.dp, commentBorderColor, RoundedCornerShape(14.dp))
-                        .padding(12.dp),
+                        .height(1.dp)
+                        .background(palette.line),
+                )
+                Box(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(RosaButtonGradient)
+                        .clickable {
+                            val commentValidationError = InputValidator.validateNotes(
+                                rawValue = reviewComment,
+                                fieldLabel = "La reseña",
+                                isRequired = true,
+                                minLength = 6,
+                                maxLength = InputValidator.MAX_NOTES_LENGTH,
+                            )
+                            if (commentValidationError != null) {
+                                forceShowReviewError = true
+                                localReviewError = commentValidationError
+                                viewModel?.soundPlayer?.playAlertError()
+                                return@clickable
+                            }
+                            val cleanComment = reviewComment.trim()
+                            val activeViewModel = viewModel
+                            val published = if (activeViewModel != null) {
+                                activeViewModel.submitCompanyReview(cleanComment, selectedRating)
+                            } else {
+                                true
+                            }
+                            if (published) {
+                                localReviewError = null
+                                onSelectScreenCode("s37")
+                            } else {
+                                localReviewError = activeViewModel?.formError?.value
+                                    ?: "No se pudo publicar la reseña."
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    if (reviewComment.isEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        RfIcon(kind = RfIconKind.STAR, tint = Color.White, size = 20.dp)
                         BasicText(
-                            text = "Escribe tu reseña sobre el montaje y la atención (mínimo 6 caracteres)…",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted),
+                            text = "Publicar reseña ($selectedRating ★)",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
                         )
                     }
-                    BasicTextField(
-                        value = reviewComment,
-                        onValueChange = { nextText ->
-                            reviewComment = nextText.take(InputValidator.MAX_NOTES_LENGTH)
-                            hasInteractedReviewComment = true
-                            localReviewError = null
-                        },
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.ink),
-                        cursorBrush = SolidColor(Color(0xFFC2338F)),
-                        modifier = Modifier.fillMaxSize(),
-                    )
                 }
-
-                RfValidationErrorText(errorMessage = activeReviewCommentError)
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(start = 20.dp, end = 20.dp, bottom = 36.dp)
-                .fillMaxWidth()
-                .height(56.dp)
-                .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                .clip(RoundedCornerShape(16.dp))
-                .background(RosaButtonGradient)
-                .clickable {
-                    val commentValidationError = InputValidator.validateNotes(
-                        rawValue = reviewComment,
-                        fieldLabel = "La reseña",
-                        isRequired = true,
-                        minLength = 6,
-                        maxLength = InputValidator.MAX_NOTES_LENGTH,
-                    )
-                    if (commentValidationError != null) {
-                        forceShowReviewError = true
-                        localReviewError = commentValidationError
-                        viewModel?.soundPlayer?.playAlertError()
-                        return@clickable
-                    }
-                    val cleanComment = reviewComment.trim()
-                    val activeViewModel = viewModel
-                    val published = if (activeViewModel != null) {
-                        activeViewModel.submitCompanyReview(cleanComment, selectedRating)
-                    } else {
-                        true
-                    }
-                    if (published) {
-                        localReviewError = null
-                        onSelectScreenCode("s37")
-                    } else {
-                        localReviewError = activeViewModel?.formError?.value
-                            ?: "No se pudo publicar la reseña."
-                    }
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                RfIcon(kind = RfIconKind.STAR, tint = Color.White, size = 20.dp)
-                BasicText(
-                    text = "Publicar reseña ($selectedRating ★)",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
-                )
             }
         }
     }
@@ -2438,11 +2787,17 @@ internal fun RenderUserProfileScreenS54(
     var hasInteractedBirthDate by remember { mutableStateOf(false) }
     var hasInteractedUsername by remember { mutableStateOf(false) }
     var forceShowProfileErrors by remember { mutableStateOf(false) }
+    val nameBlurState = rememberFieldBlurState()
+    val emailBlurState = rememberFieldBlurState()
+    val phoneBlurState = rememberFieldBlurState()
+    val birthDateBlurState = rememberFieldBlurState()
+    val usernameBlurState = rememberFieldBlurState()
 
     val liveNameError = rememberDebouncedValidationError(
         value = draftName,
         hasInteracted = hasInteractedName,
         forceShowError = forceShowProfileErrors,
+        hasBlurred = nameBlurState.hasBlurred,
     ) { candidate ->
         if (!isEditing) null else InputValidator.validateFullName(candidate)
     }
@@ -2450,6 +2805,7 @@ internal fun RenderUserProfileScreenS54(
         value = draftEmail,
         hasInteracted = hasInteractedEmail,
         forceShowError = forceShowProfileErrors,
+        hasBlurred = emailBlurState.hasBlurred,
     ) { candidate ->
         if (!isEditing) null else InputValidator.validateEmail(candidate)
     }
@@ -2457,6 +2813,7 @@ internal fun RenderUserProfileScreenS54(
         value = draftPhone,
         hasInteracted = hasInteractedPhone,
         forceShowError = forceShowProfileErrors,
+        hasBlurred = phoneBlurState.hasBlurred,
     ) { candidate ->
         if (!isEditing) {
             null
@@ -2473,6 +2830,7 @@ internal fun RenderUserProfileScreenS54(
         value = draftBirthDate,
         hasInteracted = hasInteractedBirthDate,
         forceShowError = forceShowProfileErrors,
+        hasBlurred = birthDateBlurState.hasBlurred,
     ) { candidate ->
         if (!isEditing) null else InputValidator.validateBirthDate(candidate, isRequired = true)
     }
@@ -2480,6 +2838,7 @@ internal fun RenderUserProfileScreenS54(
         value = draftUsername,
         hasInteracted = hasInteractedUsername,
         forceShowError = forceShowProfileErrors,
+        hasBlurred = usernameBlurState.hasBlurred,
     ) { candidate ->
         if (!isEditing) null else InputValidator.validateUsername(candidate)
     }
@@ -2491,6 +2850,11 @@ internal fun RenderUserProfileScreenS54(
         hasInteractedBirthDate = false
         hasInteractedUsername = false
         forceShowProfileErrors = false
+        nameBlurState.reset()
+        emailBlurState.reset()
+        phoneBlurState.reset()
+        birthDateBlurState.reset()
+        usernameBlurState.reset()
     }
 
     val saveProfileChanges: () -> Unit = {
@@ -2534,12 +2898,7 @@ internal fun RenderUserProfileScreenS54(
     }
 
     val displayedNameForInitials = if (isEditing) draftName else profileName
-    val initials = displayedNameForInitials
-        .split(" ")
-        .mapNotNull { word -> word.firstOrNull()?.uppercaseChar()?.toString() }
-        .take(2)
-        .joinToString("")
-        .ifEmpty { "RF" }
+    val initials = InputValidator.extractInitials(displayedNameForInitials)
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -2709,6 +3068,9 @@ internal fun RenderUserProfileScreenS54(
                             errorText = liveNameError,
                             maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
                             isTitleStyle = true,
+                            onFocusChanged = { focused ->
+                                nameBlurState.onFocusStateChanged(focused) { hasInteractedName = true }
+                            },
                             onValueChange = { nextName ->
                                 draftName = InputValidator.filterPersonNameInput(
                                     rawValue = nextName,
@@ -2726,6 +3088,9 @@ internal fun RenderUserProfileScreenS54(
                             errorText = liveEmailError,
                             maxLength = InputValidator.MAX_EMAIL_LENGTH,
                             isTitleStyle = false,
+                            onFocusChanged = { focused ->
+                                emailBlurState.onFocusStateChanged(focused) { hasInteractedEmail = true }
+                            },
                             onValueChange = { nextEmail ->
                                 draftEmail = nextEmail.take(InputValidator.MAX_EMAIL_LENGTH)
                                 hasInteractedEmail = true
@@ -2762,8 +3127,13 @@ internal fun RenderUserProfileScreenS54(
                             value = draftPhone,
                             placeholder = "809-555-0102",
                             hasError = livePhoneError != null,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            cursorMask = InputValidator::filterPhoneInputWithCursor,
+                            onFocusChanged = { focused ->
+                                phoneBlurState.onFocusStateChanged(focused) { hasInteractedPhone = true }
+                            },
                             onValueChange = { nextPhone ->
-                                draftPhone = InputValidator.filterPhoneInput(nextPhone)
+                                draftPhone = nextPhone
                                 hasInteractedPhone = true
                                 localProfileError = null
                                 viewModel?.clearFormError()
@@ -2799,6 +3169,9 @@ internal fun RenderUserProfileScreenS54(
                             hasError = liveBirthDateError != null,
                             compactInline = true,
                             readableFormatter = ::formatSpanishDateWithWords,
+                            onFocusChanged = { focused ->
+                                birthDateBlurState.onFocusStateChanged(focused) { hasInteractedBirthDate = true }
+                            },
                             modifier = Modifier.width(184.dp),
                             onValueChange = { formattedBirthDate ->
                                 draftBirthDate = formattedBirthDate.take(InputValidator.MAX_BIRTH_DATE_LENGTH)
@@ -2828,6 +3201,9 @@ internal fun RenderUserProfileScreenS54(
                             value = draftUsername,
                             placeholder = "usuario",
                             hasError = liveUsernameError != null,
+                            onFocusChanged = { focused ->
+                                usernameBlurState.onFocusStateChanged(focused) { hasInteractedUsername = true }
+                            },
                             onValueChange = { nextUsername ->
                                 draftUsername = InputValidator.filterUsernameInput(nextUsername)
                                 hasInteractedUsername = true
@@ -3044,11 +3420,8 @@ internal fun RenderUserProfileScreenS54(
                 title = "Cumpleaños",
                 subtitle = "Selecciona tu día, mes y año de nacimiento",
                 currentDateText = draftBirthDate,
-                minYear = InputValidator.MIN_BIRTH_YEAR,
-                maxYear = InputValidator.MAX_BIRTH_YEAR,
-                defaultYear = 1996,
-                quickYears = listOf(1985, 1990, 1995, 1996, 2000, 2004, 2008),
                 isAdmin = isAdminVisual,
+                dateMode = RfCalendarDateMode.BIRTH_AGE_LIMITED,
                 onSelectDate = { selectedDate ->
                     draftBirthDate = selectedDate
                     localProfileError = null
@@ -3137,6 +3510,7 @@ private fun ProfileHeaderEditableField54(
     errorText: String?,
     maxLength: Int,
     isTitleStyle: Boolean,
+    onFocusChanged: ((Boolean) -> Unit)? = null,
     onValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -3209,7 +3583,11 @@ private fun ProfileHeaderEditableField54(
                         color = palette.ink,
                     ),
                     cursorBrush = SolidColor(profileEditAccentColor(LocalRfPalette.current.isAdmin)),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfTrackValidationFocus(focusKey = remember { Any() }) { isFocused ->
+                            onFocusChanged?.invoke(isFocused)
+                        },
                 )
             }
             RfIcon(
@@ -3237,6 +3615,9 @@ private fun ProfileInlineInputBox54(
     value: String,
     placeholder: String,
     hasError: Boolean,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    cursorMask: ((previousFormatted: String, newRawText: String, newSelectionEnd: Int) -> MaskedTextCursorResult)? = null,
+    onFocusChanged: ((Boolean) -> Unit)? = null,
     onValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -3275,19 +3656,46 @@ private fun ProfileInlineInputBox54(
                     ),
                 )
             }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                singleLine = true,
-                textStyle = TextStyle(
-                    fontFamily = typo.bodyFamily,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.5.sp,
-                    color = palette.ink,
-                ),
-                cursorBrush = SolidColor(profileEditAccentColor(LocalRfPalette.current.isAdmin)),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (cursorMask != null) {
+                RfMaskedDigitBasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    maskTransform = cursorMask,
+                    singleLine = true,
+                    keyboardOptions = keyboardOptions,
+                    textStyle = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.5.sp,
+                        color = palette.ink,
+                    ),
+                    cursorBrush = SolidColor(profileEditAccentColor(LocalRfPalette.current.isAdmin)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfTrackValidationFocus(focusKey = remember { Any() }) { isFocused ->
+                            onFocusChanged?.invoke(isFocused)
+                        },
+                )
+            } else {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    keyboardOptions = keyboardOptions,
+                    textStyle = TextStyle(
+                        fontFamily = typo.bodyFamily,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.5.sp,
+                        color = palette.ink,
+                    ),
+                    cursorBrush = SolidColor(profileEditAccentColor(LocalRfPalette.current.isAdmin)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfTrackValidationFocus(focusKey = remember { Any() }) { isFocused ->
+                            onFocusChanged?.invoke(isFocused)
+                        },
+                )
+            }
         }
         RfIcon(
             kind = RfIconKind.EDIT,
@@ -3713,243 +4121,261 @@ internal fun RenderNewSupplierScreenS56(
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
-            Column(
+        Column(modifier = Modifier.fillMaxSize()) {
+            RfRadialBackgroundBox(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp),
+                    .weight(1f)
+                    .fillMaxWidth(),
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
                 ) {
-                    AdminPanelIconButton(RfIconKind.CLOSE) { onSelectScreenCode("BACK:s55") }
-                    BasicText(
-                        "Nuevo proveedor",
-                        modifier = Modifier.weight(1f),
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
-                    )
-                }
-
-                if (localSupplierError != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFFFEDF1))
-                            .border(1.dp, RfColors.Error.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        AdminPanelIconButton(RfIconKind.CLOSE) { onSelectScreenCode("BACK:s55") }
                         BasicText(
-                            text = localSupplierError.orEmpty(),
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = RfColors.Error),
+                            "Nuevo proveedor",
+                            modifier = Modifier.weight(1f),
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    AdminField56(
-                        label = "Nombre de la empresa",
-                        placeholder = "Ej. Flores del Valle",
-                        icon = RfIconKind.BOX,
-                        required = true,
-                        boundValue = companyName,
-                        isError = debouncedCompanyError != null,
-                        errorMessage = debouncedCompanyError,
-                        onBoundValueChange = { updatedText ->
-                            companyName = updatedText.take(InputValidator.MAX_BUSINESS_NAME_LENGTH)
-                            hasInteractedCompany = true
-                            localSupplierError = null
-                        },
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        BasicText(
-                            text = "Categoría *",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)),
-                        )
-                        Row(
-                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    if (localSupplierError != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFFFFEDF1))
+                                .border(1.dp, RfColors.Error.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
                         ) {
-                            categoryOptions.forEach { categoryOption ->
-                                val isCategorySelected = selectedCategory == categoryOption
-                                Box(
-                                    modifier = Modifier
-                                        .height(36.dp)
-                                        .clip(RoundedCornerShape(999.dp))
-                                        .background(if (isCategorySelected) Color(0xFFECEBFF) else RfThemeState.currentPalette.surface)
-                                        .border(
-                                            width = if (isCategorySelected) 1.5.dp else 1.dp,
-                                            color = if (isCategorySelected) Color(0xFF5B6CF0) else Color(0xFFE3E4EF),
-                                            shape = RoundedCornerShape(999.dp),
+                            BasicText(
+                                text = localSupplierError.orEmpty(),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = RfColors.Error),
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        AdminField56(
+                            label = "Nombre de la empresa",
+                            placeholder = "Ej. Flores del Valle",
+                            icon = RfIconKind.BOX,
+                            required = true,
+                            boundValue = companyName,
+                            isError = debouncedCompanyError != null,
+                            errorMessage = debouncedCompanyError,
+                            onBoundValueChange = { updatedText ->
+                                companyName = updatedText.take(InputValidator.MAX_BUSINESS_NAME_LENGTH)
+                                hasInteractedCompany = true
+                                localSupplierError = null
+                            },
+                        )
+
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            BasicText(
+                                text = "Categoría *",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)),
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                categoryOptions.forEach { categoryOption ->
+                                    val isCategorySelected = selectedCategory == categoryOption
+                                    Box(
+                                        modifier = Modifier
+                                            .height(36.dp)
+                                            .clip(RoundedCornerShape(999.dp))
+                                            .background(if (isCategorySelected) Color(0xFFECEBFF) else RfThemeState.currentPalette.surface)
+                                            .border(
+                                                width = if (isCategorySelected) 1.5.dp else 1.dp,
+                                                color = if (isCategorySelected) Color(0xFF5B6CF0) else Color(0xFFE3E4EF),
+                                                shape = RoundedCornerShape(999.dp),
+                                            )
+                                            .clickable {
+                                                selectedCategory = categoryOption
+                                                localSupplierError = null
+                                            }
+                                            .padding(horizontal = 14.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        BasicText(
+                                            text = categoryOption,
+                                            style = TextStyle(
+                                                fontFamily = typo.bodyFamily,
+                                                fontWeight = if (isCategorySelected) FontWeight.Bold else FontWeight.Medium,
+                                                fontSize = 13.sp,
+                                                color = if (isCategorySelected) Color(0xFF4B47D6) else Color(0xFF5F6377),
+                                            ),
                                         )
-                                        .clickable {
-                                            selectedCategory = categoryOption
-                                            localSupplierError = null
-                                        }
-                                        .padding(horizontal = 14.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    BasicText(
-                                        text = categoryOption,
-                                        style = TextStyle(
-                                            fontFamily = typo.bodyFamily,
-                                            fontWeight = if (isCategorySelected) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 13.sp,
-                                            color = if (isCategorySelected) Color(0xFF4B47D6) else Color(0xFF5F6377),
-                                        ),
-                                    )
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    AdminField56(
-                        label = "Persona de contacto",
-                        placeholder = "Nombre y apellido",
-                        icon = RfIconKind.USER,
-                        required = true,
-                        boundValue = contactPerson,
-                        isError = debouncedContactError != null,
-                        errorMessage = debouncedContactError,
-                        onBoundValueChange = { updatedText ->
-                            contactPerson = InputValidator.filterPersonNameInput(
-                                rawValue = updatedText,
-                                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
-                            )
-                            hasInteractedContact = true
-                            localSupplierError = null
-                        },
-                    )
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Box(Modifier.weight(1f)) {
-                            AdminField56(
-                                label = "Teléfono",
-                                placeholder = "809-000-0000",
-                                required = true,
-                                boundValue = phoneNumber,
-                                isError = debouncedPhoneError != null,
-                                errorMessage = debouncedPhoneError,
-                                onBoundValueChange = { updatedText ->
-                                    phoneNumber = InputValidator.filterPhoneInput(updatedText)
-                                    hasInteractedPhone = true
-                                    localSupplierError = null
-                                },
-                            )
-                        }
-                        Box(Modifier.weight(1f)) {
-                            AdminField56(
-                                label = "Correo",
-                                placeholder = "correo@empresa.do",
-                                boundValue = emailAddress,
-                                isError = debouncedEmailError != null,
-                                errorMessage = debouncedEmailError,
-                                onBoundValueChange = { updatedText ->
-                                    emailAddress = updatedText.take(InputValidator.MAX_EMAIL_LENGTH)
-                                    hasInteractedEmail = true
-                                    localSupplierError = null
-                                },
-                            )
-                        }
-                    }
-                    AdminField56(
-                        label = "Sitio web",
-                        placeholder = "www.ejemplo.com",
-                        icon = RfIconKind.SHARE,
-                        boundValue = websiteUrl,
-                        isError = debouncedWebsiteError != null,
-                        errorMessage = debouncedWebsiteError,
-                        onBoundValueChange = { updatedText ->
-                            websiteUrl = updatedText.take(InputValidator.MAX_WEBSITE_LENGTH)
-                            hasInteractedWebsite = true
-                            localSupplierError = null
-                        },
-                    )
-                    AdminNotes56(
-                        notesValue = supplierNotes,
-                        isError = debouncedNotesError != null,
-                        errorMessage = debouncedNotesError,
-                        onNotesChange = { updatedNotes ->
-                            supplierNotes = updatedNotes.take(InputValidator.MAX_NOTES_LENGTH)
-                            hasInteractedNotes = true
-                            localSupplierError = null
-                        },
-                    )
-                }
-                Spacer(modifier = Modifier.height(130.dp))
-            }
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 36.dp)
-                .height(56.dp)
-                .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x995B6CF0))
-                .clip(RoundedCornerShape(16.dp))
-                .background(AdminPanelGradient)
-                .clickable {
-                    val companyError = InputValidator.validateSupplierName(companyName, isRequired = true)
-                    val contactError = InputValidator.validateFullName(contactPerson)
-                    val phoneError = InputValidator.validateDominicanPhone(
-                        rawValue = phoneNumber,
-                        isRequired = true,
-                        allowInternational = false,
-                        fieldLabel = "El teléfono",
-                    )
-                    val emailError = InputValidator.validateOptionalEmail(emailAddress)
-                    val websiteError = InputValidator.validateWebsiteUrl(websiteUrl, isRequired = false)
-                    val notesError = InputValidator.validateNotes(
-                        rawValue = supplierNotes,
-                        fieldLabel = "Las notas",
-                        isRequired = false,
-                        minLength = 0,
-                        maxLength = InputValidator.MAX_NOTES_LENGTH,
-                    )
-                    val validationError = companyError
-                        ?: contactError
-                        ?: phoneError
-                        ?: emailError
-                        ?: websiteError
-                        ?: notesError
-                    if (validationError != null) {
-                        forceShowSupplierErrors = true
-                        localSupplierError = validationError
-                        viewModel?.soundPlayer?.playAlertError()
-                        return@clickable
-                    }
-
-                    val activeViewModel = viewModel
-                    val saved = if (activeViewModel != null) {
-                        activeViewModel.addSupplier(
-                            name = companyName.trim(),
-                            category = selectedCategory,
-                            phone = phoneNumber.trim(),
-                            contactName = contactPerson.trim(),
-                            email = emailAddress.trim(),
-                            website = websiteUrl.trim(),
-                            notes = supplierNotes.trim(),
+                        AdminField56(
+                            label = "Persona de contacto",
+                            placeholder = "Nombre y apellido",
+                            icon = RfIconKind.USER,
+                            required = true,
+                            boundValue = contactPerson,
+                            isError = debouncedContactError != null,
+                            errorMessage = debouncedContactError,
+                            onBoundValueChange = { updatedText ->
+                                contactPerson = InputValidator.filterPersonNameInput(
+                                    rawValue = updatedText,
+                                    maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
+                                )
+                                hasInteractedContact = true
+                                localSupplierError = null
+                            },
                         )
-                    } else {
-                        true
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(Modifier.weight(1f)) {
+                                AdminField56(
+                                    label = "Teléfono",
+                                    placeholder = "809-000-0000",
+                                    required = true,
+                                    boundValue = phoneNumber,
+                                    isError = debouncedPhoneError != null,
+                                    errorMessage = debouncedPhoneError,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                    cursorMask = InputValidator::filterPhoneInputWithCursor,
+                                    onBoundValueChange = { updatedText ->
+                                        phoneNumber = updatedText
+                                        hasInteractedPhone = true
+                                        localSupplierError = null
+                                    },
+                                )
+                            }
+                            Box(Modifier.weight(1f)) {
+                                AdminField56(
+                                    label = "Correo",
+                                    placeholder = "correo@empresa.do",
+                                    boundValue = emailAddress,
+                                    isError = debouncedEmailError != null,
+                                    errorMessage = debouncedEmailError,
+                                    onBoundValueChange = { updatedText ->
+                                        emailAddress = updatedText.take(InputValidator.MAX_EMAIL_LENGTH)
+                                        hasInteractedEmail = true
+                                        localSupplierError = null
+                                    },
+                                )
+                            }
+                        }
+                        AdminField56(
+                            label = "Sitio web",
+                            placeholder = "www.ejemplo.com",
+                            icon = RfIconKind.SHARE,
+                            boundValue = websiteUrl,
+                            isError = debouncedWebsiteError != null,
+                            errorMessage = debouncedWebsiteError,
+                            onBoundValueChange = { updatedText ->
+                                websiteUrl = updatedText.take(InputValidator.MAX_WEBSITE_LENGTH)
+                                hasInteractedWebsite = true
+                                localSupplierError = null
+                            },
+                        )
+                        AdminNotes56(
+                            notesValue = supplierNotes,
+                            isError = debouncedNotesError != null,
+                            errorMessage = debouncedNotesError,
+                            onNotesChange = { updatedNotes ->
+                                supplierNotes = updatedNotes.take(InputValidator.MAX_NOTES_LENGTH)
+                                hasInteractedNotes = true
+                                localSupplierError = null
+                            },
+                        )
                     }
-                    if (saved) {
-                        localSupplierError = null
-                        onSelectScreenCode("BACK:s55")
-                    } else {
-                        localSupplierError = activeViewModel?.formError?.value
-                            ?: "No se pudo guardar el proveedor."
-                    }
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            BasicText("Guardar proveedor", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
+                }
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color(0xFFECECF5)),
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .height(56.dp)
+                        .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x995B6CF0))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(AdminPanelGradient)
+                        .clickable {
+                            val companyError = InputValidator.validateSupplierName(companyName, isRequired = true)
+                            val contactError = InputValidator.validateFullName(contactPerson)
+                            val phoneError = InputValidator.validateDominicanPhone(
+                                rawValue = phoneNumber,
+                                isRequired = true,
+                                allowInternational = false,
+                                fieldLabel = "El teléfono",
+                            )
+                            val emailError = InputValidator.validateOptionalEmail(emailAddress)
+                            val websiteError = InputValidator.validateWebsiteUrl(websiteUrl, isRequired = false)
+                            val notesError = InputValidator.validateNotes(
+                                rawValue = supplierNotes,
+                                fieldLabel = "Las notas",
+                                isRequired = false,
+                                minLength = 0,
+                                maxLength = InputValidator.MAX_NOTES_LENGTH,
+                            )
+                            val validationError = companyError
+                                ?: contactError
+                                ?: phoneError
+                                ?: emailError
+                                ?: websiteError
+                                ?: notesError
+                            if (validationError != null) {
+                                forceShowSupplierErrors = true
+                                localSupplierError = validationError
+                                viewModel?.soundPlayer?.playAlertError()
+                                return@clickable
+                            }
+
+                            val activeViewModel = viewModel
+                            val saved = if (activeViewModel != null) {
+                                activeViewModel.addSupplier(
+                                    name = companyName.trim(),
+                                    category = selectedCategory,
+                                    phone = phoneNumber.trim(),
+                                    contactName = contactPerson.trim(),
+                                    email = emailAddress.trim(),
+                                    website = websiteUrl.trim(),
+                                    notes = supplierNotes.trim(),
+                                )
+                            } else {
+                                true
+                            }
+                            if (saved) {
+                                localSupplierError = null
+                                onSelectScreenCode("BACK:s55")
+                            } else {
+                                localSupplierError = activeViewModel?.formError?.value
+                                    ?: "No se pudo guardar el proveedor."
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText("Guardar proveedor", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
+                }
+            }
         }
     }
 }
@@ -3963,6 +4389,8 @@ private fun AdminField56(
     boundValue: String,
     isError: Boolean = false,
     errorMessage: String? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    cursorMask: ((previousFormatted: String, newRawText: String, newSelectionEnd: Int) -> MaskedTextCursorResult)? = null,
     onBoundValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -4000,13 +4428,27 @@ private fun AdminField56(
                         style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF5F6377)),
                     )
                 }
-                BasicTextField(
-                    value = boundValue,
-                    onValueChange = onBoundValueChange,
-                    singleLine = true,
-                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (cursorMask != null) {
+                    RfMaskedDigitBasicTextField(
+                        value = boundValue,
+                        onValueChange = onBoundValueChange,
+                        maskTransform = cursorMask,
+                        singleLine = true,
+                        keyboardOptions = keyboardOptions,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
+                        cursorBrush = SolidColor(Color(0xFF4B47D6)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    BasicTextField(
+                        value = boundValue,
+                        onValueChange = onBoundValueChange,
+                        singleLine = true,
+                        keyboardOptions = keyboardOptions,
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
         RfValidationErrorText(errorMessage = errorMessage)
@@ -4350,7 +4792,7 @@ private fun IncomeTrend57(
     val maxVal = (seriesValues.maxOrNull() ?: 1).coerceAtLeast(1).toFloat()
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Canvas(modifier = Modifier.fillMaxWidth().height(128.dp)) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(100.dp)) {
             listOf(30f, 75f, 120f).forEach { gridY ->
                 drawLine(Color(0xFFEDEDF5), Offset(0f, gridY), Offset(size.width, gridY), 1.dp.toPx())
             }
@@ -4512,7 +4954,7 @@ internal fun RenderFinancialDashboardScreenS58(
                         Spacer(Modifier.height(8.dp))
                         BasicText(
                             text = RosaFiestaEngine.formatDop(monthlyRevenueDop),
-                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp, lineHeight = 36.sp, color = Color.White),
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, lineHeight = 28.sp, color = Color.White),
                         )
                         Spacer(Modifier.height(4.dp))
                         BasicText(
@@ -4703,317 +5145,394 @@ internal fun RenderOfficialReceiptScreenS83(
             .fillMaxSize()
             .background(palette.bg),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(palette.surface)
-                        .clickable { onSelectScreenCode("BACK") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = "Recibo oficial",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = palette.ink),
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1,
-                    )
-                    BasicText(
-                        text = "No. $receiptCode",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1,
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(palette.surface)
-                        .clickable {
-                            receiptShared = true
-                            viewModel?.exportReceiptDocument(
-                                event = event,
-                                payment = latestPayment,
-                                shareInsteadOfSave = true,
-                            )
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    RfIcon(
-                        kind = if (receiptShared) RfIconKind.CHECK else RfIconKind.SHARE,
-                        tint = if (receiptShared) Color(0xFF4E6A10) else palette.ink,
-                        size = 19.dp,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Box(
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(palette.surface)
-                    .padding(horizontal = 18.dp, vertical = 20.dp),
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
-                            .shadow(elevation = 4.dp, shape = CircleShape, spotColor = Color(0x24B450B4))
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
                             .background(palette.surface)
-                            .border(1.dp, Color(0x25EA4EA9), CircleShape),
+                            .clickable { onSelectScreenCode("BACK") },
                         contentAlignment = Alignment.Center,
                     ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
                         BasicText(
-                            text = "RF",
-                            style = TextStyle(
-                                fontFamily = typo.displayFamily,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 18.sp,
-                                color = Color(0xFFEA4EA9),
-                            ),
+                            text = "Recibo oficial",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, lineHeight = 22.sp, color = palette.ink),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        )
+                        BasicText(
+                            text = "No. $receiptCode",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                    BasicText(
-                        text = businessSettings.businessName,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink, textAlign = TextAlign.Center),
-                    )
-                    BasicText(
-                        text = "RNC ${businessSettings.rnc}",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted),
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(Color(0xFFEEF6D6))
-                            .padding(horizontal = 9.dp, vertical = 4.dp),
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(palette.surface)
+                            .clickable {
+                                receiptShared = true
+                                viewModel?.exportReceiptDocument(
+                                    event = event,
+                                    payment = latestPayment,
+                                    shareInsteadOfSave = true,
+                                )
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 13.dp)
-                            BasicText(
-                                text = "Pago recibido",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)),
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    BasicText(
-                        text = RosaFiestaEngine.formatDop(paidDop),
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp, lineHeight = 34.sp, color = palette.ink),
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    BasicText(
-                        text = "$receiptConcept · ${event.title}",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted, textAlign = TextAlign.Center),
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Canvas(modifier = Modifier.fillMaxWidth().height(1.5.dp)) {
-                        drawLine(
-                            color = Color(0xFFE6DEEA),
-                            start = Offset(0f, 0f),
-                            end = Offset(size.width, 0f),
-                            strokeWidth = 1.5.dp.toPx(),
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f)),
+                        RfIcon(
+                            kind = if (receiptShared) RfIconKind.CHECK else RfIconKind.SHARE,
+                            tint = if (receiptShared) Color(0xFF4E6A10) else palette.ink,
+                            size = 19.dp,
                         )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                    val summaryRows = listOf(
-                        "Fecha de emisión" to receiptDate,
-                        "Método" to receiptMethod,
-                        "Cliente" to billedClientName,
-                        "Evento" to "${formatReadableSpanishDateText(event.dateLabel)} · ${event.venue}",
-                    )
-
-                    summaryRows.forEach { rowEntry ->
-                        val rowLabel = rowEntry.first
-                        val rowValue = rowEntry.second
-                        Row(
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(palette.surface)
+                        .padding(horizontal = 18.dp, vertical = 20.dp),
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 7.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                                .size(56.dp)
+                                .shadow(elevation = 4.dp, shape = CircleShape, spotColor = Color(0x24B450B4))
+                                .clip(CircleShape)
+                                .background(palette.surface)
+                                .border(1.dp, Color(0x25EA4EA9), CircleShape),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            BasicText(rowLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted))
                             BasicText(
-                                text = rowValue,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = palette.ink),
-                                modifier = Modifier.padding(start = 12.dp),
+                                text = "RF",
+                                style = TextStyle(
+                                    fontFamily = typo.displayFamily,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 18.sp,
+                                    color = Color(0xFFEA4EA9),
+                                ),
                             )
                         }
-                    }
 
-                    if (event.items.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(palette.lineSoft))
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         BasicText(
-                            text = "DETALLE DE RENGLONES",
-                            modifier = Modifier.fillMaxWidth(),
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, letterSpacing = 0.8.sp, color = palette.muted),
+                            text = businessSettings.businessName,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink, textAlign = TextAlign.Center),
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        event.items.forEach { lineItem ->
+                        BasicText(
+                            text = "RNC ${businessSettings.rnc}",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted),
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        val isRejectedReceipt = latestPayment?.rejectionReason?.isNotBlank() == true
+                        val isPendingReceipt = if (isRejectedReceipt) {
+                            false
+                        } else {
+                            latestPayment?.verified == false
+                        }
+                        val statusBadgeBg = when {
+                            isRejectedReceipt -> Color(0xFFFFE5EA)
+                            isPendingReceipt -> Color(0xFFFFF2C9)
+                            else -> Color(0xFFEEF6D6)
+                        }
+                        val statusBadgeText = when {
+                            isRejectedReceipt -> Color(0xFFB42345)
+                            isPendingReceipt -> Color(0xFF7A5700)
+                            else -> Color(0xFF4E6A10)
+                        }
+                        val statusBadgeLabel = when {
+                            isRejectedReceipt -> "Comprobante rechazado"
+                            isPendingReceipt -> "Pendiente de verificación"
+                            else -> "Verificado por finanzas"
+                        }
+                        val statusBadgeIcon = when {
+                            isRejectedReceipt -> RfIconKind.CLOSE
+                            isPendingReceipt -> RfIconKind.CLOCK
+                            else -> RfIconKind.CHECK
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(statusBadgeBg)
+                                .padding(horizontal = 9.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
+                                RfIcon(kind = statusBadgeIcon, tint = statusBadgeText, size = 13.dp)
                                 BasicText(
-                                    text = "${lineItem.quantity} × ${lineItem.name}",
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f).padding(end = 8.dp),
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.ink),
-                                )
-                                BasicText(
-                                    text = RosaFiestaEngine.formatDop(lineItem.subtotalDop),
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = palette.ink),
+                                    text = statusBadgeLabel,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = statusBadgeText),
                                 )
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(palette.lineSoft))
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        BasicText("Total contratado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
-                        BasicText(RosaFiestaEngine.formatDop(totalEventDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        BasicText("Monto abonado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
-                        BasicText(RosaFiestaEngine.formatDop(paidDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF4E6A10)))
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        BasicText("Saldo pendiente", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = palette.muted))
                         BasicText(
-                            text = RosaFiestaEngine.formatDop(remainingDop),
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.5.sp, color = Color(0xFF7A5700)),
+                            text = RosaFiestaEngine.formatDop(paidDop),
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, lineHeight = 26.sp, color = palette.ink),
                         )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        BasicText(
+                            text = "$receiptConcept · ${event.title}",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted, textAlign = TextAlign.Center),
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Canvas(modifier = Modifier.fillMaxWidth().height(1.5.dp)) {
+                            drawLine(
+                                color = Color(0xFFE6DEEA),
+                                start = Offset(0f, 0f),
+                                end = Offset(size.width, 0f),
+                                strokeWidth = 1.5.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f)),
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        val receiptSubtotal = latestPayment?.subtotalDop ?: ((paidDop * 100) / 118)
+                        val receiptItbis = latestPayment?.itbisDop ?: (paidDop - receiptSubtotal).coerceAtLeast(0)
+                        val ncfLabel = latestPayment?.ncfNumber?.ifBlank { latestPayment.ncfType } ?: "B02"
+                        val clientRncValue = latestPayment?.clientRnc.orEmpty()
+                        val rejectionReasonValue = latestPayment?.rejectionReason.orEmpty()
+                        val summaryRows = buildList {
+                            add("Fecha de emisión" to receiptDate)
+                            add("Método" to receiptMethod)
+                            add("Comprobante (NCF)" to ncfLabel)
+                            if (clientRncValue.isNotBlank()) {
+                                add("RNC / Cédula cliente" to clientRncValue)
+                            }
+                            add("Subtotal gravado" to RosaFiestaEngine.formatDop(receiptSubtotal))
+                            add("ITBIS (18%)" to RosaFiestaEngine.formatDop(receiptItbis))
+                            add("Cliente" to billedClientName)
+                            add("Evento" to "${formatReadableSpanishDateText(event.dateLabel)} · ${event.venue}")
+                        }
+                        if (rejectionReasonValue.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFFFEEF1))
+                                    .padding(10.dp),
+                            ) {
+                                BasicText(
+                                    text = "Motivo de rechazo: $rejectionReasonValue",
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                                )
+                            }
+                        }
+                        val receiptVoucherUrl = latestPayment?.voucherUrl.orEmpty()
+                        if (receiptVoucherUrl.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            RfUploadedOrCatalogPhoto(
+                                photoUrl = receiptVoucherUrl,
+                                fallbackPhotoKey = RfPhotoKey.BODA,
+                                contentDescription = "Comprobante de transferencia",
+                                viewModel = viewModel,
+                                modifier = Modifier.fillMaxWidth().height(96.dp),
+                                cornerRadius = 12.dp,
+                            )
+                        }
+
+                        summaryRows.forEach { rowEntry ->
+                            val rowLabel = rowEntry.first
+                            val rowValue = rowEntry.second
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 7.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                BasicText(rowLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted))
+                                BasicText(
+                                    text = rowValue,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.5.sp, color = palette.ink),
+                                    modifier = Modifier.padding(start = 12.dp),
+                                )
+                            }
+                        }
+
+                        if (event.items.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(palette.lineSoft))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            BasicText(
+                                text = "DETALLE DE RENGLONES",
+                                modifier = Modifier.fillMaxWidth(),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, letterSpacing = 0.8.sp, color = palette.muted),
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            event.items.forEach { lineItem ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    BasicText(
+                                        text = "${lineItem.quantity} × ${lineItem.name}",
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.ink),
+                                    )
+                                    BasicText(
+                                        text = RosaFiestaEngine.formatDop(lineItem.subtotalDop),
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = palette.ink),
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(palette.lineSoft))
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            BasicText("Total contratado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                            BasicText(RosaFiestaEngine.formatDop(totalEventDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            BasicText("Monto abonado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                            BasicText(RosaFiestaEngine.formatDop(paidDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF4E6A10)))
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            BasicText("Saldo pendiente", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = palette.muted))
+                            BasicText(
+                                text = RosaFiestaEngine.formatDop(remainingDop),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.5.sp, color = Color(0xFF7A5700)),
+                            )
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                BasicText(
+                    text = "${businessSettings.businessName} · RNC ${businessSettings.rnc}\n${businessSettings.address}",
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted, textAlign = TextAlign.Center, lineHeight = 18.sp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            BasicText(
-                text = "${businessSettings.businessName} · RNC ${businessSettings.rnc}\n${businessSettings.address}",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted, textAlign = TextAlign.Center, lineHeight = 18.sp),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(modifier = Modifier.height(120.dp))
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 20.dp, vertical = 36.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp)
-                    .rfIconButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(palette.surface)
-                    .border(1.dp, palette.line, RoundedCornerShape(16.dp))
-                    .clickable {
-                        receiptShared = true
-                        viewModel?.exportReceiptDocument(
-                            event = event,
-                            payment = latestPayment,
-                            shareInsteadOfSave = true,
-                        )
-                    },
-                contentAlignment = Alignment.Center,
+                    .fillMaxWidth()
+                    .background(palette.surface),
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RfIcon(kind = if (receiptShared) RfIconKind.CHECK else RfIconKind.SHARE, tint = if (receiptShared) Color(0xFF4E6A10) else palette.ink, size = 18.dp)
-                    BasicText(
-                        text = if (receiptShared) "Compartido" else "Compartir",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.5.sp, color = if (receiptShared) Color(0xFF4E6A10) else palette.ink),
-                    )
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1.3f)
-                    .height(54.dp)
-                    .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(RosaButtonGradient)
-                    .clickable {
-                        pdfDownloaded = true
-                        viewModel?.exportReceiptDocument(
-                            event = event,
-                            payment = latestPayment,
-                            shareInsteadOfSave = false,
-                        )
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RfIcon(kind = if (pdfDownloaded) RfIconKind.CHECK else RfIconKind.DOWNLOAD, tint = Color.White, size = 18.dp)
-                    BasicText(
-                        text = if (pdfDownloaded) "PDF descargado" else "Descargar PDF",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.5.sp, color = Color.White),
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(palette.line),
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(54.dp)
+                            .rfIconButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(palette.surface)
+                            .border(1.dp, palette.line, RoundedCornerShape(16.dp))
+                            .clickable {
+                                receiptShared = true
+                                viewModel?.exportReceiptDocument(
+                                    event = event,
+                                    payment = latestPayment,
+                                    shareInsteadOfSave = true,
+                                )
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RfIcon(kind = if (receiptShared) RfIconKind.CHECK else RfIconKind.SHARE, tint = if (receiptShared) Color(0xFF4E6A10) else palette.ink, size = 18.dp)
+                            BasicText(
+                                text = if (receiptShared) "Compartido" else "Compartir",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.5.sp, color = if (receiptShared) Color(0xFF4E6A10) else palette.ink),
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .height(54.dp)
+                            .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(RosaButtonGradient)
+                            .clickable {
+                                pdfDownloaded = true
+                                viewModel?.exportReceiptDocument(
+                                    event = event,
+                                    payment = latestPayment,
+                                    shareInsteadOfSave = false,
+                                )
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            RfIcon(kind = if (pdfDownloaded) RfIconKind.CHECK else RfIconKind.DOWNLOAD, tint = Color.White, size = 18.dp)
+                            BasicText(
+                                text = if (pdfDownloaded) "PDF descargado" else "Descargar PDF",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.5.sp, color = Color.White),
+                            )
+                        }
+                    }
                 }
             }
         }

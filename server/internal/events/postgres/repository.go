@@ -60,32 +60,40 @@ func (r *Repository) UpsertEvent(ctx context.Context, event domain.Event, now ti
 		sketch = "{}"
 	}
 	err := r.queries.UpsertEvent(ctx, sqlcgen.UpsertEventParams{
-		ID:                 event.ID,
-		Code:               event.Code,
-		ClientID:           event.ClientID,
-		ClientName:         event.ClientName,
-		ClientEmail:        event.ClientEmail,
-		Title:              event.Title,
-		EventType:          event.EventType,
-		PhotoKey:           event.EventType,
-		Venue:              event.Venue,
-		Zone:               event.Zone,
-		EventDateLabel:     event.DateLabel,
-		DaysUntil:          event.DaysUntilEvent,
-		GuestsCount:        event.Guests,
-		ArticlesCount:      event.ArticleCount,
-		TotalDop:           event.TotalRD,
-		DepositDop:         event.PaidDepositRD,
-		PaidDop:            event.PaidDepositRD,
-		PaidDepositDop:     event.PaidDepositRD,
-		BalanceDop:         event.BalanceRD(),
-		BalanceDueLabel:    event.BalanceDueDate,
-		Status:             string(event.Status),
-		DateChangesCount:   event.DateChangesUsed,
-		AssignedLead:       event.AssignedLead,
-		SketchJson:         sketch,
-		CancellationReason: event.CancellationReason,
-		CreatedAt:          now,
+		ID:                         event.ID,
+		Code:                       event.Code,
+		ClientID:                   event.ClientID,
+		ClientName:                 event.ClientName,
+		ClientEmail:                event.ClientEmail,
+		Title:                      event.Title,
+		EventType:                  event.EventType,
+		PhotoKey:                   event.EventType,
+		Venue:                      event.Venue,
+		Zone:                       event.Zone,
+		EventDateLabel:             event.DateLabel,
+		EventDateIso:               event.EventDateISO,
+		PickupDateIso:              event.PickupDateISO,
+		ReturnDateIso:              event.ReturnDateISO,
+		DaysUntil:                  event.DaysUntilEvent,
+		GuestsCount:                event.Guests,
+		ArticlesCount:              event.ArticleCount,
+		TotalDop:                   event.TotalRD,
+		DepositDop:                 event.PaidDepositRD,
+		PaidDop:                    event.PaidDepositRD,
+		PaidDepositDop:             event.PaidDepositRD,
+		BalanceDop:                 event.BalanceRD(),
+		BalanceDueLabel:            event.BalanceDueDate,
+		Status:                     string(event.Status),
+		DateChangesCount:           event.DateChangesUsed,
+		AssignedLead:               event.AssignedLead,
+		SketchJson:                 sketch,
+		CancellationReason:         event.CancellationReason,
+		QuoteID:                    event.QuoteID,
+		CloseoutCompleted:          event.CloseoutCompleted,
+		CloseoutNotes:              event.CloseoutNotes,
+		LastPaymentReminderAt:      event.LastPaymentReminderAt,
+		LastPaymentReminderChannel: event.LastPaymentReminderChannel,
+		CreatedAt:                  now,
 	})
 	if err != nil {
 		return err
@@ -122,6 +130,9 @@ func (r *Repository) UpdateDate(ctx context.Context, event domain.Event) error {
 	return r.queries.UpdateEventDate(ctx, sqlcgen.UpdateEventDateParams{
 		ID:               event.ID,
 		EventDateLabel:   event.DateLabel,
+		EventDateIso:     event.EventDateISO,
+		PickupDateIso:    event.PickupDateISO,
+		ReturnDateIso:    event.ReturnDateISO,
 		DaysUntil:        event.DaysUntilEvent,
 		DateChangesCount: event.DateChangesUsed,
 		TotalDop:         event.TotalRD,
@@ -152,6 +163,32 @@ func (r *Repository) ListEvents(ctx context.Context) ([]domain.Event, error) {
 	if err != nil {
 		return nil, err
 	}
+	itemsByEvent := groupEventItems(itemRows)
+	out := make([]domain.Event, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, mapEventRow(row, itemsByEvent[row.ID]))
+	}
+	return out, nil
+}
+
+// GetEventByID recupera un evento persistido con sus artículos asociados.
+func (r *Repository) GetEventByID(ctx context.Context, id string) (domain.Event, error) {
+	if !r.Enabled() {
+		return domain.Event{}, domain.ErrEventNotFound
+	}
+	row, err := r.queries.GetEventByID(ctx, id)
+	if err != nil {
+		return domain.Event{}, err
+	}
+	itemRows, err := r.queries.ListAllEventItems(ctx)
+	if err != nil {
+		return domain.Event{}, err
+	}
+	itemsByEvent := groupEventItems(itemRows)
+	return mapEventRow(sqlcgen.ListEventsRow(row), itemsByEvent[row.ID]), nil
+}
+
+func groupEventItems(itemRows []sqlcgen.EventItem) map[string][]domain.EventItem {
 	itemsByEvent := make(map[string][]domain.EventItem)
 	for _, item := range itemRows {
 		itemsByEvent[item.EventID] = append(itemsByEvent[item.EventID], domain.EventItem{
@@ -161,42 +198,49 @@ func (r *Repository) ListEvents(ctx context.Context) ([]domain.Event, error) {
 			UnitPriceRD: item.UnitPriceDop,
 		})
 	}
-	out := make([]domain.Event, 0, len(rows))
-	for _, row := range rows {
-		paidDeposit := row.PaidDepositDop
-		if row.PaidDop > paidDeposit {
-			paidDeposit = row.PaidDop
-		}
-		items := itemsByEvent[row.ID]
-		if items == nil {
-			items = []domain.EventItem{}
-		}
-		out = append(out, domain.Event{
-			ID:                 row.ID,
-			Code:               row.Code,
-			ClientID:           row.ClientID,
-			ClientName:         row.ClientName,
-			ClientEmail:        row.ClientEmail,
-			Title:              row.Title,
-			EventType:          row.EventType,
-			DateLabel:          row.EventDateLabel,
-			DaysUntilEvent:     row.DaysUntil,
-			Venue:              row.Venue,
-			Zone:               row.Zone,
-			Guests:             row.GuestsCount,
-			ArticleCount:       row.ArticlesCount,
-			TotalRD:            row.TotalDop,
-			PaidDepositRD:      paidDeposit,
-			BalanceDueDate:     row.BalanceDueLabel,
-			Status:             domain.EventStatus(row.Status),
-			DateChangesUsed:    row.DateChangesCount,
-			AssignedLead:       row.AssignedLead,
-			SketchJSON:         row.SketchJson,
-			CancellationReason: row.CancellationReason,
-			Items:              items,
-		})
+	return itemsByEvent
+}
+
+func mapEventRow(row sqlcgen.ListEventsRow, items []domain.EventItem) domain.Event {
+	paidDeposit := row.PaidDepositDop
+	if row.PaidDop > paidDeposit {
+		paidDeposit = row.PaidDop
 	}
-	return out, nil
+	if items == nil {
+		items = []domain.EventItem{}
+	}
+	return domain.Event{
+		ID:                         row.ID,
+		Code:                       row.Code,
+		ClientID:                   row.ClientID,
+		ClientName:                 row.ClientName,
+		ClientEmail:                row.ClientEmail,
+		Title:                      row.Title,
+		EventType:                  row.EventType,
+		DateLabel:                  row.EventDateLabel,
+		EventDateISO:               row.EventDateIso,
+		PickupDateISO:              row.PickupDateIso,
+		ReturnDateISO:              row.ReturnDateIso,
+		QuoteID:                    row.QuoteID,
+		DaysUntilEvent:             row.DaysUntil,
+		Venue:                      row.Venue,
+		Zone:                       row.Zone,
+		Guests:                     row.GuestsCount,
+		ArticleCount:               row.ArticlesCount,
+		TotalRD:                    row.TotalDop,
+		PaidDepositRD:              paidDeposit,
+		BalanceDueDate:             row.BalanceDueLabel,
+		Status:                     domain.EventStatus(row.Status),
+		DateChangesUsed:            row.DateChangesCount,
+		AssignedLead:               row.AssignedLead,
+		SketchJSON:                 row.SketchJson,
+		CancellationReason:         row.CancellationReason,
+		CloseoutCompleted:          row.CloseoutCompleted,
+		CloseoutNotes:              row.CloseoutNotes,
+		LastPaymentReminderAt:      row.LastPaymentReminderAt,
+		LastPaymentReminderChannel: row.LastPaymentReminderChannel,
+		Items:                      items,
+	}
 }
 
 func (r *Repository) ListGuests(ctx context.Context, eventID string) ([]domain.EventGuest, error) {
@@ -304,7 +348,11 @@ func (r *Repository) ListChatMessagesByThread(ctx context.Context, threadID stri
 	if err != nil {
 		return nil, err
 	}
-	return mapChatRows(rows), nil
+	converted := make([]sqlcgen.ListAllChatMessagesRow, 0, len(rows))
+	for _, row := range rows {
+		converted = append(converted, sqlcgen.ListAllChatMessagesRow(row))
+	}
+	return mapChatRows(converted), nil
 }
 
 func (r *Repository) UpsertChatMessage(ctx context.Context, msg domain.ChatMessage) error {
@@ -322,12 +370,13 @@ func (r *Repository) UpsertChatMessage(ctx context.Context, msg domain.ChatMessa
 		RecipientLabel: msg.RecipientLabel,
 		Body:           msg.Body,
 		AttachmentName: msg.AttachmentName,
+		AttachmentUrl:  msg.AttachmentURL,
 		Unread:         msg.Unread,
 		CreatedAt:      msg.CreatedAt,
 	})
 }
 
-func mapChatRows(rows []sqlcgen.ChatMessage) []domain.ChatMessage {
+func mapChatRows(rows []sqlcgen.ListAllChatMessagesRow) []domain.ChatMessage {
 	out := make([]domain.ChatMessage, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, domain.ChatMessage{
@@ -341,6 +390,7 @@ func mapChatRows(rows []sqlcgen.ChatMessage) []domain.ChatMessage {
 			RecipientLabel: row.RecipientLabel,
 			Body:           row.Body,
 			AttachmentName: row.AttachmentName,
+			AttachmentURL:  row.AttachmentUrl,
 			Unread:         row.Unread,
 			CreatedAt:      row.CreatedAt,
 		})

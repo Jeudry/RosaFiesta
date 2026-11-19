@@ -1,7 +1,9 @@
 package domain
 
 import (
+	"crypto/rand"
 	"crypto/subtle"
+	"encoding/base64"
 	"strings"
 	"time"
 
@@ -152,4 +154,58 @@ func isStaffOrAdminRole(role string) bool {
 		return true
 	}
 	return role == string(RoleStaff)
+}
+
+const refreshTokenByteLength = 32
+
+type RefreshTokenRecord struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	FamilyID  uuid.UUID
+	TokenHash string
+	Revoked   bool
+	ExpiresAt time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (r RefreshTokenRecord) IsUsable(now time.Time) bool {
+	if r.Revoked {
+		return false
+	}
+	if r.TokenHash == "" {
+		return false
+	}
+	return now.Before(r.ExpiresAt)
+}
+
+func NewRefreshTokenRecord(
+	userID uuid.UUID,
+	familyID uuid.UUID,
+	tokenHash string,
+	now time.Time,
+	ttl time.Duration,
+) RefreshTokenRecord {
+	resolvedFamily := familyID
+	if resolvedFamily == uuid.Nil {
+		resolvedFamily = uuid.New()
+	}
+	return RefreshTokenRecord{
+		ID:        uuid.New(),
+		UserID:    userID,
+		FamilyID:  resolvedFamily,
+		TokenHash: tokenHash,
+		Revoked:   false,
+		ExpiresAt: now.Add(ttl),
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+func GenerateRefreshToken() (string, error) {
+	buf := make([]byte, refreshTokenByteLength)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
 }

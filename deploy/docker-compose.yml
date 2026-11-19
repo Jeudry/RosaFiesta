@@ -8,18 +8,53 @@ services:
       ENV: production
       APP_ENV: production
       PORT: "8788"
+      ROSAFIESTA_SEED_MODE: ${ROSAFIESTA_SEED_MODE:-admin_only}
+      PUBLIC_APP_BASE_URL: ${PUBLIC_APP_BASE_URL:-https://api.rosafiesta.do}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
       JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://app.rosafiesta.do,https://admin.rosafiesta.do}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_FROM: ${SMTP_FROM:-no-reply@rosafiesta.do}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+      APPLE_CLIENT_SECRET: ${APPLE_CLIENT_SECRET:-}
+      MEDIA_STORAGE_BACKEND: ${MEDIA_STORAGE_BACKEND:-local}
+      MEDIA_STORAGE_DIR: /var/lib/rosafiesta/media
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      FCM_SERVER_URL: ${FCM_SERVER_URL:-}
+      FCM_SERVER_KEY: ${FCM_SERVER_KEY:-}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_SERVICE_ACCOUNT_JSON: ${FCM_SERVICE_ACCOUNT_JSON:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-com.jeudry.rosafiesta}
+      APNS_PRIVATE_KEY: ${APNS_PRIVATE_KEY:-}
+      APNS_USE_SANDBOX: ${APNS_USE_SANDBOX:-false}
+      WEB_PUSH_VAPID_PUBLIC_KEY: ${WEB_PUSH_VAPID_PUBLIC_KEY:-}
+      WEB_PUSH_VAPID_PRIVATE_KEY: ${WEB_PUSH_VAPID_PRIVATE_KEY:-}
+      WEB_PUSH_VAPID_SUBJECT: ${WEB_PUSH_VAPID_SUBJECT:-mailto:hola@rosafiesta.do}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
     depends_on:
       db:
         condition: service_healthy
     expose: ["8788"]
+    volumes:
+      - media_data:/var/lib/rosafiesta/media
+    tmpfs:
+      - /tmp
     security_opt: ["no-new-privileges:true"]
     read_only: true
 
@@ -46,8 +81,10 @@ services:
       - "443:443"
     environment:
       API_DOMAIN: ${API_DOMAIN}
+      WEB_DOMAIN: ${WEB_DOMAIN:-app.rosafiesta.do}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${WEB_DIST_DIR:-../app/composeApp/build/dist/wasmJs/productionExecutable}:/srv/web:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -55,5 +92,6 @@ services:
 
 volumes:
   pgdata:
+  media_data:
   caddy_data:
   caddy_config:

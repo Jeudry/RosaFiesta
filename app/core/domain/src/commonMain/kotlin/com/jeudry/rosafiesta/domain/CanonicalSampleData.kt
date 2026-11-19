@@ -1597,4 +1597,53 @@ public object CanonicalSampleData {
             updatedAtLabel = "Hace 35 min",
         ),
     )
+
+    public val trends: List<CatalogTrend> = listOf(
+        CatalogTrend(
+            id = "trend-graduaciones",
+            title = "Graduaciones",
+            eventsLabel = "2.4K eventos",
+            photo = PhotoAsset.GRADUACION,
+            photoBgHex = "#F3EEF6",
+            sortOrder = 1,
+            active = true,
+        ),
+        CatalogTrend(
+            id = "trend-bodas",
+            title = "Bodas",
+            eventsLabel = "1.8K eventos",
+            photo = PhotoAsset.BODA,
+            photoBgHex = "#FDE6F2",
+            linkedPackageId = "pkg-boda-real",
+            sortOrder = 2,
+            active = true,
+        ),
+        CatalogTrend(
+            id = "trend-quinceaneras",
+            title = "Quinceañeras",
+            eventsLabel = "1.5K eventos",
+            photo = PhotoAsset.QUINCEANERA,
+            photoBgHex = "#FCE8F6",
+            sortOrder = 3,
+            active = true,
+        ),
+        CatalogTrend(
+            id = "trend-baby-shower",
+            title = "Baby Shower",
+            eventsLabel = "1.2K eventos",
+            photo = PhotoAsset.BABY_SHOWER,
+            photoBgHex = "#E0F7F2",
+            sortOrder = 4,
+            active = true,
+        ),
+    )
+
+    public val seasonBanner: SeasonBanner = SeasonBanner(
+        id = "default",
+        badgeLabel = "NUEVA TEMPORADA 2026",
+        title = "Crea momentos inolvidables",
+        ctaLabel = "Explorar paquetes",
+        targetScreenCode = "s21",
+        active = true,
+    )
 }

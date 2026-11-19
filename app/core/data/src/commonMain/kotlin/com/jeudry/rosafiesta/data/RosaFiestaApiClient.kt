@@ -2,7 +2,9 @@ package com.jeudry.rosafiesta.data
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.pluginOrNull
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -14,17 +16,23 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.concurrent.Volatile
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 @Serializable
 public data class HealthOutputDto(
@@ -50,6 +58,7 @@ public data class UserDto(
     public val activeView: String = "personal",
     public val createdAt: String = "",
     public val avatarKey: String? = null,
+    public val preferences: UserPreferencesDto? = null,
 )
 
 @Serializable
@@ -80,7 +89,14 @@ public data class ResetPasswordInputDto(
 @Serializable
 public data class LoginOutputDto(
     public val accessToken: String,
+    public val refreshToken: String = "",
+    public val expiresIn: Long = 0L,
     public val user: UserDto,
+)
+
+@Serializable
+public data class RefreshTokenInputDto(
+    public val refreshToken: String,
 )
 
 @Serializable
@@ -148,6 +164,8 @@ public data class ArticleDto(
     public val isDirectSale: Boolean? = null,
     public val material: String? = null,
     public val visible: Boolean = true,
+    public val photoUrl: String? = null,
+    public val damagedStock: Long = 0,
 )
 
 @Serializable
@@ -169,6 +187,101 @@ public data class CategoriesOutputDto(
 )
 
 @Serializable
+public data class CategoryOutputDto(
+    public val category: CategoryDto,
+)
+
+@Serializable
+public data class SaveCategoryInputDto(
+    public val id: String? = null,
+    public val name: String,
+    public val illoKey: String? = null,
+)
+
+@Serializable
+public data class UpdateCategoryInputDto(
+    public val name: String,
+    public val illoKey: String? = null,
+)
+
+@Serializable
+public data class DeleteCategoryOutputDto(
+    public val deletedId: String,
+)
+
+@Serializable
+public data class DeleteArticleOutputDto(
+    public val deletedId: String,
+)
+
+@Serializable
+public data class CatalogTrendDto(
+    public val id: String,
+    public val title: String,
+    public val eventsLabel: String = "",
+    public val photoKey: String = "boda",
+    public val photoUrl: String? = null,
+    public val photoBgHex: String = "#F3EEF6",
+    public val linkedCategory: String? = null,
+    public val linkedPackageId: String? = null,
+    public val sortOrder: Int = 0,
+    public val active: Boolean = true,
+)
+
+@Serializable
+public data class TrendsOutputDto(
+    public val trends: List<CatalogTrendDto>? = null,
+)
+
+@Serializable
+public data class TrendOutputDto(
+    public val trend: CatalogTrendDto,
+)
+
+@Serializable
+public data class SaveTrendInputDto(
+    public val id: String? = null,
+    public val title: String,
+    public val eventsLabel: String = "",
+    public val photoKey: String = "boda",
+    public val photoUrl: String? = null,
+    public val photoBgHex: String = "#F3EEF6",
+    public val linkedCategory: String? = null,
+    public val linkedPackageId: String? = null,
+    public val sortOrder: Int = 0,
+    public val active: Boolean = true,
+)
+
+@Serializable
+public data class DeleteTrendOutputDto(
+    public val deletedId: String,
+)
+
+@Serializable
+public data class SeasonBannerDto(
+    public val id: String = "default",
+    public val badgeLabel: String = "",
+    public val title: String = "",
+    public val ctaLabel: String = "",
+    public val targetScreenCode: String = "s21",
+    public val active: Boolean = false,
+)
+
+@Serializable
+public data class SeasonBannerOutputDto(
+    public val banner: SeasonBannerDto,
+)
+
+@Serializable
+public data class SaveSeasonBannerInputDto(
+    public val badgeLabel: String = "",
+    public val title: String,
+    public val ctaLabel: String = "",
+    public val targetScreenCode: String = "s21",
+    public val active: Boolean = false,
+)
+
+@Serializable
 public data class PackageBundleDto(
     public val id: String,
     public val name: String,
@@ -179,6 +292,7 @@ public data class PackageBundleDto(
     public val itemsSummary: String,
     public val items: List<PackageItemDto>? = null,
     public val visible: Boolean = true,
+    public val photoUrl: String? = null,
 )
 
 @Serializable
@@ -218,6 +332,14 @@ public data class EventDto(
     public val clientEmail: String? = null,
     public val clientId: String? = null,
     public val sketchJson: String? = null,
+    public val eventDateIso: String? = null,
+    public val pickupDateIso: String? = null,
+    public val returnDateIso: String? = null,
+    public val quoteId: String? = null,
+    public val closeoutCompleted: Boolean = false,
+    public val closeoutNotes: String? = null,
+    public val lastPaymentReminderAt: String? = null,
+    public val lastPaymentReminderChannel: String? = null,
 )
 
 @Serializable
@@ -303,6 +425,10 @@ public data class DamageReportDto(
     public val missingUnits: Long,
     public val replacementRD: Long,
     public val notes: String,
+    public val status: String = "open",
+    public val photoUrl: String? = null,
+    public val resolutionNotes: String? = null,
+    public val chargePaymentId: String? = null,
 )
 
 @Serializable
@@ -341,6 +467,7 @@ public data class ReportDamageInputDto(
     public val missingUnits: Long,
     public val replacementRD: Long,
     public val notes: String,
+    public val photoUrl: String? = null,
 )
 
 @Serializable
@@ -355,6 +482,9 @@ public data class OfflineMutationDto(
     public val entityCode: String,
     public val createdAt: String,
     public val synced: Boolean,
+    public val operationType: String = "",
+    public val payloadJson: String = "",
+    public val idempotencyKey: String = "",
 )
 
 @Serializable
@@ -394,6 +524,19 @@ public data class PaymentDto(
     public val bankName: String? = null,
     public val clientEmail: String? = null,
     public val clientId: String? = null,
+    public val voucherUrl: String? = null,
+    public val ncfType: String? = null,
+    public val ncfNumber: String? = null,
+    public val clientRnc: String? = null,
+    public val subtotalDop: Long = 0,
+    public val itbisDop: Long = 0,
+    public val securityDepositDop: Long = 0,
+    public val referenceNumber: String? = null,
+    public val verifiedBy: String? = null,
+    public val verifiedAtIso: String? = null,
+    public val rejectionReason: String? = null,
+    public val gatewaySessionId: String? = null,
+    public val gatewayPaymentIntentId: String? = null,
 )
 
 @Serializable
@@ -417,6 +560,11 @@ public data class RegisterPaymentInputDto(
     public val referenceCode: String,
     public val bankName: String? = null,
     public val clientEmail: String? = null,
+    public val voucherUrl: String? = null,
+    public val ncfType: String? = null,
+    public val clientRnc: String? = null,
+    public val securityDepositDop: Long? = null,
+    public val referenceNumber: String? = null,
 )
 
 @Serializable
@@ -462,9 +610,14 @@ public data class QuoteDto(
     public val signedByName: String? = null,
     public val signatureSvg: String? = null,
     public val rejectionReason: String? = null,
+    public val notes: String? = null,
     public val clientEmail: String? = null,
     public val clientId: String? = null,
     public val eventId: String? = null,
+    public val eventDateIso: String? = null,
+    public val packageId: String? = null,
+    public val contractPdfUrl: String? = null,
+    public val signedAtIso: String? = null,
 )
 
 @Serializable
@@ -489,6 +642,23 @@ public data class CreateQuoteInputDto(
     public val discountRD: Long,
     public val clientEmail: String? = null,
     public val eventId: String? = null,
+    public val eventDateIso: String? = null,
+    public val packageId: String? = null,
+    public val notes: String? = null,
+    public val sendImmediately: Boolean? = null,
+)
+
+@Serializable
+public data class SendQuoteInputDto(
+    public val eventTitle: String? = null,
+    public val venue: String? = null,
+    public val eventDateLabel: String? = null,
+    public val eventDateIso: String? = null,
+    public val guests: Long? = null,
+    public val lines: List<QuoteLineDto>? = null,
+    public val deliveryFeeRD: Long? = null,
+    public val discountRD: Long? = null,
+    public val notes: String? = null,
 )
 
 @Serializable
@@ -563,15 +733,49 @@ public class RosaFiestaApiClient(
         }
     },
     private val accessTokenProvider: () -> String? = { null },
+    private val refreshTokenProvider: () -> String? = { null },
 ) {
+    private val refreshMutex: Mutex = Mutex()
+
     @Volatile
     private var explicitAccessToken: String? = null
+
+    @Volatile
+    private var explicitRefreshToken: String? = null
+
+    @Volatile
+    private var onTokensRefreshedCallback: (suspend (accessToken: String, refreshToken: String) -> Unit)? = null
+
+    @Volatile
+    private var onSessionExpiredCallback: (suspend () -> Unit)? = null
+
+    init {
+        installAutoRefreshInterceptor()
+    }
+
+    /**
+     * Registers callbacks triggered when a 401 auto-refresh rotates session tokens or expires permanently.
+     */
+    public fun setSessionLifecycleCallbacks(
+        onTokensRefreshed: suspend (accessToken: String, refreshToken: String) -> Unit,
+        onSessionExpired: suspend () -> Unit,
+    ) {
+        onTokensRefreshedCallback = onTokensRefreshed
+        onSessionExpiredCallback = onSessionExpired
+    }
 
     /**
      * Updates or clears the active bearer token used for authenticated endpoints.
      */
     public fun setAccessToken(token: String?) {
         explicitAccessToken = token?.trim()?.ifEmpty { null }
+    }
+
+    /**
+     * Updates or clears the active refresh token used for automatic silent renewal on HTTP 401.
+     */
+    public fun setRefreshToken(token: String?) {
+        explicitRefreshToken = token?.trim()?.ifEmpty { null }
     }
 
     /**
@@ -587,6 +791,100 @@ public class RosaFiestaApiClient(
             return provided
         }
         return null
+    }
+
+    /**
+     * Resolves the current refresh token from [setRefreshToken] or [refreshTokenProvider].
+     */
+    public fun currentRefreshToken(): String? {
+        val explicit = explicitRefreshToken?.trim().orEmpty()
+        if (explicit.isNotEmpty()) {
+            return explicit
+        }
+        val provided = refreshTokenProvider()?.trim().orEmpty()
+        if (provided.isNotEmpty()) {
+            return provided
+        }
+        return null
+    }
+
+    private fun installAutoRefreshInterceptor() {
+        val sendPlugin = httpClient.pluginOrNull(HttpSend) ?: return
+        sendPlugin.intercept { request ->
+            val initialCall = execute(request)
+            if (initialCall.response.status != HttpStatusCode.Unauthorized) {
+                return@intercept initialCall
+            }
+            val canRetry = shouldRetryUnauthorizedRequest(
+                requestUrl = request.url.buildString(),
+                hasAuthorizationHeader = request.headers.contains(HttpHeaders.Authorization),
+            )
+            if (!canRetry) {
+                return@intercept initialCall
+            }
+            val failedToken = request.headers[HttpHeaders.Authorization]
+                ?.removePrefix("Bearer ")
+                ?.trim()
+                .orEmpty()
+            val refreshedToken = refreshTokenAfterUnauthorized(failedToken)
+                ?: return@intercept initialCall
+            request.headers.remove(HttpHeaders.Authorization)
+            request.headers.append(HttpHeaders.Authorization, "Bearer $refreshedToken")
+            execute(request)
+        }
+    }
+
+    private fun shouldRetryUnauthorizedRequest(
+        requestUrl: String,
+        hasAuthorizationHeader: Boolean,
+    ): Boolean {
+        if (!hasAuthorizationHeader) {
+            return false
+        }
+        val cleanPath = requestUrl.substringBefore("?").trimEnd('/')
+        val isAuthLifecycleRoute = listOf(
+            "/v1/auth/refresh",
+            "/v1/auth/login",
+            "/v1/auth/register",
+            "/v1/auth/logout",
+        ).any { suffix -> cleanPath.endsWith(suffix) }
+        return !isAuthLifecycleRoute
+    }
+
+    private suspend fun refreshTokenAfterUnauthorized(failedAccessToken: String): String? = refreshMutex.withLock {
+        val currentToken = currentAccessToken().orEmpty()
+        val alreadyRotatedInFlight = if (currentToken.isNotEmpty()) currentToken != failedAccessToken else false
+        if (alreadyRotatedInFlight) {
+            return@withLock currentToken
+        }
+        val activeRefresh = currentRefreshToken() ?: return@withLock null
+        runCatching {
+            performRefreshAccessToken(activeRefresh)
+        }.getOrNull()?.accessToken
+    }
+
+    private suspend fun performRefreshAccessToken(refreshToken: String): LoginOutputDto {
+        val response = httpClient.post("$baseUrl/v1/auth/refresh") {
+            contentType(ContentType.Application.Json)
+            setBody(RefreshTokenInputDto(refreshToken = refreshToken.trim()))
+        }
+        return try {
+            val output: LoginOutputDto = response.decodeBodyOrThrow()
+            setAccessToken(output.accessToken)
+            if (output.refreshToken.isNotBlank()) {
+                setRefreshToken(output.refreshToken)
+            }
+            onTokensRefreshedCallback?.invoke(output.accessToken, output.refreshToken)
+            output
+        } catch (apiError: RosaFiestaApiException) {
+            val isRejectedRefresh = response.status == HttpStatusCode.Unauthorized || response.status == HttpStatusCode.Forbidden
+            if (isRejectedRefresh) {
+                setAccessToken(null)
+                setRefreshToken(null)
+                onSessionExpiredCallback?.invoke()
+            }
+            throw apiError
+        }
     }
 
     private fun HttpRequestBuilder.applyBearerAuth(overrideToken: String? = null) {
@@ -613,7 +911,11 @@ public class RosaFiestaApiClient(
         httpClient.get("$baseUrl/readyz").body()
     }
 
-    private suspend fun HttpResponse.decodeLoginOrThrow(): LoginOutputDto {
+    internal fun internalHttpClient(): HttpClient = httpClient
+
+    internal fun internalBaseUrl(): String = baseUrl
+
+    private suspend inline fun <reified T> HttpResponse.decodeBodyOrThrow(): T {
         if (status.isSuccess()) {
             return body()
         }
@@ -633,12 +935,20 @@ public class RosaFiestaApiClient(
         )
     }
 
+    private fun applyIssuedSessionTokens(output: LoginOutputDto): LoginOutputDto {
+        setAccessToken(output.accessToken)
+        if (output.refreshToken.isNotBlank()) {
+            setRefreshToken(output.refreshToken)
+        }
+        return output
+    }
+
     public suspend fun login(input: LoginInputDto): LoginOutputDto = withContext(ioDispatcher) {
         val response = httpClient.post("$baseUrl/v1/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(input)
         }
-        response.decodeLoginOrThrow()
+        applyIssuedSessionTokens(response.decodeBodyOrThrow())
     }
 
     public suspend fun register(input: RegisterInputDto): LoginOutputDto = withContext(ioDispatcher) {
@@ -646,24 +956,46 @@ public class RosaFiestaApiClient(
             contentType(ContentType.Application.Json)
             setBody(input)
         }
-        response.decodeLoginOrThrow()
+        applyIssuedSessionTokens(response.decodeBodyOrThrow())
+    }
+
+    /**
+     * Exchanges a single-use refresh token for a rotated access + refresh session pair.
+     */
+    public suspend fun refreshAccessToken(
+        refreshToken: String = currentRefreshToken().orEmpty(),
+    ): LoginOutputDto = withContext(ioDispatcher) {
+        val cleanRefresh = refreshToken.trim()
+        require(cleanRefresh.isNotEmpty()) { "Refresh token is required." }
+        refreshMutex.withLock {
+            performRefreshAccessToken(cleanRefresh)
+        }
     }
 
     private companion object {
         val errorEnvelopeJson = Json { ignoreUnknownKeys = true }
     }
 
-    public suspend fun logout(): LogoutOutputDto = withContext(ioDispatcher) {
-        httpClient.post("$baseUrl/v1/auth/logout") {
-            applyBearerAuth()
-        }.body()
+    public suspend fun logout(refreshToken: String = currentRefreshToken().orEmpty()): LogoutOutputDto = withContext(ioDispatcher) {
+        val cleanRefresh = refreshToken.trim()
+        try {
+            httpClient.post("$baseUrl/v1/auth/logout") {
+                applyBearerAuth()
+                if (cleanRefresh.isNotEmpty()) {
+                    header("X-Refresh-Token", cleanRefresh)
+                }
+            }.decodeBodyOrThrow()
+        } finally {
+            setAccessToken(null)
+            setRefreshToken(null)
+        }
     }
 
     public suspend fun requestOtp(input: OtpRequestInputDto): OtpRequestResultDto = withContext(ioDispatcher) {
         httpClient.post("$baseUrl/v1/auth/otp/request") {
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun requestOtp(email: String): OtpRequestResultDto = requestOtp(OtpRequestInputDto(email = email.trim()))
@@ -672,26 +1004,66 @@ public class RosaFiestaApiClient(
         httpClient.post("$baseUrl/v1/auth/otp/verify") {
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun verifyOtp(email: String, code: String): OtpVerifyResultDto = verifyOtp(OtpVerifyInputDto(email = email.trim(), code = code.trim()))
 
     public suspend fun resetPassword(input: ResetPasswordInputDto): LoginOutputDto = withContext(ioDispatcher) {
-        httpClient.post("$baseUrl/v1/auth/reset-password") {
+        val output: LoginOutputDto = httpClient.post("$baseUrl/v1/auth/reset-password") {
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
+        applyIssuedSessionTokens(output)
     }
 
     public suspend fun loginWithOAuth(input: OAuthLoginInputDto): LoginOutputDto = withContext(ioDispatcher) {
-        httpClient.post("$baseUrl/v1/auth/oauth") {
+        val output: LoginOutputDto = httpClient.post("$baseUrl/v1/auth/oauth") {
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
+        applyIssuedSessionTokens(output)
     }
 
     public suspend fun loginWithOAuth(provider: String, idToken: String): LoginOutputDto = loginWithOAuth(OAuthLoginInputDto(provider = provider.trim(), idToken = idToken.trim()))
+
+    public suspend fun startOAuthAuthorization(
+        provider: String,
+        redirectUri: String,
+        codeChallenge: String,
+        state: String,
+    ): OAuthStartResultDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/auth/oauth/${provider.trim().lowercase()}/start") {
+            parameter("redirectUri", redirectUri.trim())
+            parameter("codeChallenge", codeChallenge.trim())
+            parameter("state", state.trim())
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun exchangeOAuthCode(input: OAuthExchangeInputDto): LoginOutputDto = withContext(ioDispatcher) {
+        val output: LoginOutputDto = httpClient.post("$baseUrl/v1/auth/oauth/exchange") {
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+        applyIssuedSessionTokens(output)
+    }
+
+    public suspend fun registerDevicePushToken(input: PushTokenInputDto): PushTokenOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/devices/push-token") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun unregisterDevicePushToken(token: String = ""): DeletePushTokenOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/devices/push-token") {
+            applyBearerAuth()
+            if (token.isNotBlank()) {
+                parameter("token", token.trim())
+            }
+        }.decodeBodyOrThrow()
+    }
 
     public suspend fun fetchCurrentUser(bearerToken: String = ""): SwitchViewOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/auth/me") {
@@ -762,7 +1134,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateStaffMember(staffId: String, input: UpdateStaffInputDto): StaffMemberOutputDto = withContext(ioDispatcher) {
@@ -770,7 +1142,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listArticles(
@@ -801,7 +1173,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateCatalogArticle(articleId: String, input: UpdateArticleInputDto): ArticleOutputDto = withContext(ioDispatcher) {
@@ -809,7 +1181,13 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteCatalogArticle(articleId: String): DeleteArticleOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/catalog/articles/${articleId.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun getCatalogAvailability(articleId: String, month: String? = null): AvailabilityOutputDto = withContext(ioDispatcher) {
@@ -818,11 +1196,137 @@ public class RosaFiestaApiClient(
             if (!month.isNullOrBlank()) {
                 parameter("month", month.trim())
             }
-        }.body()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun checkAvailabilityRange(
+        dateIso: String,
+        articleId: String,
+        quantity: Int,
+        excludeEventId: String = "",
+    ): AvailabilityCheckOutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/catalog/availability-check") {
+            applyBearerAuth()
+            parameter("date", dateIso.trim())
+            parameter("articleId", articleId.trim())
+            parameter("quantity", quantity)
+            if (excludeEventId.isNotBlank()) {
+                parameter("excludeEventId", excludeEventId.trim())
+            }
+        }.decodeBodyOrThrow()
+    }
+
+    @OptIn(ExperimentalEncodingApi::class)
+    public suspend fun uploadMedia(
+        filename: String,
+        mimeType: String,
+        purpose: String,
+        bytes: ByteArray,
+    ): MediaAssetDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/media") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(
+                MediaUploadInputDto(
+                    filename = filename.trim(),
+                    mimeType = mimeType.trim(),
+                    purpose = purpose.trim(),
+                    dataBase64 = Base64.encode(bytes),
+                ),
+            )
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun fetchMediaBytes(mediaPathOrUrl: String): ByteArray = withContext(ioDispatcher) {
+        val target = mediaPathOrUrl.trim()
+        val isAbsoluteHttp = target.startsWith("http://")
+        val isAbsoluteHttps = target.startsWith("https://")
+        val resolvedUrl = if (isAbsoluteHttp) {
+            target
+        } else if (isAbsoluteHttps) {
+            target
+        } else {
+            val normalizedPath = if (target.startsWith("/")) target else "/$target"
+            "$baseUrl$normalizedPath"
+        }
+        val response = httpClient.get(resolvedUrl) {
+            applyBearerAuth()
+        }
+        if (response.status.isSuccess()) {
+            response.readRawBytes()
+        } else {
+            throw RosaFiestaApiException(
+                statusCode = response.status.value,
+                errorCode = "MEDIA_FETCH_FAILED",
+                message = "No se pudo cargar la imagen ($resolvedUrl).",
+            )
+        }
     }
 
     public suspend fun listCategories(): CategoriesOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/catalog/categories").body()
+    }
+
+    public suspend fun createCatalogCategory(input: SaveCategoryInputDto): CategoryOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/catalog/categories") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun updateCatalogCategory(categoryId: String, input: UpdateCategoryInputDto): CategoryOutputDto = withContext(ioDispatcher) {
+        httpClient.patch("$baseUrl/v1/catalog/categories/${categoryId.trim()}") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteCatalogCategory(categoryId: String): DeleteCategoryOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/catalog/categories/${categoryId.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun listCatalogTrends(includeInactive: Boolean = true): TrendsOutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/catalog/trends") {
+            parameter("includeInactive", includeInactive)
+        }.body()
+    }
+
+    public suspend fun createCatalogTrend(input: SaveTrendInputDto): TrendOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/catalog/trends") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun updateCatalogTrend(trendId: String, input: SaveTrendInputDto): TrendOutputDto = withContext(ioDispatcher) {
+        httpClient.put("$baseUrl/v1/catalog/trends/${trendId.trim()}") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteCatalogTrend(trendId: String): DeleteTrendOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/catalog/trends/${trendId.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun getSeasonBanner(): SeasonBannerOutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/catalog/season-banner").body()
+    }
+
+    public suspend fun saveSeasonBanner(input: SaveSeasonBannerInputDto): SeasonBannerOutputDto = withContext(ioDispatcher) {
+        httpClient.put("$baseUrl/v1/catalog/season-banner") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listPackages(): PackagesOutputDto = withContext(ioDispatcher) {
@@ -836,7 +1340,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateCatalogPackage(packageId: String, input: UpdatePackageInputDto): PackageOutputDto = withContext(ioDispatcher) {
@@ -844,7 +1348,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listEvents(status: String? = null): EventsListOutputDto = withContext(ioDispatcher) {
@@ -861,7 +1365,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listEventTemplates(): TemplatesOutputDto = withContext(ioDispatcher) {
@@ -871,7 +1375,7 @@ public class RosaFiestaApiClient(
     public suspend fun getEventById(id: String): EventDetailOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/events/${id.trim()}") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateRemoteEvent(eventId: String, input: UpdateEventInputDto): EventDetailOutputDto = withContext(ioDispatcher) {
@@ -879,13 +1383,21 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun cancelEvent(id: String): CancelEventOutputDto = withContext(ioDispatcher) {
         httpClient.post("$baseUrl/v1/events/${id.trim()}/cancel") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun closeoutEvent(id: String, notes: String): EventDetailOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/events/${id.trim()}/closeout") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(CloseoutEventInputDto(notes = notes.trim()))
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun requestDateChange(id: String, input: DateChangeInputDto): DateChangeOutputDto = withContext(ioDispatcher) {
@@ -893,7 +1405,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun duplicateRemoteEvent(eventId: String): EventDetailOutputDto = withContext(ioDispatcher) {
@@ -1003,7 +1515,18 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun resolveDamage(
+        damageId: String,
+        notes: String = "",
+    ): ReportDamageOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/operations/damage/${damageId.trim()}/resolve") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(ResolveDamageInputDto(notes = notes.trim(), resolutionNotes = notes.trim()))
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listDamages(eventId: String? = null): DamagesListOutputDto = withContext(ioDispatcher) {
@@ -1024,7 +1547,17 @@ public class RosaFiestaApiClient(
     public suspend fun syncOfflineQueue(): OfflineQueueOutputDto = withContext(ioDispatcher) {
         httpClient.post("$baseUrl/v1/operations/offline-queue/sync") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun syncOfflineQueue(
+        mutations: List<OfflineMutationSyncItemDto>,
+    ): OfflineQueueOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/operations/offline-queue/sync") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(OfflineSyncInputDto(mutations = mutations))
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listTodayRoutes(): RouteStopsOutputDto = withContext(ioDispatcher) {
@@ -1047,13 +1580,52 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun verifyPayment(
+        paymentId: String,
+        notes: String = "",
+    ): PaymentOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/payments/${paymentId.trim()}/verify") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(VerifyPaymentInputDto(notes = notes.trim(), reason = notes.trim()))
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun rejectPayment(
+        paymentId: String,
+        reason: String,
+    ): PaymentOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/payments/${paymentId.trim()}/reject") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(RejectPaymentInputDto(reason = reason.trim()))
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun createCardSession(input: CreateCardSessionInputDto): CardSessionOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/payments/card-session") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun exportDgii607(period: String = "2026-10"): DGII607OutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/payments/dgii-607") {
+            applyBearerAuth()
+            if (period.isNotBlank()) {
+                parameter("period", period.trim())
+            }
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun getFinanceSummary(): FinanceSummaryOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/payments/summary") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listRefunds(): RefundsListOutputDto = withContext(ioDispatcher) {
@@ -1065,7 +1637,7 @@ public class RosaFiestaApiClient(
     public suspend fun approveRefund(refundId: String): RefundOutputDto = withContext(ioDispatcher) {
         httpClient.post("$baseUrl/v1/refunds/${refundId.trim()}/approve") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listQuotes(status: String? = null): QuotesListOutputDto = withContext(ioDispatcher) {
@@ -1082,13 +1654,21 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun sendQuote(id: String, input: SendQuoteInputDto): QuoteOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/quotes/${id.trim()}/send") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun getQuoteById(id: String): QuoteOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/quotes/${id.trim()}") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun declineQuote(id: String, input: DeclineQuoteInputDto): QuoteOutputDto = withContext(ioDispatcher) {
@@ -1096,13 +1676,13 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun duplicateQuote(quoteId: String): QuoteOutputDto = withContext(ioDispatcher) {
         httpClient.post("$baseUrl/v1/quotes/${quoteId.trim()}/duplicate") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun signContract(id: String, input: SignContractInputDto): QuoteOutputDto = withContext(ioDispatcher) {
@@ -1110,7 +1690,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun generateRosaProposal(input: RosaProposalInputDto): RosaProposalOutputDto = withContext(ioDispatcher) {
@@ -1118,7 +1698,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun sendRosaChat(input: RosaChatInputDto): RosaChatResponseDto = withContext(ioDispatcher) {
@@ -1126,7 +1706,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun transcribeRosaAudio(input: RosaTranscribeInputDto): TranscriptionResultDto = withContext(ioDispatcher) {
@@ -1134,7 +1714,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun transcribeRosaAudio(
@@ -1298,7 +1878,15 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun sendWhatsAppReply(input: SendWhatsAppReplyInputDto): BotThreadOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/bot/whatsapp/send") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun exportReport(
@@ -1309,6 +1897,57 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             parameter("type", type.trim())
             parameter("period", period.trim())
-        }.body()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun getOAuthConfig(): OAuthConfigOutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/auth/oauth/config").decodeBodyOrThrow()
+    }
+
+    public suspend fun recoverUsername(identifier: String): RecoverUsernameOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/auth/recover-username") {
+            contentType(ContentType.Application.Json)
+            setBody(RecoverUsernameInputDto(identifier = identifier.trim()))
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun updateMyPreferences(input: UpdatePreferencesInputDto): SwitchViewOutputDto = withContext(ioDispatcher) {
+        httpClient.patch("$baseUrl/v1/auth/me/preferences") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun sendPaymentReminder(
+        eventId: String,
+        input: PaymentReminderInputDto,
+    ): PaymentReminderOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/events/${eventId.trim()}/payment-reminder") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun confirmCardSession(sessionId: String): PaymentOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/payments/card-session/${sessionId.trim()}/confirm") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun getPaymentsAnalytics(range: String = "30d"): PaymentsAnalyticsOutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/payments/analytics") {
+            applyBearerAuth()
+            parameter("range", range.trim().ifEmpty { "30d" })
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun generateRosaSketch(input: RosaSketchInputDto): RosaSketchResponseDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/quotes/rosa/sketch") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
     }
 }

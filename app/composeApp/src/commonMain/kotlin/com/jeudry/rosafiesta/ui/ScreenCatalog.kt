@@ -187,6 +187,8 @@ object ScreenCatalog {
         add(ScreenSpec("A23", 12, "Catálogo", "Artículo", "Silla Tiffany dorada · Stock total 240 · Reservadas 23 oct: 120 · En mantenimiento: 4", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.SILLA_TIFFANY, "Actualizar stock y precio", "RD$ 4/día"))
         add(ScreenSpec("A24", 12, "Catálogo", "Paquetes", "Boda Real (RD$ 4,500), Quinceañera Crystal (RD$ 6,200), Gala Corporativa (RD$ 8,500)", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.BODA, "Editar paquete", "4 paquetes"))
         add(ScreenSpec("A25", 12, "Catálogo", "Editar paquete", "Configura piezas incluidas, margen de descuento y fotos de portada del paquete", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.BODA, "Guardar paquete", "RD$ 4,500"))
+        add(ScreenSpec("A40", 12, "Catálogo", "Categorías", "Crea, edita y elimina las categorías de artículos de tu catálogo", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.SILLA_TIFFANY, "Nueva categoría", "Gestión CRUD"))
+        add(ScreenSpec("A41", 12, "Catálogo", "Tendencias y portada", "Configura el banner de temporada y el CRUD de tendencias visibles en Inicio", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_INVENTORY_STAFF, RfPhotoKey.BODA, "Nueva tendencia", "Gestión CRUD"))
         add(ScreenSpec("s63", 12, "Catálogo", "Disponibilidad", "Consulta de stock libre y comprometido por fecha para evitar sobreventa", RfThemeVariant.ADMIN, ScreenArchetype.ADMIN_CALENDAR, RfPhotoKey.SILLA_TIFFANY, "Bloquear stock para fecha", "Vie 23 oct"))
 
         // 4.2 Personas (`A26`, `A27`, `A28`)
@@ -288,7 +290,7 @@ object ScreenCatalog {
 
         "A08", "A34", "s66", "s72", "s73", "s74" -> AdminTab.ROSA
 
-        "A09", "A10", "A23", "A24", "A25", "s63", "A37" -> AdminTab.INVENTARIO
+        "A09", "A10", "A23", "A24", "A25", "A40", "A41", "s63", "A37" -> AdminTab.INVENTARIO
 
         else -> AdminTab.MAS
     }
@@ -355,7 +357,7 @@ object ScreenCatalog {
 
         "s24" -> "s25"
 
-        "s25" -> "s48"
+        "s25" -> "s31"
 
         // 4.1 Rosa IA
         "s26" -> "s27"
@@ -368,7 +370,7 @@ object ScreenCatalog {
 
         "s30" -> "s31"
 
-        "s31" -> "s36"
+        "s31" -> "s32"
 
         "s32" -> "s33"
 
@@ -378,7 +380,7 @@ object ScreenCatalog {
 
         "s35" -> "s32"
 
-        "s36" -> "s78"
+        "s36" -> "s32"
 
         "s78" -> "s32"
 
@@ -569,6 +571,10 @@ object ScreenCatalog {
         "A37" -> "A09"
 
         "A38" -> "A13"
+
+        "A40" -> "A09"
+
+        "A41" -> "A09"
 
         else -> "s14"
     }

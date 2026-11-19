@@ -12,13 +12,16 @@ import (
 )
 
 type Module struct {
-	Service *identityapp.Service
+	Service           *identityapp.Service
+	AllowedWebOrigins []string
 }
 
 func (m Module) Register(api huma.API) {
 	m.registerLoginAndOAuthRoutes(api)
+	m.registerRefreshAndRecoveryRoutes(api)
 	m.registerRegistrationAndOTPRoutes(api)
 	m.registerSessionAndProfileRoutes(api)
+	m.registerDevicePushRoutes(api)
 	m.registerDeleteAccountRoute(api)
 	m.registerAdminClientRoutes(api)
 	m.registerAdminStaffRoutes(api)
@@ -40,6 +43,48 @@ func (m Module) registerLoginAndOAuthRoutes(api huma.API) {
 		Summary:     "Authenticate with OAuth provider identity token",
 		Tags:        []string{"Identity"},
 	}, m.handleOAuthLogin)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-oauth-config",
+		Method:      http.MethodGet,
+		Path:        "/v1/auth/oauth/config",
+		Summary:     "Return configured OAuth providers and client identifiers",
+		Tags:        []string{"Identity"},
+	}, m.handleOAuthConfig)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-oauth-start",
+		Method:      http.MethodGet,
+		Path:        "/v1/auth/oauth/{provider}/start",
+		Summary:     "Build OAuth PKCE authorization URL for external browser login",
+		Tags:        []string{"Identity"},
+	}, m.handleOAuthStart)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-oauth-exchange",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/oauth/exchange",
+		Summary:     "Exchange OAuth authorization code with PKCE verifier and verify RS256 ID token",
+		Tags:        []string{"Identity"},
+	}, m.handleOAuthExchange)
+}
+
+func (m Module) registerRefreshAndRecoveryRoutes(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-refresh",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/refresh",
+		Summary:     "Rotate refresh token and issue a fresh JWT access token",
+		Tags:        []string{"Identity"},
+	}, m.handleRefresh)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-recover-username",
+		Method:      http.MethodPost,
+		Path:        "/v1/auth/recover-username",
+		Summary:     "Dispatch username recovery instructions via configured SMTP",
+		Tags:        []string{"Identity"},
+	}, m.handleRecoverUsername)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-switch-view",
@@ -118,6 +163,16 @@ func (m Module) registerSessionAndProfileRoutes(api huma.API) {
 	}, m.handleUpdateMe)
 
 	huma.Register(api, huma.Operation{
+		OperationID: "auth-update-preferences",
+		Method:      http.MethodPatch,
+		Path:        "/v1/auth/me/preferences",
+		Summary:     "Update authenticated user notification, security, and sync preferences",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
+	}, m.handleUpdatePreferences)
+
+	huma.Register(api, huma.Operation{
 		OperationID: "auth-change-password",
 		Method:      http.MethodPost,
 		Path:        "/v1/auth/change-password",
@@ -136,6 +191,28 @@ func (m Module) registerSessionAndProfileRoutes(api huma.API) {
 		Security:    platformhttp.Secured(),
 		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
 	}, m.handleListUsers)
+}
+
+func (m Module) registerDevicePushRoutes(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "devices-register-push-token",
+		Method:      http.MethodPost,
+		Path:        "/v1/devices/push-token",
+		Summary:     "Register or refresh a device push notification token for the authenticated user",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
+	}, m.handleRegisterPushToken)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "devices-unregister-push-token",
+		Method:      http.MethodDelete,
+		Path:        "/v1/devices/push-token",
+		Summary:     "Disable one or all registered device push tokens for the authenticated user",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
+	}, m.handleUnregisterPushToken)
 }
 
 func (m Module) registerDeleteAccountRoute(api huma.API) {
@@ -205,7 +282,7 @@ func (m Module) registerAdminStaffRoutes(api huma.API) {
 }
 
 func (m Module) handleLogin(ctx context.Context, in *LoginInput) (*LoginOutput, error) {
-	user, token, err := m.Service.Login(ctx, in.Body.Email, in.Body.Password)
+	session, err := m.Service.LoginWithSession(ctx, in.Body.Email, in.Body.Password)
 	if err != nil {
 		reason := "invalid credentials for " + in.Body.Email
 		return nil, platformhttp.NewAPIError(
@@ -217,15 +294,67 @@ func (m Module) handleLogin(ctx context.Context, in *LoginInput) (*LoginOutput, 
 			reason,
 		)
 	}
-	return newLoginOutput(user, token), nil
+	return newLoginOutputFromSession(session), nil
 }
 
 func (m Module) handleOAuthLogin(ctx context.Context, in *OAuthLoginInput) (*LoginOutput, error) {
-	user, token, err := m.Service.OAuthLogin(ctx, in.Body.Provider, in.Body.IDToken)
+	session, err := m.Service.OAuthLoginWithSession(ctx, in.Body.Provider, in.Body.IDToken)
 	if err != nil {
 		return nil, mapOAuthError(err)
 	}
-	return newLoginOutput(user, token), nil
+	return newLoginOutputFromSession(session), nil
+}
+
+func (m Module) handleOAuthConfig(_ context.Context, _ *struct{}) (*OAuthConfigOutput, error) {
+	return &OAuthConfigOutput{Body: m.Service.OAuthConfig()}, nil
+}
+
+func (m Module) handleOAuthStart(_ context.Context, in *OAuthStartInput) (*OAuthStartOutput, error) {
+	res, err := m.Service.StartOAuthAuthorization(in.Provider, in.RedirectURI, in.CodeChallenge, in.State)
+	if err != nil {
+		return nil, mapOAuthError(err)
+	}
+	return &OAuthStartOutput{Body: res}, nil
+}
+
+func (m Module) handleOAuthExchange(ctx context.Context, in *OAuthExchangeInput) (*LoginOutput, error) {
+	session, err := m.Service.ExchangeOAuthCodeWithSession(
+		ctx,
+		in.Body.Provider,
+		in.Body.Code,
+		in.Body.CodeVerifier,
+		in.Body.RedirectURI,
+	)
+	if err != nil {
+		return nil, mapOAuthError(err)
+	}
+	return newLoginOutputFromSession(session), nil
+}
+
+func (m Module) handleRefresh(ctx context.Context, in *RefreshTokenInput) (*LoginOutput, error) {
+	session, err := m.Service.RefreshSession(ctx, in.Body.RefreshToken)
+	if err != nil {
+		return nil, platformhttp.NewAPIError(
+			http.StatusUnauthorized,
+			"AUTH_INVALID_REFRESH_TOKEN",
+			"refresh token is invalid, expired, or revoked",
+			"POST /v1/auth/refresh",
+			"RotateRefreshToken",
+			err.Error(),
+		)
+	}
+	return newLoginOutputFromSession(session), nil
+}
+
+func (m Module) handleRecoverUsername(ctx context.Context, in *RecoverUsernameInput) (*RecoverUsernameOutput, error) {
+	sent, err := m.Service.RecoverUsername(ctx, in.Body.Identifier)
+	if err != nil {
+		return nil, mapOTPRequestError(err)
+	}
+	out := &RecoverUsernameOutput{}
+	out.Body.Sent = sent
+	out.Body.Message = "Si la cuenta existe, enviamos tu nombre de usuario al correo registrado."
+	return out, nil
 }
 
 func (m Module) handleSwitchView(ctx context.Context, in *SwitchViewInput) (*SwitchViewOutput, error) {
@@ -248,11 +377,11 @@ func (m Module) handleSwitchView(ctx context.Context, in *SwitchViewInput) (*Swi
 
 func (m Module) handleRegister(ctx context.Context, in *RegisterInput) (*LoginOutput, error) {
 	cmd := in.ToCommand()
-	user, token, err := m.Service.Register(ctx, cmd)
+	session, err := m.Service.RegisterWithSession(ctx, cmd)
 	if err != nil {
 		return nil, mapRegistrationError(err, in.Body.Email, "POST /v1/auth/register")
 	}
-	return newLoginOutput(user, token), nil
+	return newLoginOutputFromSession(session), nil
 }
 
 func (m Module) handleOTPRequest(ctx context.Context, in *OTPRequestInput) (*OTPRequestOutput, error) {
@@ -280,16 +409,16 @@ func (m Module) handleOTPVerify(ctx context.Context, in *OTPVerifyInput) (*OTPVe
 
 func (m Module) handleResetPassword(ctx context.Context, in *ResetPasswordInput) (*LoginOutput, error) {
 	cmd := in.ToCommand()
-	user, token, err := m.Service.ResetPassword(ctx, cmd)
+	session, err := m.Service.ResetPasswordWithSession(ctx, cmd)
 	if err != nil {
 		return nil, mapPasswordResetError(err)
 	}
-	return newLoginOutput(user, token), nil
+	return newLoginOutputFromSession(session), nil
 }
 
-func (m Module) handleLogout(ctx context.Context, _ *struct{}) (*LogoutOutput, error) {
+func (m Module) handleLogout(ctx context.Context, in *LogoutInput) (*LogoutOutput, error) {
 	rawToken, _ := platformhttp.AccessToken(ctx)
-	if err := m.Service.Logout(ctx, rawToken); err != nil {
+	if err := m.Service.LogoutWithRefresh(ctx, rawToken, in.RefreshToken); err != nil {
 		return nil, platformhttp.NewAPIError(
 			http.StatusUnauthorized,
 			"AUTH_INVALID_TOKEN",
@@ -332,6 +461,37 @@ func (m Module) handleUpdateMe(ctx context.Context, in *UpdateProfileInput) (*Sw
 		return nil, mapRegistrationError(err, emailHint, "PATCH /v1/auth/me")
 	}
 	return newUserOutput(user), nil
+}
+
+func (m Module) handleUpdatePreferences(ctx context.Context, in *UpdatePreferencesInput) (*SwitchViewOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	user, err := m.Service.UpdatePreferences(ctx, userID, in.ToCommand())
+	if err != nil {
+		return nil, mapAdminMutationError(err, "PATCH /v1/auth/me/preferences")
+	}
+	return newUserOutput(user), nil
+}
+
+func (m Module) handleRegisterPushToken(ctx context.Context, in *PushTokenInput) (*PushTokenOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	rec, err := m.Service.RegisterPushToken(ctx, userID, in.Body.Platform, in.Body.Token, in.Body.AppVariant)
+	if err != nil {
+		return nil, mapAdminMutationError(err, "POST /v1/devices/push-token")
+	}
+	out := &PushTokenOutput{}
+	out.Body.Registered = true
+	out.Body.Device = rec
+	return out, nil
+}
+
+func (m Module) handleUnregisterPushToken(ctx context.Context, in *DeletePushTokenInput) (*DeletePushTokenOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	if err := m.Service.UnregisterPushToken(ctx, userID, in.Token); err != nil {
+		return nil, mapAdminMutationError(err, "DELETE /v1/devices/push-token")
+	}
+	out := &DeletePushTokenOutput{}
+	out.Body.Disabled = true
+	return out, nil
 }
 
 func (m Module) handleChangePassword(ctx context.Context, in *ChangePasswordInput) (*PasswordChangedOutput, error) {

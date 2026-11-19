@@ -1,3 +1,4 @@
+// Package domain define las entidades, invariantes y reglas de negocio del ciclo de vida de eventos.
 package domain
 
 import (
@@ -8,16 +9,30 @@ import (
 )
 
 var (
-	ErrEventNotFound          = errors.New("event not found")
-	ErrEventForbidden         = errors.New("caller is not allowed to access this event")
-	ErrGuestNotFound          = errors.New("event guest not found")
-	ErrScheduleBlockNotFound  = errors.New("schedule block not found")
-	ErrChatThreadNotFound     = errors.New("chat thread not found")
-	ErrInvalidEventInput      = errors.New("invalid event input")
-	ErrInvalidEventStatus     = errors.New("invalid event status")
-	ErrCannotCancelCompleted  = errors.New("cannot cancel a completed event")
-	ErrInvalidGuestCount      = errors.New("guest count must be greater than zero")
+	// ErrEventNotFound indica que el evento solicitado no existe.
+	ErrEventNotFound = errors.New("event not found")
+	// ErrEventForbidden indica que el llamador no tiene permiso sobre el evento.
+	ErrEventForbidden = errors.New("caller is not allowed to access this event")
+	// ErrGuestNotFound indica que el invitado solicitado no existe.
+	ErrGuestNotFound = errors.New("event guest not found")
+	// ErrScheduleBlockNotFound indica que el bloque de cronograma no existe.
+	ErrScheduleBlockNotFound = errors.New("schedule block not found")
+	// ErrChatThreadNotFound indica que el hilo de conversación no existe.
+	ErrChatThreadNotFound = errors.New("chat thread not found")
+	// ErrInvalidEventInput indica que los datos enviados para el evento son inválidos.
+	ErrInvalidEventInput = errors.New("invalid event input")
+	// ErrInvalidEventStatus indica un estado de evento no reconocido.
+	ErrInvalidEventStatus = errors.New("invalid event status")
+	// ErrCannotCancelCompleted impide cancelar o reprogramar eventos ya completados.
+	ErrCannotCancelCompleted = errors.New("cannot cancel a completed event")
+	// ErrInvalidGuestCount exige al menos un invitado en el evento.
+	ErrInvalidGuestCount = errors.New("guest count must be greater than zero")
+	// ErrDateChangeNotPermitted prohíbe cambios de fecha con menos de 48 horas de antelación.
 	ErrDateChangeNotPermitted = errors.New("date change is not permitted less than 48 hours before event")
+	// ErrInsufficientStock indica falta de inventario disponible en la fecha solicitada.
+	ErrInsufficientStock = errors.New("stock insuficiente para la fecha solicitada")
+	// ErrAlreadyClosedOut impide ejecutar dos veces el cierre de un mismo evento.
+	ErrAlreadyClosedOut = errors.New("event closeout already completed")
 )
 
 type EventStatus string
@@ -63,28 +78,36 @@ func (i EventItem) SubtotalRD() int {
 }
 
 type Event struct {
-	ID                 string      `json:"id"`
-	Code               string      `json:"code"`
-	ClientID           uuid.UUID   `json:"clientId,omitempty"`
-	ClientName         string      `json:"clientName"`
-	ClientEmail        string      `json:"clientEmail,omitempty"`
-	Title              string      `json:"title"`
-	EventType          string      `json:"eventType"`
-	DateLabel          string      `json:"dateLabel"`
-	DaysUntilEvent     int         `json:"daysUntilEvent"`
-	Venue              string      `json:"venue"`
-	Zone               string      `json:"zone"`
-	Guests             int         `json:"guests"`
-	ArticleCount       int         `json:"articleCount"`
-	TotalRD            int         `json:"totalRD"`
-	PaidDepositRD      int         `json:"paidDepositRD"`
-	BalanceDueDate     string      `json:"balanceDueDate"`
-	Status             EventStatus `json:"status"`
-	DateChangesUsed    int         `json:"dateChangesUsed"`
-	AssignedLead       string      `json:"assignedLead"`
-	SketchJSON         string      `json:"sketchJson,omitempty"`
-	CancellationReason string      `json:"cancellationReason,omitempty"`
-	Items              []EventItem `json:"items"`
+	ID                         string      `json:"id"`
+	Code                       string      `json:"code"`
+	ClientID                   uuid.UUID   `json:"clientId,omitempty"`
+	ClientName                 string      `json:"clientName"`
+	ClientEmail                string      `json:"clientEmail,omitempty"`
+	Title                      string      `json:"title"`
+	EventType                  string      `json:"eventType"`
+	DateLabel                  string      `json:"dateLabel"`
+	EventDateISO               string      `json:"eventDateIso,omitempty"`
+	PickupDateISO              string      `json:"pickupDateIso,omitempty"`
+	ReturnDateISO              string      `json:"returnDateIso,omitempty"`
+	QuoteID                    string      `json:"quoteId,omitempty"`
+	DaysUntilEvent             int         `json:"daysUntilEvent"`
+	Venue                      string      `json:"venue"`
+	Zone                       string      `json:"zone"`
+	Guests                     int         `json:"guests"`
+	ArticleCount               int         `json:"articleCount"`
+	TotalRD                    int         `json:"totalRD"`
+	PaidDepositRD              int         `json:"paidDepositRD"`
+	BalanceDueDate             string      `json:"balanceDueDate"`
+	Status                     EventStatus `json:"status"`
+	DateChangesUsed            int         `json:"dateChangesUsed"`
+	AssignedLead               string      `json:"assignedLead"`
+	SketchJSON                 string      `json:"sketchJson,omitempty"`
+	CancellationReason         string      `json:"cancellationReason,omitempty"`
+	CloseoutCompleted          bool        `json:"closeoutCompleted,omitempty"`
+	CloseoutNotes              string      `json:"closeoutNotes,omitempty"`
+	LastPaymentReminderAt      string      `json:"lastPaymentReminderAt,omitempty"`
+	LastPaymentReminderChannel string      `json:"lastPaymentReminderChannel,omitempty"`
+	Items                      []EventItem `json:"items"`
 }
 
 func (e Event) BalanceRD() int {
@@ -103,6 +126,44 @@ func (e Event) IsActive() bool {
 		return true
 	}
 	return e.Status == StatusInProgress
+}
+
+// ApplyPaidDeposit registra un pago verificado y confirma el evento al cubrir el anticipo mínimo.
+func (e *Event) ApplyPaidDeposit(verifiedAmountRD int) bool {
+	if verifiedAmountRD > 0 {
+		e.PaidDepositRD += verifiedAmountRD
+	}
+	eligibleStatus := e.Status == StatusDraft
+	if !eligibleStatus {
+		eligibleStatus = e.Status == StatusPending
+	}
+	if !eligibleStatus {
+		return false
+	}
+	threshold := (e.TotalRD * 30) / 100
+	if threshold < 1 {
+		threshold = 1
+	}
+	reachedDeposit := e.PaidDepositRD >= threshold
+	fullySettled := e.BalanceRD() == 0
+	if !reachedDeposit {
+		if !fullySettled {
+			return false
+		}
+	}
+	e.Status = StatusConfirmed
+	return true
+}
+
+// CompleteCloseout marca el cierre administrativo del evento y transiciona su estado a completado.
+func (e *Event) CompleteCloseout(notes string) error {
+	if e.CloseoutCompleted {
+		return ErrAlreadyClosedOut
+	}
+	e.CloseoutCompleted = true
+	e.CloseoutNotes = strings.TrimSpace(notes)
+	e.Status = StatusCompleted
+	return nil
 }
 
 func (e Event) BelongsToClient(userID uuid.UUID, email, fullName string) bool {

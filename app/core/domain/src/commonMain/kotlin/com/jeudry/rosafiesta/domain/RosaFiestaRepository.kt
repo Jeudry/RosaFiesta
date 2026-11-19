@@ -2,14 +2,22 @@ package com.jeudry.rosafiesta.domain
 
 import com.jeudry.rosafiesta.core.engine.CancellationRefund
 import com.jeudry.rosafiesta.core.engine.DateChangeResult
+import com.jeudry.rosafiesta.core.engine.DateRangeReservation
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
 import com.jeudry.rosafiesta.core.engine.UserRole
+import com.jeudry.rosafiesta.domain.platform.ReportCsvBuilder
 import com.jeudry.rosafiesta.domain.security.AuthOutcome
 import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
+import com.jeudry.rosafiesta.domain.security.UserPreferences
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 
 private object RepositoryFallbackFlows {
+    val catalogCategories: StateFlow<List<CatalogCategory>> = MutableStateFlow(emptyList())
+    val catalogTrends: StateFlow<List<CatalogTrend>> = MutableStateFlow(emptyList())
+    val seasonBanner: StateFlow<SeasonBanner> = MutableStateFlow(SeasonBanner())
     val packages: StateFlow<List<EventPackage>> = MutableStateFlow(CanonicalSampleData.packages)
     val templates: StateFlow<List<EventTypeTemplate>> = MutableStateFlow(CanonicalSampleData.templates)
     val balloonProducts: StateFlow<List<BalloonProduct>> = MutableStateFlow(CanonicalSampleData.balloonProducts)
@@ -55,6 +63,12 @@ public interface RosaFiestaRepository {
 
     public val packages: StateFlow<List<EventPackage>>
         get() = RepositoryFallbackFlows.packages
+    public val catalogCategories: StateFlow<List<CatalogCategory>>
+        get() = RepositoryFallbackFlows.catalogCategories
+    public val catalogTrends: StateFlow<List<CatalogTrend>>
+        get() = RepositoryFallbackFlows.catalogTrends
+    public val seasonBanner: StateFlow<SeasonBanner>
+        get() = RepositoryFallbackFlows.seasonBanner
     public val templates: StateFlow<List<EventTypeTemplate>>
         get() = RepositoryFallbackFlows.templates
     public val balloonProducts: StateFlow<List<BalloonProduct>>
@@ -222,6 +236,64 @@ public interface RosaFiestaRepository {
     )
 
     /**
+     * Requests a PKCE OAuth authorization URL from the backend for [provider].
+     */
+    public suspend fun startOAuthAuthorization(
+        provider: String,
+        redirectUri: String,
+        codeChallenge: String,
+        state: String,
+    ): Result<String> = Result.failure(IllegalStateException("OAuth PKCE start unavailable offline"))
+
+    /**
+     * Completes an OAuth authorization code + PKCE verifier exchange on the backend.
+     */
+    public suspend fun exchangeOAuthCode(
+        provider: String,
+        code: String,
+        codeVerifier: String,
+        redirectUri: String,
+    ): AuthOutcome = AuthOutcome.failure(
+        errorCode = "OAUTH_UNSUPPORTED",
+        errorMessage = "Intercambio OAuth no disponible.",
+    )
+
+    /**
+     * Exchanges a persisted [refreshToken] for a rotated access + refresh session pair.
+     */
+    public suspend fun refreshSession(refreshToken: String): AuthOutcome = AuthOutcome.failure(
+        errorCode = "AUTH_SESSION_EXPIRED",
+        errorMessage = "Tu sesión expiró. Inicia sesión nuevamente.",
+    )
+
+    /**
+     * Updates the cached refresh token used for silent 401 token renewal and server-side logout revocation.
+     */
+    public fun setRefreshToken(token: String?): Unit = Unit
+
+    /**
+     * Registers session lifecycle callbacks invoked after background 401 token rotation or expiry.
+     */
+    public fun setSessionLifecycleCallbacks(
+        onTokensRefreshed: suspend (accessToken: String, refreshToken: String) -> Unit,
+        onSessionExpired: suspend () -> Unit,
+    ): Unit = Unit
+
+    /**
+     * Registers a real device or browser push notification token for remote alerts.
+     */
+    public suspend fun registerDevicePushToken(
+        platform: String,
+        token: String,
+        appVariant: String,
+    ): Result<Boolean> = Result.success(false)
+
+    /**
+     * Disables one or all push notification device tokens for the authenticated account.
+     */
+    public suspend fun unregisterDevicePushToken(token: String = ""): Result<Boolean> = Result.success(false)
+
+    /**
      * Updates the current user's password after verifying [currentPassword].
      */
     public fun changeUserPassword(currentPassword: String, newPassword: String): AuthOutcome = AuthOutcome.failure(
@@ -250,6 +322,8 @@ public interface RosaFiestaRepository {
         deliveryFeeDop: Int = 350,
         discountDop: Int = 0,
         eventId: String = "",
+        notes: String = "",
+        sendImmediately: Boolean = false,
     ): QuoteRecord {
         val subtotal = lines.sumOf { line -> line.subtotalDop }
         val total = (subtotal + deliveryFeeDop - discountDop).coerceAtLeast(0)
@@ -263,13 +337,29 @@ public interface RosaFiestaRepository {
             venue = venue,
             dateLabel = dateLabel,
             guests = guests,
-            status = "PENDING",
+            status = if (sendImmediately) "SENT" else "PENDING",
             lines = lines,
             deliveryFeeDop = deliveryFeeDop,
             discountDop = discountDop,
             totalDop = total,
+            notes = notes,
         )
     }
+
+    /**
+     * Enriches, approves and sends an existing quote [quoteId] from Admin so the client can accept and sign it.
+     */
+    public fun sendQuote(
+        quoteId: String,
+        eventTitle: String = "",
+        venue: String = "",
+        dateLabel: String = "",
+        guests: Int = 0,
+        lines: List<EventLineItem> = emptyList(),
+        deliveryFeeDop: Int? = null,
+        discountDop: Int? = null,
+        notes: String = "",
+    ): QuoteRecord? = quotes.value.firstOrNull { quote -> quote.id == quoteId }
 
     /**
      * Approves and digitally signs [quoteId] with [signatureSvg].
@@ -593,6 +683,53 @@ public interface RosaFiestaRepository {
     ): EventPackage? = packages.value.firstOrNull { bundle -> bundle.id == packageId }
 
     /**
+     * Creates a new catalog category in [catalogCategories] and persists it remotely when online.
+     */
+    public suspend fun createCategory(
+        name: String,
+        illoKey: String = "mobiliario",
+    ): Result<CatalogCategory> = Result.failure(IllegalStateException("CATEGORY_CREATE_UNSUPPORTED"))
+
+    /**
+     * Updates an existing catalog category's display name and illustration key.
+     */
+    public suspend fun updateCategory(
+        categoryId: String,
+        name: String,
+        illoKey: String = "mobiliario",
+    ): Result<CatalogCategory> = Result.failure(IllegalStateException("CATEGORY_UPDATE_UNSUPPORTED"))
+
+    /**
+     * Deletes an unused catalog category identified by [categoryId].
+     */
+    public suspend fun deleteCategory(categoryId: String): Result<Unit> = Result.failure(IllegalStateException("CATEGORY_DELETE_UNSUPPORTED"))
+
+    /**
+     * Creates a new seasonal trend card in [catalogTrends] and persists it remotely when online.
+     */
+    public suspend fun createTrend(trend: CatalogTrend): Result<CatalogTrend> = Result.failure(IllegalStateException("TREND_CREATE_UNSUPPORTED"))
+
+    /**
+     * Updates an existing seasonal trend card identified by [trend.id].
+     */
+    public suspend fun updateTrend(trend: CatalogTrend): Result<CatalogTrend> = Result.failure(IllegalStateException("TREND_UPDATE_UNSUPPORTED"))
+
+    /**
+     * Deletes a seasonal trend card identified by [trendId].
+     */
+    public suspend fun deleteTrend(trendId: String): Result<Unit> = Result.failure(IllegalStateException("TREND_DELETE_UNSUPPORTED"))
+
+    /**
+     * Saves the Personal Home seasonal hero banner configuration.
+     */
+    public suspend fun saveSeasonBanner(banner: SeasonBanner): Result<SeasonBanner> = Result.failure(IllegalStateException("SEASON_BANNER_UPDATE_UNSUPPORTED"))
+
+    /**
+     * Deletes an unused catalog article identified by [articleId].
+     */
+    public suspend fun deleteArticle(articleId: String): Result<Unit> = Result.failure(IllegalStateException("ARTICLE_DELETE_UNSUPPORTED"))
+
+    /**
      * Updates specifications, pricing, stock, or catalog visibility on [articleId].
      */
     public fun updateArticle(
@@ -725,4 +862,392 @@ public interface RosaFiestaRepository {
             series = emptyList(),
         )
     }
+
+    /**
+     * Uploads an image or PDF asset to backend storage.
+     */
+    public suspend fun uploadMedia(
+        filename: String,
+        mimeType: String,
+        purpose: String,
+        bytes: ByteArray,
+    ): Result<MediaUploadAsset> = Result.failure(IllegalStateException("MEDIA_UPLOAD_UNAVAILABLE"))
+
+    /**
+     * Marks a bank transfer or voucher payment as verified and generates fiscal receipt metadata.
+     */
+    public suspend fun verifyPayment(
+        paymentId: String,
+        notes: String = "",
+    ): Result<PaymentRecord> = Result.failure(IllegalStateException("PAYMENT_VERIFICATION_UNAVAILABLE"))
+
+    /**
+     * Rejects a pending payment voucher with an explicit [reason].
+     */
+    public suspend fun rejectPayment(
+        paymentId: String,
+        reason: String,
+    ): Result<PaymentRecord> = Result.failure(IllegalStateException("PAYMENT_REJECTION_UNAVAILABLE"))
+
+    /**
+     * Creates a hosted card gateway checkout session for an event payment.
+     */
+    public suspend fun createCardPaymentSession(
+        eventId: String,
+        amountDop: Int,
+        ncfType: String = "B02",
+        clientRnc: String = "",
+    ): Result<CardSessionResult> = Result.failure(IllegalStateException("CARD_GATEWAY_NOT_CONFIGURED"))
+
+    /**
+     * Completes post-event pickup and closeout reconciliation for [eventId].
+     */
+    public suspend fun completeEventCloseout(
+        eventId: String,
+        notes: String,
+    ): Result<ClientEvent> = Result.failure(IllegalStateException("EVENT_CLOSEOUT_UNAVAILABLE"))
+
+    /**
+     * Resolves a recorded post-event damage incident with closing [notes].
+     */
+    public suspend fun resolveDamageIncident(
+        incidentId: String,
+        notes: String,
+    ): Result<DamageIncident> = Result.failure(IllegalStateException("DAMAGE_RESOLUTION_UNAVAILABLE"))
+
+    /**
+     * Evaluates multi-day pickup/event/return stock availability for [articleId] on [date].
+     */
+    public suspend fun checkRangeAvailability(
+        date: String,
+        articleId: String,
+        quantity: Int,
+        excludeEventId: String = "",
+    ): Result<AvailabilityRangeCheck> = RepositoryAvailabilityFallback.check(
+        date = date,
+        articleId = articleId,
+        quantity = quantity,
+        excludeEventId = excludeEventId,
+        articles = articles.value,
+        events = events.value,
+    )
+
+    /**
+     * Sends an operator WhatsApp reply inside [threadId].
+     */
+    public suspend fun sendWhatsAppBotReply(
+        threadId: String,
+        phone: String,
+        message: String,
+    ): Result<BotThreadRecord> = Result.failure(IllegalStateException("WHATSAPP_PROVIDER_NOT_CONFIGURED"))
+
+    /**
+     * Exports a DGII Formato 607 fiscal sales CSV report for [period].
+     */
+    public suspend fun exportDgii607Csv(
+        period: String = "",
+    ): Result<String> = Result.success(
+        ReportCsvBuilder.buildDgii607Csv(
+            payments = payments.value,
+            periodYyyymm = period,
+        ),
+    )
+
+    /**
+     * Observes real-time backend push events from the SSE sync stream.
+     */
+    public fun observeRealtimeEvents(): Flow<RealtimeStreamEvent> = emptyFlow()
+
+    /**
+     * Registers a payment with optional transfer voucher URL, bank metadata, and Dominican NCF fields.
+     */
+    public fun registerDetailedPayment(
+        eventId: String,
+        amountDop: Int,
+        methodLabel: String,
+        referenceCode: String,
+        voucherUrl: String = "",
+        ncfType: String = "B02",
+        clientRnc: String = "",
+        bankName: String = "",
+        kindLabel: String = "Anticipo",
+    ): PaymentRecord? = registerPayment(eventId, amountDop, methodLabel, referenceCode)
+
+    /**
+     * Invites a new staff member with an optional [initialPassword] for immediate credential login.
+     */
+    public fun inviteStaffMemberWithPassword(
+        fullName: String,
+        email: String,
+        roleLabel: String,
+        role: String = "staff",
+        phone: String = "",
+        permissions: List<String> = emptyList(),
+        initialPassword: String = "",
+    ): StaffMember = inviteStaffMember(fullName, email, roleLabel, role, phone, permissions)
+
+    /**
+     * Creates a catalog article including an uploaded remote [photoUrl].
+     */
+    public fun createArticleWithMedia(
+        code: String,
+        name: String,
+        category: String,
+        pricePerDayDop: Int,
+        totalStock: Int,
+        photoUrl: String = "",
+    ) {
+        createArticle(code, name, category, pricePerDayDop, totalStock)
+    }
+
+    /**
+     * Updates an existing catalog article including an uploaded remote [photoUrl].
+     */
+    public fun updateArticleWithMedia(
+        articleId: String,
+        name: String? = null,
+        category: String? = null,
+        description: String? = null,
+        pricePerDayDop: Int? = null,
+        totalStock: Int? = null,
+        availableStock: Int? = null,
+        dimensions: String? = null,
+        material: String? = null,
+        visibleInCatalog: Boolean? = null,
+        photoUrl: String? = null,
+    ): CatalogArticle? = updateArticle(
+        articleId = articleId,
+        name = name,
+        category = category,
+        description = description,
+        pricePerDayDop = pricePerDayDop,
+        totalStock = totalStock,
+        availableStock = availableStock,
+        dimensions = dimensions,
+        material = material,
+        visibleInCatalog = visibleInCatalog,
+    )
+
+    /**
+     * Records a post-event damage or missing-units incident with an optional evidence [photoUrl].
+     */
+    public fun reportDamageWithMedia(
+        eventId: String,
+        articleCode: String,
+        articleName: String,
+        damagedUnits: Int,
+        missingUnits: Int,
+        replacementDop: Int,
+        notes: String,
+        photoUrl: String = "",
+    ): DamageIncident = reportDamage(
+        eventId = eventId,
+        articleCode = articleCode,
+        articleName = articleName,
+        damagedUnits = damagedUnits,
+        missingUnits = missingUnits,
+        replacementDop = replacementDop,
+        notes = notes,
+    )
+
+    /**
+     * Downloads raw binary image or PDF bytes for a stored media [urlOrId].
+     */
+    public suspend fun fetchMediaBytes(urlOrId: String): Result<ByteArray> = Result.failure(IllegalStateException("MEDIA_FETCH_UNAVAILABLE"))
+
+    /**
+     * Queries backend OAuth provider enablement and client identifiers.
+     */
+    public suspend fun fetchOAuthConfig(): Result<OAuthProviderConfig> = Result.success(OAuthProviderConfig())
+
+    /**
+     * Sends a username reminder email by email, phone, or document identifier.
+     */
+    public suspend fun recoverUsernameByIdentifier(identifier: String): Result<String> = Result.failure(IllegalStateException("USERNAME_RECOVERY_UNAVAILABLE"))
+
+    /**
+     * Updates persistent notification, Wi-Fi sync, and biometric lock preferences on the authenticated account.
+     */
+    public suspend fun updateUserPreferences(
+        pushNotificationsEnabled: Boolean? = null,
+        whatsappAlertsEnabled: Boolean? = null,
+        emailReceiptsEnabled: Boolean? = null,
+        biometricLockEnabled: Boolean? = null,
+        autoSyncWifiOnly: Boolean? = null,
+    ): Result<RegisteredUserAccount> {
+        val current = currentAuthenticatedUser.value
+            ?: return Result.failure(IllegalStateException("AUTH_UNAUTHORIZED"))
+        val updatedPrefs = UserPreferences(
+            pushNotificationsEnabled = pushNotificationsEnabled ?: current.preferences.pushNotificationsEnabled,
+            whatsappAlertsEnabled = whatsappAlertsEnabled ?: current.preferences.whatsappAlertsEnabled,
+            emailReceiptsEnabled = emailReceiptsEnabled ?: current.preferences.emailReceiptsEnabled,
+            biometricLockEnabled = biometricLockEnabled ?: current.preferences.biometricLockEnabled,
+            autoSyncWifiOnly = autoSyncWifiOnly ?: current.preferences.autoSyncWifiOnly,
+        )
+        return Result.success(current.copy(preferences = updatedPrefs))
+    }
+
+    /**
+     * Sends an email/WhatsApp payment reminder for [eventId] and updates reminder tracking fields.
+     */
+    public suspend fun sendEventPaymentReminder(
+        eventId: String,
+        channel: String = "whatsapp",
+        message: String = "",
+    ): Result<PaymentReminderOutcome> = Result.failure(IllegalStateException("PAYMENT_REMINDER_UNAVAILABLE"))
+
+    /**
+     * Confirms a Stripe Checkout session and records/verifies the resulting payment.
+     */
+    public suspend fun confirmCardCheckoutSession(sessionId: String): Result<PaymentRecord> = Result.failure(IllegalStateException("CARD_CONFIRM_UNAVAILABLE"))
+
+    /**
+     * Fetches real aggregated monthly revenue/expense series and KPI metrics for [range].
+     */
+    public suspend fun fetchPaymentsAnalytics(range: String = "30d"): Result<PaymentsAnalyticsSummary> = Result.failure(IllegalStateException("ANALYTICS_UNAVAILABLE"))
+
+    /**
+     * Requests a Rosa AI 2D spatial layout sketch proposal via `/v1/quotes/rosa/sketch`.
+     */
+    public suspend fun requestRosaSketch(
+        prompt: String,
+        eventType: String = "",
+        guests: Int = 80,
+    ): Result<RosaSketchProposal> = Result.failure(IllegalStateException("ROSA_SKETCH_UNAVAILABLE"))
+
+    /**
+     * Persists updated furniture/item allocations onto [eventId] via `/v1/events/{id}`.
+     */
+    public suspend fun updateEventItems(
+        eventId: String,
+        items: List<EventLineItem>,
+    ): Result<ClientEvent> = Result.failure(IllegalStateException("EVENT_UPDATE_UNAVAILABLE"))
+
+    /**
+     * Verifies the currently signed-in account's [password] to unlock the App Lock screen when biometrics are unavailable.
+     */
+    public suspend fun verifyAccountPassword(password: String): Result<Boolean> = Result.success(false)
+}
+
+internal object RepositoryAvailabilityFallback {
+    internal fun check(
+        date: String,
+        articleId: String,
+        quantity: Int,
+        excludeEventId: String,
+        articles: List<CatalogArticle>,
+        events: List<ClientEvent>,
+    ): Result<AvailabilityRangeCheck> {
+        val window = RosaFiestaEngine.computeTurnaroundWindow(date)
+            ?: return Result.failure(IllegalArgumentException("INVALID_EVENT_DATE"))
+        val article = findCatalogArticle(articles, articleId)
+            ?: return Result.failure(IllegalArgumentException("ARTICLE_NOT_FOUND"))
+        val reservations = buildDateRangeReservations(events, article)
+        val availableStock = RosaFiestaEngine.computeAvailableStockForRange(
+            totalStock = article.totalStock,
+            damagedStock = article.damagedStock,
+            reservations = reservations,
+            articleId = article.id,
+            pickupDateIso = window.pickupDateIso,
+            returnDateIso = window.returnDateIso,
+            excludeEventId = excludeEventId,
+        )
+        val safeRequested = quantity.coerceAtLeast(0)
+        val isAvailable = availableStock >= safeRequested
+        val conflicts = if (isAvailable) {
+            emptyList()
+        } else {
+            listOf(
+                AvailabilityConflictItem(
+                    articleId = article.id,
+                    articleName = article.name,
+                    requested = safeRequested,
+                    available = availableStock,
+                    dateRange = "${window.pickupDateIso}..${window.returnDateIso}",
+                ),
+            )
+        }
+        return Result.success(
+            AvailabilityRangeCheck(
+                available = isAvailable,
+                eventDateIso = window.eventDateIso,
+                pickupDateIso = window.pickupDateIso,
+                returnDateIso = window.returnDateIso,
+                conflicts = conflicts,
+            ),
+        )
+    }
+
+    private fun findCatalogArticle(
+        articles: List<CatalogArticle>,
+        articleIdOrCode: String,
+    ): CatalogArticle? {
+        val target = articleIdOrCode.trim()
+        for (article in articles) {
+            if (article.id == target) return article
+            if (article.code == target) return article
+        }
+        return null
+    }
+
+    private fun buildDateRangeReservations(
+        events: List<ClientEvent>,
+        article: CatalogArticle,
+    ): List<DateRangeReservation> {
+        val reservations = mutableListOf<DateRangeReservation>()
+        for (event in events) {
+            if (!isInventoryHoldingStatus(event.status)) continue
+            val turnaround = resolveEventTurnaround(event) ?: continue
+            val matchedQuantity = sumMatchingArticleQuantity(event.items, article)
+            if (matchedQuantity <= 0) continue
+            reservations.add(
+                DateRangeReservation(
+                    articleId = article.id,
+                    eventId = event.id,
+                    quantity = matchedQuantity,
+                    pickupDateIso = turnaround.first,
+                    returnDateIso = turnaround.second,
+                    status = toReservationStatus(event.status),
+                ),
+            )
+        }
+        return reservations
+    }
+
+    private fun isInventoryHoldingStatus(status: EventStatus): Boolean {
+        if (status == EventStatus.CANCELLED) return false
+        return status != EventStatus.COMPLETED
+    }
+
+    private fun resolveEventTurnaround(event: ClientEvent): Pair<String, String>? {
+        val hasExplicitPickup = event.pickupDateIso.isNotBlank()
+        val hasExplicitReturn = event.returnDateIso.isNotBlank()
+        if (hasExplicitPickup) {
+            if (hasExplicitReturn) {
+                return event.pickupDateIso.trim() to event.returnDateIso.trim()
+            }
+        }
+        val rawDate = event.eventDateIso.ifBlank { event.dateLabel }
+        val window = RosaFiestaEngine.computeTurnaroundWindow(rawDate) ?: return null
+        return window.pickupDateIso to window.returnDateIso
+    }
+
+    private fun sumMatchingArticleQuantity(
+        items: List<EventLineItem>,
+        article: CatalogArticle,
+    ): Int {
+        var total = 0
+        for (item in items) {
+            val matchesArticleCode = item.articleCode == article.code
+            val matchesArticleId = item.articleCode == article.id
+            if (matchesArticleCode) {
+                total += item.quantity.coerceAtLeast(0)
+            } else if (matchesArticleId) {
+                total += item.quantity.coerceAtLeast(0)
+            }
+        }
+        return total
+    }
+
+    private fun toReservationStatus(status: EventStatus): String = if (status == EventStatus.PENDING_QUOTE) "held" else "confirmed"
 }

@@ -86,6 +86,51 @@ type OAuthLoginInput struct {
 	}
 }
 
+type OAuthStartInput struct {
+	Provider      string `path:"provider" doc:"OAuth identity provider (google or apple)."`
+	RedirectURI   string `query:"redirectUri" doc:"Callback URI registered for the OAuth client."`
+	CodeChallenge string `query:"codeChallenge" doc:"PKCE S256 code challenge."`
+	State         string `query:"state" doc:"Optional opaque CSRF state token."`
+}
+
+type OAuthStartOutput struct {
+	Body identityapp.OAuthStartResult
+}
+
+type OAuthExchangeInput struct {
+	Body struct {
+		Provider     string `json:"provider" doc:"OAuth identity provider (google or apple)."`
+		Code         string `json:"code" doc:"Authorization code returned to the redirect URI."`
+		CodeVerifier string `json:"codeVerifier" doc:"PKCE code verifier matching the authorization challenge."`
+		RedirectURI  string `json:"redirectUri" doc:"Callback URI used during authorization start."`
+	}
+}
+
+type PushTokenInput struct {
+	Body struct {
+		Platform   string `json:"platform" doc:"Client platform (android, ios, web, desktop)."`
+		Token      string `json:"token" doc:"Device or browser push registration token."`
+		AppVariant string `json:"appVariant,omitempty" doc:"Application variant (personal or admin)."`
+	}
+}
+
+type PushTokenOutput struct {
+	Body struct {
+		Registered bool                   `json:"registered"`
+		Device     domain.DevicePushToken `json:"device"`
+	}
+}
+
+type DeletePushTokenInput struct {
+	Token string `query:"token" doc:"Optional push token to disable; disables all tokens for user if omitted."`
+}
+
+type DeletePushTokenOutput struct {
+	Body struct {
+		Disabled bool `json:"disabled"`
+	}
+}
+
 type LogoutOutput struct {
 	Body struct {
 		LoggedOut bool `json:"loggedOut" doc:"Indicates whether the session was terminated."`
@@ -114,6 +159,43 @@ func (in *UpdateProfileInput) ToCommand() identityapp.UpdateProfileCommand {
 	}
 }
 
+type UpdatePreferencesInput struct {
+	Body struct {
+		PushNotificationsEnabled *bool `json:"pushNotificationsEnabled,omitempty"`
+		WhatsAppAlertsEnabled    *bool `json:"whatsappAlertsEnabled,omitempty"`
+		EmailReceiptsEnabled     *bool `json:"emailReceiptsEnabled,omitempty"`
+		BiometricLockEnabled     *bool `json:"biometricLockEnabled,omitempty"`
+		AutoSyncWifiOnly         *bool `json:"autoSyncWifiOnly,omitempty"`
+	}
+}
+
+func (in *UpdatePreferencesInput) ToCommand() identityapp.UpdatePreferencesCommand {
+	return identityapp.UpdatePreferencesCommand{
+		PushNotificationsEnabled: in.Body.PushNotificationsEnabled,
+		WhatsAppAlertsEnabled:    in.Body.WhatsAppAlertsEnabled,
+		EmailReceiptsEnabled:     in.Body.EmailReceiptsEnabled,
+		BiometricLockEnabled:     in.Body.BiometricLockEnabled,
+		AutoSyncWifiOnly:         in.Body.AutoSyncWifiOnly,
+	}
+}
+
+type RecoverUsernameInput struct {
+	Body struct {
+		Identifier string `json:"identifier" minLength:"3" doc:"Registered email, phone, or full name."`
+	}
+}
+
+type RecoverUsernameOutput struct {
+	Body struct {
+		Sent    bool   `json:"sent"`
+		Message string `json:"message"`
+	}
+}
+
+type OAuthConfigOutput struct {
+	Body identityapp.OAuthConfigResult
+}
+
 type ChangePasswordInput struct {
 	Body struct {
 		CurrentPassword string `json:"currentPassword" doc:"Current account password."`
@@ -129,15 +211,29 @@ type PasswordChangedOutput struct {
 
 type LoginOutput struct {
 	Body struct {
-		AccessToken string      `json:"accessToken" doc:"Bearer token for authenticated requests."`
-		User        domain.User `json:"user" doc:"Authenticated user and active view."`
+		AccessToken  string      `json:"accessToken" doc:"Bearer token for authenticated requests."`
+		RefreshToken string      `json:"refreshToken,omitempty" doc:"Rotating refresh token used to obtain a fresh access token."`
+		ExpiresIn    int         `json:"expiresIn,omitempty" doc:"Access token lifetime in seconds."`
+		User         domain.User `json:"user" doc:"Authenticated user and active view."`
 	}
 }
 
-func newLoginOutput(user domain.User, token string) *LoginOutput {
+type RefreshTokenInput struct {
+	Body struct {
+		RefreshToken string `json:"refreshToken" doc:"Rotating refresh token obtained at sign-in."`
+	}
+}
+
+type LogoutInput struct {
+	RefreshToken string `header:"X-Refresh-Token" doc:"Optional refresh token family to revoke on logout."`
+}
+
+func newLoginOutputFromSession(session identityapp.AuthSession) *LoginOutput {
 	out := &LoginOutput{}
-	out.Body.AccessToken = token
-	out.Body.User = user
+	out.Body.AccessToken = session.AccessToken
+	out.Body.RefreshToken = session.RefreshToken
+	out.Body.ExpiresIn = session.ExpiresIn
+	out.Body.User = session.User
 	return out
 }
 
@@ -208,27 +304,31 @@ type StaffMemberOutput struct {
 	}
 }
 
+// InviteStaffInput representa la invitación de un miembro de equipo administrativo.
 type InviteStaffInput struct {
 	Body struct {
-		FullName    string   `json:"fullName" doc:"Staff member full name."`
-		Email       string   `json:"email" doc:"Staff member email address."`
-		Phone       string   `json:"phone,omitempty" doc:"Staff member phone number."`
-		RoleLabel   string   `json:"roleLabel,omitempty" doc:"Operational role title."`
-		Role        string   `json:"role,omitempty" doc:"Technical role (staff or admin)."`
-		Permissions []string `json:"permissions" doc:"Assigned permissions."`
-		Password    string   `json:"password,omitempty" doc:"Optional initial password."`
+		FullName        string   `json:"fullName" doc:"Staff member full name."`
+		Email           string   `json:"email" doc:"Staff member email address."`
+		Phone           string   `json:"phone,omitempty" doc:"Staff member phone number."`
+		RoleLabel       string   `json:"roleLabel,omitempty" doc:"Operational role title."`
+		Role            string   `json:"role,omitempty" doc:"Technical role (staff or admin)."`
+		Permissions     []string `json:"permissions" doc:"Assigned permissions."`
+		Password        string   `json:"password,omitempty" doc:"Optional initial password."`
+		InitialPassword string   `json:"initialPassword,omitempty" doc:"Optional initial password for immediate login."`
 	}
 }
 
+// ToCommand convierte InviteStaffInput al comando InviteStaffCommand.
 func (in *InviteStaffInput) ToCommand() identityapp.InviteStaffCommand {
 	return identityapp.InviteStaffCommand{
-		FullName:    in.Body.FullName,
-		Email:       in.Body.Email,
-		Phone:       in.Body.Phone,
-		RoleLabel:   in.Body.RoleLabel,
-		Role:        in.Body.Role,
-		Permissions: in.Body.Permissions,
-		Password:    in.Body.Password,
+		FullName:        in.Body.FullName,
+		Email:           in.Body.Email,
+		Phone:           in.Body.Phone,
+		RoleLabel:       in.Body.RoleLabel,
+		Role:            in.Body.Role,
+		Permissions:     in.Body.Permissions,
+		Password:        in.Body.Password,
+		InitialPassword: in.Body.InitialPassword,
 	}
 }
 
@@ -291,6 +391,16 @@ func mapRegistrationError(err error, email string, endpoint string) *platformhtt
 }
 
 func mapOTPRequestError(err error) *platformhttp.APIError {
+	if errors.Is(err, domain.ErrSMTPNotConfigured) {
+		return platformhttp.NewAPIError(
+			http.StatusServiceUnavailable,
+			"SMTP_PROVIDER_NOT_CONFIGURED",
+			err.Error(),
+			"POST /v1/auth/otp/request",
+			"RequireConfiguredSMTPProvider",
+			err.Error(),
+		)
+	}
 	status := http.StatusBadRequest
 	if errors.Is(err, domain.ErrUserNotFound) {
 		status = http.StatusNotFound
@@ -356,7 +466,7 @@ func mapPasswordResetError(err error) *platformhttp.APIError {
 func mapOAuthError(err error) *platformhttp.APIError {
 	if errors.Is(err, domain.ErrOAuthProviderNotConfigured) {
 		return platformhttp.NewAPIError(
-			http.StatusNotImplemented,
+			http.StatusServiceUnavailable,
 			"OAUTH_PROVIDER_NOT_CONFIGURED",
 			err.Error(),
 			"POST /v1/auth/oauth",

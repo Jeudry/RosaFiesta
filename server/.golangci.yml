@@ -58,6 +58,8 @@ linters:
             - "**/internal/quotes/**"
             - "**/internal/payments/**"
             - "**/internal/operations/**"
+            - "**/internal/media/**"
+            - "**/internal/realtime/**"
           deny:
             - pkg: github.com/Jeudry/rosafiesta/server/internal/app
               desc: los módulos no importan al ensamblador

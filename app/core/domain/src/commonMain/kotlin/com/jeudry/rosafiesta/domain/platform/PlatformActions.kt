@@ -1,5 +1,9 @@
 package com.jeudry.rosafiesta.domain.platform
 
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+
 /**
  * Binary payload and metadata of a user-selected media or document file (`jpg`, `jpeg`, `png`, `pdf`).
  */
@@ -26,6 +30,16 @@ public data class PickedMediaFile(
         return result
     }
 }
+
+/**
+ * Outcome returned by a platform browser-based OAuth PKCE authorization flow.
+ */
+public data class OAuthBrowserOutcome(
+    public val code: String? = null,
+    public val state: String? = null,
+    public val redirectUri: String = "",
+    public val errorCode: String? = null,
+)
 
 /**
  * Multiplatform OS integration contract for external URLs, native share sheets, document exports, and media picking.
@@ -67,6 +81,56 @@ public interface PlatformActions {
     public suspend fun pickMediaFile(
         allowedExtensions: List<String> = listOf("jpg", "jpeg", "png", "pdf"),
     ): PickedMediaFile?
+
+    /**
+     * Returns whether the host OS currently reports an active unmetered/Wi-Fi network transport.
+     */
+    public fun isOnWifiNetwork(): Boolean = true
+
+    /**
+     * Invokes host OS biometric/device-owner verification and invokes [onResult] with success state and optional reason code.
+     */
+    public fun authenticateDeviceOwner(
+        promptTitle: String,
+        promptSubtitle: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        onResult(false, "DEVICE_AUTH_UNAVAILABLE")
+    }
+
+    /**
+     * Executes an external-browser OAuth PKCE login session, computing [resolveAuthorizeUrl] with
+     * the platform's active callback URI and awaiting the redirected authorization code.
+     */
+    public suspend fun launchOAuthBrowserFlow(
+        resolveAuthorizeUrl: suspend (redirectUri: String) -> String?,
+    ): OAuthBrowserOutcome = OAuthBrowserOutcome(errorCode = "OAUTH_BROWSER_UNAVAILABLE")
+
+    /**
+     * Requests OS notification permission / push token registration for [appVariant] (`personal` or `admin`).
+     */
+    public fun registerPushNotifications(
+        appVariant: String,
+        onResult: (platform: String, token: String?) -> Unit,
+    ) {
+        onResult("unknown", null)
+    }
+
+    /**
+     * Requests OS notification permission or Web Push subscription using optional server [vapidPublicKey].
+     */
+    public fun registerPushNotificationsWithConfig(
+        appVariant: String,
+        vapidPublicKey: String,
+        onResult: (platform: String, token: String?) -> Unit,
+    ) {
+        registerPushNotifications(appVariant, onResult)
+    }
+
+    /**
+     * Displays an immediate local OS notification when remote alerts arrive while enabled by user preferences.
+     */
+    public fun showLocalNotification(title: String, body: String): Unit = Unit
 
     /**
      * Launches the platform phone dialer for [rawPhone].
@@ -216,6 +280,7 @@ public object ExternalUrlBuilder {
             "jpg", "jpeg" -> "image/jpeg"
             "png" -> "image/png"
             "webp" -> "image/webp"
+            "svg" -> "image/svg+xml"
             else -> fallbackMimeType
         }
     }
@@ -292,6 +357,42 @@ public class NoOpPlatformActions(
         private set
 
     public var queuedPickedFile: PickedMediaFile? = null
+    public var simulatedWifiConnected: Boolean = true
+    public var simulatedDeviceAuthOutcome: Pair<Boolean, String?> = false to "DEVICE_AUTH_UNAVAILABLE"
+    public var queuedOAuthOutcome: OAuthBrowserOutcome = OAuthBrowserOutcome(errorCode = "OAUTH_BROWSER_UNAVAILABLE")
+    public var simulatedPushRegistration: Pair<String, String?> = "android" to null
+    public val shownNotifications: MutableList<Pair<String, String>> = mutableListOf()
+    public var lastOAuthAuthorizeUrlRequested: String? = null
+        private set
+
+    override fun isOnWifiNetwork(): Boolean = simulatedWifiConnected
+
+    override fun authenticateDeviceOwner(
+        promptTitle: String,
+        promptSubtitle: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        onResult(simulatedDeviceAuthOutcome.first, simulatedDeviceAuthOutcome.second)
+    }
+
+    override suspend fun launchOAuthBrowserFlow(
+        resolveAuthorizeUrl: suspend (redirectUri: String) -> String?,
+    ): OAuthBrowserOutcome {
+        val targetRedirect = queuedOAuthOutcome.redirectUri.ifBlank { "http://127.0.0.1:43123/callback" }
+        lastOAuthAuthorizeUrlRequested = resolveAuthorizeUrl(targetRedirect)
+        return queuedOAuthOutcome.copy(redirectUri = targetRedirect)
+    }
+
+    override fun registerPushNotifications(
+        appVariant: String,
+        onResult: (platform: String, token: String?) -> Unit,
+    ) {
+        onResult(simulatedPushRegistration.first, simulatedPushRegistration.second)
+    }
+
+    override fun showLocalNotification(title: String, body: String) {
+        shownNotifications.add(title to body)
+    }
 
     override fun defaultApiBaseUrl(): String = ExternalUrlBuilder.normalizeBaseUrl(configuredBaseUrl)
 
@@ -331,4 +432,101 @@ public class NoOpPlatformActions(
     }
 
     override suspend fun pickMediaFile(allowedExtensions: List<String>): PickedMediaFile? = queuedPickedFile
+}
+
+/**
+ * Result delivered when an external Stripe Checkout session returns via deep link or browser popup.
+ */
+public data class ExternalPaymentReturn(
+    public val sessionId: String,
+    public val eventId: String = "",
+    public val cancelled: Boolean = false,
+)
+
+/**
+ * Multiplatform event bridge relaying Stripe Checkout return callbacks to active ViewModels.
+ */
+public object ExternalPaymentCallbackBridge {
+    private val _paymentReturns: MutableSharedFlow<ExternalPaymentReturn> =
+        MutableSharedFlow(extraBufferCapacity = 8)
+    public val paymentReturns: SharedFlow<ExternalPaymentReturn> = _paymentReturns.asSharedFlow()
+
+    /**
+     * Parses and broadcasts an incoming `rosafiesta://payment/...` or HTTPS return URL.
+     */
+    public fun dispatchPaymentDeepLink(rawUrl: String): Boolean {
+        val parsed = parsePaymentReturnUrl(rawUrl) ?: return false
+        _paymentReturns.tryEmit(parsed)
+        return true
+    }
+
+    /**
+     * Broadcasts a structured payment completion payload received via browser `postMessage`.
+     */
+    public fun dispatchPaymentPayload(
+        sessionId: String,
+        eventId: String = "",
+        cancelled: Boolean = false,
+    ) {
+        val cleanSession = sessionId.trim()
+        val hasSession = cleanSession.isNotEmpty()
+        val isEmitAllowed = if (cancelled) true else hasSession
+        if (!isEmitAllowed) return
+        _paymentReturns.tryEmit(
+            ExternalPaymentReturn(
+                sessionId = cleanSession,
+                eventId = eventId.trim(),
+                cancelled = cancelled,
+            ),
+        )
+    }
+
+    /**
+     * Parses `rosafiesta://payment/success?session_id=...` or `/cancel` deep link URLs.
+     */
+    public fun parsePaymentReturnUrl(rawUrl: String): ExternalPaymentReturn? {
+        val clean = rawUrl.trim()
+        val lower = clean.lowercase()
+        val isPaymentScheme = lower.startsWith("rosafiesta://payment")
+        val hasSessionParam = lower.contains("session_id=")
+        val hasCancelFlag = lower.contains("cancelled=1")
+        val isPaymentCallback = if (isPaymentScheme) {
+            true
+        } else if (lower.contains("/pagos")) {
+            hasSessionParam || hasCancelFlag
+        } else {
+            false
+        }
+        if (!isPaymentCallback) return null
+        val query = clean.substringAfter("?", missingDelimiterValue = "")
+        val params = parseQueryParams(query)
+        val sessionId = params["session_id"].orEmpty().trim()
+        val eventId = params["event_id"].orEmpty().trim()
+        val isCancelPath = lower.contains("/payment/cancel")
+        val isCancelledParam = params["cancelled"] == "1"
+        val isCancelled = if (isCancelPath) true else isCancelledParam
+        if (!isCancelled) {
+            if (sessionId.isEmpty()) return null
+        }
+        return ExternalPaymentReturn(
+            sessionId = sessionId,
+            eventId = eventId,
+            cancelled = isCancelled,
+        )
+    }
+
+    private fun parseQueryParams(query: String): Map<String, String> {
+        if (query.isBlank()) return emptyMap()
+        val map = linkedMapOf<String, String>()
+        val pairs = query.split("&")
+        for (pair in pairs) {
+            if (pair.isBlank()) continue
+            val key = pair.substringBefore("=").trim()
+            val value = pair.substringAfter("=", missingDelimiterValue = "").trim()
+            if (key.isNotEmpty()) {
+                map[key] = value
+            }
+        }
+        return map
+    }
 }

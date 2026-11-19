@@ -1,6 +1,7 @@
 package com.jeudry.rosafiesta.data
 
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
+import com.jeudry.rosafiesta.domain.platform.OAuthBrowserOutcome
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
 import com.jeudry.rosafiesta.domain.platform.PlatformActions
 import com.jeudry.rosafiesta.domain.security.SecureStorage
@@ -12,28 +13,40 @@ import com.jeudry.rosafiesta.domain.sound.SoundEffectCategory
 import com.jeudry.rosafiesta.domain.sound.SoundPlayer
 import com.jeudry.rosafiesta.domain.sound.VoiceInputMonitor
 import com.jeudry.rosafiesta.domain.sound.WavPcmEncoder
+import com.sun.net.httpserver.HttpServer
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.awt.Desktop
 import java.awt.FileDialog
 import java.awt.Frame
 import java.awt.GraphicsEnvironment
+import java.awt.Image
+import java.awt.SystemTray
 import java.awt.Toolkit
+import java.awt.TrayIcon
 import java.awt.datatransfer.StringSelection
+import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FilenameFilter
+import java.net.InetSocketAddress
+import java.net.NetworkInterface
 import java.net.URI
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermissions
 import java.security.SecureRandom
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
@@ -347,7 +360,7 @@ internal class DesktopVoiceInputMonitor : VoiceInputMonitor {
         val line = openHardwareTargetLine(lineInfo, format)
         if (line == null) {
             _hasHardwareMicrophone.value = false
-            _errorMessage.value = "No physical microphone capture line is available on this device."
+            _errorMessage.value = "No se detectó un micrófono disponible en este dispositivo."
             _amplitudeLevel.value = 0f
             _isListening.value = false
             activeFlag.set(false)
@@ -403,6 +416,8 @@ internal class DesktopVoiceInputMonitor : VoiceInputMonitor {
         if (pcmBytes.isNotEmpty()) {
             val wavRecording = WavPcmEncoder.encodeMono16BitPcmToWav(pcmBytes, SAMPLE_RATE_HZ)
             _capturedWavBytes.value = wavRecording
+        } else {
+            _errorMessage.value = "No se captó audio del micrófono. Verifica los permisos o el volumen de entrada."
         }
     }
 
@@ -416,7 +431,7 @@ internal class DesktopVoiceInputMonitor : VoiceInputMonitor {
 
     private companion object {
         const val SAMPLE_RATE_HZ = 16_000
-        const val SPEECH_ACTIVITY_THRESHOLD = 0.055f
+        const val SPEECH_ACTIVITY_THRESHOLD = 0.018f
         const val MIN_SPEECH_CHUNKS = 3
         const val SILENCE_CHUNKS_TO_AUTO_STOP = 32
         const val MAX_INITIAL_SILENCE_CHUNKS = 120
@@ -538,7 +553,7 @@ internal class DesktopPlatformActions : PlatformActions {
 
         return withContext(Dispatchers.IO) {
             runCatching {
-                val dialog = FileDialog(null as Frame?, "Seleccionar comprobante o imagen", FileDialog.LOAD)
+                val dialog = FileDialog(null as Frame?, "Seleccionar archivo, imagen o SVG", FileDialog.LOAD)
                 if (normalizedExtensions.isNotEmpty()) {
                     dialog.filenameFilter = FilenameFilter { _, candidateName ->
                         val ext = candidateName.substringAfterLast('.', "").lowercase()
@@ -562,6 +577,224 @@ internal class DesktopPlatformActions : PlatformActions {
                 )
             }.getOrNull()
         }
+    }
+
+    override fun isOnWifiNetwork(): Boolean {
+        return runCatching {
+            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return@runCatching false
+            while (interfaces.hasMoreElements()) {
+                val iface = interfaces.nextElement()
+                if (!iface.isUp) continue
+                if (iface.isLoopback) continue
+                if (iface.isVirtual) continue
+                val hasAddresses = iface.inetAddresses.hasMoreElements()
+                if (hasAddresses) return@runCatching true
+            }
+            false
+        }.getOrDefault(false)
+    }
+
+    private val ownerAuthExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "rf-desktop-owner-auth").apply { isDaemon = true }
+    }
+
+    override fun authenticateDeviceOwner(
+        promptTitle: String,
+        promptSubtitle: String,
+        onResult: (Boolean, String?) -> Unit,
+    ) {
+        if (isHeadlessOrAutomatedEnvironment()) {
+            onResult(false, "DEVICE_AUTH_UNAVAILABLE")
+            return
+        }
+        val osName = System.getProperty("os.name").orEmpty().lowercase()
+        val safePrompt = promptTitle.ifBlank { "Desbloquear RosaFiesta" }.replace("\"", "'").replace("'", " ")
+        val command = buildNativeAuthCommand(osName, safePrompt)
+        if (command == null) {
+            onResult(false, "DEVICE_AUTH_UNAVAILABLE")
+            return
+        }
+        ownerAuthExecutor.execute {
+            val outcome = runCatching {
+                val process = ProcessBuilder(command).redirectErrorStream(true).start()
+                val completed = process.waitFor(45, TimeUnit.SECONDS)
+                if (!completed) {
+                    process.destroyForcibly()
+                    false to "DEVICE_AUTH_TIMEOUT"
+                } else {
+                    val outputText = process.inputStream.readBytes().toString(StandardCharsets.UTF_8).trim()
+                    evaluateNativeAuthOutcome(osName, process.exitValue(), outputText)
+                }
+            }.getOrElse { false to "DEVICE_AUTH_UNAVAILABLE" }
+            onResult(outcome.first, outcome.second)
+        }
+    }
+
+    private fun buildNativeAuthCommand(osName: String, safePrompt: String): List<String>? = when {
+        osName.contains("mac") -> listOf(
+            "osascript",
+            "-e",
+            """do shell script "true" with administrator privileges with prompt "$safePrompt"""",
+        )
+
+        osName.contains("linux") -> listOf("pkexec", "true")
+
+        osName.contains("win") -> buildWindowsHelloCommand(safePrompt)
+
+        else -> null
+    }
+
+    private fun buildWindowsHelloCommand(safePrompt: String): List<String> {
+        val script =
+            """
+            Add-Type -AssemblyName System.Runtime.WindowsRuntime
+            ${'$'}op = [Windows.Security.Credentials.UI.UserConsentVerifier,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]::RequestVerificationAsync('$safePrompt')
+            ${'$'}asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { ${'$'}_.Name -eq 'AsTask' -and ${'$'}_.GetParameters().Count -eq 1 -and ${'$'}_.IsGenericMethod })[0].MakeGenericMethod([Windows.Security.Credentials.UI.UserConsentVerificationResult])
+            ${'$'}task = ${'$'}asTask.Invoke(${'$'}null, @(${'$'}op))
+            ${'$'}task.Wait()
+            Write-Output ${'$'}task.Result.ToString()
+            """.trimIndent()
+        return listOf("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script)
+    }
+
+    private fun evaluateNativeAuthOutcome(osName: String, exitCode: Int, outputText: String): Pair<Boolean, String?> {
+        if (!osName.contains("win")) {
+            return if (exitCode == 0) true to null else false to "DEVICE_AUTH_CANCELLED"
+        }
+        if (exitCode != 0) {
+            return false to "DEVICE_AUTH_UNAVAILABLE"
+        }
+        return when {
+            outputText.equals("Verified", ignoreCase = true) -> true to null
+            outputText.equals("Canceled", ignoreCase = true) -> false to "DEVICE_AUTH_CANCELLED"
+            else -> false to "DEVICE_AUTH_UNAVAILABLE"
+        }
+    }
+
+    override suspend fun launchOAuthBrowserFlow(
+        resolveAuthorizeUrl: suspend (redirectUri: String) -> String?,
+    ): OAuthBrowserOutcome {
+        if (isRunningInAutomatedTest()) {
+            return OAuthBrowserOutcome(errorCode = "OAUTH_BROWSER_UNAVAILABLE")
+        }
+        return withContext(Dispatchers.IO) {
+            val deferred = CompletableDeferred<OAuthBrowserOutcome>()
+            val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+            val callbackExecutor = Executors.newSingleThreadExecutor { runnable ->
+                Thread(runnable, "rf-oauth-loopback").apply { isDaemon = true }
+            }
+            server.executor = callbackExecutor
+            val redirectUri = "http://127.0.0.1:${server.address.port}/callback"
+            server.createContext("/callback") { exchange ->
+                val params = extractLoopbackCallbackParameters(exchange)
+                val htmlResponse = "<html><body style='font-family:sans-serif;padding:32px;background:#FFF7F9;color:#470E1A'>" +
+                    "<h2>Autenticación RosaFiesta completada</h2>" +
+                    "<p>Puedes cerrar esta pestaña y volver a la aplicación.</p></body></html>"
+                val bodyBytes = htmlResponse.toByteArray(StandardCharsets.UTF_8)
+                exchange.responseHeaders.add("Content-Type", "text/html; charset=utf-8")
+                exchange.sendResponseHeaders(200, bodyBytes.size.toLong())
+                exchange.responseBody.use { stream -> stream.write(bodyBytes) }
+                deferred.complete(
+                    OAuthBrowserOutcome(
+                        code = params["code"],
+                        state = params["state"],
+                        redirectUri = redirectUri,
+                        errorCode = params["error"],
+                    ),
+                )
+            }
+            server.start()
+            try {
+                val authorizeUrl = resolveAuthorizeUrl(redirectUri)
+                if (authorizeUrl == null) {
+                    return@withContext OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_START_FAILED")
+                }
+                val opened = openExternalUrl(authorizeUrl)
+                if (!opened) {
+                    return@withContext OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_BROWSER_UNAVAILABLE")
+                }
+                withTimeoutOrNull(180_000L) { deferred.await() }
+                    ?: OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_TIMEOUT")
+            } finally {
+                server.stop(0)
+                callbackExecutor.shutdownNow()
+            }
+        }
+    }
+
+    override fun registerPushNotifications(
+        appVariant: String,
+        onResult: (platform: String, token: String?) -> Unit,
+    ) {
+        onResult("desktop", null)
+    }
+
+    override fun showLocalNotification(title: String, body: String) {
+        if (isHeadlessOrAutomatedEnvironment()) return
+        val cleanTitle = title.trim()
+        val cleanBody = body.trim()
+        if (cleanTitle.isEmpty()) return
+        ownerAuthExecutor.execute {
+            val osName = System.getProperty("os.name").orEmpty().lowercase()
+            if (osName.contains("mac")) {
+                val escapedBody = cleanBody.replace("\"", "'")
+                val escapedTitle = cleanTitle.replace("\"", "'")
+                val process = ProcessBuilder(
+                    "osascript",
+                    "-e",
+                    """display notification "$escapedBody" with title "$escapedTitle"""",
+                ).start()
+                if (!process.waitFor(5, TimeUnit.SECONDS)) {
+                    process.destroyForcibly()
+                }
+                return@execute
+            }
+            if (SystemTray.isSupported()) {
+                runCatching {
+                    val tray = SystemTray.getSystemTray()
+                    val iconImage: Image = BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB)
+                    val existing = tray.trayIcons.firstOrNull()
+                    if (existing != null) {
+                        existing.displayMessage(cleanTitle, cleanBody, TrayIcon.MessageType.INFO)
+                    } else {
+                        val icon = TrayIcon(iconImage, "RosaFiesta").apply { isImageAutoSize = true }
+                        tray.add(icon)
+                        icon.displayMessage(cleanTitle, cleanBody, TrayIcon.MessageType.INFO)
+                    }
+                }
+                return@execute
+            }
+            if (osName.contains("linux")) {
+                val process = ProcessBuilder("notify-send", cleanTitle, cleanBody).start()
+                if (!process.waitFor(5, TimeUnit.SECONDS)) {
+                    process.destroyForcibly()
+                }
+            }
+        }
+    }
+
+    private fun extractLoopbackCallbackParameters(exchange: com.sun.net.httpserver.HttpExchange): Map<String, String> {
+        if (exchange.requestMethod.equals("POST", ignoreCase = true)) {
+            val rawBody = exchange.requestBody.readBytes().toString(StandardCharsets.UTF_8)
+            val formParams = parseQueryParameters(rawBody)
+            if (formParams.isNotEmpty()) {
+                return formParams
+            }
+        }
+        return parseQueryParameters(exchange.requestURI.rawQuery.orEmpty())
+    }
+
+    private fun parseQueryParameters(rawQuery: String): Map<String, String> {
+        if (rawQuery.isBlank()) return emptyMap()
+        val result = linkedMapOf<String, String>()
+        for (pair in rawQuery.split("&")) {
+            val idx = pair.indexOf('=')
+            if (idx <= 0) continue
+            val key = URLDecoder.decode(pair.substring(0, idx), StandardCharsets.UTF_8)
+            val value = URLDecoder.decode(pair.substring(idx + 1), StandardCharsets.UTF_8)
+            result[key] = value
+        }
+        return result
     }
 
     private fun isHeadlessOrAutomatedEnvironment(): Boolean {

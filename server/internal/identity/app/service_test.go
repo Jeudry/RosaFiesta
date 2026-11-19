@@ -139,3 +139,150 @@ func TestServiceProductionDisablesStaticTokensAndDevOTP(t *testing.T) {
 		t.Fatalf("devCode must never be exposed in EnvProduction, got %q", otpRes.DevCode)
 	}
 }
+
+type fakeIdentityEmailSender struct {
+	configured bool
+	sentTo     []string
+	subjects   []string
+	bodies     []string
+}
+
+func (f *fakeIdentityEmailSender) IsConfigured() bool {
+	return f.configured
+}
+
+func (f *fakeIdentityEmailSender) SendEmail(_ context.Context, to, subject, body string) error {
+	f.sentTo = append(f.sentTo, to)
+	f.subjects = append(f.subjects, subject)
+	f.bodies = append(f.bodies, body)
+	return nil
+}
+
+func TestService_StrictSMTP_OTP_And_EmailSender(t *testing.T) {
+	ctx := t.Context()
+	clk := &clock.Fixed{At: time.Date(2026, time.November, 15, 10, 0, 0, 0, time.UTC)}
+
+	strictSvc := identityapp.NewServiceWithOptions(clk, stubChecker{active: 0}, identityapp.Options{
+		Env:                   config.EnvProduction,
+		JWTSecret:             "0123456789abcdef0123456789abcdef0123456789abcdef",
+		RequireConfiguredSMTP: true,
+	})
+	if _, err := strictSvc.RequestOTP(ctx, "camila@rosafiesta.do"); !errors.Is(err, domain.ErrSMTPNotConfigured) {
+		t.Fatalf("expected ErrSMTPNotConfigured when RequireConfiguredSMTP=true, got %v", err)
+	}
+
+	sender := &fakeIdentityEmailSender{configured: true}
+	withSender := identityapp.NewServiceWithOptions(clk, stubChecker{active: 0}, identityapp.Options{
+		Env:                   config.EnvProduction,
+		JWTSecret:             "0123456789abcdef0123456789abcdef0123456789abcdef",
+		RequireConfiguredSMTP: true,
+		EmailSender:           sender,
+	})
+	otpRes, err := withSender.RequestOTP(ctx, "camila@rosafiesta.do")
+	if err != nil {
+		t.Fatalf("expected RequestOTP with configured EmailSender to succeed, got %v", err)
+	}
+	if !otpRes.Sent {
+		t.Fatalf("expected Sent=true")
+	}
+	if len(sender.sentTo) != 1 {
+		t.Fatalf("expected 1 email sent via EmailSender, got %d", len(sender.sentTo))
+	}
+}
+
+func TestService_InviteStaffWithInitialPasswordAndWelcomeEmail(t *testing.T) {
+	ctx := t.Context()
+	clk := &clock.Fixed{At: time.Date(2026, time.November, 15, 10, 0, 0, 0, time.UTC)}
+	sender := &fakeIdentityEmailSender{configured: true}
+	svc := identityapp.NewServiceWithOptions(clk, stubChecker{active: 0}, identityapp.Options{
+		Env:         config.EnvDevelopment,
+		JWTSecret:   "0123456789abcdef0123456789abcdef0123456789abcdef",
+		EmailSender: sender,
+	})
+
+	staffRec, err := svc.InviteStaff(ctx, identityapp.InviteStaffCommand{
+		FullName:        "Laura Finanzas",
+		Email:           "laura.finanzas@rosafiesta.do",
+		Phone:           "809-555-0199",
+		RoleLabel:       "Contadora",
+		Role:            "staff",
+		Permissions:     []string{"finanzas", "pagos"},
+		InitialPassword: "ClaveInicial#2026",
+	})
+	if err != nil {
+		t.Fatalf("InviteStaff failed: %v", err)
+	}
+	if staffRec.Email != "laura.finanzas@rosafiesta.do" {
+		t.Fatalf("unexpected invited email: %q", staffRec.Email)
+	}
+	if len(sender.sentTo) != 1 {
+		t.Fatalf("expected welcome email sent, got %d", len(sender.sentTo))
+	}
+
+	loggedUser, token, loginErr := svc.Login(ctx, "laura.finanzas@rosafiesta.do", "ClaveInicial#2026")
+	if loginErr != nil {
+		t.Fatalf("invited staff login with InitialPassword failed: %v", loginErr)
+	}
+	if token == "" {
+		t.Fatal("expected valid token for invited staff login")
+	}
+	if len(loggedUser.Permissions) != 2 {
+		t.Fatalf("expected 2 permissions on invited staff user, got %v", loggedUser.Permissions)
+	}
+}
+
+func TestService_PreferencesOAuthConfigAndRecoverUsername(t *testing.T) {
+	ctx := t.Context()
+	clk := &clock.Fixed{At: time.Date(2026, time.November, 15, 11, 0, 0, 0, time.UTC)}
+	sender := &fakeIdentityEmailSender{configured: true}
+	svc := identityapp.NewServiceWithOptions(clk, stubChecker{active: 0}, identityapp.Options{
+		Env:            config.EnvDevelopment,
+		JWTSecret:      "0123456789abcdef0123456789abcdef0123456789abcdef",
+		GoogleClientID: "google-client-id-123",
+		EmailSender:    sender,
+	})
+
+	oauthCfg := svc.OAuthConfig()
+	if !oauthCfg.GoogleEnabled {
+		t.Fatalf("expected GoogleEnabled=true, got %+v", oauthCfg)
+	}
+	if oauthCfg.AppleEnabled {
+		t.Fatalf("expected AppleEnabled=false, got %+v", oauthCfg)
+	}
+
+	camilaID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	bioOn := true
+	wifiOn := true
+	emailOff := false
+	updated, err := svc.UpdatePreferences(ctx, camilaID, identityapp.UpdatePreferencesCommand{
+		BiometricLockEnabled: &bioOn,
+		AutoSyncWifiOnly:     &wifiOn,
+		EmailReceiptsEnabled: &emailOff,
+	})
+	if err != nil {
+		t.Fatalf("UpdatePreferences failed: %v", err)
+	}
+	if !updated.Preferences.BiometricLockEnabled {
+		t.Fatalf("expected BiometricLockEnabled=true, got %+v", updated.Preferences)
+	}
+	if !updated.Preferences.AutoSyncWifiOnly {
+		t.Fatalf("expected AutoSyncWifiOnly=true, got %+v", updated.Preferences)
+	}
+	if updated.Preferences.EmailReceiptsEnabled {
+		t.Fatalf("expected EmailReceiptsEnabled=false, got %+v", updated.Preferences)
+	}
+
+	sent, recErr := svc.RecoverUsername(ctx, "camila@rosafiesta.do")
+	if recErr != nil {
+		t.Fatalf("expected username recovery to send cleanly, err=%v", recErr)
+	}
+	if !sent {
+		t.Fatalf("expected sent=true")
+	}
+	if len(sender.sentTo) != 1 {
+		t.Fatalf("expected 1 email sent, got %v", sender.sentTo)
+	}
+	if sender.sentTo[0] != "camila@rosafiesta.do" {
+		t.Fatalf("expected email to camila, got %v", sender.sentTo)
+	}
+}

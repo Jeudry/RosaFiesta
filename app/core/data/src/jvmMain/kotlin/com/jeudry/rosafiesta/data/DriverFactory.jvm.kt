@@ -11,6 +11,7 @@ public actual class DriverFactory(
     public actual fun createDriver(): SqlDriver {
         val driver = JdbcSqliteDriver(url)
         runCatching { RosaFiestaDatabase.Schema.create(driver) }
+        RosaFiestaSchemaUpgrade.applySafeColumnUpgrades(driver)
         return driver
     }
 }
@@ -48,3 +49,5 @@ public actual fun createDefaultSqlDriverOrNull(): SqlDriver? = runCatching {
     val dbFile = File(appDir, "rosafiesta.db")
     DriverFactory(url = "jdbc:sqlite:${dbFile.absolutePath}").createDriver()
 }.getOrNull()
+
+public actual fun createDefaultLocalSnapshotCacheOrNull(): LocalSnapshotCache? = null

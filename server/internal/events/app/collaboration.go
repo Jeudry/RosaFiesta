@@ -8,6 +8,7 @@ import (
 
 	"github.com/Jeudry/rosafiesta/server/internal/events/domain"
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
+	realtimedomain "github.com/Jeudry/rosafiesta/server/internal/realtime/domain"
 )
 
 type AddGuestCommand struct {
@@ -38,6 +39,7 @@ type PostChatMessageCommand struct {
 	RecipientLabel string
 	Body           string
 	AttachmentName string
+	AttachmentURL  string
 }
 
 func (s *Service) ListGuests(ctx context.Context, eventID string, caller platformhttp.Principal) ([]domain.EventGuest, error) {
@@ -339,6 +341,7 @@ func (s *Service) PostChatMessage(
 		RecipientLabel: strings.TrimSpace(cmd.RecipientLabel),
 		Body:           body,
 		AttachmentName: strings.TrimSpace(cmd.AttachmentName),
+		AttachmentURL:  strings.TrimSpace(cmd.AttachmentURL),
 		Unread:         false,
 		CreatedAt:      s.clock.Now(),
 	}
@@ -354,7 +357,40 @@ func (s *Service) PostChatMessage(
 			}
 		}
 	}
+	s.publishChatMessage(ctx, msg)
 	return msg, nil
+}
+
+func (s *Service) publishChatMessage(ctx context.Context, msg domain.ChatMessage) {
+	s.mu.RLock()
+	pub := s.realtimePub
+	s.mu.RUnlock()
+	if pub == nil {
+		return
+	}
+	clientID := ""
+	audience := realtimedomain.AudienceAdmin
+	if msg.EventID != "" {
+		if evt, found := s.findEventByID(ctx, msg.EventID); found {
+			if evt.ClientID != uuid.Nil {
+				clientID = evt.ClientID.String()
+				audience = realtimedomain.AudienceClient
+			}
+		}
+	}
+	pub.Publish(realtimedomain.RealtimeEvent{
+		Type:     realtimedomain.EventChatMessage,
+		Audience: audience,
+		ClientID: clientID,
+		EntityID: msg.ThreadID,
+		Payload: map[string]any{
+			"messageId":     msg.ID,
+			"threadId":      msg.ThreadID,
+			"eventId":       msg.EventID,
+			"senderRole":    msg.SenderRole,
+			"attachmentUrl": msg.AttachmentURL,
+		},
+	})
 }
 
 func applyGuestPatch(existing domain.EventGuest, cmd UpdateGuestCommand) (domain.EventGuest, error) {

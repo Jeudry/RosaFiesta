@@ -37,6 +37,8 @@ type Article struct {
 	Material          string
 	ColorVariants     []string
 	IsDirectSale      bool
+	PhotoUrl          string
+	DamagedStock      int
 }
 
 type AuditLog struct {
@@ -104,6 +106,19 @@ type BusinessSetting struct {
 	UpdatedAt      time.Time
 }
 
+type CatalogTrend struct {
+	ID              string
+	Title           string
+	EventsLabel     string
+	PhotoKey        string
+	PhotoUrl        string
+	PhotoBgHex      string
+	LinkedCategory  string
+	LinkedPackageID string
+	SortOrder       int
+	Active          bool
+}
+
 type Category struct {
 	ID        string
 	Name      string
@@ -124,19 +139,33 @@ type ChatMessage struct {
 	AttachmentName string
 	Unread         bool
 	CreatedAt      time.Time
+	AttachmentUrl  string
 }
 
 type DamageIncident struct {
-	ID             string
-	EventID        string
-	ArticleCode    string
-	ArticleName    string
-	DamagedUnits   int
-	MissingUnits   int
-	ReplacementDop int
-	Notes          string
-	Status         string
-	CreatedAt      time.Time
+	ID              string
+	EventID         string
+	ArticleCode     string
+	ArticleName     string
+	DamagedUnits    int
+	MissingUnits    int
+	ReplacementDop  int
+	Notes           string
+	Status          string
+	CreatedAt       time.Time
+	PhotoUrl        string
+	ResolutionNotes string
+	ChargePaymentID string
+}
+
+type DeliveryStop struct {
+	ID        string
+	EventID   string
+	StopOrder int
+	Title     string
+	Address   string
+	TimeLabel string
+	Completed bool
 }
 
 type DeliveryZone struct {
@@ -147,33 +176,51 @@ type DeliveryZone struct {
 	Active     bool
 }
 
+type DevicePushToken struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	Platform   string
+	Token      string
+	AppVariant string
+	Enabled    bool
+	UpdatedAt  time.Time
+}
+
 type Event struct {
-	ID                 string
-	ClientID           uuid.UUID
-	ClientName         string
-	Title              string
-	EventType          string
-	PhotoKey           string
-	Venue              string
-	EventDateLabel     string
-	DaysUntil          int
-	GuestsCount        int
-	ArticlesCount      int
-	TotalDop           int
-	DepositDop         int
-	PaidDop            int
-	BalanceDop         int
-	BalanceDueLabel    string
-	Status             string
-	DateChangesCount   int
-	CreatedAt          time.Time
-	Code               string
-	Zone               string
-	AssignedLead       string
-	PaidDepositDop     int
-	ClientEmail        string
-	SketchJson         string
-	CancellationReason string
+	ID                         string
+	ClientID                   uuid.UUID
+	ClientName                 string
+	Title                      string
+	EventType                  string
+	PhotoKey                   string
+	Venue                      string
+	EventDateLabel             string
+	DaysUntil                  int
+	GuestsCount                int
+	ArticlesCount              int
+	TotalDop                   int
+	DepositDop                 int
+	PaidDop                    int
+	BalanceDop                 int
+	BalanceDueLabel            string
+	Status                     string
+	DateChangesCount           int
+	CreatedAt                  time.Time
+	Code                       string
+	Zone                       string
+	AssignedLead               string
+	PaidDepositDop             int
+	ClientEmail                string
+	SketchJson                 string
+	CancellationReason         string
+	EventDateIso               string
+	PickupDateIso              string
+	ReturnDateIso              string
+	QuoteID                    string
+	CloseoutCompleted          bool
+	CloseoutNotes              string
+	LastPaymentReminderAt      string
+	LastPaymentReminderChannel string
 }
 
 type EventGuest struct {
@@ -192,6 +239,17 @@ type EventItem struct {
 	Name         string
 	Quantity     int
 	UnitPriceDop int
+}
+
+type EventLogistic struct {
+	EventID        string
+	EventTitle     string
+	Zone           string
+	WindowLabel    string
+	DriverName     string
+	Vehicle        string
+	Status         string
+	UpdatedAtLabel string
 }
 
 type EventScheduleBlock struct {
@@ -238,6 +296,28 @@ type Lead struct {
 	Guests         int
 }
 
+type MediaAsset struct {
+	ID          string
+	OwnerID     string
+	OwnerRole   string
+	Purpose     string
+	Filename    string
+	MimeType    string
+	ByteSize    int64
+	Sha256      string
+	StoragePath string
+	PublicUrl   string
+	CreatedAt   time.Time
+}
+
+type NcfSequence struct {
+	NcfType       string
+	Prefix        string
+	LastNumber    int64
+	MaxNumber     int64
+	ValidUntilIso string
+}
+
 type Notification struct {
 	ID             string
 	RecipientRole  string
@@ -258,6 +338,9 @@ type OfflineQueue struct {
 	CreatedAtLabel string
 	Synced         bool
 	CreatedAt      time.Time
+	OperationType  string
+	PayloadJson    []byte
+	IdempotencyKey string
 }
 
 type Package struct {
@@ -269,6 +352,7 @@ type Package struct {
 	GuestCapacity int
 	ItemsSummary  string
 	Visible       bool
+	PhotoUrl      string
 }
 
 type PackageItem struct {
@@ -280,21 +364,34 @@ type PackageItem struct {
 }
 
 type Payment struct {
-	ID             string
-	IdempotencyKey string
-	EventID        string
-	ClientName     string
-	AmountDop      int
-	Method         string
-	PaidDateLabel  string
-	Status         string
-	CreatedAt      time.Time
-	ReceiptNumber  string
-	EventTitle     string
-	ClientID       string
-	ClientEmail    string
-	Kind           string
-	BankName       string
+	ID                     string
+	IdempotencyKey         string
+	EventID                string
+	ClientName             string
+	AmountDop              int
+	Method                 string
+	PaidDateLabel          string
+	Status                 string
+	CreatedAt              time.Time
+	ReceiptNumber          string
+	EventTitle             string
+	ClientID               string
+	ClientEmail            string
+	Kind                   string
+	BankName               string
+	VoucherUrl             string
+	ReferenceNumber        string
+	VerifiedBy             string
+	VerifiedAtIso          string
+	RejectionReason        string
+	NcfType                string
+	NcfNumber              string
+	ClientRnc              string
+	SubtotalDop            int
+	ItbisDop               int
+	SecurityDepositDop     int
+	GatewaySessionID       string
+	GatewayPaymentIntentID string
 }
 
 type Quote struct {
@@ -321,6 +418,21 @@ type Quote struct {
 	SignatureSvg    string
 	SignedByName    string
 	RejectionReason string
+	EventDateIso    string
+	PackageID       string
+	ContractPdfUrl  string
+	SignedAtIso     string
+}
+
+type RefreshToken struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	FamilyID  uuid.UUID
+	TokenHash string
+	Revoked   bool
+	ExpiresAt time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Refund struct {
@@ -337,6 +449,8 @@ type Refund struct {
 	Status          string
 	ApprovedBy      string
 	ApprovedAtLabel string
+	GatewayRefundID string
+	GatewayStatus   string
 }
 
 type Review struct {
@@ -347,6 +461,15 @@ type Review struct {
 	Comment    string
 	AdminReply string
 	CreatedAt  time.Time
+}
+
+type SeasonBanner struct {
+	ID               string
+	BadgeLabel       string
+	Title            string
+	CtaLabel         string
+	TargetScreenCode string
+	Active           bool
 }
 
 type Session struct {
@@ -370,6 +493,19 @@ type StaffMember struct {
 	CreatedAt   time.Time
 }
 
+type StockReservation struct {
+	ID            string
+	ArticleID     string
+	EventID       string
+	QuoteID       string
+	Quantity      int
+	PickupDateIso string
+	ReturnDateIso string
+	Status        string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
 type Supplier struct {
 	ID          string
 	Name        string
@@ -384,15 +520,20 @@ type Supplier struct {
 }
 
 type User struct {
-	ID           uuid.UUID
-	FullName     string
-	Email        string
-	Phone        string
-	PasswordHash string
-	Role         string
-	Permissions  string
-	CreatedAt    time.Time
-	Username     string
-	BirthDate    string
-	AvatarKey    string
+	ID                       uuid.UUID
+	FullName                 string
+	Email                    string
+	Phone                    string
+	PasswordHash             string
+	Role                     string
+	Permissions              string
+	CreatedAt                time.Time
+	Username                 string
+	BirthDate                string
+	AvatarKey                string
+	PushNotificationsEnabled bool
+	WhatsappAlertsEnabled    bool
+	EmailReceiptsEnabled     bool
+	BiometricLockEnabled     bool
+	AutoSyncWifiOnly         bool
 }

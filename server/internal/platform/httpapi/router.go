@@ -16,13 +16,19 @@ import (
 )
 
 const (
-	apiTitle             = "RosaFiesta API"
-	apiVersion           = "1.0.0"
-	defaultRateLimitReqs = 240
+	apiTitle                 = "RosaFiesta API"
+	apiVersion               = "1.0.0"
+	defaultRateLimitReqs     = 240
+	defaultAuthRateLimitReqs = 20
 )
 
 type Module interface {
 	Register(api huma.API)
+}
+
+// RawRouterModule permite registrar rutas HTTP en streaming o binarias directamente en chi.
+type RawRouterModule interface {
+	RegisterRoutes(router chi.Router)
 }
 
 type RouterOptions struct {
@@ -41,7 +47,7 @@ func New(logger *slog.Logger, modules ...Module) (http.Handler, huma.API) {
 
 func NewWithOptions(logger *slog.Logger, opts RouterOptions, modules ...Module) (http.Handler, huma.API) {
 	router := chi.NewRouter()
-	limiter := NewRateLimiter(defaultRateLimitReqs, time.Minute)
+	limiter := NewRateLimiterWithAuth(defaultRateLimitReqs, defaultAuthRateLimitReqs, time.Minute)
 	corsHandler := buildCORSMiddleware(opts.AllowedOrigins)
 	logHandler := requestLogger(logger)
 	router.Use(
@@ -66,6 +72,9 @@ func NewWithOptions(logger *slog.Logger, opts RouterOptions, modules ...Module) 
 
 	for _, module := range modules {
 		module.Register(api)
+		if rawModule, ok := module.(RawRouterModule); ok {
+			rawModule.RegisterRoutes(router)
+		}
 	}
 	return router, api
 }

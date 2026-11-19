@@ -37,7 +37,12 @@ out/
 
 # Environment Variables
 .env
+.env.local
+.env.*.local
 .envrc
+
+# Local runtime uploads
+server/var/
 
 # Temporary & Build artifacts
 tmp/
