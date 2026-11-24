@@ -60,6 +60,7 @@ final class AdminRosaFiestaAppDelegate: NSObject, UIApplicationDelegate, UNUserN
 @main
 struct AdminiOSApp: App {
     @UIApplicationDelegateAdaptor(AdminRosaFiestaAppDelegate.self) var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -67,6 +68,11 @@ struct AdminiOSApp: App {
                 .ignoresSafeArea()
                 .onOpenURL { url in
                     _ = MainViewControllerKt.handleIncomingDeepLinkUrl(urlString: url.absoluteString)
+                }
+                .onChange(of: scenePhase) { _, newPhase in
+                    if newPhase == .background {
+                        MainViewControllerKt.notifyAppBackgrounded()
+                    }
                 }
         }
     }

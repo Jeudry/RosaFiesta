@@ -3,6 +3,8 @@ package app_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/Jeudry/rosafiesta/server/internal/catalog/app"
@@ -59,5 +61,50 @@ func TestServiceBlocksOverbookingAndTracksDamageQuarantine(t *testing.T) {
 	}
 	if updated.DamagedStock != 1 {
 		t.Fatalf("expected DamagedStock=1, got %d", updated.DamagedStock)
+	}
+}
+
+func TestReserveStockForEvent_ConcurrentRacePreventsOverbooking(t *testing.T) {
+	ctx := context.Background()
+	svc := app.NewService()
+
+	const workers = 8
+	var wg sync.WaitGroup
+	errs := make([]error, workers)
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			eventID := fmt.Sprintf("ev-race-%d", idx)
+			errs[idx] = svc.ReserveStockForEvent(
+				ctx,
+				eventID,
+				"q-race",
+				"2026-12-10",
+				domain.ReservationHeld,
+				[]domain.StockRequirement{{ArticleRef: "arco-rosa", Quantity: 6}},
+			)
+		}(i)
+	}
+	wg.Wait()
+
+	successCount := 0
+	conflictCount := 0
+	for _, err := range errs {
+		if err == nil {
+			successCount++
+			continue
+		}
+		if errors.Is(err, domain.ErrInsufficientStockForDate) {
+			conflictCount++
+			continue
+		}
+		t.Fatalf("unexpected error in concurrent reservation: %v", err)
+	}
+	if successCount != 1 {
+		t.Fatalf("expected exactly 1 concurrent reservation to succeed, got %d", successCount)
+	}
+	if conflictCount != workers-1 {
+		t.Fatalf("expected %d conflicts, got %d", workers-1, conflictCount)
 	}
 }

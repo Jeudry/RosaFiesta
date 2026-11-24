@@ -122,6 +122,7 @@ type SaveCategoryCommand struct {
 
 type Service struct {
 	mu                sync.RWMutex
+	reserveMu         sync.Mutex
 	store             Store
 	reservations      ReservationReader
 	realtimePub       realtimedomain.Publisher

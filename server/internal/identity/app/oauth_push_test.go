@@ -130,7 +130,7 @@ func TestService_OAuthRS256JWKSAndPKCEExchange(t *testing.T) {
 		t.Fatalf("expected PKCE S256 in authorize URL, got %s", startRes.AuthorizeURL)
 	}
 
-	user, jwtToken, err := svc.ExchangeOAuthCode(ctx, "google", "auth-code-123", verifier, "http://127.0.0.1:43210/callback")
+	user, jwtToken, err := svc.ExchangeOAuthCode(ctx, "google", "auth-code-123", verifier, "http://127.0.0.1:43210/callback", startRes.State)
 	if err != nil {
 		t.Fatalf("ExchangeOAuthCode failed: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestService_AppleOAuthFormPostAndES256ClientSecret(t *testing.T) {
 		t.Fatalf("expected Apple response_mode=form_post, got %s", startRes.AuthorizeURL)
 	}
 
-	user, _, exchangeErr := svc.ExchangeOAuthCode(ctx, "apple", "apple-code-1", strings.Repeat("v", 48), "https://api.rosafiesta.do/callback")
+	user, _, exchangeErr := svc.ExchangeOAuthCode(ctx, "apple", "apple-code-1", strings.Repeat("v", 48), "https://api.rosafiesta.do/callback", startRes.State)
 	if exchangeErr != nil {
 		t.Fatalf("ExchangeOAuthCode apple failed: %v", exchangeErr)
 	}

@@ -1,7 +1,6 @@
 package com.jeudry.rosafiesta
 
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 
@@ -9,10 +8,11 @@ import androidx.compose.ui.window.rememberWindowState
 fun main() {
     System.setProperty("rosafiesta.profile", "admin")
     application {
-        Window(
-            onCloseRequest = ::exitApplication,
+        val windowState = rememberWindowState(width = 420.dp, height = 870.dp)
+        RosaFiestaDesktopWindow(
             title = "RosaFiesta Admin",
-            state = rememberWindowState(width = 420.dp, height = 870.dp),
+            isAdmin = true,
+            state = windowState,
         ) {
             AdminApp(initialScreenCode = "A00")
         }

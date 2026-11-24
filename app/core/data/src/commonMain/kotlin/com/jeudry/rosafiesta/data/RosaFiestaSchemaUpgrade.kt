@@ -9,6 +9,11 @@ internal object RosaFiestaSchemaUpgrade {
     private val statements: List<String> = listOf(
         "ALTER TABLE LocalArticleEntity ADD COLUMN photoUrl TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE LocalArticleEntity ADD COLUMN damagedStock INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE LocalArticleEntity ADD COLUMN variantsJson TEXT NOT NULL DEFAULT '[]'",
+        "ALTER TABLE LocalArticleEntity ADD COLUMN dimensions TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE LocalArticleEntity ADD COLUMN material TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE LocalArticleEntity ADD COLUMN visibleInCatalog INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE LocalChecklistStepEntity ADD COLUMN eventId TEXT NOT NULL DEFAULT 'evt-boda-real'",
         "ALTER TABLE LocalOfflineMutationEntity ADD COLUMN operationType TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE LocalOfflineMutationEntity ADD COLUMN payloadJson TEXT NOT NULL DEFAULT '{}'",
         "ALTER TABLE LocalOfflineMutationEntity ADD COLUMN idempotencyKey TEXT NOT NULL DEFAULT ''",
@@ -21,6 +26,12 @@ internal object RosaFiestaSchemaUpgrade {
         "ALTER TABLE eventEntity ADD COLUMN sketchJson TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE eventEntity ADD COLUMN lastPaymentReminderAt TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE eventEntity ADD COLUMN lastPaymentReminderChannel TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE eventEntity ADD COLUMN itemsJson TEXT NOT NULL DEFAULT '[]'",
+        "ALTER TABLE eventEntity ADD COLUMN clientEmail TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE eventEntity ADD COLUMN cancellationReason TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE staffPermissionEntity ADD COLUMN email TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE staffPermissionEntity ADD COLUMN phone TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE staffPermissionEntity ADD COLUMN active INTEGER NOT NULL DEFAULT 1",
         "ALTER TABLE userAccountEntity ADD COLUMN pushNotificationsEnabled INTEGER NOT NULL DEFAULT 1",
         "ALTER TABLE userAccountEntity ADD COLUMN whatsappAlertsEnabled INTEGER NOT NULL DEFAULT 1",
         "ALTER TABLE userAccountEntity ADD COLUMN emailReceiptsEnabled INTEGER NOT NULL DEFAULT 1",
@@ -107,9 +118,15 @@ internal object RosaFiestaSchemaUpgrade {
             actionPath TEXT NOT NULL
         )
         """.trimIndent(),
+        """
+        CREATE TABLE IF NOT EXISTS submoduleSnapshotEntity (
+            snapshotKey TEXT NOT NULL PRIMARY KEY,
+            payloadJson TEXT NOT NULL
+        )
+        """.trimIndent(),
     )
 
-    fun applySafeColumnUpgrades(driver: SqlDriver) {
+    internal fun applySafeColumnUpgrades(driver: SqlDriver) {
         statements.forEach { sql ->
             runCatching {
                 driver.execute(identifier = null, sql = sql, parameters = 0)

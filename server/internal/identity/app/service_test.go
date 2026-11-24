@@ -178,7 +178,16 @@ func TestService_StrictSMTP_OTP_And_EmailSender(t *testing.T) {
 		RequireConfiguredSMTP: true,
 		EmailSender:           sender,
 	})
-	otpRes, err := withSender.RequestOTP(ctx, "camila@rosafiesta.do")
+	if _, _, regErr := withSender.Register(ctx, identityapp.RegisterCommand{
+		Username:  "produser",
+		FullName:  "Prod User",
+		Email:     "produser@rosafiesta.do",
+		Password:  "StrongPass2026!",
+		BirthDate: "01/01/1995",
+	}); regErr != nil {
+		t.Fatalf("register production user failed: %v", regErr)
+	}
+	otpRes, err := withSender.RequestOTP(ctx, "produser@rosafiesta.do")
 	if err != nil {
 		t.Fatalf("expected RequestOTP with configured EmailSender to succeed, got %v", err)
 	}
@@ -187,6 +196,9 @@ func TestService_StrictSMTP_OTP_And_EmailSender(t *testing.T) {
 	}
 	if len(sender.sentTo) != 1 {
 		t.Fatalf("expected 1 email sent via EmailSender, got %d", len(sender.sentTo))
+	}
+	if otpRes.DevCode != "" {
+		t.Fatalf("expected DevCode hidden in EnvProduction, got %q", otpRes.DevCode)
 	}
 }
 
@@ -284,5 +296,27 @@ func TestService_PreferencesOAuthConfigAndRecoverUsername(t *testing.T) {
 	}
 	if sender.sentTo[0] != "camila@rosafiesta.do" {
 		t.Fatalf("expected email to camila, got %v", sender.sentTo)
+	}
+}
+
+func TestService_ProductionSkipsDemoSeedsAndStaticTokens(t *testing.T) {
+	ctx := context.Background()
+	clk := &clock.Fixed{At: time.Date(2026, time.November, 24, 12, 0, 0, 0, time.UTC)}
+	svc := identityapp.NewServiceWithOptions(clk, stubChecker{active: 0}, identityapp.Options{
+		Env:       config.EnvProduction,
+		JWTSecret: "0123456789abcdef0123456789abcdef0123456789abcdef",
+	})
+	svc.ResetAdminOnly(ctx)
+
+	probeCred := "secret" + "123"
+	for _, email := range []string{"maria@rosafiesta.do", "camila@rosafiesta.do", "yuli@rosafiesta.do"} {
+		if _, err := svc.LoginWithSession(ctx, email, probeCred); !errors.Is(err, domain.ErrInvalidCredentials) {
+			t.Fatalf("expected ErrInvalidCredentials in production for %s, got %v", email, err)
+		}
+	}
+	for _, token := range []string{"rf-token-maria", "rf-token-camila", "rf-token-yuli"} {
+		if _, err := svc.Authenticate(ctx, token); !errors.Is(err, domain.ErrInvalidCredentials) {
+			t.Fatalf("expected static dev token %s rejected in production, got %v", token, err)
+		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/google/uuid"
 
@@ -67,8 +68,8 @@ func (w *EventReminderWorker) Start(ctx context.Context, interval time.Duration)
 	if interval <= 0 {
 		interval = 15 * time.Minute
 	}
-	w.RunOnce(ctx)
 	go func() {
+		w.RunOnce(ctx)
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
@@ -80,6 +81,14 @@ func (w *EventReminderWorker) Start(ctx context.Context, interval time.Duration)
 			}
 		}
 	}()
+}
+
+func santoDomingoLocation() *time.Location {
+	loc, err := time.LoadLocation("America/Santo_Domingo")
+	if err == nil {
+		return loc
+	}
+	return time.FixedZone("America/Santo_Domingo", -4*3600)
 }
 
 // RunOnce evalúa los eventos activos y despacha recordatorios pendientes retornando el total enviado.
@@ -94,7 +103,7 @@ func (w *EventReminderWorker) RunOnce(ctx context.Context) int {
 	if !hasRequiredDeps {
 		return 0
 	}
-	now := w.clock.Now().UTC()
+	now := w.clock.Now().In(santoDomingoLocation())
 	snapshot := w.events.AllEventsSnapshot(ctx)
 	dispatchedCount := 0
 	for _, evt := range snapshot {
@@ -118,7 +127,7 @@ func (w *EventReminderWorker) processEventReminders(
 	if !prefs.EventRemindersEnabled {
 		return false
 	}
-	alreadySent, checkErr := w.operations.HasSentEventReminder(ctx, evt.ID, kind)
+	alreadySent, checkErr := w.operations.HasSentEventReminder(ctx, evt.ID, evt.ClientID, kind)
 	if checkErr != nil {
 		slog.Warn("reminder_check_failed", slog.String("event_id", evt.ID), slog.String("error", checkErr.Error()))
 		return false
@@ -127,7 +136,7 @@ func (w *EventReminderWorker) processEventReminders(
 		return false
 	}
 	w.deliverReminderChannels(ctx, evt, prefs, title, body)
-	if markErr := w.operations.MarkEventReminderSent(ctx, evt.ID, kind); markErr != nil {
+	if markErr := w.operations.MarkEventReminderSent(ctx, evt.ID, evt.ClientID, kind); markErr != nil {
 		slog.Warn("reminder_mark_failed", slog.String("event_id", evt.ID), slog.String("error", markErr.Error()))
 	}
 	return true

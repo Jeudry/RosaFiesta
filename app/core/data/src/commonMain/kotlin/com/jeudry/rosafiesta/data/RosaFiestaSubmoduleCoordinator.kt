@@ -79,6 +79,10 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 internal class RosaFiestaSubmoduleCoordinator(
     private val apiClient: RosaFiestaApiClient?,
@@ -100,7 +104,16 @@ internal class RosaFiestaSubmoduleCoordinator(
     private val onPersistCoreSync: suspend () -> Unit = {},
     private val seedDemoData: Boolean = true,
     private val favoritesFlow: MutableStateFlow<Set<String>>? = null,
+    private val onReplayPendingOutbox: suspend () -> Unit = {},
+    private val onEnqueueOfflineMutation: suspend (
+        actionLabel: String,
+        entityCode: String,
+        operationType: String,
+        payloadJson: String,
+        idempotencyKey: String,
+    ) -> Unit = { _, _, _, _, _ -> },
 ) {
+    private val coordinatorJson: Json = Json { ignoreUnknownKeys = true }
     private val _catalogCategories = MutableStateFlow(
         if (seedDemoData) {
             CanonicalSampleData.articles
@@ -238,8 +251,10 @@ internal class RosaFiestaSubmoduleCoordinator(
 
     suspend fun syncFromBackendAsync(): Boolean = withContext(ioDispatcher) {
         val client = apiClient ?: return@withContext false
+        runCatching { onReplayPendingOutbox() }
         var anySucceeded = false
         var coreUpdated = false
+        var submodulesUpdated = false
 
         runCatching {
             val response = client.listCategories()
@@ -514,9 +529,15 @@ internal class RosaFiestaSubmoduleCoordinator(
                     val queueOutput = client.listOfflineQueue()
                     val remoteQueue = queueOutput.queue
                     if (remoteQueue != null) {
-                        offlineQueueFlow.value = remoteQueue.map { dto ->
-                            RosaFiestaBackendMappers.toOfflineQueueItem(dto)
-                        }
+                        val localPending = offlineQueueFlow.value.filter { item -> !item.synced }
+                        val localKeys = localPending.map { item -> item.idempotencyKey }.filter { key -> key.isNotBlank() }.toSet()
+                        val remoteMapped = remoteQueue
+                            .map { dto -> RosaFiestaBackendMappers.toOfflineQueueItem(dto) }
+                            .filterNot { item ->
+                                val hasKey = item.idempotencyKey.isNotBlank()
+                                if (hasKey) item.idempotencyKey in localKeys else false
+                            }
+                        offlineQueueFlow.value = localPending + remoteMapped
                         coreUpdated = true
                         anySucceeded = true
                     }
@@ -615,7 +636,11 @@ internal class RosaFiestaSubmoduleCoordinator(
             }
         }
 
-        if (coreUpdated) {
+        if (anySucceeded) {
+            submodulesUpdated = true
+        }
+        val shouldPersistSnapshot = if (coreUpdated) true else submodulesUpdated
+        if (shouldPersistSnapshot) {
             onPersistCoreSync()
         }
         anySucceeded
@@ -1225,24 +1250,23 @@ internal class RosaFiestaSubmoduleCoordinator(
         val client = apiClient
         val shouldCallServer = if (client != null) hasRealServerToken(client) else false
         if (shouldCallServer) {
-            if (client != null) {
-                val remoteResult = executeRemoteCall(missingApiCode = "PASSWORD_CHANGE_UNAVAILABLE") { activeClient ->
-                    activeClient.changePassword(
-                        ChangePasswordInputDto(
-                            currentPassword = cleanCurrent,
-                            newPassword = cleanNew,
-                        ),
-                    )
-                }
-                if (remoteResult.isFailure) {
-                    val err = remoteResult.exceptionOrNull()
-                    val apiErr = err as? RosaFiestaApiException
-                    return@withContext AuthOutcome.failure(
-                        errorCode = apiErr?.errorCode ?: "PASSWORD_CHANGE_FAILED",
-                        errorMessage = apiErr?.message ?: err?.message ?: "No se pudo actualizar la contraseña.",
-                    )
-                }
+            val remoteResult = executeRemoteCall(missingApiCode = "PASSWORD_CHANGE_UNAVAILABLE") { activeClient ->
+                activeClient.changePassword(
+                    ChangePasswordInputDto(
+                        currentPassword = cleanCurrent,
+                        newPassword = cleanNew,
+                    ),
+                )
             }
+            if (remoteResult.isFailure) {
+                val err = remoteResult.exceptionOrNull()
+                val apiErr = err as? RosaFiestaApiException
+                return@withContext AuthOutcome.failure(
+                    errorCode = apiErr?.errorCode ?: "PASSWORD_CHANGE_FAILED",
+                    errorMessage = apiErr?.message ?: err?.message ?: "No se pudo actualizar la contraseña.",
+                )
+            }
+            return@withContext applyLocalPasswordUpdate(currentAccount, cleanNew)
         }
         changeUserPassword(cleanCurrent, cleanNew)
     }
@@ -1271,36 +1295,70 @@ internal class RosaFiestaSubmoduleCoordinator(
                 )
             }
         }
+        return applyLocalPasswordUpdate(currentAccount, cleanNew)
+    }
+
+    private fun applyLocalPasswordUpdate(
+        currentAccount: RegisteredUserAccount,
+        newPassword: String,
+    ): AuthOutcome {
         val nextSalt = JwtAuthManager.generateDeterministicSalt("${currentAccount.email}:changed")
-        val nextHash = JwtAuthManager.hashPassword(cleanNew, nextSalt)
+        val nextHash = JwtAuthManager.hashPassword(newPassword, nextSalt)
         val updatedAccount = currentAccount.copy(passwordHash = nextHash, salt = nextSalt)
         upsertAccountInMemory(updatedAccount)
         val nextToken = currentSessionJwtFlow.value ?: JwtAuthManager.issueAccessToken(updatedAccount)
         applyAuthenticatedSession(updatedAccount, nextToken)
         scope.launch {
             onPersistAccountAndSession(updatedAccount, nextToken)
-            runCatching {
-                apiClient?.changePassword(
-                    ChangePasswordInputDto(
-                        currentPassword = cleanCurrent,
-                        newPassword = cleanNew,
-                    ),
-                )
-            }
         }
         return AuthOutcome.authenticated(nextToken, updatedAccount)
     }
 
-    fun logoutSession(localClear: () -> Unit) {
-        val currentRefresh = apiClient?.currentRefreshToken().orEmpty()
-        localClear()
+    internal fun clearUserScopedFlows() {
+        _quotes.value = emptyList()
+        _deliveryStops.value = emptyList()
+        _damageIncidents.value = emptyList()
         _notifications.value = emptyList()
+        _clients.value = emptyList()
+        _refundRequests.value = emptyList()
+        _leads.value = emptyList()
+        _chatThreads.value = emptyList()
+        _threadMessages.value = emptyList()
         _eventGuests.value = emptyList()
-        apiClient?.setAccessToken(null)
-        apiClient?.setRefreshToken(null)
-        scope.launch {
-            runCatching {
-                apiClient?.logout(currentRefresh)
+        _eventSchedule.value = emptyList()
+        _insurancePolicies.value = emptyList()
+        _auditLogs.value = emptyList()
+        _botFaqs.value = emptyList()
+        _botKeywords.value = emptyList()
+        _botThreads.value = emptyList()
+        _eventTasks.value = emptyList()
+        _suppliers.value = emptyList()
+    }
+
+    fun logoutSession(localClear: () -> Unit) {
+        val client = apiClient
+        val currentToken = client?.currentAccessToken()?.trim().orEmpty()
+        val currentRefresh = client?.currentRefreshToken()?.trim().orEmpty()
+        clearUserScopedFlows()
+        localClear()
+        if (client != null) {
+            val hasToken = currentToken.isNotEmpty()
+            val hasRefresh = currentRefresh.isNotEmpty()
+            val shouldCallRemoteLogout = if (hasToken) true else hasRefresh
+            if (shouldCallRemoteLogout) {
+                scope.launch {
+                    runCatching {
+                        client.logout(
+                            refreshToken = currentRefresh,
+                            bearerToken = currentToken,
+                        )
+                    }
+                    client.setAccessToken(null)
+                    client.setRefreshToken(null)
+                }
+            } else {
+                client.setAccessToken(null)
+                client.setRefreshToken(null)
             }
         }
     }
@@ -1347,36 +1405,49 @@ internal class RosaFiestaSubmoduleCoordinator(
         _quotes.update { existing -> listOf(created) + existing }
         recomputeHonestMetrics()
         scope.launch {
-            runCatching {
-                val dtoLines = lines.map { line ->
-                    QuoteLineDto(
-                        articleCode = line.articleCode,
-                        name = line.name,
-                        quantity = line.quantity.toLong(),
-                        unitPriceRD = line.unitPriceDop.toLong(),
-                    )
-                }
-                val response = apiClient?.createQuote(
-                    CreateQuoteInputDto(
-                        eventTitle = created.eventTitle,
-                        clientName = created.clientName,
-                        eventDateLabel = created.dateLabel,
-                        venue = created.venue,
-                        guests = created.guests.toLong(),
-                        lines = dtoLines,
-                        deliveryFeeRD = deliveryFeeDop.toLong(),
-                        discountRD = discountDop.toLong(),
-                        clientEmail = created.clientEmail.ifBlank { null },
-                        eventId = created.eventId.ifBlank { null },
-                        notes = cleanNotes.ifBlank { null },
-                        sendImmediately = if (sendImmediately) true else null,
-                    ),
+            onPersistCoreSync()
+            val dtoLines = lines.map { line ->
+                QuoteLineDto(
+                    articleCode = line.articleCode,
+                    name = line.name,
+                    quantity = line.quantity.toLong(),
+                    unitPriceRD = line.unitPriceDop.toLong(),
                 )
-                if (response != null) {
-                    val mapped = RosaFiestaBackendMappers.toQuoteRecord(response.quote)
-                    _quotes.update { list ->
-                        list.map { item -> if (item.id == created.id) mapped else item }
-                    }
+            }
+            val payloadDto = CreateQuoteInputDto(
+                eventTitle = created.eventTitle,
+                clientName = created.clientName,
+                eventDateLabel = created.dateLabel,
+                venue = created.venue,
+                guests = created.guests.toLong(),
+                lines = dtoLines,
+                deliveryFeeRD = deliveryFeeDop.toLong(),
+                discountRD = discountDop.toLong(),
+                clientEmail = created.clientEmail.ifBlank { null },
+                eventId = created.eventId.ifBlank { null },
+                notes = cleanNotes.ifBlank { null },
+                sendImmediately = if (sendImmediately) true else null,
+            )
+            val remoteAttempt = runCatching {
+                apiClient?.createQuote(payloadDto)
+            }
+            val response = remoteAttempt.getOrNull()
+            if (response != null) {
+                val mapped = RosaFiestaBackendMappers.toQuoteRecord(response.quote)
+                _quotes.update { list ->
+                    list.map { item -> if (item.id == created.id) mapped else item }
+                }
+                onPersistCoreSync()
+            } else {
+                val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+                if (shouldQueueOffline) {
+                    onEnqueueOfflineMutation(
+                        "Crear cotización ${created.code}",
+                        created.id,
+                        "create_quote",
+                        coordinatorJson.encodeToString(payloadDto),
+                        "idem-quote-create-${created.id}",
+                    )
                 }
             }
         }
@@ -1422,33 +1493,45 @@ internal class RosaFiestaSubmoduleCoordinator(
         recomputeHonestMetrics()
         if (updatedRecord != null) {
             scope.launch {
-                runCatching {
-                    val dtoLines = lines.takeIf { items -> items.isNotEmpty() }?.map { line ->
-                        QuoteLineDto(
-                            articleCode = line.articleCode,
-                            name = line.name,
-                            quantity = line.quantity.toLong(),
-                            unitPriceRD = line.unitPriceDop.toLong(),
-                        )
-                    }
-                    val response = apiClient?.sendQuote(
-                        id = targetId,
-                        input = SendQuoteInputDto(
-                            eventTitle = eventTitle.trim().ifBlank { null },
-                            venue = venue.trim().ifBlank { null },
-                            eventDateLabel = dateLabel.trim().ifBlank { null },
-                            guests = if (guests > 0) guests.toLong() else null,
-                            lines = dtoLines,
-                            deliveryFeeRD = deliveryFeeDop?.toLong(),
-                            discountRD = discountDop?.toLong(),
-                            notes = notes.trim().ifBlank { null },
-                        ),
+                onPersistCoreSync()
+                val dtoLines = lines.takeIf { items -> items.isNotEmpty() }?.map { line ->
+                    QuoteLineDto(
+                        articleCode = line.articleCode,
+                        name = line.name,
+                        quantity = line.quantity.toLong(),
+                        unitPriceRD = line.unitPriceDop.toLong(),
                     )
-                    if (response != null) {
-                        val mapped = RosaFiestaBackendMappers.toQuoteRecord(response.quote)
-                        _quotes.update { list ->
-                            list.map { item -> if (item.id == targetId) mapped else item }
-                        }
+                }
+                val payloadDto = SendQuoteInputDto(
+                    eventTitle = eventTitle.trim().ifBlank { null },
+                    venue = venue.trim().ifBlank { null },
+                    eventDateLabel = dateLabel.trim().ifBlank { null },
+                    guests = if (guests > 0) guests.toLong() else null,
+                    lines = dtoLines,
+                    deliveryFeeRD = deliveryFeeDop?.toLong(),
+                    discountRD = discountDop?.toLong(),
+                    notes = notes.trim().ifBlank { null },
+                )
+                val remoteAttempt = runCatching {
+                    apiClient?.sendQuote(id = targetId, input = payloadDto)
+                }
+                val response = remoteAttempt.getOrNull()
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toQuoteRecord(response.quote)
+                    _quotes.update { list ->
+                        list.map { item -> if (item.id == targetId) mapped else item }
+                    }
+                    onPersistCoreSync()
+                } else {
+                    val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+                    if (shouldQueueOffline) {
+                        onEnqueueOfflineMutation(
+                            "Enviar cotización $targetId",
+                            targetId,
+                            "send_quote",
+                            coordinatorJson.encodeToString(payloadDto),
+                            "idem-quote-send-$targetId",
+                        )
                     }
                 }
             }
@@ -1517,13 +1600,22 @@ internal class RosaFiestaSubmoduleCoordinator(
         recomputeHonestMetrics()
         if (updatedRecord != null) {
             scope.launch {
-                runCatching {
-                    apiClient?.signContract(
-                        id = targetId,
-                        input = SignContractInputDto(
-                            signedByName = signedByName.trim(),
-                            signatureSvg = signatureSvg.trim(),
-                        ),
+                onPersistCoreSync()
+                val payloadDto = SignContractInputDto(
+                    signedByName = signedByName.trim(),
+                    signatureSvg = signatureSvg.trim(),
+                )
+                val remoteAttempt = runCatching {
+                    apiClient?.signContract(id = targetId, input = payloadDto)
+                }
+                val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+                if (shouldQueueOffline) {
+                    onEnqueueOfflineMutation(
+                        "Firmar contrato $targetId",
+                        targetId,
+                        "approve_quote",
+                        coordinatorJson.encodeToString(payloadDto),
+                        "idem-quote-approve-$targetId",
                     )
                 }
             }
@@ -1551,10 +1643,19 @@ internal class RosaFiestaSubmoduleCoordinator(
         recomputeHonestMetrics()
         if (updatedRecord != null) {
             scope.launch {
-                runCatching {
-                    apiClient?.declineQuote(
-                        id = targetId,
-                        input = DeclineQuoteInputDto(reason = reason.trim()),
+                onPersistCoreSync()
+                val payloadDto = DeclineQuoteInputDto(reason = reason.trim())
+                val remoteAttempt = runCatching {
+                    apiClient?.declineQuote(id = targetId, input = payloadDto)
+                }
+                val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+                if (shouldQueueOffline) {
+                    onEnqueueOfflineMutation(
+                        "Rechazar cotización $targetId",
+                        targetId,
+                        "decline_quote",
+                        coordinatorJson.encodeToString(payloadDto),
+                        "idem-quote-decline-$targetId",
                     )
                 }
             }
@@ -1576,6 +1677,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         _quotes.update { existing -> listOf(duplicated) + existing }
         recomputeHonestMetrics()
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.duplicateQuote(source.id)
             }
@@ -1704,6 +1806,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         if (approvedItem != null) {
             scope.launch {
+                onPersistCoreSync()
                 runCatching {
                     val response = apiClient?.approveRefund(
                         refundId = targetId,
@@ -1724,6 +1827,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                         _refundRequests.update { current ->
                             current.map { candidate -> if (candidate.id == targetId) mapped else candidate }
                         }
+                        onPersistCoreSync()
                     }
                 }
             }
@@ -1754,6 +1858,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         )
         _reviews.update { list -> listOf(created) + list }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.createReview(
                     CreateReviewInputDto(
@@ -1785,6 +1890,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         if (updatedReview != null) {
             scope.launch {
+                onPersistCoreSync()
                 runCatching {
                     apiClient?.replyToReview(targetId, cleanReply)
                 }
@@ -1814,6 +1920,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         )
         _suppliers.update { list -> list + created }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 val response = apiClient?.createSupplier(
                     UpsertSupplierInputDto(
@@ -1832,6 +1939,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                     _suppliers.update { list ->
                         list.map { candidate -> if (candidate.id == created.id) mapped else candidate }
                     }
+                    onPersistCoreSync()
                 }
             }
         }
@@ -1871,6 +1979,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         val persisted = updatedSupplier ?: return null
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 val response = apiClient?.patchSupplier(
                     id = targetId,
@@ -1903,6 +2012,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (!existed) return false
         _suppliers.update { list -> list.filterNot { item -> item.id == targetId } }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.deleteSupplier(targetId)
             }
@@ -1937,6 +2047,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         )
         _leads.update { list -> listOf(created) + list }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 val response = apiClient?.createLead(
                     CreateLeadInputDto(
@@ -1987,6 +2098,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         if (updatedLead != null) {
             scope.launch {
+                onPersistCoreSync()
                 runCatching {
                     apiClient?.updateLead(
                         leadId = targetId,
@@ -2098,21 +2210,33 @@ internal class RosaFiestaSubmoduleCoordinator(
         )
         _eventGuests.update { list -> list + created }
         scope.launch {
-            runCatching {
-                val response = apiClient?.addEventGuest(
-                    eventId = cleanEventId,
-                    input = AddGuestInputDto(
-                        fullName = created.fullName,
-                        rsvpStatus = created.rsvpStatus,
-                        tableLabel = created.tableLabel,
-                        dietaryNotes = created.notes.ifBlank { null },
-                    ),
-                )
-                if (response != null) {
-                    val mapped = RosaFiestaBackendMappers.toEventGuest(response.guest)
-                    _eventGuests.update { list ->
-                        list.map { item -> if (item.id == created.id) mapped else item }
-                    }
+            onPersistCoreSync()
+            val payloadDto = AddGuestInputDto(
+                fullName = created.fullName,
+                rsvpStatus = created.rsvpStatus,
+                tableLabel = created.tableLabel,
+                dietaryNotes = created.notes.ifBlank { null },
+            )
+            val remoteAttempt = runCatching {
+                apiClient?.addEventGuest(eventId = cleanEventId, input = payloadDto)
+            }
+            val response = remoteAttempt.getOrNull()
+            if (response != null) {
+                val mapped = RosaFiestaBackendMappers.toEventGuest(response.guest)
+                _eventGuests.update { list ->
+                    list.map { item -> if (item.id == created.id) mapped else item }
+                }
+                onPersistCoreSync()
+            } else {
+                val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+                if (shouldQueueOffline) {
+                    onEnqueueOfflineMutation(
+                        "Agregar invitado ${created.fullName}",
+                        cleanEventId,
+                        "add_guest",
+                        coordinatorJson.encodeToString(payloadDto),
+                        "idem-guest-add-$cleanEventId-${created.id}",
+                    )
                 }
             }
         }
@@ -2126,8 +2250,19 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (!existed) return false
         _eventGuests.update { list -> list.filterNot { guest -> guest.id == cleanGuestId } }
         scope.launch {
-            runCatching {
+            onPersistCoreSync()
+            val remoteAttempt = runCatching {
                 apiClient?.deleteEventGuest(cleanEventId, cleanGuestId)
+            }
+            val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+            if (shouldQueueOffline) {
+                onEnqueueOfflineMutation(
+                    "Eliminar invitado $cleanGuestId",
+                    cleanEventId,
+                    "delete_guest",
+                    """{"eventId":"$cleanEventId","guestId":"$cleanGuestId"}""",
+                    "idem-guest-del-$cleanEventId-$cleanGuestId",
+                )
             }
         }
         return true
@@ -2144,6 +2279,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             _eventTasks.update { existing ->
                 existing.filterNot { task -> task.eventId == cleanEventId } + loaded
             }
+            onPersistCoreSync()
             return@withContext loaded
         }
         _eventTasks.value.filter { task -> task.eventId == cleanEventId }
@@ -2163,20 +2299,32 @@ internal class RosaFiestaSubmoduleCoordinator(
         )
         _eventTasks.update { list -> list + created }
         scope.launch {
-            runCatching {
-                val response = apiClient?.createEventTask(
-                    eventId = cleanEventId,
-                    input = CreateEventTaskInputDto(
-                        title = cleanTitle,
-                        assigneeName = created.assigneeName,
-                        done = false,
-                    ),
-                )
-                if (response != null) {
-                    val mapped = RosaFiestaBackendMappers.toEventTaskRecord(response.task)
-                    _eventTasks.update { list ->
-                        list.map { item -> if (item.id == created.id) mapped else item }
-                    }
+            onPersistCoreSync()
+            val payloadDto = CreateEventTaskInputDto(
+                title = cleanTitle,
+                assigneeName = created.assigneeName,
+                done = false,
+            )
+            val remoteAttempt = runCatching {
+                apiClient?.createEventTask(eventId = cleanEventId, input = payloadDto)
+            }
+            val response = remoteAttempt.getOrNull()
+            if (response != null) {
+                val mapped = RosaFiestaBackendMappers.toEventTaskRecord(response.task)
+                _eventTasks.update { list ->
+                    list.map { item -> if (item.id == created.id) mapped else item }
+                }
+                onPersistCoreSync()
+            } else {
+                val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+                if (shouldQueueOffline) {
+                    onEnqueueOfflineMutation(
+                        "Crear tarea ${created.title}",
+                        cleanEventId,
+                        "create_task",
+                        coordinatorJson.encodeToString(payloadDto),
+                        "idem-task-create-$cleanEventId-${created.id}",
+                    )
                 }
             }
         }
@@ -2200,17 +2348,32 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         val persisted = updatedTask ?: return null
         scope.launch {
-            runCatching {
-                val response = apiClient?.updateEventTask(
+            onPersistCoreSync()
+            val payloadDto = UpdateEventTaskInputDto(done = done)
+            val remoteAttempt = runCatching {
+                apiClient?.updateEventTask(
                     eventId = cleanEventId,
                     taskId = cleanTaskId,
-                    input = UpdateEventTaskInputDto(done = done),
+                    input = payloadDto,
                 )
-                if (response != null) {
-                    val mapped = RosaFiestaBackendMappers.toEventTaskRecord(response.task)
-                    _eventTasks.update { list ->
-                        list.map { item -> if (item.id == cleanTaskId) mapped else item }
-                    }
+            }
+            val response = remoteAttempt.getOrNull()
+            if (response != null) {
+                val mapped = RosaFiestaBackendMappers.toEventTaskRecord(response.task)
+                _eventTasks.update { list ->
+                    list.map { item -> if (item.id == cleanTaskId) mapped else item }
+                }
+                onPersistCoreSync()
+            } else {
+                val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+                if (shouldQueueOffline) {
+                    onEnqueueOfflineMutation(
+                        "Actualizar tarea $cleanTaskId",
+                        cleanEventId,
+                        "toggle_task",
+                        coordinatorJson.encodeToString(payloadDto),
+                        "idem-task-toggle-$cleanEventId-$cleanTaskId-$done",
+                    )
                 }
             }
         }
@@ -2224,8 +2387,19 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (!existed) return false
         _eventTasks.update { list -> list.filterNot { item -> item.id == cleanTaskId } }
         scope.launch {
-            runCatching {
+            onPersistCoreSync()
+            val remoteAttempt = runCatching {
                 apiClient?.deleteEventTask(cleanEventId, cleanTaskId)
+            }
+            val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+            if (shouldQueueOffline) {
+                onEnqueueOfflineMutation(
+                    "Eliminar tarea $cleanTaskId",
+                    cleanEventId,
+                    "delete_task",
+                    """{"eventId":"$cleanEventId","taskId":"$cleanTaskId"}""",
+                    "idem-task-del-$cleanEventId-$cleanTaskId",
+                )
             }
         }
         return true
@@ -2259,16 +2433,28 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         if (updatedGuest != null) {
             scope.launch {
-                runCatching {
+                onPersistCoreSync()
+                val payloadDto = UpdateGuestInputDto(
+                    fullName = fullName?.trim(),
+                    rsvpStatus = rsvpStatus?.trim(),
+                    tableLabel = tableLabel?.trim(),
+                    dietaryNotes = notes?.trim(),
+                )
+                val remoteAttempt = runCatching {
                     apiClient?.updateEventGuest(
                         eventId = eventId.trim(),
                         guestId = targetId,
-                        input = UpdateGuestInputDto(
-                            fullName = fullName?.trim(),
-                            rsvpStatus = rsvpStatus?.trim(),
-                            tableLabel = tableLabel?.trim(),
-                            dietaryNotes = notes?.trim(),
-                        ),
+                        input = payloadDto,
+                    )
+                }
+                val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+                if (shouldQueueOffline) {
+                    onEnqueueOfflineMutation(
+                        "Actualizar invitado $targetId",
+                        eventId.trim(),
+                        "update_guest",
+                        coordinatorJson.encodeToString(payloadDto),
+                        "idem-guest-upd-${eventId.trim()}-$targetId",
                     )
                 }
             }
@@ -2296,6 +2482,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         )
         _eventSchedule.update { list -> list + created }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.addEventScheduleBlock(
                     eventId = cleanEventId,
@@ -2318,6 +2505,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (!hadBlock) return false
         _eventSchedule.update { list -> list.filterNot { block -> block.id == targetId } }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.deleteEventScheduleBlock(eventId = eventId.trim(), blockId = targetId)
             }
@@ -2379,6 +2567,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         chatMessagesFlow.update { legacy -> legacy + "$cleanSender: $cleanBody" }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.sendThreadMessage(
                     threadId = cleanThreadId,
@@ -2397,6 +2586,7 @@ internal class RosaFiestaSubmoduleCoordinator(
     fun saveBusinessSettings(updated: BusinessSettings): BusinessSettings {
         _businessSettings.value = updated
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.updateAdminSettings(
                     RosaFiestaBackendMappers.toUpdateSettingsInputDto(updated),
@@ -2552,6 +2742,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         if (updatedClient != null) {
             scope.launch {
+                onPersistCoreSync()
                 runCatching {
                     apiClient?.updateClient(
                         clientId = targetId,
@@ -2592,6 +2783,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         )
         _packages.update { list -> list + created }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 val response = apiClient?.createCatalogPackage(
                     SavePackageInputDto(
@@ -2613,6 +2805,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                     _packages.update { list ->
                         list.map { item -> if (item.id == created.id) mapped else item }
                     }
+                    onPersistCoreSync()
                 }
             }
         }
@@ -2625,6 +2818,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (!existed) return false
         _packages.update { list -> list.filterNot { pkg -> pkg.id == targetId } }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.deleteCatalogPackage(targetId)
             }
@@ -2652,6 +2846,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (!existed) return false
         _botFaqs.update { list -> list.filterNot { item -> item.id == targetId } }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.deleteBotFaq(targetId)
             }
@@ -2665,6 +2860,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (!existed) return false
         _botKeywords.update { list -> list.filterNot { item -> item.id == targetId } }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.deleteBotKeyword(targetId)
             }
@@ -2712,6 +2908,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         val persisted = updatedPkg
         if (persisted != null) {
             scope.launch {
+                onPersistCoreSync()
                 runCatching {
                     apiClient?.updateCatalogPackage(
                         packageId = targetId,
@@ -3266,21 +3463,29 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (updatedArticle != null) {
             scope.launch {
                 onPersistCoreSync()
-                runCatching {
-                    apiClient?.updateCatalogArticle(
-                        articleId = targetId,
-                        input = UpdateArticleInputDto(
-                            name = name?.trim(),
-                            categoryId = category?.trim(),
-                            description = description?.trim(),
-                            dailyPriceDop = pricePerDayDop?.toLong(),
-                            totalStock = totalStock?.toLong(),
-                            availableStock = availableStock?.toLong(),
-                            dimensions = dimensions?.trim(),
-                            material = material?.trim(),
-                            visible = visibleInCatalog,
-                            photoUrl = photoUrl?.trim(),
-                        ),
+                val updateDto = UpdateArticleInputDto(
+                    name = name?.trim(),
+                    categoryId = category?.trim(),
+                    description = description?.trim(),
+                    dailyPriceDop = pricePerDayDop?.toLong(),
+                    totalStock = totalStock?.toLong(),
+                    availableStock = availableStock?.toLong(),
+                    dimensions = dimensions?.trim(),
+                    material = material?.trim(),
+                    visible = visibleInCatalog,
+                    photoUrl = photoUrl?.trim(),
+                )
+                val remoteAttempt = runCatching {
+                    apiClient?.updateCatalogArticle(articleId = targetId, input = updateDto)
+                }
+                val shouldQueueOffline = if (apiClient != null) remoteAttempt.isFailure else false
+                if (shouldQueueOffline) {
+                    onEnqueueOfflineMutation(
+                        "Actualizar artículo $targetId",
+                        targetId,
+                        "update_article",
+                        coordinatorJson.encodeToString(updateDto),
+                        "idem-article-upd-$targetId",
                     )
                 }
             }
@@ -3379,6 +3584,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         )
         _damageIncidents.update { list -> listOf(created) + list }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.reportDamage(
                     eventId = cleanEventId,
@@ -3413,6 +3619,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         if (updatedItem != null) {
             scope.launch {
+                onPersistCoreSync()
                 runCatching {
                     apiClient?.markNotificationRead(targetId)
                 }
@@ -3445,6 +3652,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             }
         }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.createBotFaq(
                     UpsertBotFaqInputDto(
@@ -3482,6 +3690,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             }
         }
         scope.launch {
+            onPersistCoreSync()
             runCatching {
                 apiClient?.createBotKeyword(
                     UpsertBotKeywordInputDto(
@@ -3522,6 +3731,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         if (updatedThread != null) {
             scope.launch {
+                onPersistCoreSync()
                 runCatching {
                     apiClient?.updateBotThread(
                         id = targetId,
@@ -4119,8 +4329,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         val client = apiClient
         if (client != null) {
             val remoteOk = runCatching {
-                client.login(LoginInputDto(email = current.email, password = cleanPassword))
-                true
+                client.verifyCredentials(LoginInputDto(email = current.email, password = cleanPassword))
             }.getOrDefault(false)
             if (remoteOk) {
                 return@withContext Result.success(true)
@@ -4239,6 +4448,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         deliveryStops = _deliveryStops.value,
         damageIncidents = _damageIncidents.value,
         notifications = _notifications.value,
+        extrasJson = encodeExtrasSnapshot(),
     )
 
     internal fun restoreFromPersistence(snapshot: PersistedSubmoduleSnapshot) {
@@ -4259,6 +4469,320 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
         if (snapshot.notifications.isNotEmpty()) {
             _notifications.value = snapshot.notifications
+        } else if (!seedDemoData) {
+            _notifications.value = emptyList()
+        }
+        if (snapshot.extrasJson.isNotBlank()) {
+            restoreExtrasSnapshot(snapshot.extrasJson)
+        }
+    }
+
+    private fun encodeExtrasSnapshot(): String {
+        val dto = PersistedSubmoduleExtrasDto(
+            categories = _catalogCategories.value.map { cat ->
+                CategoryDto(id = cat.id, name = cat.name, illoKey = cat.illoKey, itemCount = cat.itemCount.toLong())
+            },
+            trends = _catalogTrends.value.map { trend ->
+                CatalogTrendDto(
+                    id = trend.id,
+                    title = trend.title,
+                    eventsLabel = trend.eventsLabel,
+                    photoKey = trend.photo.key,
+                    photoUrl = trend.photoUrl.ifBlank { null },
+                    photoBgHex = trend.photoBgHex,
+                    linkedCategory = trend.linkedCategory.ifBlank { null },
+                    linkedPackageId = trend.linkedPackageId.ifBlank { null },
+                    sortOrder = trend.sortOrder,
+                    active = trend.active,
+                )
+            },
+            seasonBanner = SeasonBannerDto(
+                id = _seasonBanner.value.id,
+                badgeLabel = _seasonBanner.value.badgeLabel,
+                title = _seasonBanner.value.title,
+                ctaLabel = _seasonBanner.value.ctaLabel,
+                targetScreenCode = _seasonBanner.value.targetScreenCode,
+                active = _seasonBanner.value.active,
+            ),
+            packages = _packages.value.map { pkg ->
+                PackageBundleDto(
+                    id = pkg.id,
+                    name = pkg.name,
+                    eventType = pkg.eventType,
+                    photoKey = pkg.photo.key,
+                    totalPriceDop = pkg.priceDop.toLong(),
+                    guestCapacity = pkg.suggestedGuests.toLong(),
+                    itemsSummary = pkg.subtitle.ifBlank { pkg.includedItems.joinToString(", ") },
+                    visible = pkg.visibleInCatalog,
+                    photoUrl = pkg.photoUrl.ifBlank { null },
+                )
+            },
+            clients = _clients.value.map { cli ->
+                ClientSummaryDto(
+                    id = cli.id,
+                    fullName = cli.fullName,
+                    email = cli.email,
+                    phone = cli.phone,
+                    eventsCount = cli.eventsCount.toLong(),
+                    totalSpentDop = cli.totalContractedDop.toLong(),
+                    balanceDop = cli.pendingBalanceDop.toLong(),
+                    notes = cli.notes.ifBlank { null },
+                )
+            },
+            refunds = _refundRequests.value.map { req ->
+                RefundDto(
+                    id = req.id,
+                    eventId = req.eventId,
+                    eventTitle = req.eventTitle,
+                    clientName = req.clientName,
+                    paidRD = req.paidDepositDop.toLong(),
+                    refundPercent = req.refundPercent.toLong(),
+                    refundRD = req.refundAmountDop.toLong(),
+                    reason = req.reason,
+                    status = req.status,
+                    approvedBy = req.approvedBy.ifBlank { null },
+                    approvedAtLabel = req.approvedAtLabel.ifBlank { null },
+                    gatewayRefundId = req.gatewayRefundId.ifBlank { null },
+                    gatewayStatus = req.gatewayStatus.ifBlank { null },
+                )
+            },
+            reviews = _reviews.value.map { rev ->
+                ReviewDto(
+                    id = rev.id,
+                    eventId = rev.eventId,
+                    clientName = rev.authorName,
+                    rating = rev.rating.toLong(),
+                    comment = rev.comment,
+                    adminReply = rev.adminReply.ifBlank { null },
+                    createdAtLabel = rev.dateLabel.ifBlank { null },
+                )
+            },
+            suppliers = _suppliers.value.map { sup ->
+                SupplierDto(
+                    id = sup.id,
+                    name = sup.name,
+                    category = sup.category,
+                    specialty = sup.specialty,
+                    contactName = sup.contactName,
+                    phone = sup.phone,
+                    email = sup.email,
+                    website = sup.website.ifBlank { null },
+                    rating = sup.rating,
+                    notes = sup.notes.ifBlank { null },
+                )
+            },
+            leads = _leads.value.map { lead ->
+                LeadDto(
+                    id = lead.id,
+                    fullName = lead.clientName,
+                    phone = lead.phone,
+                    eventType = lead.eventType,
+                    guests = lead.guests.toLong(),
+                    estimatedDop = lead.estimatedDop.toLong(),
+                    stage = lead.stage,
+                    email = lead.email.ifBlank { null },
+                    eventDateLabel = lead.dateLabel.ifBlank { null },
+                    notes = lead.followUpNote.ifBlank { null },
+                )
+            },
+            chatThreads = _chatThreads.value.map { thr ->
+                ChatThreadDto(
+                    threadId = thr.id,
+                    participantName = thr.contactName,
+                    eventId = thr.eventId,
+                    eventTitle = thr.eventTitle,
+                    lastMessage = thr.lastMessage,
+                    updatedAt = thr.timestampLabel,
+                    unreadCount = thr.unreadCount.toLong(),
+                )
+            },
+            threadMessages = _threadMessages.value.map { msg ->
+                ChatMessageDto(
+                    id = msg.id,
+                    threadId = msg.threadId,
+                    eventId = msg.eventId,
+                    eventTitle = msg.eventTitle,
+                    senderId = "",
+                    senderName = msg.senderName,
+                    senderRole = msg.senderRole,
+                    body = msg.body,
+                    createdAt = msg.timestampLabel,
+                    unread = msg.unreadCount > 0,
+                    attachmentName = msg.attachmentName.ifBlank { null },
+                    attachmentUrl = msg.attachmentUrl.ifBlank { null },
+                )
+            },
+            eventGuests = _eventGuests.value.map { guest ->
+                EventGuestDto(
+                    id = guest.id,
+                    eventId = guest.eventId,
+                    fullName = guest.fullName,
+                    rsvpStatus = guest.rsvpStatus,
+                    tableLabel = guest.tableLabel,
+                    dietaryNotes = guest.notes.ifBlank { null },
+                )
+            },
+            eventSchedule = _eventSchedule.value.map { blk ->
+                ScheduleBlockDto(
+                    id = blk.id,
+                    eventId = blk.eventId,
+                    timeRange = blk.timeRange,
+                    title = blk.title,
+                    ownerName = blk.ownerName,
+                    status = if (blk.completed) "COMPLETED" else "PENDING",
+                    sortOrder = blk.sortOrder.toLong(),
+                )
+            },
+            eventTasks = _eventTasks.value.map { tsk ->
+                EventTaskDto(
+                    id = tsk.id,
+                    eventId = tsk.eventId,
+                    title = tsk.title,
+                    assigneeName = tsk.assigneeName,
+                    done = tsk.done,
+                )
+            },
+            botFaqs = _botFaqs.value.map { faq ->
+                BotFaqDto(
+                    id = faq.id,
+                    category = faq.category,
+                    question = faq.question,
+                    answer = faq.answer,
+                    active = faq.active,
+                )
+            },
+            botKeywords = _botKeywords.value.map { kw ->
+                BotKeywordDto(
+                    id = kw.id,
+                    keyword = kw.keyword,
+                    autoReply = kw.autoReply,
+                    handoffToHuman = kw.handoffToHuman,
+                )
+            },
+            botThreads = _botThreads.value.map { bt ->
+                BotThreadDto(
+                    id = bt.id,
+                    customerName = bt.customerName,
+                    phone = bt.phone,
+                    lastMessage = bt.lastMessage,
+                    botPaused = bt.botPaused,
+                    updatedAtLabel = bt.updatedAtLabel,
+                    assignedAgent = bt.assignedAgent.ifBlank { null },
+                )
+            },
+            businessSettings = BusinessSettingsDto(
+                id = "default",
+                companyName = _businessSettings.value.businessName,
+                rnc = _businessSettings.value.rnc,
+                address = _businessSettings.value.address,
+                phone = _businessSettings.value.phone,
+                whatsapp = _businessSettings.value.whatsapp,
+                email = _businessSettings.value.email,
+                businessHours = _businessSettings.value.businessHours,
+                instagram = _businessSettings.value.instagramUrl,
+                facebook = _businessSettings.value.facebookUrl,
+                depositPercent = _businessSettings.value.depositPercent.toLong(),
+                itbisPercent = _businessSettings.value.itbisPercent.toLong(),
+            ),
+            deliveryZones = _businessSettings.value.zones.map { zone ->
+                DeliveryZoneDto(
+                    id = zone.id,
+                    name = zone.name,
+                    feeDop = zone.feeDop.toLong(),
+                    etaMinutes = zone.etaMinutes.toLong(),
+                    active = zone.active,
+                )
+            },
+        )
+        return coordinatorJson.encodeToString(dto)
+    }
+
+    private fun shouldApplyRestoredCollection(hasItems: Boolean): Boolean = if (hasItems) true else !seedDemoData
+
+    private fun restoreExtrasSnapshot(rawJson: String) {
+        val dto = runCatching {
+            coordinatorJson.decodeFromString<PersistedSubmoduleExtrasDto>(rawJson)
+        }.getOrNull() ?: return
+        if (shouldApplyRestoredCollection(dto.categories.isNotEmpty())) {
+            _catalogCategories.value = dto.categories.map { item -> RosaFiestaBackendMappers.toCatalogCategory(item) }
+        }
+        if (shouldApplyRestoredCollection(dto.trends.isNotEmpty())) {
+            _catalogTrends.value = dto.trends.map { item -> RosaFiestaBackendMappers.toCatalogTrend(item) }
+        }
+        dto.seasonBanner?.let { bannerDto ->
+            _seasonBanner.value = RosaFiestaBackendMappers.toSeasonBanner(bannerDto)
+        }
+        if (shouldApplyRestoredCollection(dto.packages.isNotEmpty())) {
+            _packages.value = dto.packages.map { item -> RosaFiestaBackendMappers.toEventPackage(item, emptyMap()) }
+        }
+        if (shouldApplyRestoredCollection(dto.clients.isNotEmpty())) {
+            _clients.value = dto.clients.map { item -> RosaFiestaBackendMappers.toClientProfile(item, emptyMap()) }
+        }
+        if (shouldApplyRestoredCollection(dto.refunds.isNotEmpty())) {
+            _refundRequests.value = dto.refunds.map { item -> RosaFiestaBackendMappers.toRefundRequest(item, emptyMap()) }
+        }
+        if (shouldApplyRestoredCollection(dto.reviews.isNotEmpty())) {
+            val eventsById = eventsFlow.value.associateBy { event -> event.id }
+            _reviews.value = dto.reviews.map { item -> RosaFiestaBackendMappers.toReviewRecord(item, eventsById, emptyMap()) }
+        }
+        if (shouldApplyRestoredCollection(dto.suppliers.isNotEmpty())) {
+            _suppliers.value = dto.suppliers.map { item -> RosaFiestaBackendMappers.toSupplierRecord(item) }
+        }
+        if (shouldApplyRestoredCollection(dto.leads.isNotEmpty())) {
+            _leads.value = dto.leads.map { item -> RosaFiestaBackendMappers.toLeadRecord(item) }
+        }
+        if (shouldApplyRestoredCollection(dto.chatThreads.isNotEmpty())) {
+            _chatThreads.value = dto.chatThreads.map { item -> RosaFiestaBackendMappers.toChatThread(item) }
+        }
+        val contactNamesByThreadId = _chatThreads.value.associate { thr -> thr.id to thr.contactName }
+        if (shouldApplyRestoredCollection(dto.threadMessages.isNotEmpty())) {
+            _threadMessages.value = dto.threadMessages.map { item ->
+                val resolvedContact = contactNamesByThreadId[item.threadId] ?: item.senderName
+                RosaFiestaBackendMappers.toChatMessageRecord(item, resolvedContact)
+            }
+        }
+        if (shouldApplyRestoredCollection(dto.eventGuests.isNotEmpty())) {
+            _eventGuests.value = dto.eventGuests.map { item -> RosaFiestaBackendMappers.toEventGuest(item) }
+        }
+        if (shouldApplyRestoredCollection(dto.eventSchedule.isNotEmpty())) {
+            _eventSchedule.value = dto.eventSchedule.map { item -> RosaFiestaBackendMappers.toEventScheduleBlock(item) }
+        }
+        if (shouldApplyRestoredCollection(dto.eventTasks.isNotEmpty())) {
+            _eventTasks.value = dto.eventTasks.map { item -> RosaFiestaBackendMappers.toEventTaskRecord(item) }
+        }
+        if (shouldApplyRestoredCollection(dto.botFaqs.isNotEmpty())) {
+            _botFaqs.value = dto.botFaqs.map { item -> RosaFiestaBackendMappers.toBotFaqRecord(item) }
+        }
+        if (shouldApplyRestoredCollection(dto.botKeywords.isNotEmpty())) {
+            _botKeywords.value = dto.botKeywords.map { item -> RosaFiestaBackendMappers.toBotKeywordRecord(item) }
+        }
+        if (shouldApplyRestoredCollection(dto.botThreads.isNotEmpty())) {
+            _botThreads.value = dto.botThreads.map { item -> RosaFiestaBackendMappers.toBotThreadRecord(item) }
+        }
+        val mappedZones = dto.deliveryZones.map { zoneDto ->
+            com.jeudry.rosafiesta.domain.DeliveryZone(
+                id = zoneDto.id,
+                name = zoneDto.name,
+                feeDop = zoneDto.feeDop.toInt(),
+                etaMinutes = zoneDto.etaMinutes.toInt(),
+                active = zoneDto.active,
+            )
+        }
+        dto.businessSettings?.let { settingsDto ->
+            _businessSettings.value = BusinessSettings(
+                businessName = settingsDto.companyName,
+                rnc = settingsDto.rnc,
+                address = settingsDto.address,
+                phone = settingsDto.phone,
+                whatsapp = settingsDto.whatsapp,
+                email = settingsDto.email,
+                businessHours = settingsDto.businessHours,
+                instagramUrl = settingsDto.instagram,
+                facebookUrl = settingsDto.facebook,
+                depositPercent = settingsDto.depositPercent.toInt(),
+                itbisPercent = settingsDto.itbisPercent.toInt(),
+                zones = mappedZones.ifEmpty { _businessSettings.value.zones },
+            )
         }
     }
 
@@ -4280,9 +4804,33 @@ internal class RosaFiestaSubmoduleCoordinator(
     }
 }
 
+@Serializable
+private data class PersistedSubmoduleExtrasDto(
+    val categories: List<CategoryDto> = emptyList(),
+    val trends: List<CatalogTrendDto> = emptyList(),
+    val seasonBanner: SeasonBannerDto? = null,
+    val packages: List<PackageBundleDto> = emptyList(),
+    val clients: List<ClientSummaryDto> = emptyList(),
+    val refunds: List<RefundDto> = emptyList(),
+    val reviews: List<ReviewDto> = emptyList(),
+    val suppliers: List<SupplierDto> = emptyList(),
+    val leads: List<LeadDto> = emptyList(),
+    val chatThreads: List<ChatThreadDto> = emptyList(),
+    val threadMessages: List<ChatMessageDto> = emptyList(),
+    val eventGuests: List<EventGuestDto> = emptyList(),
+    val eventSchedule: List<ScheduleBlockDto> = emptyList(),
+    val eventTasks: List<EventTaskDto> = emptyList(),
+    val botFaqs: List<BotFaqDto> = emptyList(),
+    val botKeywords: List<BotKeywordDto> = emptyList(),
+    val botThreads: List<BotThreadDto> = emptyList(),
+    val businessSettings: BusinessSettingsDto? = null,
+    val deliveryZones: List<DeliveryZoneDto> = emptyList(),
+)
+
 internal data class PersistedSubmoduleSnapshot(
     val quotes: List<QuoteRecord>,
     val deliveryStops: List<DeliveryStop>,
     val damageIncidents: List<DamageIncident>,
     val notifications: List<NotificationRecord>,
+    val extrasJson: String = "",
 )

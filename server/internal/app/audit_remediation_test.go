@@ -321,9 +321,13 @@ func verifyContractPDFAndDeclineGuardAndPackages(t *testing.T, handler http.Hand
 	if strings.Contains(pubPkgs.Body.String(), "pkg-del-test") {
 		t.Fatalf("did not expect hidden package in public list: %s", pubPkgs.Body.String())
 	}
-	allPkgs := doJSONRequest(t, handler, http.MethodGet, "/v1/catalog/packages?includeHidden=true", "", "")
+	pubHiddenPkgs := doJSONRequest(t, handler, http.MethodGet, "/v1/catalog/packages?includeHidden=true", "", "")
+	if strings.Contains(pubHiddenPkgs.Body.String(), "pkg-del-test") {
+		t.Fatalf("did not expect hidden package for unauthenticated includeHidden=true: %s", pubHiddenPkgs.Body.String())
+	}
+	allPkgs := doJSONRequest(t, handler, http.MethodGet, "/v1/catalog/packages?includeHidden=true", "rf-token-maria", "")
 	if !strings.Contains(allPkgs.Body.String(), "pkg-del-test") {
-		t.Fatalf("expected hidden package when includeHidden=true: %s", allPkgs.Body.String())
+		t.Fatalf("expected hidden package when admin calls includeHidden=true: %s", allPkgs.Body.String())
 	}
 	delPkg := doJSONRequest(t, handler, http.MethodDelete, "/v1/catalog/packages/pkg-del-test", "rf-token-maria", "")
 	if delPkg.Code != http.StatusOK {
@@ -344,6 +348,10 @@ func verifyContractPDFAndDeclineGuardAndPackages(t *testing.T, handler http.Hand
 	}
 	_ = json.Unmarshal(qRes.Body.Bytes(), &qOut)
 
+	sendRes := doJSONRequest(t, handler, http.MethodPost, "/v1/quotes/"+qOut.Quote.ID+"/send", "rf-token-maria", `{}`)
+	if sendRes.Code != http.StatusOK {
+		t.Fatalf("send quote failed %d: %s", sendRes.Code, sendRes.Body.String())
+	}
 	signRes := doJSONRequest(t, handler, http.MethodPost, "/v1/quotes/"+qOut.Quote.ID+"/sign", clientToken, `{"signedByName":"Raúl","signatureSvg":"<svg/>"}`)
 	if signRes.Code != http.StatusOK {
 		t.Fatalf("sign quote failed %d", signRes.Code)

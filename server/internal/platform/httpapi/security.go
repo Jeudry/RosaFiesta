@@ -1,12 +1,26 @@
 package httpapi
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 )
+
+type clientIPContextKey struct{}
+
+const maxRateLimitBuckets = 10000
+
+// ClientIP devuelve la IP cliente resuelta de manera segura desde el contexto de la petición.
+func ClientIP(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	ip, _ := ctx.Value(clientIPContextKey{}).(string)
+	return ip
+}
 
 // SecurityHeadersMiddleware inyecta cabeceras HTTP de endurecimiento y defensa en profundidad.
 func SecurityHeadersMiddleware(next http.Handler) http.Handler {
@@ -29,12 +43,13 @@ type ipBucket struct {
 
 // RateLimiter aplica un límite de peticiones por ventana de tiempo e IP.
 type RateLimiter struct {
-	mu          sync.Mutex
-	maxRequests int
-	authMaxReqs int
-	window      time.Duration
-	lastSweep   time.Time
-	buckets     map[string]ipBucket
+	mu             sync.Mutex
+	maxRequests    int
+	authMaxReqs    int
+	window         time.Duration
+	lastSweep      time.Time
+	buckets        map[string]ipBucket
+	trustedProxies []net.IPNet
 }
 
 // NewRateLimiter crea un limitador de velocidad en memoria por IP.
@@ -55,6 +70,32 @@ func NewRateLimiterWithAuth(maxRequests, authMaxRequests int, window time.Durati
 	}
 }
 
+// WithTrustedProxies configura los rangos CIDR cuyos encabezados X-Forwarded-For son confiables.
+func (rl *RateLimiter) WithTrustedProxies(cidrs []string) *RateLimiter {
+	parsed := make([]net.IPNet, 0, len(cidrs))
+	for _, raw := range cidrs {
+		trimmed := strings.TrimSpace(raw)
+		if trimmed == "" {
+			continue
+		}
+		if _, netBlock, err := net.ParseCIDR(trimmed); err == nil {
+			parsed = append(parsed, *netBlock)
+			continue
+		}
+		if ip := net.ParseIP(trimmed); ip != nil {
+			maskBits := 32
+			if ip.To4() == nil {
+				maskBits = 128
+			}
+			parsed = append(parsed, net.IPNet{IP: ip, Mask: net.CIDRMask(maskBits, maskBits)})
+		}
+	}
+	rl.mu.Lock()
+	rl.trustedProxies = parsed
+	rl.mu.Unlock()
+	return rl
+}
+
 // Allow indica si la clave dada puede ejecutar una petición adicional dentro de la ventana.
 func (rl *RateLimiter) Allow(key string, now time.Time) bool {
 	return rl.allowWithLimit(key, rl.maxRequests, now)
@@ -67,6 +108,7 @@ func (rl *RateLimiter) allowWithLimit(key string, limit int, now time.Time) bool
 	rl.evictExpiredBucketsLocked(now)
 	bucket, exists := rl.buckets[key]
 	if !exists {
+		rl.ensureBucketCapacityLocked(now)
 		rl.buckets[key] = ipBucket{count: 1, resetTime: now.Add(rl.window)}
 		return true
 	}
@@ -98,10 +140,43 @@ func (rl *RateLimiter) evictExpiredBucketsLocked(now time.Time) {
 	rl.lastSweep = now
 }
 
+func (rl *RateLimiter) ensureBucketCapacityLocked(now time.Time) {
+	if len(rl.buckets) < maxRateLimitBuckets {
+		return
+	}
+	for k, entry := range rl.buckets {
+		if !now.Before(entry.resetTime) {
+			delete(rl.buckets, k)
+		}
+	}
+	if len(rl.buckets) < maxRateLimitBuckets {
+		return
+	}
+	oldestKey := ""
+	var oldestTime time.Time
+	for k, entry := range rl.buckets {
+		if oldestKey == "" {
+			oldestKey = k
+			oldestTime = entry.resetTime
+			continue
+		}
+		if entry.resetTime.Before(oldestTime) {
+			oldestKey = k
+			oldestTime = entry.resetTime
+		}
+	}
+	if oldestKey != "" {
+		delete(rl.buckets, oldestKey)
+	}
+}
+
 // Middleware devuelve el middleware HTTP que rechaza excesos de tráfico con 429 estructurado.
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clientIP := extractClientIP(r)
+		rl.mu.Lock()
+		trusted := append([]net.IPNet(nil), rl.trustedProxies...)
+		rl.mu.Unlock()
+		clientIP := extractClientIP(r, trusted)
 		bucketKey := clientIP
 		policy := "RateLimitGeneral"
 		limit := rl.maxRequests
@@ -126,7 +201,8 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 			WriteHTTPAPIError(w, apiErr)
 			return
 		}
-		next.ServeHTTP(w, r)
+		ctxWithIP := context.WithValue(r.Context(), clientIPContextKey{}, clientIP)
+		next.ServeHTTP(w, r.WithContext(ctxWithIP))
 	})
 }
 
@@ -148,17 +224,49 @@ func isSensitiveAuthPath(path string) bool {
 	return false
 }
 
-func extractClientIP(r *http.Request) string {
-	if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwarded != "" {
-		first, _, _ := strings.Cut(forwarded, ",")
-		return strings.TrimSpace(first)
+func extractClientIP(r *http.Request, trustedProxies []net.IPNet) string {
+	remoteIP := remoteAddrHost(r.RemoteAddr)
+	if isTrustedProxyIP(remoteIP, trustedProxies) {
+		if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwarded != "" {
+			first, _, _ := strings.Cut(forwarded, ",")
+			candidate := strings.TrimSpace(first)
+			if candidate != "" {
+				return candidate
+			}
+		}
 	}
-	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
-	if err == nil && host != "" {
-		return host
+	if remoteIP != "" {
+		return remoteIP
 	}
 	if r.RemoteAddr != "" {
 		return r.RemoteAddr
 	}
 	return "unknown"
+}
+
+func remoteAddrHost(remoteAddr string) string {
+	trimmed := strings.TrimSpace(remoteAddr)
+	host, _, err := net.SplitHostPort(trimmed)
+	if err == nil {
+		if host != "" {
+			return host
+		}
+	}
+	return trimmed
+}
+
+func isTrustedProxyIP(host string, trustedProxies []net.IPNet) bool {
+	if len(trustedProxies) == 0 {
+		return false
+	}
+	parsed := net.ParseIP(strings.TrimSpace(host))
+	if parsed == nil {
+		return false
+	}
+	for _, block := range trustedProxies {
+		if block.Contains(parsed) {
+			return true
+		}
+	}
+	return false
 }

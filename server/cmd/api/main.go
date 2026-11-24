@@ -81,13 +81,17 @@ func run() error {
 		Config:        cfg,
 		AdminOnlySeed: cfg.SeedMode != config.SeedModeFull,
 	}
-	routerOpts := httpapi.RouterOptions{AllowedOrigins: cfg.CORSAllowedOrigins}
+	routerOpts := httpapi.RouterOptions{
+		AllowedOrigins: cfg.CORSAllowedOrigins,
+		DisableDocs:    cfg.Env == config.EnvProduction,
+	}
 	modules := app.Modules(deps)
 	handler, _ := httpapi.NewWithOptions(logger, routerOpts, modules...)
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
 		Handler:           handler,
 		ReadHeaderTimeout: readHeaderTimeout,
+		IdleTimeout:       60 * time.Second,
 	}
 	return serveWithGracefulShutdown(ctx, server, logger, cfg.Env)
 }

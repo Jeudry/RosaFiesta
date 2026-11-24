@@ -2,6 +2,7 @@
 
 package com.jeudry.rosafiesta.data
 
+import com.jeudry.rosafiesta.domain.platform.ExternalOAuthCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
 import com.jeudry.rosafiesta.domain.platform.OAuthBrowserOutcome
@@ -147,12 +148,45 @@ public fun registerIosApnsDeviceToken(tokenHex: String?) {
 }
 
 /**
- * Handles incoming iOS custom scheme deep links (`rosafiesta://payment/...`) opened from Safari or Stripe Checkout.
+ * Handles incoming iOS custom scheme deep links (`rosafiesta://oauth/callback` or `rosafiesta://payment/...`)
+ * opened from Safari or Stripe Checkout.
  */
 public fun handleIosIncomingDeepLinkUrl(urlString: String?): Boolean {
     val cleanUrl = urlString?.trim().orEmpty()
     if (cleanUrl.isEmpty()) return false
+    val lower = cleanUrl.lowercase()
+    val isOAuthCallback = lower.startsWith("rosafiesta://oauth/callback")
+    if (isOAuthCallback) {
+        val nsUrl = NSURL.URLWithString(cleanUrl) ?: return false
+        val outcome = parseIosOAuthCallbackUrl(nsUrl, "rosafiesta://oauth/callback")
+        ExternalOAuthCallbackBridge.dispatchOAuthReturn(outcome)
+        return true
+    }
     return ExternalPaymentCallbackBridge.dispatchPaymentDeepLink(cleanUrl)
+}
+
+private fun parseIosOAuthCallbackUrl(callbackUrl: NSURL, redirectUri: String): OAuthBrowserOutcome {
+    val components = NSURLComponents.componentsWithURL(callbackUrl, resolvingAgainstBaseURL = false)
+    var code: String? = null
+    var state: String? = null
+    var errorCode: String? = null
+    val queryItems = components?.queryItems.orEmpty()
+    for (rawItem in queryItems) {
+        val queryItem = rawItem as? platform.Foundation.NSURLQueryItem ?: continue
+        val itemName = queryItem.name
+        val itemValue = queryItem.value
+        when (itemName) {
+            "code" -> code = itemValue
+            "state" -> state = itemValue
+            "error" -> errorCode = itemValue
+        }
+    }
+    return OAuthBrowserOutcome(
+        code = code,
+        state = state,
+        redirectUri = redirectUri,
+        errorCode = errorCode,
+    )
 }
 
 /**
@@ -893,14 +927,19 @@ internal class IosPlatformActions : PlatformActions {
         appVariant: String,
         onResult: (platform: String, token: String?) -> Unit,
     ) {
-        pendingIosPushRegistrationCallback = onResult
+        val mainThreadResult: (String, String?) -> Unit = { platform, token ->
+            dispatch_async(dispatch_get_main_queue()) {
+                onResult(platform, token)
+            }
+        }
+        pendingIosPushRegistrationCallback = mainThreadResult
         val existingToken = registeredIosApnsToken
         val center = UNUserNotificationCenter.currentNotificationCenter()
         val options = UNAuthorizationOptionAlert or UNAuthorizationOptionSound or UNAuthorizationOptionBadge
         center.requestAuthorizationWithOptions(options) { granted, _ ->
             if (!granted) {
                 pendingIosPushRegistrationCallback = null
-                onResult("ios", null)
+                mainThreadResult("ios", null)
                 return@requestAuthorizationWithOptions
             }
             dispatch_async(dispatch_get_main_queue()) {
@@ -908,7 +947,7 @@ internal class IosPlatformActions : PlatformActions {
             }
             if (!existingToken.isNullOrBlank()) {
                 pendingIosPushRegistrationCallback = null
-                onResult("ios", existingToken)
+                mainThreadResult("ios", existingToken)
             }
         }
     }
@@ -923,30 +962,6 @@ internal class IosPlatformActions : PlatformActions {
         val identifier = NSUUID().UUIDString()
         val request = UNNotificationRequest.requestWithIdentifier(identifier, content = content, trigger = null)
         UNUserNotificationCenter.currentNotificationCenter().addNotificationRequest(request, withCompletionHandler = null)
-    }
-
-    private fun parseIosOAuthCallbackUrl(callbackUrl: NSURL, redirectUri: String): OAuthBrowserOutcome {
-        val components = NSURLComponents.componentsWithURL(callbackUrl, resolvingAgainstBaseURL = false)
-        var code: String? = null
-        var state: String? = null
-        var errorCode: String? = null
-        val queryItems = components?.queryItems.orEmpty()
-        for (rawItem in queryItems) {
-            val queryItem = rawItem as? platform.Foundation.NSURLQueryItem ?: continue
-            val itemName = queryItem.name
-            val itemValue = queryItem.value
-            when (itemName) {
-                "code" -> code = itemValue
-                "state" -> state = itemValue
-                "error" -> errorCode = itemValue
-            }
-        }
-        return OAuthBrowserOutcome(
-            code = code,
-            state = state,
-            redirectUri = redirectUri,
-            errorCode = errorCode,
-        )
     }
 }
 

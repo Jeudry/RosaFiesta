@@ -63,7 +63,7 @@ jobs:
       - name: Android SDK
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37"
       - name: Formato, pruebas y verificación de las 2 aplicaciones
         run: make app-check
       - name: Compilar APKs Release (R8) y distribución Web WasmJS

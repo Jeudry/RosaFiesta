@@ -66,7 +66,7 @@ func (e RealtimeEvent) CanReceive(principalRole, principalID string) bool {
 	}
 	targetClient := strings.TrimSpace(e.ClientID)
 	if targetClient == "" {
-		return true
+		return false
 	}
 	return targetClient == strings.TrimSpace(principalID)
 }

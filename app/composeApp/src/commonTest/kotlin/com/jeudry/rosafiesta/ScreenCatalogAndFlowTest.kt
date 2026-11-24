@@ -53,6 +53,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlin.io.encoding.Base64
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -61,6 +63,16 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ScreenCatalogAndFlowTest {
+    @BeforeTest
+    fun disableLiveApiInAutomatedTests() {
+        com.jeudry.rosafiesta.di.AppModuleRuntime.connectLiveApiByDefault = false
+    }
+
+    @AfterTest
+    fun restoreLiveApiDefault() {
+        com.jeudry.rosafiesta.di.AppModuleRuntime.connectLiveApiByDefault = true
+    }
+
     @Test
     fun `verifica que el catalogo completo contenga las 135 pantallas sin duplicados`() {
         assertEquals(73, ScreenCatalog.personalScreens.size)
@@ -443,6 +455,27 @@ class ScreenCatalogAndFlowTest {
             modules(com.jeudry.rosafiesta.di.appModule)
         }.koin
         val viewModel = koin.get<com.jeudry.rosafiesta.ui.RosaFiestaViewModel>()
+
+        val rejectedUnauthenticated = viewModel.saveProfile(
+            draftName = "Jeudry Rosario",
+            draftEmail = "jeudry@rosafiesta.do",
+            draftPhone = "809-555-0199",
+            draftBirthDate = "22/09/1996",
+            draftUsername = "jeudry_rf",
+        )
+        assertFalse(rejectedUnauthenticated)
+
+        val registeredInitialClient = viewModel.submitRegistration(
+            firstName = "Ana",
+            lastName = "Perez",
+            username = "ana_perez",
+            email = "ana.perez@correo.do",
+            password = "Password2026",
+            birthDate = "22/09/1996",
+            acceptedTerms = true,
+            phone = "809-555-0140",
+        )
+        assertTrue(registeredInitialClient)
 
         val originalEmail = viewModel.profileEmail.value
         val rejectedInvalidEmail = viewModel.saveProfile(
@@ -2740,5 +2773,102 @@ class ScreenCatalogAndFlowTest {
         onNodeWithText("Jardín Botánico").assertDoesNotExist()
         onNodeWithText("Salón Piantini").assertDoesNotExist()
         onNodeWithText("Terraza Colonial").assertDoesNotExist()
+    }
+
+    @Test
+    fun `aisla RBAC A28 A31 eventos activos por cliente hilos de chat y cierre de sesion completo`() = runTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        val storage = InMemorySecureStorage()
+        storage.put(SecureStorage.KEY_DIRECT_CHAT, "stale-chat")
+        storage.put(SecureStorage.KEY_EVENT_GUESTS, "stale-guests")
+        storage.put("rf_pref_zone", "Piantini")
+
+        val vm = RosaFiestaViewModel(
+            repository = repo,
+            secureStorage = storage,
+            soundPlayer = NoOpSoundPlayer(),
+            platformActions = NoOpPlatformActions(),
+        )
+
+        vm.switchRole("staff_yuli")
+        assertTrue(vm.isScreenRestrictedForActiveStaff("A28"))
+        assertTrue(vm.isScreenRestrictedForActiveStaff("A31"))
+
+        val registered = vm.submitRegistration(
+            firstName = "Lucia",
+            lastName = "Mendez",
+            username = "lucia_mendez",
+            email = "lucia.mendez@correo.do",
+            password = "Password2026",
+            birthDate = "14/03/1995",
+            acceptedTerms = true,
+            phone = "809-555-0191",
+        )
+        assertTrue(registered)
+        assertNull(vm.activeClientEventOrNull())
+        assertEquals("", vm.activeClientEvent().id)
+
+        repo.sendThreadMessage(
+            threadId = "thr-other",
+            senderName = "Otro Cliente",
+            body = "Mensaje confidencial de otro cliente",
+        )
+        vm.selectChatThread("thr-lucia")
+        withContext(Dispatchers.Default) {
+            for (attempt in 0 until 40) {
+                if (storage.get(SecureStorage.KEY_ACCESS_TOKEN) != null) break
+                kotlinx.coroutines.delay(15)
+            }
+        }
+        assertFalse(vm.directChatMessages.value.any { msg -> msg.text.contains("confidencial") })
+
+        vm.logoutSession()
+        withContext(Dispatchers.Default) {
+            for (attempt in 0 until 60) {
+                val tokenCleared = storage.get(SecureStorage.KEY_ACCESS_TOKEN) == null
+                val chatCleared = storage.get(SecureStorage.KEY_DIRECT_CHAT) == null
+                val zoneCleared = storage.get("rf_pref_zone") == null
+                val isWiped = if (tokenCleared) {
+                    if (chatCleared) zoneCleared else false
+                } else {
+                    false
+                }
+                if (isWiped) break
+                kotlinx.coroutines.delay(15)
+            }
+        }
+        assertNull(storage.get(SecureStorage.KEY_ACCESS_TOKEN))
+        assertNull(storage.get(SecureStorage.KEY_DIRECT_CHAT))
+        assertNull(storage.get(SecureStorage.KEY_EVENT_GUESTS))
+        assertNull(storage.get("rf_pref_zone"))
+        assertEquals("", vm.profilePhone.value)
+        assertEquals("", vm.profileZone.value)
+    }
+
+    @Test
+    fun `replays cold start deep link bridges once and clears replay cache`() = runTest {
+        val vm = RosaFiestaViewModel(
+            repository = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(),
+            secureStorage = InMemorySecureStorage(),
+            soundPlayer = NoOpSoundPlayer(),
+            platformActions = NoOpPlatformActions(),
+        )
+        withContext(Dispatchers.Default) {
+            kotlinx.coroutines.delay(30)
+        }
+        assertTrue(
+            com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge.dispatchPaymentDeepLink(
+                "rosafiesta://payment/cancel?session_id=cs_cold_start",
+            ),
+        )
+        withContext(Dispatchers.Default) {
+            for (attempt in 0 until 60) {
+                val hasFeedback = vm.formFeedback.value?.contains("cancelado", ignoreCase = true) == true
+                if (hasFeedback) break
+                kotlinx.coroutines.delay(15)
+            }
+        }
+        assertTrue(vm.formFeedback.value?.contains("cancelado", ignoreCase = true) == true)
+        assertEquals(0, com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge.paymentReturns.replayCache.size)
     }
 }

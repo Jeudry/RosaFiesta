@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/Jeudry/rosafiesta/server/internal/operations/domain"
 	"github.com/Jeudry/rosafiesta/server/internal/operations/postgres/sqlcgen"
 )
@@ -572,23 +574,26 @@ func (r *Repository) DeleteBotKeyword(ctx context.Context, id string) error {
 }
 
 // HasSentEventReminder consulta si ya se envió un recordatorio específico para un evento.
-func (r *Repository) HasSentEventReminder(ctx context.Context, eventID, reminderKind string) (bool, error) {
+func (r *Repository) HasSentEventReminder(ctx context.Context, eventID string, userID uuid.UUID, reminderKind string) (bool, error) {
 	if !r.Enabled() {
 		return false, nil
 	}
 	return r.queries.HasSentEventReminder(ctx, sqlcgen.HasSentEventReminderParams{
 		EventID:      eventID,
+		UserID:       userID,
 		ReminderKind: reminderKind,
 	})
 }
 
 // InsertSentEventReminder registra de forma idempotente el envío de un recordatorio de evento.
-func (r *Repository) InsertSentEventReminder(ctx context.Context, eventID, reminderKind string, sentAt time.Time) error {
+func (r *Repository) InsertSentEventReminder(ctx context.Context, eventID string, userID uuid.UUID, reminderKind string, sentAt time.Time) error {
 	if !r.Enabled() {
 		return nil
 	}
 	return r.queries.InsertSentEventReminder(ctx, sqlcgen.InsertSentEventReminderParams{
+		ID:           "rem-" + uuid.NewString(),
 		EventID:      eventID,
+		UserID:       userID,
 		ReminderKind: reminderKind,
 		SentAt:       sentAt,
 	})

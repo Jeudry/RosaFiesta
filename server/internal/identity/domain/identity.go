@@ -38,6 +38,7 @@ var (
 	ErrForbiddenView               = errors.New("role is not allowed to enter requested app view")
 	ErrPermissionDenied            = errors.New("staff member lacks required permission")
 	ErrUserNotFound                = errors.New("account not found")
+	ErrCannotDeleteLastAdmin       = errors.New("cannot remove or demote owner or last active administrator")
 	ErrOTPInvalidOrExpired         = errors.New("verification code is invalid or expired")
 	ErrResetTokenInvalid           = errors.New("password reset token is missing, invalid, or expired")
 	ErrSMTPNotConfigured           = errors.New("smtp email provider is not configured on server")

@@ -141,6 +141,14 @@ UPDATE auth_otp_codes
 SET used = TRUE
 WHERE email = $1;
 
+-- name: ConsumeOTPResetToken :execrows
+UPDATE auth_otp_codes
+SET used = TRUE
+WHERE email = $1
+  AND reset_token_hash = $2
+  AND verified = TRUE
+  AND used = FALSE;
+
 -- name: UpsertAdminClient :exec
 INSERT INTO admin_clients (
     id, full_name, email, phone, notes, events_count, total_spent_dop, balance_dop, updated_at

@@ -27,6 +27,8 @@ var (
 	ErrCardSessionNotPaid = errors.New("stripe checkout session is not paid")
 	// ErrRefundNotFound indica que la solicitud de reembolso no existe.
 	ErrRefundNotFound = errors.New("refund not found")
+	// ErrRefundAlreadyApproved impide aprobar o reembolsar dos veces la misma solicitud.
+	ErrRefundAlreadyApproved = errors.New("refund has already been approved")
 	// ErrInvalidPaymentAmount indica que el monto del pago debe ser mayor que cero.
 	ErrInvalidPaymentAmount = errors.New("payment amount must be greater than zero")
 	// ErrInvalidPaymentMethod indica que el método de pago no es válido.
@@ -141,26 +143,20 @@ func (p Payment) IsPendingVerification() bool {
 }
 
 // BelongsToClient valida si el pago corresponde al cliente autenticado.
-func (p Payment) BelongsToClient(userID, email, fullName string) bool {
-	trimmedUserID := strings.TrimSpace(userID)
-	if trimmedUserID != "" {
-		if p.ClientID == trimmedUserID {
-			return true
+func (p Payment) BelongsToClient(userID, email, _ string) bool {
+	storedClientID := strings.TrimSpace(p.ClientID)
+	if storedClientID != "" {
+		trimmedUserID := strings.TrimSpace(userID)
+		if trimmedUserID == "" {
+			return false
 		}
+		return storedClientID == trimmedUserID
 	}
 	trimmedEmail := strings.TrimSpace(email)
-	if trimmedEmail != "" {
-		if strings.EqualFold(p.ClientEmail, trimmedEmail) {
-			return true
-		}
+	if trimmedEmail == "" {
+		return false
 	}
-	trimmedName := strings.TrimSpace(fullName)
-	if trimmedName != "" {
-		if strings.EqualFold(p.ClientName, trimmedName) {
-			return true
-		}
-	}
-	return false
+	return strings.EqualFold(p.ClientEmail, trimmedEmail)
 }
 
 // Refund representa una solicitud de reembolso asociada a la cancelación de un evento.

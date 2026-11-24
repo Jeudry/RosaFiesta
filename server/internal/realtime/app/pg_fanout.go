@@ -77,14 +77,13 @@ func (b *Broker) deliverEventLocally(event domain.RealtimeEvent) domain.Realtime
 	}
 	b.appendRecentLocked(event)
 	targets := b.matchingSubscribersLocked(event)
-	b.mu.Unlock()
-
 	for _, target := range targets {
 		select {
 		case target.ch <- event:
 		default:
 		}
 	}
+	b.mu.Unlock()
 	return event
 }
 

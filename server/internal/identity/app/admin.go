@@ -231,6 +231,9 @@ func (s *Service) UpdateStaff(ctx context.Context, staffID string, cmd UpdateSta
 	if err != nil {
 		return domain.StaffRecord{}, err
 	}
+	if s.wouldLeaveWithoutActiveAdminLocked(s.staff[idx], updated) {
+		return domain.StaffRecord{}, domain.ErrCannotDeleteLastAdmin
+	}
 	s.staff[idx] = updated
 	s.syncStaffToLinkedUserLocked(ctx, updated)
 	if s.store != nil {
@@ -303,7 +306,14 @@ func (s *Service) DeleteStaff(ctx context.Context, staffID string) error {
 	if idx < 0 {
 		return domain.ErrUserNotFound
 	}
-	removed := s.staff[idx]
+	target := s.staff[idx]
+	if isProtectedOwnerAdmin(target) {
+		return domain.ErrCannotDeleteLastAdmin
+	}
+	if s.isLastActiveAdminLocked(target) {
+		return domain.ErrCannotDeleteLastAdmin
+	}
+	removed := target
 	removed.Active = false
 	s.syncStaffToLinkedUserLocked(ctx, removed)
 	s.staff = append(s.staff[:idx], s.staff[idx+1:]...)
@@ -313,6 +323,56 @@ func (s *Service) DeleteStaff(ctx context.Context, staffID string) error {
 		}
 	}
 	return nil
+}
+
+var protectedOwnerAdminID = uuid.MustParse("22222222-2222-2222-2222-222222222222")
+
+func isProtectedOwnerAdmin(rec domain.StaffRecord) bool {
+	if rec.ID == "staff-maria" {
+		return true
+	}
+	return rec.UserID == protectedOwnerAdminID
+}
+
+func (s *Service) isLastActiveAdminLocked(rec domain.StaffRecord) bool {
+	if rec.Role != string(domain.RoleAdmin) {
+		return false
+	}
+	if !rec.Active {
+		return false
+	}
+	return s.countActiveAdminsLocked() <= 1
+}
+
+func (s *Service) wouldLeaveWithoutActiveAdminLocked(before, after domain.StaffRecord) bool {
+	if isProtectedOwnerAdmin(before) {
+		if after.Role != string(domain.RoleAdmin) {
+			return true
+		}
+		if !after.Active {
+			return true
+		}
+	}
+	if !s.isLastActiveAdminLocked(before) {
+		return false
+	}
+	if after.Role != string(domain.RoleAdmin) {
+		return true
+	}
+	return !after.Active
+}
+
+func (s *Service) countActiveAdminsLocked() int {
+	count := 0
+	for _, member := range s.staff {
+		if member.Role != string(domain.RoleAdmin) {
+			continue
+		}
+		if member.Active {
+			count++
+		}
+	}
+	return count
 }
 
 func (s *Service) ensureAdminClientForUserLocked(ctx context.Context, user domain.User) {
@@ -353,14 +413,10 @@ func (s *Service) syncAdminRecordsFromStore(ctx context.Context) {
 	dbStaff, staffErr := store.ListStaffMembers(ctx)
 	s.mu.Lock()
 	if clientErr == nil {
-		if len(dbClients) > 0 {
-			s.clients = dbClients
-		}
+		s.clients = dbClients
 	}
 	if staffErr == nil {
-		if len(dbStaff) > 0 {
-			s.staff = dbStaff
-		}
+		s.staff = dbStaff
 	}
 	s.mu.Unlock()
 }

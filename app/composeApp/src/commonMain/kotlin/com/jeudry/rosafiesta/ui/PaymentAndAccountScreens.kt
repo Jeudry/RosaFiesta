@@ -90,6 +90,7 @@ import com.jeudry.rosafiesta.domain.BusinessMetrics
 import com.jeudry.rosafiesta.domain.BusinessSettings
 import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.ClientEvent
+import com.jeudry.rosafiesta.domain.DomainClockFormatter
 import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.QuoteRecord
@@ -534,10 +535,22 @@ internal fun RenderPaymentCheckoutScreenS50(
     val palette = RfThemeState.currentPalette
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
-    val activeEvent = viewModel?.activeClientEvent()
-        ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId }
-        ?: events.firstOrNull()
-        ?: CanonicalSampleData.events.first()
+    val activeEvent = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        events.firstOrNull { currentEvent -> currentEvent.id == selectedId }
+            ?: events.firstOrNull()
+            ?: CanonicalSampleData.events.first()
+    }
+    if (activeEvent == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Pago y reserva",
+            backTargetCode = "BACK:s37",
+            message = "Crea un evento o aprueba una cotización antes de realizar un pago.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
     val checkoutModeRaw = viewModel?.paymentCheckoutMode?.collectAsState()?.value ?: "DEPOSIT"
     val businessSettings = viewModel?.businessSettings?.collectAsState()?.value ?: BusinessSettings()
     val profileZone = viewModel?.profileZone?.collectAsState()?.value.orEmpty()
@@ -1509,10 +1522,22 @@ internal fun RenderPaymentSuccessScreenS51(
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val payments = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
-    val event = viewModel?.activeClientEvent()
-        ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId }
-        ?: events.firstOrNull()
-        ?: CanonicalSampleData.events.first()
+    val event = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        events.firstOrNull { currentEvent -> currentEvent.id == selectedId }
+            ?: events.firstOrNull()
+            ?: CanonicalSampleData.events.first()
+    }
+    if (event == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Confirmación de pago",
+            backTargetCode = "BACK:s37",
+            message = "Aún no tienes pagos registrados porque todavía no creas un evento.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
     val clientPayments = viewModel?.clientPaymentsForCurrentUser() ?: payments
     val latestPayment = clientPayments.firstOrNull { paymentItem -> paymentItem.eventId == event.id }
         ?: payments.firstOrNull { paymentItem -> paymentItem.eventId == event.id }
@@ -1961,10 +1986,23 @@ internal fun RenderPostEventReviewScreenS52(
     val palette = RfThemeState.currentPalette
     val events = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedId = viewModel?.selectedEventId?.collectAsState()?.value ?: "evt-boda-real"
-    val event = viewModel?.activeClientEvent()
-        ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedId }
-        ?: events.firstOrNull()
-        ?: CanonicalSampleData.events.first()
+    val event = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        events.firstOrNull { currentEvent -> currentEvent.id == selectedId }
+            ?: events.firstOrNull()
+            ?: CanonicalSampleData.events.first()
+    }
+    if (event == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Reseña del evento",
+            backTargetCode = "BACK:s37",
+            message = "Cuando tengas un evento finalizado podrás evaluar la experiencia aquí.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     val damageIncidents = viewModel?.damageIncidents?.collectAsState()?.value ?: CanonicalSampleData.damageIncidents
     val tasks = viewModel?.eventTasksList?.collectAsState()?.value ?: emptyList()
     val timeline = viewModel?.eventTimelineItems?.collectAsState()?.value ?: emptyList()
@@ -2296,7 +2334,7 @@ internal fun RenderPostEventReviewScreenS52(
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
                         .background(RosaButtonGradient)
-                        .clickable {
+                        .clickable(enabled = !isSubmitting) {
                             val commentValidationError = InputValidator.validateNotes(
                                 rawValue = reviewComment,
                                 fieldLabel = "La reseña",
@@ -3679,6 +3717,9 @@ internal fun RenderSuppliersScreenS55(
     val uiSuppliers = viewModel?.suppliersList?.collectAsState()?.value ?: fallbackUiSuppliers
     val suppliers = buildSuppliersDisplayList(domainSuppliers, uiSuppliers)
     val feedbackBanner = viewModel?.formFeedback?.collectAsState()?.value
+    val formError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
+    var pendingDeleteSupplier by remember { mutableStateOf<SupplierDisplayItem55?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -3775,7 +3816,8 @@ internal fun RenderSuppliersScreenS55(
                         value = searchQuery,
                         onValueChange = { updatedText -> searchQuery = updatedText.take(InputValidator.MAX_SEARCH_QUERY_LENGTH) },
                         singleLine = true,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
+                        cursorBrush = SolidColor(RfThemeState.currentPalette.primaryAccent),
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -3809,7 +3851,7 @@ internal fun RenderSuppliersScreenS55(
                             onSelectScreenCode("s56")
                         },
                         onDeleteClick = if (viewModel != null) {
-                            { viewModel.removeSupplier(supplier.id) }
+                            { pendingDeleteSupplier = supplier }
                         } else {
                             null
                         },
@@ -3820,6 +3862,26 @@ internal fun RenderSuppliersScreenS55(
             }
             Spacer(modifier = Modifier.height(30.dp))
         }
+
+        val supplierToDelete = pendingDeleteSupplier
+        RfDeleteConfirmationDialog(
+            visible = supplierToDelete != null,
+            title = "Eliminar proveedor",
+            message = if (supplierToDelete != null) {
+                "¿Seguro que deseas eliminar a \"${supplierToDelete.name}\" de tus proveedores?"
+            } else {
+                ""
+            },
+            errorMessage = formError,
+            isSubmitting = isSubmitting,
+            onDismiss = { pendingDeleteSupplier = null },
+            onConfirm = {
+                if (supplierToDelete != null) {
+                    viewModel?.removeSupplier(supplierToDelete.id)
+                    pendingDeleteSupplier = null
+                }
+            },
+        )
     }
 }
 
@@ -4375,7 +4437,8 @@ private fun AdminField56(
                         onValueChange = onBoundValueChange,
                         singleLine = true,
                         keyboardOptions = keyboardOptions,
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
+                        cursorBrush = SolidColor(RfThemeState.currentPalette.primaryAccent),
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -4417,7 +4480,8 @@ private fun AdminNotes56(
             BasicTextField(
                 value = notesValue,
                 onValueChange = onNotesChange,
-                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = Color(0xFF151729)),
+                cursorBrush = SolidColor(RfThemeState.currentPalette.primaryAccent),
+                textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -4455,7 +4519,6 @@ internal fun RenderSpendingAnalyticsScreenS57(
     val baseLogisticsDop = activeEventsForCost.size * 350
     val baseCrewDop = activeEventsForCost.size * 420
     val baseMaintenanceDop = damageIncidentsState.sumOf { incident -> incident.replacementDop } + activeEventsForCost.size * 180
-    val periodMultiplier = 1
     val categoryStats = listOf(
         ExpenseCategoryStat57("Flores y decoración", baseFloralDop, Color(0xFFD63F98)),
         ExpenseCategoryStat57("Logística y transporte", baseLogisticsDop, Color(0xFF5B6CF0)),
@@ -4464,13 +4527,22 @@ internal fun RenderSpendingAnalyticsScreenS57(
     )
     val totalExpensesDop = categoryStats.sumOf { stat -> stat.amountDop }.coerceAtLeast(1)
 
+    val (_, currentMonthNumber, _) = remember { DomainClockFormatter.currentCivilDateTriple() }
+    val monthShortNames = listOf("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+    val recentThreeMonths = (2 downTo 0).map { offset ->
+        monthShortNames[(currentMonthNumber - 1 - offset).mod(12)]
+    }
+    val recentSixMonths = (5 downTo 0).map { offset ->
+        monthShortNames[(currentMonthNumber - 1 - offset).mod(12)]
+    }
+    val bimonthlyYearMonths = listOf("Ene", "Mar", "May", "Jul", "Sep", "Nov")
     val trendMonths = when (selectedPeriod) {
-        "Trimestre Q4" -> listOf("Ago", "Sep", "Oct")
-        "Anual 2026" -> listOf("Ene", "Mar", "May", "Jul", "Sep", "Oct")
-        else -> listOf("May", "Jun", "Jul", "Ago", "Sep", "Oct")
+        "Mes actual" -> recentThreeMonths
+        "Trimestre" -> recentThreeMonths
+        else -> if (currentMonthNumber > 6) recentSixMonths else bimonthlyYearMonths
     }
     val trendSeriesValues = remember(paymentsState, selectedPeriod) {
-        computeMonthlyTrendValues57(paymentsState = paymentsState, monthLabels = trendMonths, periodMultiplier = periodMultiplier)
+        computeMonthlyTrendValues57(paymentsState = paymentsState, monthLabels = trendMonths)
     }
     val previousTrendValue = trendSeriesValues.dropLast(1).lastOrNull() ?: 0
     val latestTrendValue = trendSeriesValues.lastOrNull() ?: 0
@@ -4691,7 +4763,6 @@ internal fun RenderSpendingAnalyticsScreenS57(
 private fun computeMonthlyTrendValues57(
     paymentsState: List<PaymentRecord>,
     monthLabels: List<String>,
-    periodMultiplier: Int,
 ): List<Int> {
     if (monthLabels.isEmpty()) return emptyList()
     val totalsByMonth = monthLabels.map { monthLabel ->
@@ -4705,7 +4776,7 @@ private fun computeMonthlyTrendValues57(
     if (hasExplicitMonthMatches) {
         return totalsByMonth
     }
-    val totalCollected = paymentsState.sumOf { payment -> payment.amountDop } * periodMultiplier
+    val totalCollected = paymentsState.sumOf { payment -> payment.amountDop }
     val count = monthLabels.size
     return List(count) { index ->
         ((totalCollected * (index + 1)) / (count * (count + 1) / 2)).coerceAtLeast(0)
@@ -4791,8 +4862,14 @@ internal fun RenderFinancialDashboardScreenS58(
     val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
     val clientsState = viewModel?.clients?.collectAsState()?.value ?: CanonicalSampleData.clients
     val damageIncidents = viewModel?.damageIncidents?.collectAsState()?.value ?: CanonicalSampleData.damageIncidents
+    val (currentYear, currentMonth, _) = remember { DomainClockFormatter.currentCivilDateTriple() }
+    val monthFullNames = listOf(
+        "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+    )
+    val dynamicMonthLabel = "${monthFullNames[(currentMonth - 1).coerceIn(0, 11)]} $currentYear"
     val fallbackMetrics = BusinessMetrics(
-        monthLabel = "Octubre 2026",
+        monthLabel = dynamicMonthLabel,
         octoberRevenueDop = 12450,
         accountsReceivableDop = 7724,
         activeEventsCount = 4,
@@ -5049,7 +5126,20 @@ internal fun RenderOfficialReceiptScreenS83(
     val profileName = viewModel?.profileName?.collectAsState()?.value.orEmpty()
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
-    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val event = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        eventsState.first()
+    }
+    if (event == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Recibo oficial",
+            backTargetCode = "BACK:s37",
+            message = "Aún no hay recibos emitidos porque todavía no tienes eventos.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
     val userPayments = viewModel?.clientPaymentsForCurrentUser() ?: paymentsState
     val latestPayment = userPayments.firstOrNull { paymentItem -> paymentItem.eventId == event.id }
         ?: paymentsState.firstOrNull { paymentItem -> paymentItem.eventId == event.id }

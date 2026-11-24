@@ -431,6 +431,7 @@ type Quote struct {
 	PackageID       string
 	ContractPdfUrl  string
 	SignedAtIso     string
+	DepositPercent  int
 }
 
 type RefreshToken struct {

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.serialization.json.Json
+import kotlin.random.Random
 
 /**
  * Multiplatform Server-Sent Events (SSE) client connected to `/v1/stream` for real-time updates.
@@ -27,6 +28,7 @@ public class RosaFiestaRealtimeClient(
     private val httpClient: HttpClient,
     private val baseUrl: String,
     private val reconnectDelayMs: Long = 3_000L,
+    private val maxReconnectDelayMs: Long = 30_000L,
 ) {
     private val jsonCodec: Json = Json { ignoreUnknownKeys = true }
     private val _isConnected: MutableStateFlow<Boolean> = MutableStateFlow(false)
@@ -43,36 +45,65 @@ public class RosaFiestaRealtimeClient(
         accessTokenProvider: () -> String?,
     ): Flow<RealtimeStreamEvent> = flow {
         var lastSequenceId = 0L
+        var consecutiveFailures = 0
         while (currentCoroutineContext().isActive) {
             val token = accessTokenProvider()?.trim().orEmpty()
-            if (token.isEmpty()) {
+            val isLocalOfflineToken = token.startsWith("rf-local.")
+            val isMissingToken = token.isEmpty()
+            val shouldSkipStream = if (isMissingToken) true else isLocalOfflineToken
+            if (shouldSkipStream) {
                 _isConnected.value = false
+                consecutiveFailures = 0
                 delay(reconnectDelayMs)
                 continue
             }
+            var connectedSuccessfully = false
             try {
-                lastSequenceId = consumeStreamOnce(
+                val result = consumeStreamOnce(
                     token = token,
                     lastSequenceId = lastSequenceId,
                     onEvent = { parsedEvent -> emit(parsedEvent) },
                 )
+                lastSequenceId = result.highestSeq
+                connectedSuccessfully = result.connectedSuccessfully
             } catch (cancellation: CancellationException) {
                 _isConnected.value = false
                 throw cancellation
             } catch (_: Throwable) {
+                connectedSuccessfully = false
             } finally {
                 _isConnected.value = false
             }
-            delay(reconnectDelayMs)
+            consecutiveFailures = if (connectedSuccessfully) 0 else (consecutiveFailures + 1).coerceAtMost(10)
+            delay(computeBackoffWithJitterMs(consecutiveFailures))
         }
     }
+
+    private fun computeBackoffWithJitterMs(consecutiveFailures: Int): Long {
+        val baseMin = reconnectDelayMs.coerceAtLeast(3_000L)
+        val ceiling = maxReconnectDelayMs.coerceAtLeast(baseMin)
+        if (consecutiveFailures <= 0) {
+            return baseMin
+        }
+        val exponent = (consecutiveFailures - 1).coerceIn(0, 4)
+        val exponentialDelay = (baseMin shl exponent).coerceAtMost(ceiling)
+        val jitterBound = (exponentialDelay / 4L).coerceAtLeast(1L)
+        val jitter = Random.nextLong(from = 0L, until = jitterBound)
+        return (exponentialDelay + jitter).coerceIn(baseMin, ceiling)
+    }
+
+    private data class StreamConsumeResult(
+        val highestSeq: Long,
+        val connectedSuccessfully: Boolean,
+    )
 
     private suspend fun consumeStreamOnce(
         token: String,
         lastSequenceId: Long,
         onEvent: suspend (RealtimeStreamEvent) -> Unit,
-    ): Long {
+    ): StreamConsumeResult {
         var highestSeq = lastSequenceId
+        var connected = false
         val normalizedBase = baseUrl.trimEnd('/')
         httpClient.prepareGet("$normalizedBase/v1/stream") {
             header(HttpHeaders.Authorization, "Bearer $token")
@@ -85,6 +116,7 @@ public class RosaFiestaRealtimeClient(
                 _isConnected.value = false
                 return@execute
             }
+            connected = true
             _isConnected.value = true
             val channel = response.bodyAsChannel()
             highestSeq = readSseFrames(
@@ -94,7 +126,10 @@ public class RosaFiestaRealtimeClient(
             )
             _isConnected.value = false
         }
-        return highestSeq
+        return StreamConsumeResult(
+            highestSeq = highestSeq,
+            connectedSuccessfully = connected,
+        )
     }
 
     private suspend fun readSseFrames(

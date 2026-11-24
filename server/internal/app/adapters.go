@@ -329,9 +329,9 @@ func (a offlineDispatcherAdapter) DispatchMutation(
 	}
 	switch trimmedType {
 	case "checklist.toggle":
-		return a.dispatchChecklistToggle(ctx, payloadJSON)
+		return a.dispatchChecklistToggle(ctx, payloadJSON, caller)
 	case "damage.report":
-		return a.dispatchDamageReport(ctx, payloadJSON)
+		return a.dispatchDamageReport(ctx, payloadJSON, caller)
 	case "chat.send":
 		return a.dispatchChatMessage(ctx, payloadJSON, caller)
 	case "guest.add":
@@ -343,7 +343,26 @@ func (a offlineDispatcherAdapter) DispatchMutation(
 	}
 }
 
-func (a offlineDispatcherAdapter) dispatchChecklistToggle(ctx context.Context, payloadJSON string) error {
+func callerHasAnyOfflinePermission(caller platformhttp.Principal, permissions ...string) bool {
+	if !caller.IsAdminOrStaff() {
+		return false
+	}
+	for _, perm := range permissions {
+		if caller.HasPermission(perm) {
+			return true
+		}
+	}
+	return false
+}
+
+func (a offlineDispatcherAdapter) dispatchChecklistToggle(
+	ctx context.Context,
+	payloadJSON string,
+	caller platformhttp.Principal,
+) error {
+	if !callerHasAnyOfflinePermission(caller, "tareas", "eventos", "decoracion") {
+		return operationsdomain.ErrOfflineActionForbidden
+	}
 	var body struct {
 		EventID   string `json:"eventId"`
 		ItemID    string `json:"itemId"`
@@ -360,7 +379,14 @@ func (a offlineDispatcherAdapter) dispatchChecklistToggle(ctx context.Context, p
 	return err
 }
 
-func (a offlineDispatcherAdapter) dispatchDamageReport(ctx context.Context, payloadJSON string) error {
+func (a offlineDispatcherAdapter) dispatchDamageReport(
+	ctx context.Context,
+	payloadJSON string,
+	caller platformhttp.Principal,
+) error {
+	if !callerHasAnyOfflinePermission(caller, "inventario", "eventos", "decoracion") {
+		return operationsdomain.ErrOfflineActionForbidden
+	}
 	var cmd operationsapp.ReportDamageCommand
 	if err := json.Unmarshal([]byte(payloadJSON), &cmd); err != nil {
 		return fmt.Errorf("decode damage offline payload: %w", err)
@@ -821,6 +847,25 @@ func resolvePaymentReportTime(
 		return evtDate
 	}
 	return fallback
+}
+
+type reviewEventAdapter struct {
+	events *eventsapp.Service
+}
+
+func (a reviewEventAdapter) VerifyEventOwnership(
+	ctx context.Context,
+	eventID string,
+	caller platformhttp.Principal,
+) error {
+	_, err := a.events.GetEventForCaller(ctx, eventID, caller, false)
+	if errors.Is(err, eventsdomain.ErrEventForbidden) {
+		return operationsdomain.ErrReviewForbidden
+	}
+	if errors.Is(err, eventsdomain.ErrEventNotFound) {
+		return operationsdomain.ErrReviewEventNotFound
+	}
+	return err
 }
 
 func dispatchRemotePush(

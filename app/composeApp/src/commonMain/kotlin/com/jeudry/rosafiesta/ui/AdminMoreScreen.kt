@@ -47,6 +47,7 @@ import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfLogo
 import com.jeudry.rosafiesta.designsystem.RfLogoSize
+import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 
 private enum class AdminMoreCategory(val label: String, val sectionTitle: String) {
@@ -110,44 +111,48 @@ private fun isOpenQuoteStatus(status: String): Boolean {
     }
 }
 
-private fun countBadge(count: Int, suffix: String = ""): AdminMoreBadge? {
+private fun countBadge(count: Int, isDark: Boolean, suffix: String = ""): AdminMoreBadge? {
     if (count <= 0) {
         return null
     }
     val label = if (suffix.isEmpty()) "$count" else "$count $suffix"
     return AdminMoreBadge(
         text = label,
-        backgroundColor = Color(0xFFECEBFF),
-        textColor = Color(0xFF4B47D6),
+        backgroundColor = if (isDark) Color(0xFF2B2852) else Color(0xFFECEBFF),
+        textColor = if (isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6),
     )
 }
 
-private fun alertBadge(count: Int, singularSuffix: String, pluralSuffix: String): AdminMoreBadge? {
+private fun alertBadge(count: Int, isDark: Boolean, singularSuffix: String, pluralSuffix: String): AdminMoreBadge? {
     if (count <= 0) {
         return null
     }
     val word = if (count == 1) singularSuffix else pluralSuffix
     return AdminMoreBadge(
         text = "$count $word",
-        backgroundColor = Color(0xFFFFF2C9),
-        textColor = Color(0xFF7A5700),
+        backgroundColor = if (isDark) Color(0xFF3A2F16) else Color(0xFFFFF2C9),
+        textColor = if (isDark) Color(0xFFF5C954) else Color(0xFF7A5700),
     )
 }
 
-private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMoreShortcut> = listOf(
+private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics, isDark: Boolean): List<AdminMoreShortcut> = listOf(
     AdminMoreShortcut(
         id = "chats",
         title = "Chats",
         subtitle = "Mensajes directos con clientes",
         category = AdminMoreCategory.COMMERCIAL,
         icon = RfIconKind.CHAT,
-        iconBg = Color(0xFFDDF4F3),
-        iconTint = Color(0xFF1F8A84),
+        iconBg = if (isDark) Color(0xFF173636) else Color(0xFFDDF4F3),
+        iconTint = if (isDark) Color(0xFF5CD6CE) else Color(0xFF1F8A84),
         targetScreenCode = "A14",
         keywords = "mensajes inbox clientes conversar",
         badge = if (metrics.unreadChats > 0) {
             val word = if (metrics.unreadChats == 1) "nuevo" else "nuevos"
-            AdminMoreBadge("${metrics.unreadChats} $word", Color(0xFFDDF4F3), Color(0xFF1F8A84))
+            AdminMoreBadge(
+                "${metrics.unreadChats} $word",
+                if (isDark) Color(0xFF173636) else Color(0xFFDDF4F3),
+                if (isDark) Color(0xFF5CD6CE) else Color(0xFF1F8A84),
+            )
         } else {
             null
         },
@@ -158,11 +163,11 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Propuestas y seguimiento de cierre",
         category = AdminMoreCategory.COMMERCIAL,
         icon = RfIconKind.ORDERS,
-        iconBg = Color(0xFFFFF2C9),
-        iconTint = Color(0xFF7A5700),
+        iconBg = if (isDark) Color(0xFF3A2F16) else Color(0xFFFFF2C9),
+        iconTint = if (isDark) Color(0xFFF5C954) else Color(0xFF7A5700),
         targetScreenCode = "A22",
         keywords = "presupuestos propuestas firma ventas",
-        badge = alertBadge(metrics.openQuotes, "abierta", "abiertas"),
+        badge = alertBadge(metrics.openQuotes, isDark, "abierta", "abiertas"),
     ),
     AdminMoreShortcut(
         id = "clients",
@@ -170,8 +175,8 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Directorio e historial de eventos",
         category = AdminMoreCategory.COMMERCIAL,
         icon = RfIconKind.USER,
-        iconBg = RfColors.VioletaTint,
-        iconTint = RfColors.VioletaTintInk,
+        iconBg = if (isDark) Color(0xFF2B2852) else RfColors.VioletaTint,
+        iconTint = if (isDark) Color(0xFFC5B8FF) else RfColors.VioletaTintInk,
         targetScreenCode = "A26",
         keywords = "contactos personas historial",
     ),
@@ -181,11 +186,11 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Solicitudes y prospectos entrantes",
         category = AdminMoreCategory.COMMERCIAL,
         icon = RfIconKind.LOCATION,
-        iconBg = RfColors.VioletaTint,
-        iconTint = RfColors.VioletaTintInk,
+        iconBg = if (isDark) Color(0xFF2B2852) else RfColors.VioletaTint,
+        iconTint = if (isDark) Color(0xFFC5B8FF) else RfColors.VioletaTintInk,
         targetScreenCode = "s64",
         keywords = "oportunidades prospectos crm",
-        badge = countBadge(metrics.activeLeads),
+        badge = countBadge(metrics.activeLeads, isDark),
     ),
     AdminMoreShortcut(
         id = "reviews",
@@ -193,8 +198,8 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Calificaciones y respuestas públicas",
         category = AdminMoreCategory.COMMERCIAL,
         icon = RfIconKind.STAR,
-        iconBg = Color(0xFFFFF2C9),
-        iconTint = Color(0xFF7A5700),
+        iconBg = if (isDark) Color(0xFF3A2F16) else Color(0xFFFFF2C9),
+        iconTint = if (isDark) Color(0xFFF5C954) else Color(0xFF7A5700),
         targetScreenCode = "s71",
         keywords = "estrellas opiniones feedback",
     ),
@@ -204,8 +209,8 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Respuestas rápidas y automatización",
         category = AdminMoreCategory.COMMERCIAL,
         icon = RfIconKind.WHATSAPP,
-        iconBg = Color(0xFFEEF6D6),
-        iconTint = Color(0xFF4E6A10),
+        iconBg = if (isDark) Color(0xFF253516) else Color(0xFFEEF6D6),
+        iconTint = if (isDark) Color(0xFFAEDB5C) else Color(0xFF4E6A10),
         targetScreenCode = "s72",
         keywords = "mensajeria automatico faq",
     ),
@@ -215,11 +220,11 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Combos y colecciones armadas",
         category = AdminMoreCategory.CATALOG,
         icon = RfIconKind.GIFT,
-        iconBg = Color(0xFFECEBFF),
-        iconTint = Color(0xFF4B47D6),
+        iconBg = if (isDark) Color(0xFF2B2852) else Color(0xFFECEBFF),
+        iconTint = if (isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6),
         targetScreenCode = "A24",
         keywords = "combos colecciones ofertas",
-        badge = countBadge(metrics.packagesCount),
+        badge = countBadge(metrics.packagesCount, isDark),
     ),
     AdminMoreShortcut(
         id = "categories",
@@ -227,11 +232,11 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Iconos SVG y organización visual",
         category = AdminMoreCategory.CATALOG,
         icon = RfIconKind.CATALOG,
-        iconBg = Color(0xFFE8EEFF),
-        iconTint = Color(0xFF4B47D6),
+        iconBg = if (isDark) Color(0xFF232B4D) else Color(0xFFE8EEFF),
+        iconTint = if (isDark) Color(0xFF9EB4FF) else Color(0xFF4B47D6),
         targetScreenCode = "A40",
         keywords = "svg iconos rubros inventario",
-        badge = countBadge(metrics.categoriesCount),
+        badge = countBadge(metrics.categoriesCount, isDark),
     ),
     AdminMoreShortcut(
         id = "trends",
@@ -239,11 +244,11 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Temporada destacada e inspiraciones",
         category = AdminMoreCategory.CATALOG,
         icon = RfIconKind.TREND_UP,
-        iconBg = Color(0xFFFCE8F6),
-        iconTint = Color(0xFFC2338F),
+        iconBg = if (isDark) Color(0xFF3B1A33) else Color(0xFFFCE8F6),
+        iconTint = if (isDark) Color(0xFFF48AD0) else Color(0xFFC2338F),
         targetScreenCode = "A41",
         keywords = "banner temporada portada inicio",
-        badge = countBadge(metrics.activeTrendsCount),
+        badge = countBadge(metrics.activeTrendsCount, isDark),
     ),
     AdminMoreShortcut(
         id = "payments",
@@ -251,11 +256,11 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Transferencias, abonos y recibos",
         category = AdminMoreCategory.FINANCE,
         icon = RfIconKind.WALLET,
-        iconBg = Color(0xFFEEF6D6),
-        iconTint = Color(0xFF4E6A10),
+        iconBg = if (isDark) Color(0xFF253516) else Color(0xFFEEF6D6),
+        iconTint = if (isDark) Color(0xFFAEDB5C) else Color(0xFF4E6A10),
         targetScreenCode = "A20",
         keywords = "cobros comprobantes dinero ncf",
-        badge = alertBadge(metrics.unverifiedPayments, "por validar", "por validar"),
+        badge = alertBadge(metrics.unverifiedPayments, isDark, "por validar", "por validar"),
     ),
     AdminMoreShortcut(
         id = "dashboard",
@@ -263,8 +268,8 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Indicadores clave del negocio",
         category = AdminMoreCategory.FINANCE,
         icon = RfIconKind.TREND_UP,
-        iconBg = Color(0xFFECEBFF),
-        iconTint = Color(0xFF4B47D6),
+        iconBg = if (isDark) Color(0xFF2B2852) else Color(0xFFECEBFF),
+        iconTint = if (isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6),
         targetScreenCode = "s58",
         keywords = "kpi metricas resumen",
     ),
@@ -274,8 +279,8 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Ingresos, exportación e impuestos",
         category = AdminMoreCategory.FINANCE,
         icon = RfIconKind.TREND_UP,
-        iconBg = Color(0xFFDDF4F3),
-        iconTint = Color(0xFF1F8A84),
+        iconBg = if (isDark) Color(0xFF173636) else Color(0xFFDDF4F3),
+        iconTint = if (isDark) Color(0xFF5CD6CE) else Color(0xFF1F8A84),
         targetScreenCode = "s67",
         keywords = "csv pdf 607 dgii contabilidad",
     ),
@@ -285,12 +290,16 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Reembolsos y políticas aplicadas",
         category = AdminMoreCategory.FINANCE,
         icon = RfIconKind.WARNING,
-        iconBg = Color(0xFFFCE3E8),
-        iconTint = Color(0xFFB42345),
+        iconBg = if (isDark) Color(0xFF3D1924) else Color(0xFFFCE3E8),
+        iconTint = if (isDark) Color(0xFFFF7A96) else Color(0xFFB42345),
         targetScreenCode = "A32",
         keywords = "devoluciones reembolsos politicas",
         badge = if (metrics.pendingRefunds > 0) {
-            AdminMoreBadge("${metrics.pendingRefunds} pend.", Color(0xFFFCE3E8), Color(0xFFB42345))
+            AdminMoreBadge(
+                "${metrics.pendingRefunds} pend.",
+                if (isDark) Color(0xFF3D1924) else Color(0xFFFCE3E8),
+                if (isDark) Color(0xFFFF7A96) else Color(0xFFB42345),
+            )
         } else {
             null
         },
@@ -301,8 +310,8 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Agenda mensual y disponibilidad",
         category = AdminMoreCategory.OPERATIONS,
         icon = RfIconKind.CALENDAR,
-        iconBg = Color(0xFFDDF4F3),
-        iconTint = Color(0xFF1F8A84),
+        iconBg = if (isDark) Color(0xFF173636) else Color(0xFFDDF4F3),
+        iconTint = if (isDark) Color(0xFF5CD6CE) else Color(0xFF1F8A84),
         targetScreenCode = "s63",
         keywords = "fechas agenda reservas",
     ),
@@ -312,8 +321,8 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Aliados externos y suministros",
         category = AdminMoreCategory.OPERATIONS,
         icon = RfIconKind.TRUCK,
-        iconBg = Color(0xFFEEF6D6),
-        iconTint = Color(0xFF4E6A10),
+        iconBg = if (isDark) Color(0xFF253516) else Color(0xFFEEF6D6),
+        iconTint = if (isDark) Color(0xFFAEDB5C) else Color(0xFF4E6A10),
         targetScreenCode = "s55",
         keywords = "logistica transporte suplidores",
     ),
@@ -323,8 +332,8 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Personal, roles y permisos",
         category = AdminMoreCategory.OPERATIONS,
         icon = RfIconKind.USER,
-        iconBg = Color(0xFFECEBFF),
-        iconTint = Color(0xFF4B47D6),
+        iconBg = if (isDark) Color(0xFF2B2852) else Color(0xFFECEBFF),
+        iconTint = if (isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6),
         targetScreenCode = "A28",
         keywords = "staff colaboradores acceso",
     ),
@@ -334,8 +343,8 @@ private fun buildAdminMoreShortcuts(metrics: AdminMoreLiveMetrics): List<AdminMo
         subtitle = "Centro administrativo desktop (1440px)",
         category = AdminMoreCategory.OPERATIONS,
         icon = RfIconKind.GLOBE,
-        iconBg = Color(0xFFF2F2F8),
-        iconTint = Color(0xFF5F6377),
+        iconBg = if (isDark) Color(0xFF262A42) else Color(0xFFF2F2F8),
+        iconTint = if (isDark) Color(0xFFB4B9D2) else Color(0xFF5F6377),
         targetScreenCode = "WEB_MODAL",
         keywords = "escritorio navegador laptop",
     ),
@@ -371,6 +380,7 @@ internal fun RenderAdminMoreA12(
     includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     val rawProfileName = viewModel?.profileName?.collectAsState()?.value ?: "María"
     val rawActiveRole = viewModel?.activeRole?.collectAsState()?.value ?: "admin"
     val rawUserEmail = viewModel?.currentUserEmail?.collectAsState()?.value.orEmpty()
@@ -404,7 +414,9 @@ internal fun RenderAdminMoreA12(
     var selectedCategory by remember { mutableStateOf(AdminMoreCategory.ALL) }
     var showWebDesktopModal by remember { mutableStateOf(false) }
 
-    val allShortcuts = remember(liveMetrics) { buildAdminMoreShortcuts(liveMetrics) }
+    val allShortcuts = remember(liveMetrics, palette.isDark) {
+        buildAdminMoreShortcuts(liveMetrics, palette.isDark)
+    }
     val normalizedQuery = searchQuery.trim()
     val groupedSections = remember(allShortcuts, selectedCategory, normalizedQuery) {
         AdminMoreCategory.entries
@@ -440,11 +452,11 @@ internal fun RenderAdminMoreA12(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     BasicText(
                         text = "Más",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                     )
                     BasicText(
                         text = "Módulos, operación y ajustes del negocio",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
                     )
                 }
             }
@@ -523,13 +535,16 @@ private fun AdminMoreProfileCard(
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val badgeBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
+    val badgeInk = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
@@ -541,8 +556,8 @@ private fun AdminMoreProfileCard(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, RfColors.IndigoTint, CircleShape),
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 RfLogo(size = RfLogoSize.MEDIUM)
@@ -557,17 +572,17 @@ private fun AdminMoreProfileCard(
                         text = adminDisplayName,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = palette.ink),
                     )
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(Color(0xFFECEBFF))
+                            .background(badgeBg)
                             .padding(horizontal = 8.dp, vertical = 2.dp),
                     ) {
                         BasicText(
                             text = adminRoleLabel,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B47D6)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = badgeInk),
                         )
                     }
                 }
@@ -575,11 +590,11 @@ private fun AdminMoreProfileCard(
                     text = adminDisplayEmail,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
                 )
             }
 
-            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 20.dp)
+            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 20.dp)
         }
     }
 }
@@ -592,14 +607,15 @@ private fun AdminMoreFilterControls(
     onSelectCategory: (AdminMoreCategory) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(46.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color.White)
-                .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
+                .background(palette.surface)
+                .border(1.dp, palette.fieldBorder, RoundedCornerShape(14.dp))
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
@@ -608,21 +624,21 @@ private fun AdminMoreFilterControls(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                RfIcon(kind = RfIconKind.SEARCH, tint = Color(0xFF5F6377), size = 18.dp)
+                RfIcon(kind = RfIconKind.SEARCH, tint = palette.muted, size = 18.dp)
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     if (searchQuery.isEmpty()) {
                         BasicText(
                             text = "Buscar módulo o herramienta...",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF7B7F94)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted),
                         )
                     }
                     BasicTextField(
                         value = searchQuery,
                         onValueChange = onSearchQueryChange,
                         singleLine = true,
-                        cursorBrush = SolidColor(Color(0xFF4B47D6)),
+                        cursorBrush = SolidColor(palette.primaryAccent),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF2E324A)),
+                        textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.ink),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("admin-more-search-input"),
@@ -633,11 +649,11 @@ private fun AdminMoreFilterControls(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF2F2F8))
+                            .background(palette.chipBg)
                             .clickable { onSearchQueryChange("") },
                         contentAlignment = Alignment.Center,
                     ) {
-                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF5F6377), size = 14.dp)
+                        RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 14.dp)
                     }
                 }
             }
@@ -661,8 +677,8 @@ private fun AdminMoreFilterControls(
                                 Modifier.background(AdminMoreIndigoGradient)
                             } else {
                                 Modifier
-                                    .background(Color.White)
-                                    .border(1.dp, Color(0xFFE3E4EF), CircleShape)
+                                    .background(palette.surface)
+                                    .border(1.dp, palette.fieldBorder, CircleShape)
                             },
                         )
                         .clickable { onSelectCategory(category) }
@@ -675,7 +691,7 @@ private fun AdminMoreFilterControls(
                             fontFamily = typo.bodyFamily,
                             fontSize = 13.sp,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else Color(0xFF4B4F66),
+                            color = if (isSelected) Color.White else palette.muted,
                         ),
                     )
                 }
@@ -691,6 +707,7 @@ private fun AdminMoreSectionCard(
     onItemClick: (AdminMoreShortcut) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         BasicText(
             text = sectionTitle.uppercase(),
@@ -699,7 +716,7 @@ private fun AdminMoreSectionCard(
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.7.sp,
-                color = Color(0xFF6E7288),
+                color = palette.muted,
             ),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
@@ -708,8 +725,8 @@ private fun AdminMoreSectionCard(
                 .fillMaxWidth()
                 .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color.White)
-                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
+                .background(palette.surface)
+                .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
         ) {
             Column {
                 items.forEachIndexed { index, item ->
@@ -719,7 +736,7 @@ private fun AdminMoreSectionCard(
                                 .fillMaxWidth()
                                 .padding(start = 64.dp)
                                 .height(1.dp)
-                                .background(Color(0xFFF0F0F6)),
+                                .background(palette.line),
                         )
                     }
                     AdminMoreMenuRow(
@@ -738,6 +755,7 @@ private fun AdminMoreMenuRow(
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -761,13 +779,13 @@ private fun AdminMoreMenuRow(
                 text = item.title,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = palette.ink),
             )
             BasicText(
                 text = item.subtitle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF6E7288)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted),
             )
         }
         val activeBadge = item.badge
@@ -784,7 +802,7 @@ private fun AdminMoreMenuRow(
                 )
             }
         }
-        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF8C90A6), size = 16.dp)
+        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
     }
 }
 
@@ -794,13 +812,16 @@ private fun AdminMoreEmptySearchCard(
     onReset: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val btnBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
+    val btnInk = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
             .padding(20.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -810,23 +831,23 @@ private fun AdminMoreEmptySearchCard(
         ) {
             BasicText(
                 text = if (query.isEmpty()) "Sin módulos en esta categoría" else "No encontramos \"$query\"",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = palette.ink),
             )
             BasicText(
                 text = "Prueba otro término o vuelve a mostrar todos los módulos.",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
             )
             Spacer(modifier = Modifier.height(2.dp))
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(Color(0xFFECEBFF))
+                    .background(btnBg)
                     .clickable(onClick = onReset)
                     .padding(horizontal = 14.dp, vertical = 7.dp),
             ) {
                 BasicText(
                     text = "Mostrar todo",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4B47D6)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = btnInk),
                 )
             }
         }
@@ -840,6 +861,11 @@ private fun AdminMoreAccountCard(
     onLogout: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val clientBg = if (palette.isDark) Color(0xFF2B2852) else RfColors.VioletaTint
+    val clientInk = if (palette.isDark) Color(0xFFC5B8FF) else RfColors.VioletaTintInk
+    val dangerBg = if (palette.isDark) Color(0xFF3D1924) else Color(0xFFFCE3E8)
+    val dangerInk = if (palette.isDark) Color(0xFFFF7A96) else Color(0xFFDC2B48)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         BasicText(
             text = "CUENTA Y SESIÓN",
@@ -848,7 +874,7 @@ private fun AdminMoreAccountCard(
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.7.sp,
-                color = Color(0xFF6E7288),
+                color = palette.muted,
             ),
             modifier = Modifier.padding(horizontal = 4.dp),
         )
@@ -857,8 +883,8 @@ private fun AdminMoreAccountCard(
                 .fillMaxWidth()
                 .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color.White)
-                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
+                .background(palette.surface)
+                .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
         ) {
             Column {
                 Row(
@@ -869,14 +895,14 @@ private fun AdminMoreAccountCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFF2F2F8)), contentAlignment = Alignment.Center) {
-                        RfIcon(kind = RfIconKind.SETTINGS, tint = Color(0xFF5F6377), size = 18.dp)
+                    Box(modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(palette.chipBg), contentAlignment = Alignment.Center) {
+                        RfIcon(kind = RfIconKind.SETTINGS, tint = palette.muted, size = 18.dp)
                     }
-                    BasicText("Ajustes del negocio", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF8C90A6), size = 16.dp)
+                    BasicText("Ajustes del negocio", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = palette.ink))
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
                 }
 
-                Box(modifier = Modifier.fillMaxWidth().padding(start = 60.dp).height(1.dp).background(Color(0xFFF0F0F6)))
+                Box(modifier = Modifier.fillMaxWidth().padding(start = 60.dp).height(1.dp).background(palette.line))
 
                 Row(
                     modifier = Modifier
@@ -886,14 +912,14 @@ private fun AdminMoreAccountCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(RfColors.VioletaTint), contentAlignment = Alignment.Center) {
-                        RfIcon(kind = RfIconKind.USER, tint = RfColors.VioletaTintInk, size = 18.dp)
+                    Box(modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(clientBg), contentAlignment = Alignment.Center) {
+                        RfIcon(kind = RfIconKind.USER, tint = clientInk, size = 18.dp)
                     }
-                    BasicText("Entrar como cliente", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2E324A)))
-                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF8C90A6), size = 16.dp)
+                    BasicText("Entrar como cliente", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = palette.ink))
+                    RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
                 }
 
-                Box(modifier = Modifier.fillMaxWidth().padding(start = 60.dp).height(1.dp).background(Color(0xFFF0F0F6)))
+                Box(modifier = Modifier.fillMaxWidth().padding(start = 60.dp).height(1.dp).background(palette.line))
 
                 Row(
                     modifier = Modifier
@@ -903,10 +929,10 @@ private fun AdminMoreAccountCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFFCE3E8)), contentAlignment = Alignment.Center) {
-                        RfIcon(kind = RfIconKind.LOGOUT, tint = Color(0xFFDC2B48), size = 18.dp)
+                    Box(modifier = Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(dangerBg), contentAlignment = Alignment.Center) {
+                        RfIcon(kind = RfIconKind.LOGOUT, tint = dangerInk, size = 18.dp)
                     }
-                    BasicText("Cerrar sesión", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFDC2B48)))
+                    BasicText("Cerrar sesión", modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = dangerInk))
                 }
             }
         }
@@ -921,6 +947,9 @@ private fun AdminMoreWebDesktopSheet(
     onOpenDesktopPreview: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val secondaryBtnBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
+    val secondaryBtnInk = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
     AdminBottomSheetOverlay(
         visible = visible,
         onDismiss = onDismiss,
@@ -934,18 +963,18 @@ private fun AdminMoreWebDesktopSheet(
         ) {
             BasicText(
                 text = "Panel Web Desktop (1440px)",
-                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = palette.ink),
             )
             RfIcon(
                 kind = RfIconKind.CLOSE,
-                tint = Color(0xFF5F6377),
+                tint = palette.muted,
                 size = 20.dp,
                 modifier = Modifier.clickable(onClick = onDismiss),
             )
         }
         BasicText(
             text = "El centro administrativo de escritorio está optimizado para monitores amplios de 1440px. Puedes abrirlo directamente en tu navegador o explorar la vista previa adaptada.",
-            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = Color(0xFF5F6377), lineHeight = 19.sp),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted, lineHeight = 19.sp),
         )
         Box(
             modifier = Modifier
@@ -972,13 +1001,13 @@ private fun AdminMoreWebDesktopSheet(
                 .fillMaxWidth()
                 .height(46.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFECEBFF))
+                .background(secondaryBtnBg)
                 .clickable(onClick = onOpenDesktopPreview),
             contentAlignment = Alignment.Center,
         ) {
             BasicText(
                 text = "Vista previa adaptada",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = secondaryBtnInk),
             )
         }
     }

@@ -67,16 +67,27 @@ func (s *SMTPSender) SendEmail(ctx context.Context, to, subject, textBody string
 	if recipient == "" {
 		return errors.New("recipient email is required")
 	}
+	if strings.ContainsAny(recipient, "\r\n") {
+		return errors.New("invalid recipient email")
+	}
+	from := strings.TrimSpace(s.cfg.From)
+	if strings.ContainsAny(from, "\r\n") {
+		return errors.New("invalid sender email")
+	}
 	addr := net.JoinHostPort(strings.TrimSpace(s.cfg.Host), fmt.Sprintf("%d", s.cfg.Port))
-	msg := buildRFC822Message(s.cfg.From, recipient, subject, textBody)
-	return s.deliver(ctx, addr, recipient, msg)
+	msg := buildRFC822Message(from, recipient, subject, textBody)
+	return s.deliver(ctx, addr, from, recipient, msg)
 }
 
-func (s *SMTPSender) deliver(ctx context.Context, addr, recipient string, msg []byte) error {
+func (s *SMTPSender) deliver(ctx context.Context, addr, from, recipient string, msg []byte) error {
 	dialer := net.Dialer{Timeout: s.cfg.Timeout}
 	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return fmt.Errorf("smtp dial %s: %w", addr, err)
+	}
+	if deadlineErr := conn.SetDeadline(time.Now().Add(s.cfg.Timeout)); deadlineErr != nil {
+		_ = conn.Close()
+		return fmt.Errorf("smtp deadline: %w", deadlineErr)
 	}
 	client, err := s.openClient(conn)
 	if err != nil {
@@ -88,7 +99,7 @@ func (s *SMTPSender) deliver(ctx context.Context, addr, recipient string, msg []
 	if err := s.authenticate(client); err != nil {
 		return err
 	}
-	if err := client.Mail(s.cfg.From); err != nil {
+	if err := client.Mail(from); err != nil {
 		return fmt.Errorf("smtp MAIL FROM: %w", err)
 	}
 	if err := client.Rcpt(recipient); err != nil {
@@ -143,10 +154,13 @@ func (s *SMTPSender) authenticate(client *smtp.Client) error {
 }
 
 func buildRFC822Message(from, to, subject, body string) []byte {
-	cleanSubject := strings.NewReplacer("\r", "", "\n", "").Replace(subject)
+	crlfReplacer := strings.NewReplacer("\r", "", "\n", "")
+	cleanFrom := crlfReplacer.Replace(from)
+	cleanTo := crlfReplacer.Replace(to)
+	cleanSubject := crlfReplacer.Replace(subject)
 	headers := []string{
-		fmt.Sprintf("From: RosaFiesta <%s>", from),
-		fmt.Sprintf("To: %s", to),
+		fmt.Sprintf("From: RosaFiesta <%s>", cleanFrom),
+		fmt.Sprintf("To: %s", cleanTo),
 		fmt.Sprintf("Subject: %s", cleanSubject),
 		"MIME-Version: 1.0",
 		"Content-Type: text/plain; charset=UTF-8",

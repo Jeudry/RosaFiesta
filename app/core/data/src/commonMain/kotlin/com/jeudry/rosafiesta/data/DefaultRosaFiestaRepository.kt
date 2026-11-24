@@ -636,7 +636,12 @@ public class DefaultRosaFiestaRepository(
 
         val currentAccount = _currentAuthenticatedUser.value
             ?: findAccountByIdentifier(userAccountsState.value, _currentUserEmail.value)
-            ?: JwtAuthManager.defaultSeedAccounts.first()
+        if (currentAccount == null) {
+            return AuthOutcome.failure(
+                errorCode = "AUTH_UNAUTHORIZED",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null),
+            )
+        }
 
         val allAccounts = userAccountsState.value
         val emailOccupied = allAccounts.any { account ->
@@ -674,11 +679,16 @@ public class DefaultRosaFiestaRepository(
                 if (account.id == updatedAccount.id) updatedAccount else account
             }
         }
-        val token = JwtAuthManager.issueAccessToken(updatedAccount)
+        val existingToken = _currentSessionJwt.value?.trim().orEmpty()
+        val preservedToken = existingToken.ifEmpty { JwtAuthManager.issueAccessToken(updatedAccount) }
+        val preservedRefresh = apiClient?.currentRefreshToken()
         _currentAuthenticatedUser.value = updatedAccount
-        _currentSessionJwt.value = token
+        _currentSessionJwt.value = preservedToken
         _currentUserEmail.value = updatedAccount.email
-        submodules.propagateSessionTokenToApi(token)
+        if (existingToken.isEmpty()) {
+            submodules.propagateSessionTokenToApi(preservedToken)
+        }
+        persistBrowserSnapshot()
         scope.launch {
             runCatching {
                 apiClient?.updateMyProfile(
@@ -692,7 +702,11 @@ public class DefaultRosaFiestaRepository(
                 )
             }
         }
-        return AuthOutcome.authenticated(accessToken = token, account = updatedAccount)
+        return AuthOutcome.authenticated(
+            accessToken = preservedToken,
+            account = updatedAccount,
+            refreshToken = preservedRefresh,
+        )
     }
 
     override suspend fun requestPasswordOtp(email: String): OtpChallengeOutcome = submodules.requestPasswordOtp(email)
@@ -745,8 +759,8 @@ public class DefaultRosaFiestaRepository(
 
     override fun changeUserPassword(currentPassword: String, newPassword: String): AuthOutcome = submodules.changeUserPassword(currentPassword, newPassword)
 
-    override fun logoutSession() {
-        submodules.logoutSession(::clearSession)
+    override fun clearSession() {
+        clearUserScopedBrowserState(clearApiToken = true)
     }
 
     override fun restoreSessionFromJwt(accessToken: String): RegisteredUserAccount? {
@@ -777,17 +791,39 @@ public class DefaultRosaFiestaRepository(
         _currentUserEmail.value = resolvedAccount.email
         _activeRole.value = resolvedAccount.role
         submodules.propagateSessionTokenToApi(cleanToken)
+        persistBrowserSnapshot()
         return resolvedAccount
     }
 
-    override fun clearSession() {
+    private fun clearUserScopedBrowserState(clearApiToken: Boolean) {
         _currentSessionJwt.value = null
-        apiClient?.setAccessToken(null)
+        _currentAuthenticatedUser.value = null
+        _currentUserEmail.value = ""
+        _activeRole.value = "guest"
+        _events.value = emptyList()
+        _payments.value = emptyList()
+        _checklist.value = emptyList()
+        _offlineQueue.value = emptyList()
+        _favorites.value = emptySet()
+        _chatMessages.value = emptyList()
+        _metrics.value = CanonicalSampleData.zeroBusinessMetrics
+        submodules.clearUserScopedFlows()
+        if (clearApiToken) {
+            apiClient?.setAccessToken(null)
+            apiClient?.setRefreshToken(null)
+        }
         persistBrowserSnapshot()
+    }
+
+    override fun logoutSession() {
+        submodules.logoutSession {
+            clearUserScopedBrowserState(clearApiToken = false)
+        }
     }
 
     override suspend fun deleteCurrentAccountOnline(): Result<Unit> {
         val currentToken = _currentSessionJwt.value
+        val deletedUserId = _currentAuthenticatedUser.value?.id
         val client = apiClient
         if (client != null) {
             if (!currentToken.isNullOrBlank()) {
@@ -797,21 +833,20 @@ public class DefaultRosaFiestaRepository(
                 }
             }
         }
-        _currentSessionJwt.value = null
-        _currentAuthenticatedUser.value = null
-        _activeRole.value = "guest"
-        client?.setAccessToken(null)
-        persistBrowserSnapshot()
+        if (deletedUserId != null) {
+            userAccountsState.update { list -> list.filterNot { account -> account.id == deletedUserId } }
+        }
+        clearUserScopedBrowserState(clearApiToken = true)
         return Result.success(Unit)
     }
 
     override fun deleteCurrentAccount(): Boolean {
         val currentToken = _currentSessionJwt.value
-        _currentSessionJwt.value = null
-        _currentAuthenticatedUser.value = null
-        _activeRole.value = "guest"
-        apiClient?.setAccessToken(null)
-        persistBrowserSnapshot()
+        val deletedUserId = _currentAuthenticatedUser.value?.id
+        if (deletedUserId != null) {
+            userAccountsState.update { list -> list.filterNot { account -> account.id == deletedUserId } }
+        }
+        clearUserScopedBrowserState(clearApiToken = true)
         if (!currentToken.isNullOrBlank()) {
             scope.launch {
                 runCatching {
@@ -986,12 +1021,19 @@ public class DefaultRosaFiestaRepository(
         pricePerDayDop: Int,
         totalStock: Int,
         photoUrl: String,
+        description: String,
+        dimensions: String,
+        material: String,
+        visibleInCatalog: Boolean,
     ) {
         val cleanCode = code.trim()
         val cleanName = name.trim()
         val cleanCategory = category.trim()
         val resolvedCategoryId = submodules.resolveCategoryWireId(cleanCategory)
         val cleanPhotoUrl = photoUrl.trim()
+        val cleanDescription = description.trim().ifEmpty { "$cleanName para eventos y celebraciones en Santo Domingo." }
+        val cleanDimensions = dimensions.trim()
+        val cleanMaterial = material.trim()
         if (cleanCode.isEmpty()) return
         if (cleanName.isEmpty()) return
         if (pricePerDayDop <= 0) return
@@ -1003,12 +1045,15 @@ public class DefaultRosaFiestaRepository(
             code = cleanCode,
             name = cleanName,
             category = cleanCategory,
-            description = "$cleanName para eventos y celebraciones en Santo Domingo.",
+            description = cleanDescription,
             pricePerDayDop = pricePerDayDop,
             totalStock = totalStock,
             availableOct23 = totalStock,
             photo = photo,
             variants = emptyList(),
+            dimensions = cleanDimensions,
+            material = cleanMaterial,
+            visibleInCatalog = visibleInCatalog,
             photoUrl = cleanPhotoUrl,
         )
         _articles.update { list ->
@@ -1030,8 +1075,10 @@ public class DefaultRosaFiestaRepository(
                         dailyPriceDop = pricePerDayDop.toLong(),
                         totalStock = totalStock.toLong(),
                         availableStock = totalStock.toLong(),
-                        description = newArticle.description,
-                        visible = true,
+                        description = cleanDescription,
+                        dimensions = cleanDimensions.ifBlank { null },
+                        material = cleanMaterial.ifBlank { null },
+                        visible = visibleInCatalog,
                         photoUrl = cleanPhotoUrl.ifBlank { null },
                     ),
                 )
@@ -1247,8 +1294,13 @@ public class DefaultRosaFiestaRepository(
         val isTransferMethod = normalizedPayment.canonicalMethod.equals("TRANSFER", ignoreCase = true)
         val requiresVerification = if (isTransferMethod) true else cleanVoucher.isNotEmpty()
         val resolvedVerified = !requiresVerification
-        val subtotalDop = (amountDop * 100) / 118
-        val itbisDop = amountDop - subtotalDop
+        val fiscalBreakdown = RosaFiestaEngine.computeFiscalBreakdown(
+            totalDop = amountDop,
+            ncfType = cleanNcfType,
+            rawTaxId = cleanRnc,
+        )
+        val subtotalDop = fiscalBreakdown.subtotalDop
+        val itbisDop = fiscalBreakdown.itbisDop
         val resolvedKind = kindLabel.trim().ifEmpty {
             if (amountDop >= targetEvent.balanceDop) "Liquidación" else "Abono"
         }
@@ -1988,14 +2040,9 @@ public class DefaultRosaFiestaRepository(
             }
         }
         if (snapshot.activeSessionJwt.isNotBlank()) {
-            val matchedUser = userAccountsState.value.firstOrNull { account -> account.id == snapshot.activeUserId }
-            if (matchedUser != null) {
-                _currentAuthenticatedUser.value = matchedUser
-                _currentSessionJwt.value = snapshot.activeSessionJwt
-                _currentUserEmail.value = matchedUser.email
-                _activeRole.value = matchedUser.role
-            } else {
-                restoreSessionFromJwt(snapshot.activeSessionJwt)
+            val restored = restoreSessionFromJwt(snapshot.activeSessionJwt)
+            if (restored == null) {
+                clearSession()
             }
         }
     }

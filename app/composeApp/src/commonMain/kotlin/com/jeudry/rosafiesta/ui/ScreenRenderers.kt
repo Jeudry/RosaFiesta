@@ -367,10 +367,16 @@ public fun RenderScreenSpec(
 
     val baseVariant = themeVariantOverride
         ?: if (underlyingScreenCode == "A30") RfThemeVariant.ADMIN else spec.variant
-    val isAdmin = baseVariant == RfThemeVariant.ADMIN
+    val isAdmin = when (baseVariant) {
+        RfThemeVariant.ADMIN, RfThemeVariant.ADMIN_DARK -> true
+        RfThemeVariant.PERSONAL, RfThemeVariant.PERSONAL_DARK -> false
+    }
     val isDarkThemeEnabled = viewModel?.isDarkTheme?.collectAsState()?.value ?: false
-    val usePersonalDark = if (isAdmin) false else isDarkThemeEnabled
-    val resolvedVariant = if (usePersonalDark) RfThemeVariant.PERSONAL_DARK else baseVariant
+    val resolvedVariant = when {
+        isAdmin -> if (isDarkThemeEnabled) RfThemeVariant.ADMIN_DARK else RfThemeVariant.ADMIN
+        isDarkThemeEnabled -> RfThemeVariant.PERSONAL_DARK
+        else -> baseVariant
+    }
     val activeRoleValue = viewModel?.activeRole?.collectAsState()?.value
     val staffMembersValue = viewModel?.staffMembers?.collectAsState()?.value
     val isRestrictedForActiveStaff = remember(spec.code, activeRoleValue, staffMembersValue) {
@@ -859,18 +865,18 @@ internal fun RenderYuliPaymentRestrictedScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     RfTag(text = "Acceso restringido · $staffDisplayName", tone = RfTagTone.SOL)
                     Spacer(Modifier.height(4.dp))
-                    BasicText("Sin permiso de pagos ni reembolsos (${spec.code})", style = typo.cardTitle)
+                    BasicText("Sin permiso de pagos ni reembolsos", style = typo.cardTitle)
                     BasicText(
-                        "Tu rol ($staffRoleTitle) no incluye acceso a esta sección. La administración puede habilitar el permiso en A28.",
+                        "Tu rol ($staffRoleTitle) no incluye acceso a esta sección. Solicita a la administración que habilite este permiso.",
                         style = typo.secondary,
                     )
                 }
             }
         }
         RfButton(
-            label = "Solicitar permiso en A28",
+            label = "Volver atrás",
             style = RfButtonStyle.SECONDARY,
-            onClick = { onSelectScreenCode("A28") },
+            onClick = { onSelectScreenCode("BACK:A01") },
         )
         RfButton(
             label = "Volver al inicio administrativo",

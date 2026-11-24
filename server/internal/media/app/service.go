@@ -73,17 +73,22 @@ func (s *Service) Upload(ctx context.Context, input domain.UploadInput) (domain.
 	}
 	sum := sha256.Sum256(input.Data)
 	defaultPublicURL := fmt.Sprintf("/v1/media/%s", id)
+	purpose := normalizePurpose(input.Purpose)
+	publicURL := defaultPublicURL
+	if !domain.IsPrivatePurpose(purpose) {
+		publicURL = s.blobs.PublicURL(objectKey, defaultPublicURL)
+	}
 	asset := domain.Asset{
 		ID:          id,
 		OwnerID:     strings.TrimSpace(input.OwnerID),
 		OwnerRole:   strings.TrimSpace(input.OwnerRole),
-		Purpose:     normalizePurpose(input.Purpose),
+		Purpose:     purpose,
 		Filename:    domain.SanitizeFilename(input.Filename, ext),
 		MimeType:    mimeType,
 		ByteSize:    int64(len(input.Data)),
 		SHA256:      hex.EncodeToString(sum[:]),
 		StoragePath: storageRef,
-		PublicURL:   s.blobs.PublicURL(objectKey, defaultPublicURL),
+		PublicURL:   publicURL,
 		CreatedAt:   s.clock().UTC(),
 	}
 	if err := s.store.SaveAsset(ctx, asset); err != nil {
@@ -93,19 +98,33 @@ func (s *Service) Upload(ctx context.Context, input domain.UploadInput) (domain.
 	return asset, nil
 }
 
-// Open lee los metadatos y los bytes reales del recurso solicitado.
-func (s *Service) Open(ctx context.Context, id string) (domain.Asset, []byte, error) {
+// FindAsset carga únicamente los metadatos del recurso sin leer sus bytes todavía.
+func (s *Service) FindAsset(ctx context.Context, id string) (domain.Asset, error) {
 	trimmed := strings.TrimSpace(id)
 	if trimmed == "" {
-		return domain.Asset{}, nil, domain.ErrAssetNotFound
+		return domain.Asset{}, domain.ErrAssetNotFound
 	}
-	asset, err := s.store.FindAssetByID(ctx, trimmed)
+	return s.store.FindAssetByID(ctx, trimmed)
+}
+
+// ReadBlob lee los bytes reales de un recurso ya localizado y autorizado.
+func (s *Service) ReadBlob(ctx context.Context, asset domain.Asset) ([]byte, error) {
+	content, readErr := s.blobs.Get(ctx, asset.StoragePath)
+	if readErr != nil {
+		return nil, domain.ErrAssetNotFound
+	}
+	return content, nil
+}
+
+// Open lee los metadatos y los bytes reales del recurso solicitado.
+func (s *Service) Open(ctx context.Context, id string) (domain.Asset, []byte, error) {
+	asset, err := s.FindAsset(ctx, id)
 	if err != nil {
 		return domain.Asset{}, nil, err
 	}
-	content, readErr := s.blobs.Get(ctx, asset.StoragePath)
-	if readErr != nil {
-		return domain.Asset{}, nil, domain.ErrAssetNotFound
+	content, err := s.ReadBlob(ctx, asset)
+	if err != nil {
+		return domain.Asset{}, nil, err
 	}
 	return asset, content, nil
 }

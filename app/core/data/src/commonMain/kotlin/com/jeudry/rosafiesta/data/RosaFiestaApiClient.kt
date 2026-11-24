@@ -750,6 +750,9 @@ public class RosaFiestaApiClient(
     @Volatile
     private var onSessionExpiredCallback: (suspend () -> Unit)? = null
 
+    @Volatile
+    private var sessionExpiredNotifiedForToken: String? = null
+
     init {
         installAutoRefreshInterceptor()
     }
@@ -769,7 +772,11 @@ public class RosaFiestaApiClient(
      * Updates or clears the active bearer token used for authenticated endpoints.
      */
     public fun setAccessToken(token: String?) {
-        explicitAccessToken = token?.trim()?.ifEmpty { null }
+        val clean = token?.trim()?.ifEmpty { null }
+        explicitAccessToken = clean
+        if (clean != null) {
+            sessionExpiredNotifiedForToken = null
+        }
     }
 
     /**
@@ -858,7 +865,18 @@ public class RosaFiestaApiClient(
         if (alreadyRotatedInFlight) {
             return@withLock currentToken
         }
-        val activeRefresh = currentRefreshToken() ?: return@withLock null
+        val activeRefresh = currentRefreshToken()
+        if (activeRefresh == null) {
+            val hasFailedToken = failedAccessToken.isNotEmpty()
+            val notAlreadyNotified = sessionExpiredNotifiedForToken != failedAccessToken
+            val shouldNotifyExpired = if (hasFailedToken) notAlreadyNotified else false
+            if (shouldNotifyExpired) {
+                sessionExpiredNotifiedForToken = failedAccessToken
+                setAccessToken(null)
+                onSessionExpiredCallback?.invoke()
+            }
+            return@withLock null
+        }
         runCatching {
             performRefreshAccessToken(activeRefresh)
         }.getOrNull()?.accessToken
@@ -878,11 +896,17 @@ public class RosaFiestaApiClient(
             onTokensRefreshedCallback?.invoke(output.accessToken, output.refreshToken)
             output
         } catch (apiError: RosaFiestaApiException) {
-            val isRejectedRefresh = response.status == HttpStatusCode.Unauthorized || response.status == HttpStatusCode.Forbidden
+            val isUnauthorizedRefresh = response.status == HttpStatusCode.Unauthorized
+            val isForbiddenRefresh = response.status == HttpStatusCode.Forbidden
+            val isRejectedRefresh = if (isUnauthorizedRefresh) true else isForbiddenRefresh
             if (isRejectedRefresh) {
+                val expiredToken = currentAccessToken().orEmpty()
                 setAccessToken(null)
                 setRefreshToken(null)
-                onSessionExpiredCallback?.invoke()
+                if (sessionExpiredNotifiedForToken != expiredToken) {
+                    sessionExpiredNotifiedForToken = expiredToken
+                    onSessionExpiredCallback?.invoke()
+                }
             }
             throw apiError
         }
@@ -944,6 +968,17 @@ public class RosaFiestaApiClient(
         return output
     }
 
+    /**
+     * Verifies account credentials against `/v1/auth/login` without mutating active session tokens.
+     */
+    public suspend fun verifyCredentials(input: LoginInputDto): Boolean = withContext(ioDispatcher) {
+        val response = httpClient.post("$baseUrl/v1/auth/login") {
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }
+        response.status.isSuccess()
+    }
+
     public suspend fun login(input: LoginInputDto): LoginOutputDto = withContext(ioDispatcher) {
         val response = httpClient.post("$baseUrl/v1/auth/login") {
             contentType(ContentType.Application.Json)
@@ -977,11 +1012,15 @@ public class RosaFiestaApiClient(
         val errorEnvelopeJson = Json { ignoreUnknownKeys = true }
     }
 
-    public suspend fun logout(refreshToken: String = currentRefreshToken().orEmpty()): LogoutOutputDto = withContext(ioDispatcher) {
+    public suspend fun logout(
+        refreshToken: String = currentRefreshToken().orEmpty(),
+        bearerToken: String = "",
+    ): LogoutOutputDto = withContext(ioDispatcher) {
         val cleanRefresh = refreshToken.trim()
+        val cleanBearer = bearerToken.trim()
         try {
             httpClient.post("$baseUrl/v1/auth/logout") {
-                applyBearerAuth()
+                applyBearerAuth(cleanBearer)
                 if (cleanRefresh.isNotEmpty()) {
                     header("X-Refresh-Token", cleanRefresh)
                 }

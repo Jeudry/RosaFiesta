@@ -81,6 +81,37 @@ func RequireAuth(_ huma.API, auth Authenticator) func(huma.Context, func(huma.Co
 	}
 }
 
+func RequireRole(_ huma.API, auth PrincipalResolver, role string) func(huma.Context, func(huma.Context)) {
+	policy := "RequireRole:" + role
+	return func(ctx huma.Context, next func(huma.Context)) {
+		endpoint := buildEndpointLabel(ctx)
+		token, id, apiErr := authenticateContext(ctx, auth, endpoint, policy)
+		if apiErr != nil {
+			WriteAPIError(ctx, apiErr)
+			return
+		}
+		principal, err := auth.ResolvePrincipal(ctx.Context(), id)
+		hasRole := err == nil
+		if hasRole {
+			hasRole = strings.EqualFold(principal.Role, role)
+		}
+		if !hasRole {
+			forbidden := NewAPIError(
+				http.StatusForbidden,
+				"FORBIDDEN_ROLE",
+				"user lacks required role",
+				endpoint,
+				policy,
+				"missing required role: "+role,
+			)
+			WriteAPIError(ctx, forbidden)
+			return
+		}
+		enriched := attachIdentityValues(ctx, auth, id, token)
+		next(enriched)
+	}
+}
+
 func RequirePermission(_ huma.API, auth PermissionAuthorizer, permission string) func(huma.Context, func(huma.Context)) {
 	policy := "RequirePermission:" + permission
 	return func(ctx huma.Context, next func(huma.Context)) {

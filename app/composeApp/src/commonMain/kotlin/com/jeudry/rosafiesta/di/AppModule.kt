@@ -18,16 +18,30 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 
 /**
+ * Global runtime flag allowing automated JVM tests to isolate Koin from live localhost HTTP/SSE calls.
+ */
+public object AppModuleRuntime {
+    @kotlin.concurrent.Volatile
+    public var connectLiveApiByDefault: Boolean = true
+}
+
+/**
  * Shared Koin dependency graph registering `PlatformActions`, `RosaFiestaApiClient`,
  * `RosaFiestaRepository`, `SoundPlayer`, `SecureStorage`, `VoiceInputMonitor`, and `RosaFiestaViewModel`.
  */
 public val appModule: Module
-    get() = buildAppModule(seedDemoData = false)
+    get() = buildAppModule(
+        seedDemoData = false,
+        connectLiveApi = AppModuleRuntime.connectLiveApiByDefault,
+    )
 
 /**
- * Builds the Koin dependency graph, optionally enabling canonical sample seed data for tests.
+ * Builds the Koin dependency graph, optionally enabling canonical sample seed data or disabling live HTTP/SSE for tests.
  */
-public fun buildAppModule(seedDemoData: Boolean = false): Module = module {
+public fun buildAppModule(
+    seedDemoData: Boolean = false,
+    connectLiveApi: Boolean = AppModuleRuntime.connectLiveApiByDefault,
+): Module = module {
     single<PlatformActions> { createPlatformActions() }
     single {
         val actions: PlatformActions = get()
@@ -38,15 +52,16 @@ public fun buildAppModule(seedDemoData: Boolean = false): Module = module {
     single<VoiceInputMonitor> { createPlatformVoiceInputMonitor() }
     single<RosaFiestaRepository> {
         val driver = createDefaultSqlDriverOrNull()
+        val resolvedApiClient = if (connectLiveApi) get<RosaFiestaApiClient>() else null
         if (driver != null) {
             SqlRosaFiestaRepository(
                 driver = driver,
-                apiClient = get(),
+                apiClient = resolvedApiClient,
                 seedDemoData = seedDemoData,
             )
         } else {
             DefaultRosaFiestaRepository(
-                apiClient = get(),
+                apiClient = resolvedApiClient,
                 seedDemoData = seedDemoData,
             )
         }

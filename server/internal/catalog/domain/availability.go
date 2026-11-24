@@ -109,7 +109,7 @@ func DatesOverlap(startA, endA, startB, endB string) bool {
 	return true
 }
 
-// EffectiveAvailableForDate calcula las unidades libres descontando dañadas y reservas solapadas.
+// EffectiveAvailableForDate calcula las unidades libres descontando dañadas y el pico de reservas solapadas.
 func EffectiveAvailableForDate(
 	article Article,
 	reservations []StockReservation,
@@ -117,28 +117,66 @@ func EffectiveAvailableForDate(
 	returnISO string,
 	excludeEventID string,
 ) int {
-	reserved := 0
+	overlapping := make([]StockReservation, 0)
+	sampleDates := []string{pickupISO}
 	for _, res := range reservations {
-		if res.ArticleID != article.ID {
+		if !isMatchingActiveReservation(res, article.ID, pickupISO, returnISO, excludeEventID) {
 			continue
 		}
-		if !res.Status.IsActive() {
-			continue
-		}
-		if excludeEventID != "" {
-			if res.EventID == excludeEventID {
-				continue
-			}
-		}
-		if DatesOverlap(res.PickupDateISO, res.ReturnDateISO, pickupISO, returnISO) {
-			reserved += res.Quantity
+		overlapping = append(overlapping, res)
+		if res.PickupDateISO > pickupISO {
+			sampleDates = append(sampleDates, res.PickupDateISO)
 		}
 	}
-	free := article.UsableStock() - reserved
+	free := article.UsableStock() - peakReservedAtDates(overlapping, sampleDates)
 	if free < 0 {
 		return 0
 	}
 	return free
+}
+
+func isMatchingActiveReservation(
+	res StockReservation,
+	articleID string,
+	pickupISO string,
+	returnISO string,
+	excludeEventID string,
+) bool {
+	if res.ArticleID != articleID {
+		return false
+	}
+	if !res.Status.IsActive() {
+		return false
+	}
+	if excludeEventID != "" {
+		if res.EventID == excludeEventID {
+			return false
+		}
+	}
+	return DatesOverlap(res.PickupDateISO, res.ReturnDateISO, pickupISO, returnISO)
+}
+
+func peakReservedAtDates(overlapping []StockReservation, sampleDates []string) int {
+	peakReserved := 0
+	for _, day := range sampleDates {
+		dayReserved := 0
+		for _, res := range overlapping {
+			if reservationCoversDay(res, day) {
+				dayReserved += res.Quantity
+			}
+		}
+		if dayReserved > peakReserved {
+			peakReserved = dayReserved
+		}
+	}
+	return peakReserved
+}
+
+func reservationCoversDay(res StockReservation, day string) bool {
+	if res.PickupDateISO > day {
+		return false
+	}
+	return day <= res.ReturnDateISO
 }
 
 // BuildAvailabilityConflictMessage genera un resumen legible para el cliente cuando falta stock.
@@ -159,6 +197,11 @@ func BuildAvailabilityConflictMessage(conflicts []AvailabilityConflict) string {
 func parseSpanishDateLabel(raw string) (time.Time, bool) {
 	replacer := strings.NewReplacer(",", " ", " de ", " ", " del ", " ", ".", " ")
 	tokens := strings.Fields(strings.ToLower(replacer.Replace(raw)))
+	if len(tokens) >= 4 {
+		if _, err := strconv.Atoi(tokens[0]); err != nil {
+			tokens = tokens[1:]
+		}
+	}
 	if len(tokens) < 3 {
 		return time.Time{}, false
 	}

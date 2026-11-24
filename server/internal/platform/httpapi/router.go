@@ -33,6 +33,8 @@ type RawRouterModule interface {
 
 type RouterOptions struct {
 	AllowedOrigins []string
+	DisableDocs    bool
+	TrustedProxies []string
 }
 
 func New(logger *slog.Logger, modules ...Module) (http.Handler, huma.API) {
@@ -47,7 +49,8 @@ func New(logger *slog.Logger, modules ...Module) (http.Handler, huma.API) {
 
 func NewWithOptions(logger *slog.Logger, opts RouterOptions, modules ...Module) (http.Handler, huma.API) {
 	router := chi.NewRouter()
-	limiter := NewRateLimiterWithAuth(defaultRateLimitReqs, defaultAuthRateLimitReqs, time.Minute)
+	limiter := NewRateLimiterWithAuth(defaultRateLimitReqs, defaultAuthRateLimitReqs, time.Minute).
+		WithTrustedProxies(opts.TrustedProxies)
 	corsHandler := buildCORSMiddleware(opts.AllowedOrigins)
 	logHandler := requestLogger(logger)
 	router.Use(
@@ -61,6 +64,10 @@ func NewWithOptions(logger *slog.Logger, opts RouterOptions, modules ...Module) 
 
 	apiCfg := huma.DefaultConfig(apiTitle, apiVersion)
 	apiCfg.Info.Description = "API de RosaFiesta (App Personal y App Administrativa). Documentación interactiva en /docs."
+	if opts.DisableDocs {
+		apiCfg.DocsPath = ""
+		apiCfg.OpenAPIPath = ""
+	}
 	apiCfg.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		SecurityScheme: {
 			Type:        "http",
@@ -156,5 +163,5 @@ func resolveAllowedOrigin(requestOrigin string, allowed []string) string {
 			return requestOrigin
 		}
 	}
-	return allowed[0]
+	return ""
 }

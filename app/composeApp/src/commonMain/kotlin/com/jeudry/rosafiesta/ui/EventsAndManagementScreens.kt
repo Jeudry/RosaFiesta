@@ -1233,7 +1233,7 @@ internal fun RenderNewEventScreenS38(
                                     decorationBox = { innerTextField ->
                                         if (customEventTitle.isEmpty()) {
                                             val placeholderExample = if (resolvedEventCategory.isNotEmpty()) {
-                                                "Ej. $resolvedEventCategory de Camila"
+                                                "Ej. $resolvedEventCategory de aniversario"
                                             } else {
                                                 "Elige un tipo arriba o escribe el nombre"
                                             }
@@ -2507,28 +2507,35 @@ internal fun RenderEventDetailScreenS40(
         viewModel?.totalDraftCartUnits() ?: 0
     }
     val activeEvent = remember(viewModel, eventsState, selectedEventId, observedUser, observedGuestSession, observedProfileName) {
-        viewModel?.activeClientEventOrNull()
-            ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
-            ?: eventsState.firstOrNull()
+        if (viewModel != null) {
+            viewModel.activeClientEventOrNull()
+        } else {
+            eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
+                ?: eventsState.firstOrNull()
+        }
     }
-    val fallbackEmptyEventTitle = if (viewModel == null) "Boda Real Rosa & Dorado" else "Sin eventos"
-    val eventTitle = activeEvent?.title ?: fallbackEmptyEventTitle
-    val activeVenue = activeEvent?.venue ?: "Jardín Botánico"
-    val eventSubtitle = if (activeEvent != null) {
-        "${formatReadableSpanishDateText(activeEvent.dateLabel)} · ${activeEvent.venue}"
-    } else {
-        "Vie, 23 de octubre · Jardín Botánico"
+    if (activeEvent == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Detalle del evento",
+            backTargetCode = "BACK:s37",
+            message = "Crea o cotiza tu primer evento para ver aquí el resumen, pagos, tareas e invitados.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
     }
-    val daysUntil = remember(activeEvent?.dateLabel, activeEvent?.daysUntilEvent) {
-        val label = activeEvent?.dateLabel.orEmpty()
+    val eventTitle = activeEvent.title
+    val activeVenue = activeEvent.venue
+    val eventSubtitle = "${formatReadableSpanishDateText(activeEvent.dateLabel)} · ${activeEvent.venue}"
+    val daysUntil = remember(activeEvent.dateLabel, activeEvent.daysUntilEvent) {
+        val label = activeEvent.dateLabel
         if (label.isNotBlank()) {
             DomainClockFormatter.computeDaysUntilEvent(label).coerceAtLeast(0)
         } else {
-            (activeEvent?.daysUntilEvent ?: 0).coerceAtLeast(0)
+            activeEvent.daysUntilEvent.coerceAtLeast(0)
         }
     }
     val daysFormatted = daysUntil.toString().padStart(2, '0')
-    val isQuotePendingApproval = activeEvent?.status == EventStatus.PENDING_QUOTE
+    val isQuotePendingApproval = activeEvent.status == EventStatus.PENDING_QUOTE
     val dismissedCalendarIds = viewModel?.calendarSyncPromptDismissedIds?.collectAsState()?.value.orEmpty()
 
     val vmEventTasks = viewModel?.eventTasksList?.collectAsState()?.value
@@ -2555,8 +2562,8 @@ internal fun RenderEventDetailScreenS40(
     val confirmedGuestsCount = vmGuests?.count { guestItem -> guestItem.status == "Confirmado" } ?: 0
     val totalRegisteredGuests = vmGuests?.size ?: 0
 
-    val paidDop = activeEvent?.paidDepositDop ?: 0
-    val totalDop = (activeEvent?.totalDop ?: 0).coerceAtLeast(1)
+    val paidDop = activeEvent.paidDepositDop
+    val totalDop = activeEvent.totalDop.coerceAtLeast(1)
     val paidFraction = (paidDop.toFloat() / totalDop.toFloat()).coerceIn(0f, 1f)
     val paidPercent = (paidFraction * 100).toInt()
     val vmFeedback = viewModel?.formFeedback?.collectAsState()?.value
@@ -2565,7 +2572,7 @@ internal fun RenderEventDetailScreenS40(
     var showCalendarSyncPopup by remember { mutableStateOf(false) }
     var localActionFeedback by remember { mutableStateOf<String?>(null) }
     val visibleBannerMessage = localActionFeedback ?: vmFeedback
-    val activeEventId = activeEvent?.id.orEmpty()
+    val activeEventId = activeEvent.id
     val hasDismissedAutoPrompt = activeEventId.isEmpty() || activeEventId in dismissedCalendarIds
     val shouldDisplayCalendarModal = if (showCalendarSyncPopup) true else !hasDismissedAutoPrompt
 
@@ -2628,11 +2635,9 @@ internal fun RenderEventDetailScreenS40(
                             .background(RfThemeState.currentPalette.surface)
                             .border(1.dp, Color(0xFFEEEAF2), CircleShape)
                             .clickable {
-                                if (activeEvent != null) {
-                                    val exportedFile = viewModel?.exportReceiptDocument(activeEvent)
-                                    if (exportedFile != null) {
-                                        localActionFeedback = "Documento exportado: $exportedFile"
-                                    }
+                                val exportedFile = viewModel?.exportReceiptDocument(activeEvent)
+                                if (exportedFile != null) {
+                                    localActionFeedback = "Documento exportado: $exportedFile"
                                 }
                             },
                         contentAlignment = Alignment.Center,
@@ -3194,7 +3199,7 @@ internal fun RenderEventDetailScreenS40(
                             iconTint = Color(0xFF1F8A84),
                             onClick = {
                                 showMoreActionsSheet = false
-                                val summaryBody = "$eventTitle · $eventSubtitle · Invitados: ${activeEvent?.guests ?: 120} · Total: RD$ $totalDop"
+                                val summaryBody = "$eventTitle · $eventSubtitle · Invitados: ${activeEvent.guests} · Total: RD$ $totalDop"
                                 viewModel?.sharePlainText(eventTitle, summaryBody)
                                 localActionFeedback = "Resumen de '$eventTitle' listo para compartir."
                             },
@@ -3483,11 +3488,22 @@ internal fun RenderExecutionModeScreenS43(
     val checklistSteps = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
-    val activeEvent = viewModel?.activeClientEventOrNull()
-        ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
-        ?: eventsState.firstOrNull()
-    val fallbackEmptyEventTitle = if (viewModel == null) "Boda Real Rosa & Dorado" else "Sin eventos"
-    val eventTitle = activeEvent?.title ?: fallbackEmptyEventTitle
+    val activeEvent = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
+            ?: eventsState.firstOrNull()
+    }
+    if (activeEvent == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Modo ejecución",
+            backTargetCode = "BACK:s37",
+            message = "Crea un evento para seguir el montaje en tiempo real paso a paso.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
+    val eventTitle = activeEvent.title
     var fallbackCompletedIds by remember {
         mutableStateOf(
             CanonicalSampleData.bodaChecklist
@@ -3764,7 +3780,22 @@ internal fun RenderTimelineScreenS44(
 ) {
     val typo = LocalRfTypography.current
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
-    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val event = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        eventsState.first()
+    }
+    if (event == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Cronograma",
+            backTargetCode = "BACK:s37",
+            message = "Crea tu evento primero para organizar bloques y horarios.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
+    val vmFormError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     val persistedTimeline = viewModel?.eventTimelineItems?.collectAsState()?.value
 
     var fallbackBlocks by remember {
@@ -4181,6 +4212,11 @@ internal fun RenderTimelineScreenS44(
                     RfValidationErrorText(errorMessage = blockSubtitleError)
                 }
 
+                val activeBlockErr = blockFormError ?: vmFormError
+                if (!activeBlockErr.isNullOrBlank()) {
+                    RfValidationErrorText(errorMessage = activeBlockErr)
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4188,7 +4224,7 @@ internal fun RenderTimelineScreenS44(
                         .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
                         .background(RosaButtonGradient)
-                        .clickable {
+                        .clickable(enabled = !isSubmitting) {
                             hasInteractedStartTime = true
                             hasInteractedEndTime = true
                             hasInteractedBlockTitle = true
@@ -4357,7 +4393,23 @@ internal fun RenderTasksScreenS45(
 ) {
     val typo = LocalRfTypography.current
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
-    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val event = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        eventsState.first()
+    }
+    if (event == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Tareas",
+            backTargetCode = "BACK:s37",
+            message = "Crea un evento para llevar control de tus pendientes y entregables.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
+    val vmFormError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
+    var pendingDeleteTask by remember { mutableStateOf<EventTaskRowState?>(null) }
     val vmTasks = viewModel?.eventTasksList?.collectAsState()?.value
     LaunchedEffect(viewModel, event.id) {
         viewModel?.loadTasksForActiveEvent()
@@ -4648,13 +4700,7 @@ internal fun RenderTasksScreenS45(
                                             .size(28.dp)
                                             .clip(CircleShape)
                                             .background(Color(0xFFFFEEF1))
-                                            .clickable {
-                                                if (viewModel != null) {
-                                                    viewModel.deleteEventTask(taskItem.id)
-                                                } else {
-                                                    fallbackTasks = fallbackTasks.filterNot { item -> item.id == taskItem.id }
-                                                }
-                                            },
+                                            .clickable { pendingDeleteTask = taskItem },
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 14.dp)
@@ -4730,13 +4776,7 @@ internal fun RenderTasksScreenS45(
                                             .size(28.dp)
                                             .clip(CircleShape)
                                             .background(Color(0xFFFFEEF1))
-                                            .clickable {
-                                                if (viewModel != null) {
-                                                    viewModel.deleteEventTask(taskItem.id)
-                                                } else {
-                                                    fallbackTasks = fallbackTasks.filterNot { item -> item.id == taskItem.id }
-                                                }
-                                            },
+                                            .clickable { pendingDeleteTask = taskItem },
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 14.dp)
@@ -4877,6 +4917,11 @@ internal fun RenderTasksScreenS45(
                     }
                 }
 
+                val activeTaskErr = taskFormError ?: vmFormError
+                if (!activeTaskErr.isNullOrBlank()) {
+                    RfValidationErrorText(errorMessage = activeTaskErr)
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4884,7 +4929,7 @@ internal fun RenderTasksScreenS45(
                         .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
                         .background(RosaButtonGradient)
-                        .clickable {
+                        .clickable(enabled = !isSubmitting) {
                             hasInteractedTaskTitle = true
                             hasInteractedTaskDue = true
                             forceShowTaskErrors = true
@@ -4930,6 +4975,30 @@ internal fun RenderTasksScreenS45(
                     )
                 }
             }
+
+            val taskToDelete = pendingDeleteTask
+            RfDeleteConfirmationDialog(
+                visible = taskToDelete != null,
+                title = "Eliminar tarea",
+                message = if (taskToDelete != null) {
+                    "¿Seguro que deseas eliminar \"${taskToDelete.title}\"? Esta acción no se puede deshacer."
+                } else {
+                    ""
+                },
+                errorMessage = vmFormError,
+                isSubmitting = isSubmitting,
+                onDismiss = { pendingDeleteTask = null },
+                onConfirm = {
+                    if (taskToDelete != null) {
+                        if (viewModel != null) {
+                            viewModel.deleteEventTask(taskToDelete.id)
+                        } else {
+                            fallbackTasks = fallbackTasks.filterNot { item -> item.id == taskToDelete.id }
+                        }
+                        pendingDeleteTask = null
+                    }
+                },
+            )
         }
     }
 }
@@ -4942,7 +5011,20 @@ internal fun RenderChecklistScreenS46(
     val typo = LocalRfTypography.current
     val checklist = viewModel?.checklist?.collectAsState()?.value ?: CanonicalSampleData.bodaChecklist
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
-    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val event = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        eventsState.first()
+    }
+    if (event == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Lista de control",
+            backTargetCode = "BACK:s37",
+            message = "Crea un evento para consultar su lista de verificación.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
     val totalEventDop = event.totalDop.coerceAtLeast(0)
     val paidDop = event.paidDepositDop.coerceAtLeast(0)
     val remainingDop = event.balanceDop
@@ -5271,7 +5353,23 @@ internal fun RenderGuestsScreenS47(
     }
     var selectedStatusFilter by remember { mutableStateOf("Todos") }
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
-    val event = viewModel?.activeClientEvent() ?: eventsState.first()
+    val event = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        eventsState.first()
+    }
+    if (event == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Invitados",
+            backTargetCode = "BACK:s37",
+            message = "Crea un evento primero para gestionar tu lista de invitados.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
+    val vmFormError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
+    var pendingDeleteGuest by remember { mutableStateOf<GuestRowItem47?>(null) }
     val draftGuestsState = viewModel?.eventGuestsList?.collectAsState()?.value
     val repoGuestsState = viewModel?.eventGuests?.collectAsState()?.value
     val selectedEventState = viewModel?.selectedEventId?.collectAsState()?.value
@@ -5715,13 +5813,7 @@ internal fun RenderGuestsScreenS47(
                                                     .size(28.dp)
                                                     .clip(CircleShape)
                                                     .background(Color(0xFFFFEEF1))
-                                                    .clickable {
-                                                        if (viewModel != null) {
-                                                            viewModel.deleteEventGuest(guestItem.id)
-                                                        } else {
-                                                            fallbackGuests = fallbackGuests.filterNot { item -> item.id == guestItem.id }
-                                                        }
-                                                    },
+                                                    .clickable { pendingDeleteGuest = guestItem },
                                                 contentAlignment = Alignment.Center,
                                             ) {
                                                 RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 14.dp)
@@ -5942,6 +6034,11 @@ internal fun RenderGuestsScreenS47(
                     }
                 }
 
+                val activeGuestErr = guestFormError ?: vmFormError
+                if (!activeGuestErr.isNullOrBlank()) {
+                    RfValidationErrorText(errorMessage = activeGuestErr)
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -5949,7 +6046,7 @@ internal fun RenderGuestsScreenS47(
                         .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
                         .clip(RoundedCornerShape(14.dp))
                         .background(RosaButtonGradient)
-                        .clickable {
+                        .clickable(enabled = !isSubmitting) {
                             hasInteractedGuestName = true
                             hasInteractedTableLabel = true
                             hasInteractedPartySize = true
@@ -6008,6 +6105,30 @@ internal fun RenderGuestsScreenS47(
                     )
                 }
             }
+
+            val guestToDelete = pendingDeleteGuest
+            RfDeleteConfirmationDialog(
+                visible = guestToDelete != null,
+                title = "Eliminar invitado",
+                message = if (guestToDelete != null) {
+                    "¿Seguro que deseas quitar a ${guestToDelete.name} de la lista de invitados?"
+                } else {
+                    ""
+                },
+                errorMessage = vmFormError,
+                isSubmitting = isSubmitting,
+                onDismiss = { pendingDeleteGuest = null },
+                onConfirm = {
+                    if (guestToDelete != null) {
+                        if (viewModel != null) {
+                            viewModel.deleteEventGuest(guestToDelete.id)
+                        } else {
+                            fallbackGuests = fallbackGuests.filterNot { item -> item.id == guestToDelete.id }
+                        }
+                        pendingDeleteGuest = null
+                    }
+                },
+            )
         }
     }
 }
@@ -6043,22 +6164,42 @@ internal fun RenderQuoteScreenS48(
     val draftDiscountDop = viewModel?.draftDiscountDop?.collectAsState()?.value ?: 0
     val rawProfileName = viewModel?.profileName?.collectAsState()?.value.orEmpty().trim()
     val vmFormError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
 
-    val fallbackEvent = viewModel?.activeClientEvent()
-        ?: events.firstOrNull { currentEvent -> currentEvent.id == selectedEventId }
-        ?: events.firstOrNull()
-        ?: CanonicalSampleData.events.first()
+    val selectedOrFirstQuote = if (viewModel != null) {
+        viewModel.selectedQuote() ?: observedQuotes?.firstOrNull()
+    } else {
+        null
+    }
+    val fallbackEvent: ClientEvent? = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        events.firstOrNull { currentEvent -> currentEvent.id == selectedEventId }
+            ?: events.firstOrNull()
+            ?: CanonicalSampleData.events.first()
+    }
+    if (fallbackEvent == null) {
+        if (selectedOrFirstQuote == null) {
+            PersonalEmptyEventStateScaffold(
+                headerTitle = "Cotización",
+                backTargetCode = "BACK:s37",
+                message = "Aún no tienes cotizaciones o eventos creados.",
+                onSelectScreenCode = onSelectScreenCode,
+            )
+            return
+        }
+    }
 
-    val activeQuote: QuoteRecord? = remember(viewModel, observedQuotes, observedQuoteId, fallbackEvent.id) {
+    val activeQuote: QuoteRecord? = remember(viewModel, observedQuotes, observedQuoteId, fallbackEvent?.id) {
         viewModel?.selectedQuote()
-            ?: observedQuotes?.firstOrNull { quoteItem -> quoteItem.eventId == fallbackEvent.id }
+            ?: fallbackEvent?.let { ev -> observedQuotes?.firstOrNull { quoteItem -> quoteItem.eventId == ev.id } }
             ?: observedQuotes?.firstOrNull()
     }
 
-    val quoteTitle = activeQuote?.eventTitle ?: fallbackEvent.title
-    val quoteDateLabel = formatReadableSpanishDateText(activeQuote?.dateLabel ?: fallbackEvent.dateLabel)
-    val quoteVenue = activeQuote?.venue ?: fallbackEvent.venue
-    val quoteGuests = activeQuote?.guests ?: fallbackEvent.guests
+    val quoteTitle = activeQuote?.eventTitle ?: fallbackEvent?.title.orEmpty()
+    val quoteDateLabel = formatReadableSpanishDateText(activeQuote?.dateLabel ?: fallbackEvent?.dateLabel.orEmpty())
+    val quoteVenue = activeQuote?.venue ?: fallbackEvent?.venue.orEmpty()
+    val quoteGuests = activeQuote?.guests ?: fallbackEvent?.guests ?: 0
     val quoteStage = resolveClientQuoteStageS48(activeQuote?.status)
     val quoteNotes = activeQuote?.notes.orEmpty().trim()
     val quoteRejectionReason = activeQuote?.rejectionReason.orEmpty().trim()
@@ -6071,19 +6212,21 @@ internal fun RenderQuoteScreenS48(
 
     val resolvedLines: List<EventLineItem> = remember(activeQuote, fallbackEvent) {
         val quoteLines = activeQuote?.lines.orEmpty()
+        val eventLines = fallbackEvent?.items.orEmpty()
         if (quoteLines.isNotEmpty()) {
             quoteLines
-        } else if (fallbackEvent.items.isNotEmpty()) {
-            fallbackEvent.items
+        } else if (eventLines.isNotEmpty()) {
+            eventLines
         } else {
-            val baseAmount = (fallbackEvent.totalDop - 350).coerceAtLeast(0)
+            val referenceTotal = activeQuote?.totalDop ?: fallbackEvent?.totalDop ?: 0
+            val baseAmount = (referenceTotal - 350).coerceAtLeast(0)
             listOf(
                 EventLineItem(
                     articleCode = "RF-BASE",
                     name = "Mobiliario y ambientación",
                     quantity = 1,
                     unitPriceDop = baseAmount,
-                    photo = fallbackEvent.photo,
+                    photo = fallbackEvent?.photo ?: PhotoAsset.BODA,
                 ),
             )
         }
@@ -6630,7 +6773,7 @@ internal fun RenderQuoteScreenS48(
                             .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RosaButtonGradient)
-                            .clickable {
+                            .clickable(enabled = !isSubmitting) {
                                 hasInteractedSigner = true
                                 forceShowSignerError = true
                                 val cleanSigner = signerName.trim()

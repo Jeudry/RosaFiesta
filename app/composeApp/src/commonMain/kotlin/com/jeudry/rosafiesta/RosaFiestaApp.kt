@@ -43,6 +43,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,6 +67,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.jeudry.rosafiesta.core.engine.AppView
 import com.jeudry.rosafiesta.designsystem.LocalRfPalette
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
@@ -137,10 +142,30 @@ public fun RosaFiestaApp(
     initialAppView: AppView = AppView.PERSONAL,
     initialScreenCode: String = if (initialAppView == AppView.ADMIN) "A01" else "s14",
     showDevHeader: Boolean = false,
-    viewModel: RosaFiestaViewModel = remember {
-        koinApplication { modules(appModule) }.koin.get()
-    },
+    viewModel: RosaFiestaViewModel? = null,
 ) {
+    val ownedViewModelStore = remember(viewModel) {
+        if (viewModel == null) ViewModelStore() else null
+    }
+    val activeViewModel = remember(viewModel, ownedViewModelStore) {
+        if (viewModel != null) {
+            viewModel
+        } else {
+            val store = requireNotNull(ownedViewModelStore)
+            val factory = viewModelFactory {
+                initializer {
+                    koinApplication { modules(appModule) }.koin.get<RosaFiestaViewModel>()
+                }
+            }
+            ViewModelProvider.create(store, factory)[RosaFiestaViewModel::class]
+        }
+    }
+    DisposableEffect(ownedViewModelStore) {
+        onDispose {
+            ownedViewModelStore?.clear()
+        }
+    }
+
     val navigator = remember(initialAppView, initialScreenCode) {
         Navigator(
             initialAppView = initialAppView,
@@ -151,17 +176,17 @@ public fun RosaFiestaApp(
     if (navigator.devOpen) {
         DevPanelScreen(
             onSwitchToPersonalApp = {
-                viewModel.soundPlayer.playTap()
+                activeViewModel.soundPlayer.playTap()
                 navigator.switchToPersonal("s14", fromAdminPreview = false)
                 navigator.devOpen = false
             },
             onSwitchToAdminApp = {
-                viewModel.soundPlayer.playTap()
+                activeViewModel.soundPlayer.playTap()
                 navigator.switchToAdmin("A01")
                 navigator.devOpen = false
             },
             onClose = {
-                viewModel.soundPlayer.playTap()
+                activeViewModel.soundPlayer.playTap()
                 navigator.devOpen = false
             },
         )
@@ -175,31 +200,47 @@ public fun RosaFiestaApp(
     val isNonAdminVariant = spec.variant != RfThemeVariant.ADMIN
     val isAdminActive = navigator.activeView == AppView.ADMIN
     val isNotPreviewingPersonal = !navigator.adminPreviewingPersonal
-    val isSharedAdminUtility = isAdminActive && isSharedUtilityScreen && isNotPreviewingPersonal
-    val isPersonalScreenInAdminApp = isAdminApp && isNonAdminVariant && !isSharedAdminUtility
+    val isSharedAdminUtility = if (isAdminActive) {
+        if (isSharedUtilityScreen) isNotPreviewingPersonal else false
+    } else {
+        false
+    }
+    val isPersonalScreenInAdminApp = if (isAdminApp) {
+        if (isNonAdminVariant) !isSharedAdminUtility else false
+    } else {
+        false
+    }
     val isNotSharedUtility = !isSharedUtilityScreen
     val isPreviewBannerEligible = if (navigator.adminPreviewingPersonal) true else isNotSharedUtility
     val isNotPersonalScreenInAdminApp = !isPersonalScreenInAdminApp
-    val shouldUseAdminTheme = isAdminActive && isNotPreviewingPersonal && isNotPersonalScreenInAdminApp
-    val isDarkThemeEnabled by viewModel.isDarkTheme.collectAsState()
-    val usePersonalDark = isDarkThemeEnabled && isNonAdminVariant && !isSharedAdminUtility
-    val themeVariant = if (shouldUseAdminTheme) {
-        RfThemeVariant.ADMIN
-    } else if (usePersonalDark) {
-        RfThemeVariant.PERSONAL_DARK
+    val shouldUseAdminTheme = if (isAdminActive) {
+        if (isNotPreviewingPersonal) isNotPersonalScreenInAdminApp else false
     } else {
-        spec.variant
+        false
+    }
+    val isDarkThemeEnabled by activeViewModel.isDarkTheme.collectAsState()
+    val useAdminDark = if (shouldUseAdminTheme) isDarkThemeEnabled else false
+    val usePersonalDark = if (isDarkThemeEnabled) {
+        if (isNonAdminVariant) !isSharedAdminUtility else false
+    } else {
+        false
+    }
+    val themeVariant = when {
+        useAdminDark -> RfThemeVariant.ADMIN_DARK
+        shouldUseAdminTheme -> RfThemeVariant.ADMIN
+        usePersonalDark -> RfThemeVariant.PERSONAL_DARK
+        else -> spec.variant
     }
 
     RfTheme(variant = themeVariant) {
         val palette = LocalRfPalette.current
         val typo = LocalRfTypography.current
-        val isAppLocked by viewModel.isAppLocked.collectAsState()
-        val appLockError by viewModel.appLockError.collectAsState()
-        val requiresReauthentication by viewModel.requiresReauthentication.collectAsState()
+        val isAppLocked by activeViewModel.isAppLocked.collectAsState()
+        val appLockError by activeViewModel.appLockError.collectAsState()
+        val requiresReauthentication by activeViewModel.requiresReauthentication.collectAsState()
         LaunchedEffect(requiresReauthentication) {
             if (requiresReauthentication) {
-                viewModel.consumeSessionExpiredPrompt()
+                activeViewModel.consumeSessionExpiredPrompt()
                 if (navigator.currentCode != "s07") {
                     navigator.navigateTo("s07")
                 }
@@ -235,7 +276,7 @@ public fun RosaFiestaApp(
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(RfColors.IndigoBrand)
                                 .clickable {
-                                    viewModel.soundPlayer.playTap()
+                                    activeViewModel.soundPlayer.playTap()
                                     navigator.switchToAdmin("A01")
                                 }
                                 .padding(horizontal = 12.dp, vertical = 5.dp),
@@ -265,7 +306,7 @@ public fun RosaFiestaApp(
                                 label = "App Personal",
                                 selected = navigator.activeView == AppView.PERSONAL,
                                 onClick = {
-                                    viewModel.soundPlayer.playTap()
+                                    activeViewModel.soundPlayer.playTap()
                                     navigator.switchToPersonal("s14", fromAdminPreview = false)
                                 },
                                 modifier = Modifier.testTag("switch-personal"),
@@ -274,7 +315,7 @@ public fun RosaFiestaApp(
                                 label = "App Admin",
                                 selected = navigator.activeView == AppView.ADMIN,
                                 onClick = {
-                                    viewModel.soundPlayer.playTap()
+                                    activeViewModel.soundPlayer.playTap()
                                     navigator.switchToAdmin("A01")
                                 },
                                 modifier = Modifier.testTag("switch-admin"),
@@ -291,7 +332,7 @@ public fun RosaFiestaApp(
                                         .clip(RoundedCornerShape(999.dp))
                                         .background(RfColors.IndigoBrand)
                                         .clickable {
-                                            viewModel.soundPlayer.playTap()
+                                            activeViewModel.soundPlayer.playTap()
                                             navigator.switchToAdmin("A30")
                                         }
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -308,7 +349,7 @@ public fun RosaFiestaApp(
                                 tone = RfTagTone.SOL,
                                 modifier = Modifier
                                     .clickable {
-                                        viewModel.soundPlayer.playTap()
+                                        activeViewModel.soundPlayer.playTap()
                                         navigator.devOpen = true
                                     }
                                     .testTag("open-dev-panel"),
@@ -320,8 +361,8 @@ public fun RosaFiestaApp(
                 var showPersonalMoreMenu by remember(spec.code) { mutableStateOf(false) }
                 val navigateToCode: (String) -> Unit = { nextCode ->
                     showPersonalMoreMenu = false
-                    viewModel.clearFormFeedback()
-                    viewModel.soundPlayer.playTap()
+                    activeViewModel.clearFormFeedback()
+                    activeViewModel.soundPlayer.playTap()
                     val isAdminTarget = nextCode == "A01"
                     val shouldEnterAdminRoot = if (isAdminTarget) navigator.activeView != AppView.ADMIN else false
                     if (shouldEnterAdminRoot) {
@@ -353,10 +394,10 @@ public fun RosaFiestaApp(
                 val isMobileScreen = !baseSpec.isDesktopWeb
                 val isBottomBarScreen = shouldShowBottomBar(baseSpec.code)
                 val hasBottomBar = if (isMobileScreen) isBottomBarScreen else false
-                val activeRoleState = viewModel.activeRole.collectAsState().value
-                val staffMembersState = viewModel.staffMembers.collectAsState().value
+                val activeRoleState = activeViewModel.activeRole.collectAsState().value
+                val staffMembersState = activeViewModel.staffMembers.collectAsState().value
                 val isBaseRestrictedForStaff = remember(baseSpec.code, activeRoleState, staffMembersState) {
-                    viewModel.isScreenRestrictedForActiveStaff(baseSpec.code)
+                    activeViewModel.isScreenRestrictedForActiveStaff(baseSpec.code)
                 }
                 val isPersistentRootHeaderActive = listOf(
                     isMobileScreen,
@@ -374,7 +415,10 @@ public fun RosaFiestaApp(
                         .weight(1f)
                         .fillMaxWidth(),
                 ) {
-                    val usePersonalDesktopWorkspace = if (isMobileScreen) maxWidth >= 840.dp else false
+                    val isPersonalViewActive = navigator.activeView == AppView.PERSONAL
+                    val isWideDesktopWidth = maxWidth >= 840.dp
+                    val isPersonalMobileViewport = if (isPersonalViewActive) isMobileScreen else false
+                    val usePersonalDesktopWorkspace = if (isPersonalMobileViewport) isWideDesktopWidth else false
                     val viewportWrapperModifier = if (usePersonalDesktopWorkspace) {
                         Modifier
                             .fillMaxSize()
@@ -394,7 +438,7 @@ public fun RosaFiestaApp(
                                 currentCode = baseSpec.code,
                                 isMoreMenuOpen = showPersonalMoreMenu,
                                 onTogglePersonalMoreMenu = {
-                                    viewModel.soundPlayer.playTap()
+                                    activeViewModel.soundPlayer.playTap()
                                     showPersonalMoreMenu = !showPersonalMoreMenu
                                 },
                                 onSelectScreenCode = navigateToCode,
@@ -416,8 +460,8 @@ public fun RosaFiestaApp(
                             modifier = cardModifier,
                         ) {
                             PreloadRfVisualAssets()
-                            LaunchedEffect(viewModel) {
-                                viewModel.refreshSharedStateFromDisk()
+                            LaunchedEffect(activeViewModel) {
+                                activeViewModel.refreshSharedStateFromDisk()
                             }
                             val transitionKind = navigator.lastTransition
                             RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
@@ -431,7 +475,7 @@ public fun RosaFiestaApp(
                                     ) {
                                         PersistentRootTabHeader(
                                             screenCode = lastPersistentHeaderCode,
-                                            viewModel = viewModel,
+                                            viewModel = activeViewModel,
                                             onSelectScreenCode = navigateToCode,
                                         )
                                     }
@@ -462,11 +506,11 @@ public fun RosaFiestaApp(
                                             val targetUsesPersistentHeader = listOf(
                                                 !activeSpec.isDesktopWeb,
                                                 hasPersistentRootHeader(activeSpec.code),
-                                                !viewModel.isScreenRestrictedForActiveStaff(activeSpec.code),
+                                                !activeViewModel.isScreenRestrictedForActiveStaff(activeSpec.code),
                                             ).all { allowed -> allowed }
                                             RenderScreenSpec(
                                                 spec = activeSpec,
-                                                viewModel = viewModel,
+                                                viewModel = activeViewModel,
                                                 isFrameHarness = false,
                                                 includeBottomBar = false,
                                                 includeRootHeader = !targetUsesPersistentHeader,
@@ -476,7 +520,7 @@ public fun RosaFiestaApp(
                                                 onSelectScreenCode = navigateToCode,
                                                 onSwitchAppMode = {
                                                     showPersonalMoreMenu = false
-                                                    viewModel.soundPlayer.playTap()
+                                                    activeViewModel.soundPlayer.playTap()
                                                     if (navigator.activeView == AppView.ADMIN) {
                                                         navigator.switchToPersonal("s14", fromAdminPreview = true)
                                                     } else {
@@ -485,13 +529,11 @@ public fun RosaFiestaApp(
                                                 },
                                                 onPrimaryAction = {
                                                     showPersonalMoreMenu = false
-                                                    viewModel.soundPlayer.playTap()
-                                                    val currentUser = viewModel.currentAuthenticatedUser.value
+                                                    activeViewModel.soundPlayer.playTap()
+                                                    val currentUser = activeViewModel.currentAuthenticatedUser.value
                                                     val isSplashScreen = navigator.currentCode == "p00"
-                                                    val hasCustomUser = currentUser != null
-                                                    val isNotDefaultSeed = currentUser?.id != "usr-camila"
-                                                    val isCustomSession = if (hasCustomUser) isNotDefaultSeed else false
-                                                    val shouldSkipOnboarding = if (isSplashScreen) isCustomSession else false
+                                                    val hasAuthenticatedUser = currentUser != null
+                                                    val shouldSkipOnboarding = if (isSplashScreen) hasAuthenticatedUser else false
                                                     if (shouldSkipOnboarding) {
                                                         navigator.navigateTo("s14")
                                                     } else {
@@ -505,11 +547,11 @@ public fun RosaFiestaApp(
                             }
 
                             val showBottomNav = if (hasBottomBar) !usePersonalDesktopWorkspace else false
-                            val savedPreview by viewModel.savedItemPreview.collectAsState()
+                            val savedPreview by activeViewModel.savedItemPreview.collectAsState()
                             LaunchedEffect(savedPreview) {
                                 if (savedPreview != null) {
                                     kotlinx.coroutines.delay(3000L)
-                                    viewModel.clearSavedItemPreview()
+                                    activeViewModel.clearSavedItemPreview()
                                 }
                             }
                             androidx.compose.animation.AnimatedVisibility(
@@ -531,20 +573,20 @@ public fun RosaFiestaApp(
                                 if (currentPreview != null) {
                                     RfSavedCartPreviewToast(
                                         preview = currentPreview,
-                                        viewModel = viewModel,
+                                        viewModel = activeViewModel,
                                         onOpenCart = {
-                                            viewModel.clearSavedItemPreview()
-                                            navigateToCode(viewModel.resolveMyEventEntryTarget())
+                                            activeViewModel.clearSavedItemPreview()
+                                            navigateToCode(activeViewModel.resolveMyEventEntryTarget())
                                         },
-                                        onDismiss = { viewModel.clearSavedItemPreview() },
+                                        onDismiss = { activeViewModel.clearSavedItemPreview() },
                                     )
                                 }
                             }
-                            val globalFeedback by viewModel.actionToast.collectAsState()
+                            val globalFeedback by activeViewModel.actionToast.collectAsState()
                             LaunchedEffect(globalFeedback) {
                                 if (!globalFeedback.isNullOrBlank()) {
                                     kotlinx.coroutines.delay(2400L)
-                                    viewModel.clearActionToast()
+                                    activeViewModel.clearActionToast()
                                 }
                             }
                             androidx.compose.animation.AnimatedVisibility(
@@ -568,7 +610,7 @@ public fun RosaFiestaApp(
                                         .clip(RoundedCornerShape(999.dp))
                                         .background(Color(0xFF228B4E))
                                         .border(1.dp, Color(0xFF39A968), RoundedCornerShape(999.dp))
-                                        .clickable { viewModel.clearActionToast() }
+                                        .clickable { activeViewModel.clearActionToast() }
                                         .padding(horizontal = 16.dp, vertical = 10.dp),
                                 ) {
                                     RfIcon(kind = RfIconKind.CHECK, tint = Color.White, size = 16.dp)
@@ -594,7 +636,7 @@ public fun RosaFiestaApp(
                                     spec = baseSpec,
                                     onSelectScreenCode = navigateToCode,
                                     onTogglePersonalMoreMenu = {
-                                        viewModel.soundPlayer.playTap()
+                                        activeViewModel.soundPlayer.playTap()
                                         showPersonalMoreMenu = !showPersonalMoreMenu
                                     },
                                     isMoreMenuOpen = showPersonalMoreMenu,
@@ -643,7 +685,7 @@ public fun RosaFiestaApp(
                                 if (overlayCode != null) {
                                     RenderFloatingModalOverlay(
                                         screenCode = overlayCode,
-                                        viewModel = viewModel,
+                                        viewModel = activeViewModel,
                                         underlyingScreenCode = lastOverlayOriginCode,
                                         onSelectScreenCode = navigateToCode,
                                     )
@@ -657,9 +699,9 @@ public fun RosaFiestaApp(
             if (isAppLocked) {
                 AppLockOverlay(
                     errorMessage = appLockError,
-                    onTryBiometricUnlock = { viewModel.unlockAppWithBiometrics() },
-                    onUnlockWithPassword = { passwordText -> viewModel.unlockAppWithPassword(passwordText) },
-                    onLogout = { viewModel.logoutSession() },
+                    onTryBiometricUnlock = { activeViewModel.unlockAppWithBiometrics() },
+                    onUnlockWithPassword = { passwordText -> activeViewModel.unlockAppWithPassword(passwordText) },
+                    onLogout = { activeViewModel.logoutSession() },
                 )
             }
         }
@@ -805,8 +847,10 @@ private fun PersonalDesktopNavRail(
         )
         tabs.forEach { tab ->
             val isSelected = tab == activeTab
-            val rowBg = if (isSelected) Color(0xFFFDEAF4) else Color.Transparent
-            val tintColor = if (isSelected) RfColors.RosaBrand else palette.ink
+            val selectedRowBg = if (palette.isDark) palette.chipBg else Color(0xFFFDEAF4)
+            val rowBg = if (isSelected) selectedRowBg else Color.Transparent
+            val selectedTint = if (palette.isDark) Color(0xFFF48FB1) else RfColors.RosaBrand
+            val tintColor = if (isSelected) selectedTint else palette.ink
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),

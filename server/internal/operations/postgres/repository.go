@@ -32,7 +32,10 @@ func (r *Repository) Enabled() bool {
 	if r == nil {
 		return false
 	}
-	return r.pool != nil
+	if r.pool != nil {
+		return true
+	}
+	return r.queries != nil
 }
 
 // SeedCanonical inserta los datos canónicos de demostración en PostgreSQL.

@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -102,6 +103,7 @@ type Store interface {
 	IncrementOTPAttempts(ctx context.Context, email string) error
 	MarkOTPVerified(ctx context.Context, email, resetTokenHash string, resetExpiresAt time.Time) error
 	MarkOTPUsed(ctx context.Context, email string) error
+	ConsumeOTPResetToken(ctx context.Context, email, resetTokenHash string) (bool, error)
 	ListAdminClients(ctx context.Context) ([]domain.AdminClient, error)
 	UpsertAdminClient(ctx context.Context, client domain.AdminClient) error
 	ListStaffMembers(ctx context.Context) ([]domain.StaffRecord, error)
@@ -133,6 +135,7 @@ type sessionEntry struct {
 
 type Service struct {
 	mu                     sync.RWMutex
+	otpMu                  sync.Mutex
 	clock                  clock.Clock
 	checker                ActiveEventsChecker
 	store                  Store
@@ -145,6 +148,7 @@ type Service struct {
 	revokedHashes          map[string]struct{}
 	refreshTokens          map[string]domain.RefreshTokenRecord
 	otps                   map[string]domain.OTPRecord
+	oauthStates            map[string]oauthStateEntry
 	pushTokens             map[string]domain.DevicePushToken
 	favorites              map[uuid.UUID]map[string]struct{}
 	clients                []domain.AdminClient
@@ -156,6 +160,10 @@ var (
 	seedHashOnce sync.Once
 	seedHashVal  string
 )
+
+func CanonicalSeedPasswordHash() string {
+	return canonicalSeedPasswordHash()
+}
 
 func canonicalSeedPasswordHash() string {
 	seedHashOnce.Do(func() {
@@ -193,19 +201,21 @@ func NewServiceWithOptions(clk clock.Clock, checker ActiveEventsChecker, opts Op
 	return svc
 }
 
-func (s *Service) Reset(_ context.Context) {
+func (s *Service) Reset(ctx context.Context) {
+	if s.opts.Env == config.EnvProduction {
+		s.ResetEmpty(ctx)
+		return
+	}
 	now := s.clock.Now()
 	users := buildCanonicalUsers(now)
-	sessions := make(map[string]sessionEntry)
-	if s.opts.Env != config.EnvProduction {
-		sessions = buildDevStaticSessions(now)
-	}
+	sessions := buildDevStaticSessions(now)
 	s.mu.Lock()
 	s.users = users
 	s.sessionHashes = sessions
 	s.revokedHashes = make(map[string]struct{})
 	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
 	s.otps = make(map[string]domain.OTPRecord)
+	s.oauthStates = make(map[string]oauthStateEntry)
 	s.pushTokens = make(map[string]domain.DevicePushToken)
 	s.favorites = make(map[uuid.UUID]map[string]struct{})
 	s.clients = defaultClients(now)
@@ -213,19 +223,36 @@ func (s *Service) Reset(_ context.Context) {
 	s.mu.Unlock()
 }
 
-func (s *Service) ResetAdminOnly(_ context.Context) {
+func (s *Service) ResetEmpty(_ context.Context) {
+	s.mu.Lock()
+	s.users = make(map[uuid.UUID]domain.User)
+	s.sessionHashes = make(map[string]sessionEntry)
+	s.revokedHashes = make(map[string]struct{})
+	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
+	s.otps = make(map[string]domain.OTPRecord)
+	s.oauthStates = make(map[string]oauthStateEntry)
+	s.pushTokens = make(map[string]domain.DevicePushToken)
+	s.favorites = make(map[uuid.UUID]map[string]struct{})
+	s.clients = nil
+	s.staff = nil
+	s.mu.Unlock()
+}
+
+func (s *Service) ResetAdminOnly(ctx context.Context) {
+	if s.opts.Env == config.EnvProduction {
+		s.ResetEmpty(ctx)
+		return
+	}
 	now := s.clock.Now()
 	users := buildAdminSeedUsers(now)
-	sessions := make(map[string]sessionEntry)
-	if s.opts.Env != config.EnvProduction {
-		sessions = buildAdminDevStaticSessions(now)
-	}
+	sessions := buildAdminDevStaticSessions(now)
 	s.mu.Lock()
 	s.users = users
 	s.sessionHashes = sessions
 	s.revokedHashes = make(map[string]struct{})
 	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
 	s.otps = make(map[string]domain.OTPRecord)
+	s.oauthStates = make(map[string]oauthStateEntry)
 	s.pushTokens = make(map[string]domain.DevicePushToken)
 	s.favorites = make(map[uuid.UUID]map[string]struct{})
 	s.clients = nil
@@ -317,7 +344,7 @@ func (s *Service) isTokenRevokedInStore(ctx context.Context, store Store, tokenH
 	}
 	revoked, err := store.IsAccessTokenRevoked(ctx, tokenHash)
 	if err != nil {
-		return false
+		return true
 	}
 	return revoked
 }
@@ -585,7 +612,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, currentP
 	user.PasswordHash = newHash
 	s.users[userID] = user
 	s.updatePasswordInStoreLocked(ctx, user.Email, newHash)
-	s.revokeUserRefreshTokensLocked(ctx, userID, s.clock.Now())
+	s.revokeUserAccessLocked(ctx, userID)
 	return nil
 }
 
@@ -636,7 +663,7 @@ func (s *Service) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
 	}
 	activeCount := 0
 	if s.checker != nil {
-		activeCount = s.checker.ActiveEventsForClient(ctx, user.FullName)
+		activeCount = s.checker.ActiveEventsForClient(ctx, user.ID.String())
 		if activeCount == 0 {
 			activeCount = s.checker.ActiveEventsForClient(ctx, user.Email)
 		}
@@ -737,28 +764,51 @@ func (s *Service) syncUsersFromStore(ctx context.Context) {
 	if err != nil {
 		return
 	}
-	s.mu.Lock()
+	nextUsers := make(map[uuid.UUID]domain.User, len(dbUsers))
 	for _, dbUser := range dbUsers {
-		s.users[dbUser.ID] = dbUser
+		nextUsers[dbUser.ID] = dbUser
 	}
+	s.mu.Lock()
+	s.users = nextUsers
 	s.mu.Unlock()
 }
 
 func (s *Service) findUserLocked(cleanIdentifier string) (domain.User, bool) {
-	for _, user := range s.users {
+	ordered := s.sortedUsersLocked()
+	for _, user := range ordered {
 		if strings.EqualFold(user.Email, cleanIdentifier) {
 			return user, true
 		}
+	}
+	for _, user := range ordered {
 		if strings.EqualFold(user.Username, cleanIdentifier) {
 			return user, true
 		}
+	}
+	var localMatch domain.User
+	localCount := 0
+	for _, user := range ordered {
 		emailParts := strings.Split(user.Email, "@")
-		localPart := emailParts[0]
-		if strings.EqualFold(localPart, cleanIdentifier) {
-			return user, true
+		if strings.EqualFold(emailParts[0], cleanIdentifier) {
+			localMatch = user
+			localCount++
 		}
 	}
+	if localCount == 1 {
+		return localMatch, true
+	}
 	return domain.User{}, false
+}
+
+func (s *Service) sortedUsersLocked() []domain.User {
+	ordered := make([]domain.User, 0, len(s.users))
+	for _, user := range s.users {
+		ordered = append(ordered, user)
+	}
+	sort.Slice(ordered, func(i, j int) bool {
+		return ordered[i].ID.String() < ordered[j].ID.String()
+	})
+	return ordered
 }
 
 // ListFavorites devuelve los IDs de artículos favoritos del usuario autenticado.

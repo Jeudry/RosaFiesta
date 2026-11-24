@@ -296,6 +296,9 @@ func resolveCORSOrigins(raw string, env Environment) ([]string, error) {
 		origins = append(origins, candidate)
 	}
 	if len(origins) == 0 {
+		if env == EnvProduction {
+			return nil, errors.New("CORS_ALLOWED_ORIGINS must include at least one explicit origin in production")
+		}
 		return []string{"*"}, nil
 	}
 	return origins, nil

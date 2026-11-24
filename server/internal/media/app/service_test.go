@@ -63,27 +63,31 @@ func TestMediaUploadRejectsInvalidBytesAndOversizedPayloads(t *testing.T) {
 	}
 }
 
-func TestMediaServiceSupportsS3SigV4StorageBackend(t *testing.T) {
-	var storedKey string
-	var storedBody []byte
-	var capturedAuth string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func newFakeS3MediaServer(capturedAuth *string) *httptest.Server {
+	storedObjects := make(map[string][]byte)
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPut:
-			storedKey = r.URL.Path
-			capturedAuth = r.Header.Get("Authorization")
-			storedBody, _ = io.ReadAll(r.Body)
+			*capturedAuth = r.Header.Get("Authorization")
+			body, _ := io.ReadAll(r.Body)
+			storedObjects[r.URL.Path] = body
 			w.WriteHeader(http.StatusOK)
 		case http.MethodGet:
-			if r.URL.Path != storedKey {
+			body, exists := storedObjects[r.URL.Path]
+			if !exists {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			_, _ = w.Write(storedBody)
+			_, _ = w.Write(body)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	}))
+}
+
+func TestMediaServiceSupportsS3SigV4StorageBackend(t *testing.T) {
+	var capturedAuth string
+	server := newFakeS3MediaServer(&capturedAuth)
 	defer server.Close()
 
 	store := postgres.NewMemoryStore()
@@ -102,7 +106,7 @@ func TestMediaServiceSupportsS3SigV4StorageBackend(t *testing.T) {
 	pngBytes := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D}
 	asset, err := svc.Upload(context.Background(), domain.UploadInput{
 		OwnerID:  "user-1",
-		Purpose:  "voucher",
+		Purpose:  "catalog",
 		Filename: "s3.png",
 		Data:     pngBytes,
 	})
@@ -116,7 +120,19 @@ func TestMediaServiceSupportsS3SigV4StorageBackend(t *testing.T) {
 		t.Fatalf("expected s3 storage path, got %q", asset.StoragePath)
 	}
 	if !strings.HasPrefix(asset.PublicURL, "https://cdn.rosafiesta.do/") {
-		t.Fatalf("expected CDN public URL, got %q", asset.PublicURL)
+		t.Fatalf("expected CDN public URL for public catalog asset, got %q", asset.PublicURL)
+	}
+	privateAsset, err := svc.Upload(context.Background(), domain.UploadInput{
+		OwnerID:  "user-1",
+		Purpose:  "voucher",
+		Filename: "voucher.png",
+		Data:     pngBytes,
+	})
+	if err != nil {
+		t.Fatalf("private s3 upload failed: %v", err)
+	}
+	if !strings.HasPrefix(privateAsset.PublicURL, "/v1/media/") {
+		t.Fatalf("expected private asset to hide CDN public URL, got %q", privateAsset.PublicURL)
 	}
 	_, openedBytes, err := svc.Open(context.Background(), asset.ID)
 	if err != nil {

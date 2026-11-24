@@ -46,6 +46,7 @@ import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
 import com.jeudry.rosafiesta.designsystem.RfSwitch
+import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
@@ -124,6 +125,11 @@ internal fun RenderAdminTrendsA41(
     var pendingDeleteTrend by remember { mutableStateOf<CatalogTrend?>(null) }
     var deleteLocalError by remember { mutableStateOf<String?>(null) }
 
+    val palette = RfThemeState.currentPalette
+    val pillIndigoBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
+    val pillIndigoInk = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
+    val pillDangerBg = if (palette.isDark) Color(0xFF3D1924) else Color(0xFFFCE3E8)
+    val pillDangerInk = if (palette.isDark) Color(0xFFFF7A96) else Color(0xFFB42345)
     val primaryBrush = Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
     val bannerTitleValidator: (String) -> String? = { value ->
         if (bannerActive) InputValidator.validateSeasonBannerTitle(value, isRequired = true) else null
@@ -153,7 +159,7 @@ internal fun RenderAdminTrendsA41(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFAFC)),
+            .background(palette.bg),
     ) {
         Column(
             modifier = Modifier
@@ -172,22 +178,22 @@ internal fun RenderAdminTrendsA41(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
                         .clickable { onSelectScreenCode("BACK:A09") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 20.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 20.dp)
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         text = "Tendencias y portada",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                     )
                     BasicText(
                         text = "${trends.size} tendencias · Portada de Inicio Personal",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
                     )
                 }
 
@@ -256,12 +262,12 @@ internal fun RenderAdminTrendsA41(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp,
-                        color = Color(0xFF5F6377),
+                        color = palette.muted,
                     ),
                 )
                 BasicText(
                     text = "+ Agregar",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5B6CF0)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = palette.primaryAccent),
                     modifier = Modifier.clickable { openTrendEditor(null) },
                 )
             }
@@ -272,8 +278,8 @@ internal fun RenderAdminTrendsA41(
                         .fillMaxWidth()
                         .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                         .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, RoundedCornerShape(22.dp))
                         .padding(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -284,11 +290,11 @@ internal fun RenderAdminTrendsA41(
                         RfIcon(kind = RfIconKind.TREND_UP, tint = Color(0xFFC2338F), size = 28.dp)
                         BasicText(
                             text = "Aún no hay tendencias creadas",
-                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                         )
                         BasicText(
                             text = "Crea tus propias tarjetas de tendencias para mostrarlas en la pantalla de Inicio.",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = Color(0xFF5F6377)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted),
                         )
                         Box(
                             modifier = Modifier
@@ -338,11 +344,11 @@ internal fun RenderAdminTrendsA41(
             ) {
                 BasicText(
                     text = if (isEditingExisting) "Editar tendencia" else "Nueva tendencia",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                 )
                 RfIcon(
                     kind = RfIconKind.CLOSE,
-                    tint = Color(0xFF5F6377),
+                    tint = palette.muted,
                     size = 20.dp,
                     modifier = Modifier.clickable { showTrendSheet = false },
                 )
@@ -368,9 +374,9 @@ internal fun RenderAdminTrendsA41(
                 minHeight = 48.dp,
                 horizontalPadding = 14.dp,
                 textFontSize = 15.sp,
-                textColor = Color(0xFF2E324A),
+                textColor = palette.ink,
                 labelFontSize = 13.sp,
-                labelColor = Color(0xFF3A3D52),
+                labelColor = palette.ink,
             )
 
             AdminDebouncedInputField(
@@ -386,15 +392,15 @@ internal fun RenderAdminTrendsA41(
                 minHeight = 46.dp,
                 horizontalPadding = 14.dp,
                 textFontSize = 14.sp,
-                textColor = Color(0xFF2E324A),
+                textColor = palette.ink,
                 labelFontSize = 13.sp,
-                labelColor = Color(0xFF3A3D52),
+                labelColor = palette.ink,
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 BasicText(
                     text = "Imagen de portada",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF3A3D52)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = palette.ink),
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -420,13 +426,13 @@ internal fun RenderAdminTrendsA41(
                             text = photoCaption,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted),
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFFECEBFF))
+                                    .background(pillIndigoBg)
                                     .clickable(enabled = !isUploadingTrendPhoto) {
                                         viewModel?.pickMediaAttachment(listOf("png", "jpg", "jpeg", "webp")) { pickedFile ->
                                             trendSheetError = null
@@ -450,14 +456,14 @@ internal fun RenderAdminTrendsA41(
                             ) {
                                 BasicText(
                                     text = if (isUploadingTrendPhoto) "Subiendo..." else "Subir foto",
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = pillIndigoInk),
                                 )
                             }
                             if (trendPhotoUrl.isNotBlank()) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(Color(0xFFFCE3E8))
+                                        .background(pillDangerBg)
                                         .clickable {
                                             trendPhotoUrl = ""
                                             uploadedPhotoName = null
@@ -466,7 +472,7 @@ internal fun RenderAdminTrendsA41(
                                 ) {
                                     BasicText(
                                         text = "Quitar foto",
-                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = pillDangerInk),
                                     )
                                 }
                             }
@@ -483,7 +489,7 @@ internal fun RenderAdminTrendsA41(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isPresetSelected) Color(0xFF5B6CF0) else Color(0xFFF3F3F8))
+                                .background(if (isPresetSelected) Color(0xFF5B6CF0) else palette.chipBg)
                                 .clickable {
                                     trendPhotoAsset = preset.second
                                     trendPhotoUrl = ""
@@ -497,7 +503,7 @@ internal fun RenderAdminTrendsA41(
                                     fontFamily = typo.bodyFamily,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (isPresetSelected) Color.White else Color(0xFF2E324A),
+                                    color = if (isPresetSelected) Color.White else palette.ink,
                                 ),
                             )
                         }
@@ -509,7 +515,7 @@ internal fun RenderAdminTrendsA41(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     BasicText(
                         text = "Filtrar categoría al tocar (opcional)",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF3A3D52)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = palette.ink),
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -519,7 +525,7 @@ internal fun RenderAdminTrendsA41(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (noCategorySelected) Color(0xFF5B6CF0) else Color(0xFFF3F3F8))
+                                .background(if (noCategorySelected) Color(0xFF5B6CF0) else palette.chipBg)
                                 .clickable { trendLinkedCategory = "" }
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                         ) {
@@ -529,7 +535,7 @@ internal fun RenderAdminTrendsA41(
                                     fontFamily = typo.bodyFamily,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (noCategorySelected) Color.White else Color(0xFF2E324A),
+                                    color = if (noCategorySelected) Color.White else palette.ink,
                                 ),
                             )
                         }
@@ -538,7 +544,7 @@ internal fun RenderAdminTrendsA41(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isCatSelected) Color(0xFF5B6CF0) else Color(0xFFF3F3F8))
+                                    .background(if (isCatSelected) Color(0xFF5B6CF0) else palette.chipBg)
                                     .clickable { trendLinkedCategory = catItem.name }
                                     .padding(horizontal = 12.dp, vertical = 6.dp),
                             ) {
@@ -548,7 +554,7 @@ internal fun RenderAdminTrendsA41(
                                         fontFamily = typo.bodyFamily,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = if (isCatSelected) Color.White else Color(0xFF2E324A),
+                                        color = if (isCatSelected) Color.White else palette.ink,
                                     ),
                                 )
                             }
@@ -564,7 +570,7 @@ internal fun RenderAdminTrendsA41(
             ) {
                 BasicText(
                     text = "Visible en Inicio Personal",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = palette.ink),
                 )
                 RfSwitch(
                     checked = trendActive,
@@ -576,7 +582,7 @@ internal fun RenderAdminTrendsA41(
             if (!modalErr.isNullOrBlank()) {
                 BasicText(
                     text = modalErr,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = pillDangerInk),
                 )
             }
 
@@ -647,16 +653,16 @@ internal fun RenderAdminTrendsA41(
             if (targetDelete != null) {
                 BasicText(
                     text = "Eliminar tendencia",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                 )
                 BasicText(
                     text = "¿Seguro que deseas eliminar \"${targetDelete.title}\"? Dejará de mostrarse en Inicio Personal.",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted),
                 )
                 if (!deleteLocalError.isNullOrBlank()) {
                     BasicText(
                         text = deleteLocalError.orEmpty(),
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = pillDangerInk),
                     )
                 }
                 Row(
@@ -668,13 +674,13 @@ internal fun RenderAdminTrendsA41(
                             .weight(1f)
                             .height(46.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFF2F2F8))
+                            .background(palette.chipBg)
                             .clickable { pendingDeleteTrend = null },
                         contentAlignment = Alignment.Center,
                     ) {
                         BasicText(
                             text = "Cancelar",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                         )
                     }
                     Box(
@@ -726,13 +732,14 @@ private fun SeasonBannerEditorCard41(
     onSaveBanner: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
             .clip(RoundedCornerShape(22.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(22.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -744,11 +751,11 @@ private fun SeasonBannerEditorCard41(
             Column(modifier = Modifier.weight(1f)) {
                 BasicText(
                     text = "Banner de temporada (Inicio)",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.5.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                 )
                 BasicText(
                     text = if (bannerActive) "Visible en la portada de clientes" else "Oculto en Inicio Personal",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted),
                 )
             }
             RfSwitch(
@@ -813,9 +820,9 @@ private fun SeasonBannerEditorCard41(
             minHeight = 46.dp,
             horizontalPadding = 12.dp,
             textFontSize = 14.sp,
-            textColor = Color(0xFF2E324A),
+            textColor = palette.ink,
             labelFontSize = 12.5.sp,
-            labelColor = Color(0xFF3A3D52),
+            labelColor = palette.ink,
         )
 
         AdminDebouncedInputField(
@@ -831,9 +838,9 @@ private fun SeasonBannerEditorCard41(
             minHeight = 46.dp,
             horizontalPadding = 12.dp,
             textFontSize = 14.sp,
-            textColor = Color(0xFF2E324A),
+            textColor = palette.ink,
             labelFontSize = 12.5.sp,
-            labelColor = Color(0xFF3A3D52),
+            labelColor = palette.ink,
         )
 
         AdminDebouncedInputField(
@@ -849,9 +856,9 @@ private fun SeasonBannerEditorCard41(
             minHeight = 46.dp,
             horizontalPadding = 12.dp,
             textFontSize = 14.sp,
-            textColor = Color(0xFF2E324A),
+            textColor = palette.ink,
             labelFontSize = 12.5.sp,
-            labelColor = Color(0xFF3A3D52),
+            labelColor = palette.ink,
         )
 
         Row(
@@ -863,7 +870,7 @@ private fun SeasonBannerEditorCard41(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
-                        .background(if (isSelected) Color(0xFF5B6CF0) else Color(0xFFF3F3F8))
+                        .background(if (isSelected) Color(0xFF5B6CF0) else palette.chipBg)
                         .clickable { onBannerTargetChange(targetOpt.screenCode) }
                         .padding(horizontal = 12.dp, vertical = 7.dp),
                 ) {
@@ -873,7 +880,7 @@ private fun SeasonBannerEditorCard41(
                             fontFamily = typo.bodyFamily,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isSelected) Color.White else Color(0xFF2E324A),
+                            color = if (isSelected) Color.White else palette.ink,
                         ),
                     )
                 }
@@ -905,14 +912,19 @@ private fun AdminTrendRowCard41(
     onDelete: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val pillIndigoBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
+    val pillIndigoInk = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
+    val pillDangerBg = if (palette.isDark) Color(0xFF3D1924) else Color(0xFFFCE3E8)
+    val pillDangerInk = if (palette.isDark) Color(0xFFFF7A96) else Color(0xFFB42345)
     val resolvedPhotoKey = resolvePhotoKeyForAsset41(trend.photo)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
             .padding(12.dp),
     ) {
         Row(
@@ -934,7 +946,7 @@ private fun AdminTrendRowCard41(
                     text = trend.title,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                 )
                 val metaParts = buildList {
                     if (trend.eventsLabel.isNotBlank()) add(trend.eventsLabel)
@@ -945,7 +957,7 @@ private fun AdminTrendRowCard41(
                     text = metaParts.joinToString(" · "),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted),
                 )
             }
 
@@ -954,11 +966,11 @@ private fun AdminTrendRowCard41(
                     .size(36.dp)
                     .testTag("edit-trend-${trend.id}")
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFFECEBFF))
+                    .background(pillIndigoBg)
                     .clickable(onClick = onEdit),
                 contentAlignment = Alignment.Center,
             ) {
-                RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFF4B47D6), size = 17.dp)
+                RfIcon(kind = RfIconKind.EDIT, tint = pillIndigoInk, size = 17.dp)
             }
 
             Box(
@@ -966,11 +978,11 @@ private fun AdminTrendRowCard41(
                     .size(36.dp)
                     .testTag("delete-trend-${trend.id}")
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFFFCE3E8))
+                    .background(pillDangerBg)
                     .clickable(onClick = onDelete),
                 contentAlignment = Alignment.Center,
             ) {
-                RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 17.dp)
+                RfIcon(kind = RfIconKind.TRASH, tint = pillDangerInk, size = 17.dp)
             }
         }
     }
@@ -982,17 +994,22 @@ private fun AdminFeedbackStrip41(
     formFeedback: String?,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val pillDangerBg = if (palette.isDark) Color(0xFF3D1924) else Color(0xFFFCE3E8)
+    val pillDangerInk = if (palette.isDark) Color(0xFFFF7A96) else Color(0xFFB42345)
+    val pillSuccessBg = if (palette.isDark) Color(0xFF253516) else Color(0xFFEEF6D6)
+    val pillSuccessInk = if (palette.isDark) Color(0xFFAEDB5C) else Color(0xFF4E6A10)
     if (!formError.isNullOrBlank()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFFCE3E8))
+                .background(pillDangerBg)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
             BasicText(
                 text = formError,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = pillDangerInk),
             )
         }
     } else if (!formFeedback.isNullOrBlank()) {
@@ -1000,12 +1017,12 @@ private fun AdminFeedbackStrip41(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFEEF6D6))
+                .background(pillSuccessBg)
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
             BasicText(
                 text = formFeedback,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4E6A10)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = pillSuccessInk),
             )
         }
     }

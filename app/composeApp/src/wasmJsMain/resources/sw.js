@@ -1,5 +1,5 @@
 /**
- * RosaFiesta Web Push and notification click Service Worker.
+ * RosaFiesta Web Push, offline asset fetch, and notification click Service Worker.
  */
 
 self.addEventListener("install", function (event) {
@@ -8,6 +8,25 @@ self.addEventListener("install", function (event) {
 
 self.addEventListener("activate", function (event) {
   event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener("fetch", function (event) {
+  var request = event.request;
+  if (!request) {
+    return;
+  }
+  if (request.method !== "GET") {
+    return;
+  }
+  var requestUrl = new URL(request.url);
+  if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+  event.respondWith(
+    fetch(request).catch(function () {
+      return caches.match(request);
+    })
+  );
 });
 
 self.addEventListener("push", function (event) {
@@ -21,7 +40,8 @@ self.addEventListener("push", function (event) {
   if (event.data) {
     try {
       var parsed = event.data.json();
-      if (parsed && typeof parsed === "object") {
+      var isParsedObject = Boolean(parsed && typeof parsed === "object");
+      if (isParsedObject) {
         if (parsed.title) payload.title = String(parsed.title);
         if (parsed.body) payload.body = String(parsed.body);
         if (parsed.url) payload.url = String(parsed.url);
@@ -45,16 +65,34 @@ self.addEventListener("push", function (event) {
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
   var targetUrl = "/";
-  if (event.notification.data && event.notification.data.url) {
-    targetUrl = String(event.notification.data.url);
+  if (event.notification.data) {
+    if (event.notification.data.url) {
+      targetUrl = String(event.notification.data.url);
+    }
   }
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (windowClients) {
       for (var index = 0; index < windowClients.length; index += 1) {
         var client = windowClients[index];
-        if (client && "focus" in client) {
-          return client.focus();
+        if (!client) {
+          continue;
+        }
+        if ("focus" in client) {
+          return client.focus().then(function (focusedClient) {
+            var receiver = focusedClient || client;
+            var canPostMessage = Boolean(receiver && typeof receiver.postMessage === "function");
+            if (canPostMessage) {
+              receiver.postMessage({ type: "rosafiesta-notification-click", url: targetUrl });
+            }
+            var canNavigate = Boolean(receiver && "navigate" in receiver && targetUrl);
+            if (canNavigate) {
+              return receiver.navigate(targetUrl).catch(function () {
+                return receiver;
+              });
+            }
+            return receiver;
+          });
         }
       }
       if (self.clients.openWindow) {

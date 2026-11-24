@@ -103,6 +103,7 @@ type OAuthExchangeInput struct {
 		Code         string `json:"code" doc:"Authorization code returned to the redirect URI."`
 		CodeVerifier string `json:"codeVerifier" doc:"PKCE code verifier matching the authorization challenge."`
 		RedirectURI  string `json:"redirectUri" doc:"Callback URI used during authorization start."`
+		State        string `json:"state" doc:"Anti-CSRF OAuth state issued by /v1/auth/oauth/{provider}/start."`
 	}
 }
 
@@ -563,6 +564,16 @@ func mapAdminMutationError(err error, endpoint string) *platformhttp.APIError {
 			err.Error(),
 			endpoint,
 			"UniqueEmailConstraint",
+			err.Error(),
+		)
+	}
+	if errors.Is(err, domain.ErrCannotDeleteLastAdmin) {
+		return platformhttp.NewAPIError(
+			http.StatusConflict,
+			"ADMIN_PROTECTION_VIOLATION",
+			err.Error(),
+			endpoint,
+			"ProtectOwnerAndLastAdmin",
 			err.Error(),
 		)
 	}

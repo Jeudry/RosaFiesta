@@ -81,10 +81,28 @@ private var pendingAndroidOAuthCallback: CompletableDeferred<OAuthBrowserOutcome
 private var registeredAndroidPushTokenProvider: ((appVariant: String, onResult: (String?) -> Unit) -> Unit)? = null
 
 private const val ANDROID_OAUTH_REDIRECT_URI = "rosafiesta://oauth/callback"
+private const val ANDROID_ADMIN_OAUTH_REDIRECT_URI = "rosafiesta-admin://oauth/callback"
 private const val ANDROID_PAYMENT_REDIRECT_PREFIX = "rosafiesta://payment"
+private const val ANDROID_ADMIN_PAYMENT_REDIRECT_PREFIX = "rosafiesta-admin://payment"
 private const val ANDROID_API_URL_METADATA_KEY = "com.jeudry.rosafiesta.API_BASE_URL"
 private const val ANDROID_NOTIFICATION_CHANNEL_ID = "rosafiesta_alerts"
 private val androidNotificationIdCounter = AtomicInteger(2100)
+
+private fun resolveAndroidOAuthRedirectUri(context: Context?): String {
+    val packageName = context?.packageName.orEmpty()
+    val isAdminApp = packageName.endsWith(".admin")
+    return if (isAdminApp) {
+        ANDROID_ADMIN_OAUTH_REDIRECT_URI
+    } else {
+        ANDROID_OAUTH_REDIRECT_URI
+    }
+}
+
+private fun matchAndroidOAuthRedirectUri(cleanUri: String): String? = when {
+    cleanUri.startsWith(ANDROID_OAUTH_REDIRECT_URI) -> ANDROID_OAUTH_REDIRECT_URI
+    cleanUri.startsWith(ANDROID_ADMIN_OAUTH_REDIRECT_URI) -> ANDROID_ADMIN_OAUTH_REDIRECT_URI
+    else -> null
+}
 
 /**
  * Registers an optional host push token SDK bridge (for example FCM in signed builds).
@@ -96,27 +114,33 @@ public fun registerAndroidPushTokenProvider(
 }
 
 /**
- * Delivers an incoming deep link URI (`rosafiesta://oauth/callback` or `rosafiesta://payment/...`)
+ * Delivers an incoming deep link URI (`rosafiesta://` or `rosafiesta-admin://`)
  * from Activity `onCreate` or `onNewIntent`.
  */
 public fun dispatchAndroidIncomingUri(uriString: String?) {
     val cleanUri = uriString?.trim().orEmpty()
     if (cleanUri.isEmpty()) return
-    if (cleanUri.startsWith(ANDROID_OAUTH_REDIRECT_URI)) {
+    if (matchAndroidOAuthRedirectUri(cleanUri) != null) {
         dispatchAndroidOAuthRedirectUri(cleanUri)
         return
     }
     if (cleanUri.startsWith(ANDROID_PAYMENT_REDIRECT_PREFIX)) {
         ExternalPaymentCallbackBridge.dispatchPaymentDeepLink(cleanUri)
+        return
+    }
+    if (cleanUri.startsWith(ANDROID_ADMIN_PAYMENT_REDIRECT_PREFIX)) {
+        val normalizedUri = ANDROID_PAYMENT_REDIRECT_PREFIX + cleanUri.removePrefix(ANDROID_ADMIN_PAYMENT_REDIRECT_PREFIX)
+        ExternalPaymentCallbackBridge.dispatchPaymentDeepLink(normalizedUri)
     }
 }
 
 /**
- * Delivers an incoming `rosafiesta://oauth/callback?...` deep link URI from Activity `onCreate` or `onNewIntent`.
+ * Delivers an incoming `rosafiesta://oauth/callback?...` or `rosafiesta-admin://oauth/callback?...`
+ * deep link URI from Activity `onCreate` or `onNewIntent`.
  */
 public fun dispatchAndroidOAuthRedirectUri(uriString: String?) {
     val cleanUri = uriString?.trim().orEmpty()
-    if (!cleanUri.startsWith(ANDROID_OAUTH_REDIRECT_URI)) return
+    val matchedRedirectUri = matchAndroidOAuthRedirectUri(cleanUri) ?: return
     val parsed = runCatching { Uri.parse(cleanUri) }.getOrNull() ?: return
     val deferred = pendingAndroidOAuthCallback ?: return
     pendingAndroidOAuthCallback = null
@@ -124,7 +148,7 @@ public fun dispatchAndroidOAuthRedirectUri(uriString: String?) {
         OAuthBrowserOutcome(
             code = parsed.getQueryParameter("code"),
             state = parsed.getQueryParameter("state"),
-            redirectUri = ANDROID_OAUTH_REDIRECT_URI,
+            redirectUri = matchedRedirectUri,
             errorCode = parsed.getQueryParameter("error"),
         ),
     )
@@ -851,26 +875,27 @@ internal class AndroidPlatformActions(
     override suspend fun launchOAuthBrowserFlow(
         resolveAuthorizeUrl: suspend (redirectUri: String) -> String?,
     ): OAuthBrowserOutcome {
+        val redirectUri = resolveAndroidOAuthRedirectUri(contextProvider())
         pendingAndroidOAuthCallback?.cancel()
         val deferred = CompletableDeferred<OAuthBrowserOutcome>()
         pendingAndroidOAuthCallback = deferred
-        val authorizeUrl = resolveAuthorizeUrl(ANDROID_OAUTH_REDIRECT_URI)
+        val authorizeUrl = resolveAuthorizeUrl(redirectUri)
         if (authorizeUrl == null) {
             if (pendingAndroidOAuthCallback === deferred) {
                 pendingAndroidOAuthCallback = null
             }
-            return OAuthBrowserOutcome(redirectUri = ANDROID_OAUTH_REDIRECT_URI, errorCode = "OAUTH_START_FAILED")
+            return OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_START_FAILED")
         }
         val opened = openExternalUrl(authorizeUrl)
         if (!opened) {
             if (pendingAndroidOAuthCallback === deferred) {
                 pendingAndroidOAuthCallback = null
             }
-            return OAuthBrowserOutcome(redirectUri = ANDROID_OAUTH_REDIRECT_URI, errorCode = "OAUTH_BROWSER_UNAVAILABLE")
+            return OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_BROWSER_UNAVAILABLE")
         }
         return try {
             withTimeoutOrNull(180_000L) { deferred.await() }
-                ?: OAuthBrowserOutcome(redirectUri = ANDROID_OAUTH_REDIRECT_URI, errorCode = "OAUTH_TIMEOUT")
+                ?: OAuthBrowserOutcome(redirectUri = redirectUri, errorCode = "OAUTH_TIMEOUT")
         } finally {
             if (pendingAndroidOAuthCallback === deferred) {
                 pendingAndroidOAuthCallback = null

@@ -30,6 +30,15 @@ android {
                 ?: System.getenv("ROSAFIESTA_API_URL")
                 ?: ""
         manifestPlaceholders["ROSAFIESTA_API_URL"] = configuredApiUrl.trim()
+        val isReleaseTaskRequested =
+            gradle.startParameter.taskNames.any { taskName ->
+                taskName.contains("Release", ignoreCase = true)
+            }
+        if (isReleaseTaskRequested) {
+            if (configuredApiUrl.isBlank()) {
+                logger.warn("ROSAFIESTA_API_URL is empty for androidApp release build; set -PROSAFIESTA_API_URL or ROSAFIESTA_API_URL.")
+            }
+        }
     }
 
     compileOptions {

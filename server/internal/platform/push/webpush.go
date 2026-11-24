@@ -17,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -37,12 +38,13 @@ const (
 
 // WebPushConfig configures VAPID and RFC 8291 aes128gcm delivery to browser PushManager subscriptions.
 type WebPushConfig struct {
-	VAPIDPublicKey  string
-	VAPIDPrivateKey string
-	Subject         string
-	TTLSeconds      int
-	HTTPClient      *http.Client
-	Clock           func() time.Time
+	VAPIDPublicKey        string
+	VAPIDPrivateKey       string
+	Subject               string
+	TTLSeconds            int
+	AllowPrivateEndpoints bool
+	HTTPClient            *http.Client
+	Clock                 func() time.Time
 }
 
 // WebPushSender delivers encrypted Web Push notifications to browser PushSubscription tokens.
@@ -71,7 +73,12 @@ type webPushKeyMaterials struct {
 func NewWebPushSender(cfg WebPushConfig) *WebPushSender {
 	client := cfg.HTTPClient
 	if client == nil {
-		client = &http.Client{Timeout: webPushTimeout}
+		client = &http.Client{
+			Timeout: webPushTimeout,
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
 	}
 	nowFn := cfg.Clock
 	if nowFn == nil {
@@ -114,7 +121,7 @@ func (s *WebPushSender) SendPush(ctx context.Context, msg Message) error {
 	if !s.IsConfigured() {
 		return ErrNotConfigured
 	}
-	sub, uaPub, authSecret, err := parseWebPushSubscription(msg.Token)
+	sub, uaPub, authSecret, err := parseWebPushSubscription(ctx, msg.Token, s.cfg.AllowPrivateEndpoints)
 	if err != nil {
 		return err
 	}
@@ -195,7 +202,7 @@ func (s *WebPushSender) signVAPIDJWT(rawEndpoint string) (string, error) {
 	return signingInput + "." + base64.RawURLEncoding.EncodeToString(sig), nil
 }
 
-func parseWebPushSubscription(rawToken string) (webPushSubscription, *ecdh.PublicKey, []byte, error) {
+func parseWebPushSubscription(ctx context.Context, rawToken string, allowPrivate bool) (webPushSubscription, *ecdh.PublicKey, []byte, error) {
 	var sub webPushSubscription
 	if err := json.Unmarshal([]byte(strings.TrimSpace(rawToken)), &sub); err != nil {
 		return webPushSubscription{}, nil, nil, fmt.Errorf("invalid web push subscription json: %w", err)
@@ -208,12 +215,8 @@ func parseWebPushSubscription(rawToken string) (webPushSubscription, *ecdh.Publi
 	if err != nil {
 		return webPushSubscription{}, nil, nil, fmt.Errorf("invalid web push endpoint url: %w", err)
 	}
-	isHTTPS := parsedEndpoint.Scheme == "https"
-	isLocalHost := strings.HasPrefix(parsedEndpoint.Host, "127.0.0.1") || strings.HasPrefix(parsedEndpoint.Host, "localhost")
-	isLocalHTTP := parsedEndpoint.Scheme == "http" && isLocalHost
-	isAllowedEndpoint := isHTTPS || isLocalHTTP
-	if !isAllowedEndpoint {
-		return webPushSubscription{}, nil, nil, errors.New("web push endpoint must use https")
+	if err := validateWebPushEndpoint(ctx, parsedEndpoint, allowPrivate); err != nil {
+		return webPushSubscription{}, nil, nil, err
 	}
 	sub.Endpoint = endpoint
 	uaPubBytes, err := decodeBase64URLFlexible(sub.Keys.P256DH)
@@ -232,6 +235,72 @@ func parseWebPushSubscription(rawToken string) (webPushSubscription, *ecdh.Publi
 		return webPushSubscription{}, nil, nil, errors.New("invalid web push auth secret")
 	}
 	return sub, uaPub, authSecret, nil
+}
+
+func validateWebPushEndpoint(ctx context.Context, parsed *url.URL, allowPrivate bool) error {
+	scheme := strings.ToLower(strings.TrimSpace(parsed.Scheme))
+	host := strings.TrimSpace(parsed.Hostname())
+	if host == "" {
+		return errors.New("web push endpoint host is required")
+	}
+	if allowPrivate {
+		if scheme == "http" {
+			return nil
+		}
+		if scheme == "https" {
+			return nil
+		}
+		return errors.New("web push endpoint must use http or https")
+	}
+	if scheme != "https" {
+		return errors.New("web push endpoint must use https")
+	}
+	return rejectPrivateEndpointHost(ctx, host)
+}
+
+func rejectPrivateEndpointHost(ctx context.Context, host string) error {
+	lowerHost := strings.ToLower(strings.TrimSpace(host))
+	if lowerHost == "localhost" {
+		return errors.New("web push loopback endpoint is forbidden")
+	}
+	if strings.HasSuffix(lowerHost, ".localhost") {
+		return errors.New("web push loopback endpoint is forbidden")
+	}
+	if ip := net.ParseIP(lowerHost); ip != nil {
+		if isBlockedPushIP(ip) {
+			return errors.New("web push private or loopback ip is forbidden")
+		}
+		return nil
+	}
+	ips, err := (&net.Resolver{}).LookupIPAddr(ctx, lowerHost)
+	if err != nil {
+		return fmt.Errorf("resolve web push host: %w", err)
+	}
+	for _, resolved := range ips {
+		if isBlockedPushIP(resolved.IP) {
+			return errors.New("web push private or loopback ip is forbidden")
+		}
+	}
+	return nil
+}
+
+func isBlockedPushIP(ip net.IP) bool {
+	if ip.IsLoopback() {
+		return true
+	}
+	if ip.IsPrivate() {
+		return true
+	}
+	if ip.IsLinkLocalUnicast() {
+		return true
+	}
+	if ip.IsLinkLocalMulticast() {
+		return true
+	}
+	if ip.IsMulticast() {
+		return true
+	}
+	return ip.IsUnspecified()
 }
 
 func encryptAES128GCM(plaintext []byte, uaPub *ecdh.PublicKey, authSecret []byte) ([]byte, error) {

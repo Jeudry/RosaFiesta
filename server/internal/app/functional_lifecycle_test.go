@@ -113,6 +113,10 @@ func TestFunctionalLifecycle_TurnaroundOverbookingAndRelease(t *testing.T) {
 	}
 	_ = json.Unmarshal(q1Rec.Body.Bytes(), &q1Out)
 
+	send1Rec := doJSONRequest(t, handler, http.MethodPost, "/v1/quotes/"+q1Out.Quote.ID+"/send", "rf-token-maria", `{}`)
+	if send1Rec.Code != http.StatusOK {
+		t.Fatalf("send quote 1 failed %d: %s", send1Rec.Code, send1Rec.Body.String())
+	}
 	sign1Rec := doJSONRequest(t, handler, http.MethodPost, "/v1/quotes/"+q1Out.Quote.ID+"/sign", clientToken, `{"signedByName":"Laura Cliente","signatureSvg":"<svg><path d='M0,0'/></svg>"}`)
 	if sign1Rec.Code != http.StatusOK {
 		t.Fatalf("sign quote 1 failed %d: %s", sign1Rec.Code, sign1Rec.Body.String())
@@ -200,6 +204,10 @@ func createAndSignLifecycleQuote(t *testing.T, handler http.Handler, clientToken
 	}
 	_ = json.Unmarshal(qRec.Body.Bytes(), &qOut)
 
+	sendRec := doJSONRequest(t, handler, http.MethodPost, "/v1/quotes/"+qOut.Quote.ID+"/send", "rf-token-maria", `{}`)
+	if sendRec.Code != http.StatusOK {
+		t.Fatalf("send quote failed %d: %s", sendRec.Code, sendRec.Body.String())
+	}
 	signRec := doJSONRequest(t, handler, http.MethodPost, "/v1/quotes/"+qOut.Quote.ID+"/sign", clientToken, `{"signedByName":"Laura Cliente","signatureSvg":"<svg><path d='M0,0 L10,10'/></svg>"}`)
 	if signRec.Code != http.StatusOK {
 		t.Fatalf("sign quote failed %d: %s", signRec.Code, signRec.Body.String())

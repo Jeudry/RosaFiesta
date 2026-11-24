@@ -1,5 +1,6 @@
 package com.jeudry.rosafiesta.domain.platform
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -448,8 +449,16 @@ public data class ExternalPaymentReturn(
  */
 public object ExternalPaymentCallbackBridge {
     private val _paymentReturns: MutableSharedFlow<ExternalPaymentReturn> =
-        MutableSharedFlow(extraBufferCapacity = 8)
+        MutableSharedFlow(replay = 1, extraBufferCapacity = 8)
     public val paymentReturns: SharedFlow<ExternalPaymentReturn> = _paymentReturns.asSharedFlow()
+
+    /**
+     * Clears any cached replay emission after an active ViewModel consumes the payment return.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    public fun clearReplayedReturn() {
+        _paymentReturns.resetReplayCache()
+    }
 
     /**
      * Parses and broadcasts an incoming `rosafiesta://payment/...` or HTTPS return URL.
@@ -558,12 +567,20 @@ public object AppLifecycleBridge {
  */
 public object ExternalOAuthCallbackBridge {
     private val _oauthReturns: MutableSharedFlow<OAuthBrowserOutcome> =
-        MutableSharedFlow(extraBufferCapacity = 4)
+        MutableSharedFlow(replay = 1, extraBufferCapacity = 4)
 
     /**
      * Stream emitting recovered OAuth authorization callback payloads.
      */
     public val oauthReturns: SharedFlow<OAuthBrowserOutcome> = _oauthReturns.asSharedFlow()
+
+    /**
+     * Clears any cached replay emission after an active ViewModel consumes the OAuth return.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    public fun clearReplayedReturn() {
+        _oauthReturns.resetReplayCache()
+    }
 
     /**
      * Broadcasts an [OAuthBrowserOutcome] payload to active ViewModels.

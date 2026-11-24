@@ -1,3 +1,6 @@
 bin/
+var/
+.env*
+*_test.go
 *.test
 *.out

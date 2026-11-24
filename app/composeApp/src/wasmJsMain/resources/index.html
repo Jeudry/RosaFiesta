@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; worker-src 'self'; base-uri 'self'; form-action 'self' https:;">
     <title>RosaFiesta</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
     <style>
         html, body {
             width: 100%;
@@ -14,6 +17,9 @@
             background-color: #FAFAFC;
         }
     </style>
+    <script>
+        window.__ROSAFIESTA_API_URL = window.__ROSAFIESTA_API_URL || "";
+    </script>
     <script type="application/javascript" src="composeApp.js"></script>
     <script>
         if ("serviceWorker" in navigator) {

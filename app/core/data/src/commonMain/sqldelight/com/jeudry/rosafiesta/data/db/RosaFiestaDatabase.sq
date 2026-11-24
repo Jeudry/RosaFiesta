@@ -9,7 +9,11 @@ CREATE TABLE IF NOT EXISTS LocalArticleEntity (
     availableOct23 INTEGER NOT NULL,
     photoKey TEXT NOT NULL,
     photoUrl TEXT NOT NULL DEFAULT '',
-    damagedStock INTEGER NOT NULL DEFAULT 0
+    damagedStock INTEGER NOT NULL DEFAULT 0,
+    variantsJson TEXT NOT NULL DEFAULT '[]',
+    dimensions TEXT NOT NULL DEFAULT '',
+    material TEXT NOT NULL DEFAULT '',
+    visibleInCatalog INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS LocalChecklistStepEntity (
@@ -18,7 +22,8 @@ CREATE TABLE IF NOT EXISTS LocalChecklistStepEntity (
     title TEXT NOT NULL,
     completed INTEGER NOT NULL DEFAULT 0,
     completedBy TEXT NOT NULL,
-    timeLabel TEXT NOT NULL
+    timeLabel TEXT NOT NULL,
+    eventId TEXT NOT NULL DEFAULT 'evt-boda-real'
 );
 
 CREATE TABLE IF NOT EXISTS LocalOfflineMutationEntity (
@@ -62,7 +67,10 @@ CREATE TABLE IF NOT EXISTS eventEntity (
     closeoutNotes TEXT NOT NULL DEFAULT '',
     sketchJson TEXT NOT NULL DEFAULT '',
     lastPaymentReminderAt TEXT NOT NULL DEFAULT '',
-    lastPaymentReminderChannel TEXT NOT NULL DEFAULT ''
+    lastPaymentReminderChannel TEXT NOT NULL DEFAULT '',
+    itemsJson TEXT NOT NULL DEFAULT '[]',
+    clientEmail TEXT NOT NULL DEFAULT '',
+    cancellationReason TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS paymentEntity (
@@ -164,7 +172,15 @@ CREATE TABLE IF NOT EXISTS staffPermissionEntity (
     activeEventsCount INTEGER NOT NULL,
     permissionsCsv TEXT NOT NULL,
     canViewPayments INTEGER NOT NULL DEFAULT 1,
-    sortOrder INTEGER NOT NULL DEFAULT 0
+    sortOrder INTEGER NOT NULL DEFAULT 0,
+    email TEXT NOT NULL DEFAULT '',
+    phone TEXT NOT NULL DEFAULT '',
+    active INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS submoduleSnapshotEntity (
+    snapshotKey TEXT NOT NULL PRIMARY KEY,
+    payloadJson TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS chatMessageEntity (
@@ -205,9 +221,10 @@ SELECT * FROM LocalArticleEntity ORDER BY code ASC;
 
 upsertArticle:
 INSERT OR REPLACE INTO LocalArticleEntity(
-    id, code, name, category, description, pricePerDayDop, totalStock, availableOct23, photoKey, photoUrl, damagedStock
+    id, code, name, category, description, pricePerDayDop, totalStock, availableOct23,
+    photoKey, photoUrl, damagedStock, variantsJson, dimensions, material, visibleInCatalog
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateArticleStock:
 UPDATE LocalArticleEntity
@@ -225,13 +242,16 @@ selectAllChecklistSteps:
 SELECT * FROM LocalChecklistStepEntity ORDER BY id ASC;
 
 upsertChecklistStep:
-INSERT OR REPLACE INTO LocalChecklistStepEntity(id, stageLabel, title, completed, completedBy, timeLabel)
-VALUES (?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO LocalChecklistStepEntity(id, stageLabel, title, completed, completedBy, timeLabel, eventId)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 updateChecklistStepStatus:
 UPDATE LocalChecklistStepEntity
 SET completed = ?, timeLabel = ?
 WHERE id = ?;
+
+deleteAllChecklistSteps:
+DELETE FROM LocalChecklistStepEntity;
 
 selectAllOfflineMutations:
 SELECT * FROM LocalOfflineMutationEntity ORDER BY id ASC;
@@ -251,6 +271,9 @@ UPDATE LocalOfflineMutationEntity SET synced = 1;
 markOfflineMutationSyncedById:
 UPDATE LocalOfflineMutationEntity SET synced = 1 WHERE id = ?;
 
+deleteAllOfflineMutations:
+DELETE FROM LocalOfflineMutationEntity;
+
 selectAllEvents:
 SELECT * FROM eventEntity ORDER BY sortOrder ASC, id ASC;
 
@@ -260,9 +283,9 @@ INSERT OR REPLACE INTO eventEntity(
     guests, articleCount, totalDop, paidDepositDop, depositMethodLabel, depositDateLabel,
     balanceDueDateLabel, status, leadStaffName, photoKey, priorChangesCount, sortOrder,
     eventDateIso, pickupDateIso, returnDateIso, quoteId, closeoutCompleted, closeoutNotes, sketchJson,
-    lastPaymentReminderAt, lastPaymentReminderChannel
+    lastPaymentReminderAt, lastPaymentReminderChannel, itemsJson, clientEmail, cancellationReason
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateEventDateAndTotal:
 UPDATE eventEntity
@@ -271,7 +294,7 @@ WHERE id = ?;
 
 updateEventStatus:
 UPDATE eventEntity
-SET status = ?
+SET status = ?, cancellationReason = ?
 WHERE id = ?;
 
 updateEventPaidDeposit:
@@ -282,6 +305,9 @@ WHERE id = ?;
 deleteEventById:
 DELETE FROM eventEntity
 WHERE id = ?;
+
+deleteAllEvents:
+DELETE FROM eventEntity;
 
 selectAllPayments:
 SELECT * FROM paymentEntity ORDER BY sortOrder ASC, id ASC;
@@ -294,6 +320,9 @@ INSERT OR REPLACE INTO paymentEntity(
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+deleteAllPayments:
+DELETE FROM paymentEntity;
+
 selectAllQuotes:
 SELECT * FROM quoteEntity ORDER BY sortOrder ASC, id ASC;
 
@@ -305,6 +334,9 @@ INSERT OR REPLACE INTO quoteEntity(
     contractPdfUrl, signedAtIso, sortOrder
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteAllQuotes:
+DELETE FROM quoteEntity;
 
 selectAllDeliveryStops:
 SELECT * FROM deliveryStopEntity ORDER BY stopOrder ASC, eventId ASC;
@@ -328,6 +360,9 @@ INSERT OR REPLACE INTO damageIncidentEntity(
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+deleteAllDamageIncidents:
+DELETE FROM damageIncidentEntity;
+
 selectAllNotifications:
 SELECT * FROM notificationEntity ORDER BY id ASC;
 
@@ -336,6 +371,9 @@ INSERT OR REPLACE INTO notificationEntity(
     id, title, body, category, createdAtLabel, isRead, recipientRole, actionPath
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteAllNotifications:
+DELETE FROM notificationEntity;
 
 selectAllFavorites:
 SELECT articleId FROM favoriteEntity ORDER BY articleId ASC;
@@ -346,25 +384,44 @@ INSERT OR REPLACE INTO favoriteEntity(articleId) VALUES (?);
 deleteFavorite:
 DELETE FROM favoriteEntity WHERE articleId = ?;
 
+deleteAllFavorites:
+DELETE FROM favoriteEntity;
+
 selectAllStaffPermissions:
 SELECT * FROM staffPermissionEntity ORDER BY sortOrder ASC;
 
 upsertStaffPermission:
 INSERT OR REPLACE INTO staffPermissionEntity(
-    id, name, roleLabel, role, activeEventsCount, permissionsCsv, canViewPayments, sortOrder
+    id, name, roleLabel, role, activeEventsCount, permissionsCsv, canViewPayments, sortOrder, email, phone, active
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateStaffPaymentAccess:
 UPDATE staffPermissionEntity
 SET canViewPayments = ?, permissionsCsv = ?, roleLabel = ?
 WHERE name = ?;
 
+clearStaffPermissions:
+DELETE FROM staffPermissionEntity;
+
+selectAllSubmoduleSnapshots:
+SELECT snapshotKey, payloadJson FROM submoduleSnapshotEntity ORDER BY snapshotKey ASC;
+
+upsertSubmoduleSnapshot:
+INSERT OR REPLACE INTO submoduleSnapshotEntity(snapshotKey, payloadJson)
+VALUES (?, ?);
+
+deleteAllSubmoduleSnapshots:
+DELETE FROM submoduleSnapshotEntity;
+
 selectAllChatMessages:
 SELECT formattedMessage FROM chatMessageEntity ORDER BY id ASC;
 
 insertChatMessage:
 INSERT INTO chatMessageEntity(formattedMessage) VALUES (?);
+
+deleteAllChatMessages:
+DELETE FROM chatMessageEntity;
 
 selectAllUserAccounts:
 SELECT * FROM userAccountEntity ORDER BY id ASC;
@@ -381,6 +438,9 @@ updateUserAccountPassword:
 UPDATE userAccountEntity
 SET passwordHash = ?, salt = ?
 WHERE id = ?;
+
+deleteUserAccountById:
+DELETE FROM userAccountEntity WHERE id = ?;
 
 selectActiveSession:
 SELECT userId, accessToken FROM activeSessionEntity WHERE slot = 1;

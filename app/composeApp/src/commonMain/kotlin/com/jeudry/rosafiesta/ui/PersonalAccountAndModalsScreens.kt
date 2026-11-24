@@ -730,7 +730,7 @@ internal fun RenderPersonalSearchS80(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 12.sp,
-                                    color = Color(0xFF3B3550),
+                                    color = RfThemeState.currentPalette.ink,
                                 ),
                             )
                         }
@@ -805,9 +805,9 @@ internal fun RenderPersonalSearchS80(
                 ) {
                     BasicText(
                         text = sortLabel,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF3B3550)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = RfThemeState.currentPalette.ink),
                     )
-                    RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = Color(0xFF3B3550), size = 16.dp)
+                    RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = RfThemeState.currentPalette.ink, size = 16.dp)
                 }
             }
 
@@ -893,8 +893,11 @@ private fun SearchFilterChip80(
     onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    val chipBg = if (isActive) Color(0xFFFDE6F2) else RfThemeState.currentPalette.chipBg
-    val chipFg = if (isActive) Color(0xFFC2338F) else Color(0xFF62627A)
+    val palette = RfThemeState.currentPalette
+    val activeBg = if (palette.isDark) Color(0xFF3B213D) else Color(0xFFFDE6F2)
+    val activeFg = if (palette.isDark) Color(0xFFF48FB1) else Color(0xFFC2338F)
+    val chipBg = if (isActive) activeBg else palette.chipBg
+    val chipFg = if (isActive) activeFg else palette.muted
 
     Row(
         modifier = Modifier
@@ -1648,7 +1651,6 @@ internal fun RenderAccountSettingsS86(
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
     val vmDarkTheme = viewModel?.isDarkTheme?.collectAsState()?.value ?: palette.isDark
-    val vmLanguage = viewModel?.preferredLanguage?.collectAsState()?.value ?: "Español"
     val vmReminders = viewModel?.remindersEnabled?.collectAsState()?.value ?: true
     val vmPushEnabled = viewModel?.pushNotificationsEnabled?.collectAsState()?.value ?: true
     val vmWhatsappEnabled = viewModel?.whatsappAlertsEnabled?.collectAsState()?.value ?: true
@@ -1660,9 +1662,9 @@ internal fun RenderAccountSettingsS86(
     val vmProfileZone = viewModel?.profileZone?.collectAsState()?.value ?: "Piantini, Santo Domingo"
     val savedPaymentMethod = viewModel?.savedPaymentMethod?.collectAsState()?.value ?: "Transferencia Banreservas"
     val vmFormError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
 
     var localDarkTheme by remember(vmDarkTheme) { mutableStateOf(vmDarkTheme) }
-    var localLanguage by remember(vmLanguage) { mutableStateOf(vmLanguage) }
     var localReminders by remember(vmReminders) { mutableStateOf(vmReminders) }
     var localPush by remember(vmPushEnabled) { mutableStateOf(vmPushEnabled) }
     var localWhatsapp by remember(vmWhatsappEnabled) { mutableStateOf(vmWhatsappEnabled) }
@@ -1686,7 +1688,7 @@ internal fun RenderAccountSettingsS86(
     var passwordErrorBanner by remember { mutableStateOf<String?>(null) }
     var passwordSuccessBanner by remember { mutableStateOf<String?>(null) }
 
-    val isEnglish = localLanguage.startsWith("Eng", ignoreCase = true)
+    val isEnglish = false
     val visibleCurrentPasswordError = rememberDebouncedValidationError(
         value = currentPasswordInput,
         hasInteracted = hasInteractedCurrentPassword,
@@ -1899,14 +1901,14 @@ internal fun RenderAccountSettingsS86(
                         }
                         SettingsDivider86()
                         SettingsRow86(
-                            label = if (isEnglish) "Language" else "Idioma",
+                            label = "Idioma",
                             icon = RfIconKind.GLOBE,
-                            onClick = {
-                                localLanguage = if (isEnglish) "Español" else "English"
-                                viewModel?.togglePreferredLanguage()
-                            },
+                            onClick = null,
                         ) {
-                            BasicText(localLanguage, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
+                            BasicText(
+                                "Español (República Dominicana)",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted),
+                            )
                         }
                         SettingsDivider86()
                         Row(
@@ -2030,7 +2032,7 @@ internal fun RenderAccountSettingsS86(
                                             .height(38.dp)
                                             .clip(RoundedCornerShape(10.dp))
                                             .background(RosaButtonGradient)
-                                            .clickable {
+                                            .clickable(enabled = !isSubmitting) {
                                                 forceShowPasswordErrors = true
                                                 val firstError = InputValidator.validatePassword(currentPasswordInput)
                                                     ?: InputValidator.validatePassword(newPasswordInput)
@@ -2059,19 +2061,15 @@ internal fun RenderAccountSettingsS86(
                                                     hasInteractedConfirmPassword = false
                                                     forceShowPasswordErrors = false
                                                     passwordErrorBanner = null
-                                                    passwordSuccessBanner = if (isEnglish) "Password updated successfully." else "Contraseña actualizada correctamente."
+                                                    passwordSuccessBanner = "Contraseña actualizada correctamente."
                                                 } else if (viewModel == null) {
-                                                    passwordErrorBanner = if (isEnglish) {
-                                                        "Verify your current password, 6+ characters, and matching confirmation."
-                                                    } else {
-                                                        "Verifica tu contraseña actual, mínimo 6 caracteres y confirmación igual."
-                                                    }
+                                                    passwordErrorBanner = "Verifica tu contraseña actual, mínimo 6 caracteres y confirmación igual."
                                                 }
                                             },
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         BasicText(
-                                            if (isEnglish) "Save password" else "Actualizar contraseña",
+                                            if (isSubmitting) "Actualizando..." else "Actualizar contraseña",
                                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White),
                                         )
                                     }
@@ -2397,7 +2395,7 @@ private fun SettingsRow86(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        RfIcon(kind = icon, tint = Color(0xFF3B3550), size = 20.dp)
+        RfIcon(kind = icon, tint = RfThemeState.currentPalette.ink, size = 20.dp)
         BasicText(
             label,
             modifier = Modifier.weight(1f),
@@ -2415,6 +2413,8 @@ private fun SettingsSwitch86(
     checked: Boolean,
     onToggle: () -> Unit,
 ) {
+    val palette = RfThemeState.currentPalette
+    val offTrack = if (palette.isDark) palette.chipBg else Color(0xFFE3DCE8)
     Box(
         modifier = Modifier
             .width(46.dp)
@@ -2424,13 +2424,13 @@ private fun SettingsSwitch86(
                 if (checked) {
                     Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
                 } else {
-                    Brush.linearGradient(listOf(Color(0xFFE3DCE8), Color(0xFFE3DCE8)))
+                    Brush.linearGradient(listOf(offTrack, offTrack))
                 },
             )
             .clickable(onClick = onToggle),
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
-        Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(RfThemeState.currentPalette.surface).shadow(1.dp, CircleShape))
+        Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(palette.surface).shadow(1.dp, CircleShape))
     }
 }
 
@@ -2442,22 +2442,26 @@ internal fun AppAudioSettingsCard(
     horizontalMargin: Dp = 0.dp,
 ) {
     val typo = LocalRfTypography.current
-    val personalPalette = RfThemeState.currentPalette
+    val palette = RfThemeState.currentPalette
     val vmAudioConfig = viewModel?.audioConfig?.collectAsState()?.value ?: AppAudioConfig.DEFAULT
     var localConfig by remember(vmAudioConfig) { mutableStateOf(vmAudioConfig) }
 
-    val surfaceColor = if (isAdminSurface) Color.White else personalPalette.surface
-    val borderColor = if (isAdminSurface) Color(0xFFECECF5) else personalPalette.line
-    val dividerColor = if (isAdminSurface) Color(0xFFF0F0F6) else personalPalette.lineSoft
-    val inkColor = if (isAdminSurface) Color(0xFF151729) else personalPalette.ink
-    val mutedColor = if (isAdminSurface) Color(0xFF5F6377) else personalPalette.muted
-    val chipBgColor = if (isAdminSurface) Color(0xFFF2F2F8) else personalPalette.chipBg
+    val surfaceColor = palette.surface
+    val borderColor = palette.line
+    val dividerColor = palette.lineSoft
+    val inkColor = palette.ink
+    val mutedColor = palette.muted
+    val chipBgColor = palette.chipBg
     val accentGradient = if (isAdminSurface) {
         Brush.horizontalGradient(listOf(Color(0xFF5B6CF0), Color(0xFF865DEC)))
     } else {
         Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
     }
-    val accentTint = if (isAdminSurface) Color(0xFF4B47D6) else Color(0xFFC2338F)
+    val accentTint = if (isAdminSurface) {
+        if (palette.isDark) Color(0xFFA7A5FF) else Color(0xFF4B47D6)
+    } else {
+        if (palette.isDark) Color(0xFFF48FB1) else Color(0xFFC2338F)
+    }
     val volumePercent = localConfig.volumePercent()
     val statusSummary = if (!localConfig.soundEffectsEnabled) {
         if (isEnglish) "Muted" else "Silenciados"
@@ -2869,8 +2873,10 @@ internal fun RenderTermsS87(
                     )
                 }
 
+                val (termsYear, termsMonth, _) = remember { DomainClockFormatter.currentCivilDateTriple() }
+                val termsEffectiveDateLabel = "${spanishMonthFull84(termsMonth).lowercase()} $termsYear"
                 BasicText(
-                    text = "$legalEntityName · RNC $rncNumber · Vigente octubre 2026",
+                    text = "$legalEntityName · RNC $rncNumber · Vigente $termsEffectiveDateLabel",
                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
                 )
 
@@ -3047,11 +3053,13 @@ internal fun RenderDeleteAccountS88(
     viewModel?.profileEmail?.collectAsState()?.value
     viewModel?.isExplicitGuestSession?.collectAsState()?.value
     val vmFormError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
 
     val activeEventsCount = viewModel?.activeClientEventCount() ?: 0
     val matchesDeleteKeyword = confirmationText.trim() == "ELIMINAR"
     val hasZeroActiveEvents = activeEventsCount == 0
-    val canConfirmDeletion = if (matchesDeleteKeyword) hasZeroActiveEvents else false
+    val isAllowedToDelete = if (matchesDeleteKeyword) hasZeroActiveEvents else false
+    val canConfirmDeletion = if (isAllowedToDelete) !isSubmitting else false
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -3190,7 +3198,7 @@ internal fun RenderDeleteAccountS88(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BasicText("Escribe ELIMINAR para confirmar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                    BasicText("Escribe ELIMINAR para confirmar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink))
                     val confirmationBorderColor = if (visibleConfirmationError != null) RfColors.Error else RfThemeState.currentPalette.line
                     Box(
                         modifier = Modifier
@@ -3253,7 +3261,7 @@ internal fun RenderDeleteAccountS88(
                             )
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (canConfirmDeletion) Color(0xFFB42345) else Color(0xFFF1D5DB))
-                            .clickable {
+                            .clickable(enabled = !isSubmitting) {
                                 forceShowConfirmationError = true
                                 val confirmationError = validateDeleteConfirmation88(confirmationText)
                                 if (confirmationError != null) {
@@ -3274,13 +3282,13 @@ internal fun RenderDeleteAccountS88(
                                 if (deleted) {
                                     onSelectScreenCode("s06")
                                 } else {
-                                    deletionErrorText = "No fue posible eliminar la cuenta activa."
+                                    deletionErrorText = viewModel?.formError?.value ?: "No fue posible eliminar la cuenta activa."
                                 }
                             },
                         contentAlignment = Alignment.Center,
                     ) {
                         BasicText(
-                            "Eliminar cuenta",
+                            if (isSubmitting) "Eliminando..." else "Eliminar cuenta",
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
                                 fontWeight = FontWeight.Bold,
@@ -4425,8 +4433,14 @@ internal fun RenderEventReviewsModalS77(
     val dismissRoute = remember(originScreenCode) {
         resolveModalDismissRoute(originScreenCode)
     }
-    val activeEvent = viewModel?.activeClientEvent() ?: CanonicalSampleData.events.last()
+    val activeEvent = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        CanonicalSampleData.events.lastOrNull()
+    }
     val reviewsState = viewModel?.companyReviews?.collectAsState()?.value ?: emptyList()
+    val vmFormError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     var showComposer by remember { mutableStateOf(false) }
     var selectedStars by remember { mutableStateOf(5) }
     var draftComment by remember { mutableStateOf("") }
@@ -4506,7 +4520,7 @@ internal fun RenderEventReviewsModalS77(
                         )
                         Spacer(Modifier.height(2.dp))
                         BasicText(
-                            activeEvent.title,
+                            activeEvent?.title?.takeIf { title -> title.isNotBlank() } ?: "Rosa Fiesta · Reseñas",
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
                                 fontSize = 14.sp,
@@ -4664,7 +4678,7 @@ internal fun RenderEventReviewsModalS77(
                             }
                         }
 
-                        val activeCommentError = debouncedCommentError ?: validationError
+                        val activeCommentError = debouncedCommentError ?: validationError ?: vmFormError
                         val commentBorderColor = if (activeCommentError != null) RfColors.Error else RfThemeState.currentPalette.line
                         Box(
                             modifier = Modifier
@@ -4722,7 +4736,7 @@ internal fun RenderEventReviewsModalS77(
                             .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                             .clip(RoundedCornerShape(16.dp))
                             .background(RosaButtonGradient)
-                            .clickable {
+                            .clickable(enabled = !isSubmitting) {
                                 if (!showComposer) {
                                     showComposer = true
                                     hasInteractedComment = false
@@ -4754,7 +4768,7 @@ internal fun RenderEventReviewsModalS77(
                                             validationError = null
                                             onSelectScreenCode(dismissRoute)
                                         } else {
-                                            validationError = "No fue posible publicar la reseña. Revisa tu comentario."
+                                            validationError = viewModel.formError.value ?: "No fue posible publicar la reseña. Revisa tu comentario."
                                         }
                                     }
                                 }
@@ -4765,8 +4779,13 @@ internal fun RenderEventReviewsModalS77(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             RfIcon(kind = RfIconKind.EDIT, tint = Color.White, size = 20.dp)
+                            val reviewBtnLabel = when {
+                                isSubmitting -> "Publicando..."
+                                showComposer -> "Publicar reseña"
+                                else -> "Escribir reseña"
+                            }
                             BasicText(
-                                if (showComposer) "Publicar reseña" else "Escribir reseña",
+                                reviewBtnLabel,
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
                                     fontWeight = FontWeight.Bold,
@@ -4919,7 +4938,7 @@ internal fun RenderCatalogFiltersModalS81(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BasicText("Categoría", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                    BasicText("Categoría", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink))
                     val vmCategories = viewModel?.catalogCategories?.collectAsState()?.value
                     val categoryLabels = if (vmCategories != null) {
                         listOf("Todos") + vmCategories.map { category -> category.name.trim() }
@@ -4965,7 +4984,7 @@ internal fun RenderCatalogFiltersModalS81(
                                             fontFamily = typo.bodyFamily,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 13.5.sp,
-                                            color = if (isSelected) Color.White else Color(0xFF1A1A2E),
+                                            color = if (isSelected) Color.White else RfThemeState.currentPalette.ink,
                                         ),
                                     )
                                 }
@@ -4980,7 +4999,7 @@ internal fun RenderCatalogFiltersModalS81(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        BasicText("Precio máximo por día", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                        BasicText("Precio máximo por día", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink))
                         val priceRangeLabel = if (selectedMaxPrice < 5000) "RD$ 0 – ${RosaFiestaEngine.formatDop(selectedMaxPrice)}" else "RD$ 0 – RD$ 5,000 (Sin límite)"
                         BasicText(
                             priceRangeLabel,
@@ -5117,7 +5136,7 @@ internal fun RenderCatalogFiltersModalS81(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    BasicText("Ordenar por", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                    BasicText("Ordenar por", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink))
                     val sortOptions = listOf("Más populares", "Menor precio", "Mayor precio", "Alfabético")
                     Row(
                         modifier = Modifier
@@ -5135,7 +5154,7 @@ internal fun RenderCatalogFiltersModalS81(
                                     .height(36.dp)
                                     .then(if (isSel) Modifier.shadow(4.dp, RoundedCornerShape(12.dp), spotColor = Color(0x33B450B4), ambientColor = Color.Transparent) else Modifier)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSel) Color.White else Color.Transparent)
+                                    .background(if (isSel) RfThemeState.currentPalette.surface else Color.Transparent)
                                     .clickable {
                                         selectedSortOption = sortOption
                                         viewModel?.setSearchSortOrder(sortOption)
@@ -5149,7 +5168,7 @@ internal fun RenderCatalogFiltersModalS81(
                                         fontFamily = typo.bodyFamily,
                                         fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
                                         fontSize = 12.5.sp,
-                                        color = if (isSel) Color(0xFF1A1A2E) else Color(0xFF62627A),
+                                        color = if (isSel) RfThemeState.currentPalette.ink else RfThemeState.currentPalette.muted,
                                     ),
                                 )
                             }
@@ -5281,15 +5300,19 @@ internal fun RenderChangeDateModalS84(
     }
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
-    val activeEvent = viewModel?.activeClientEvent()
-        ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
-        ?: eventsState.firstOrNull()
-    val eventTitle = activeEvent?.title ?: "Boda Real Rosa & Dorado"
-    val itemCountTotal = activeEvent?.items?.sumOf { lineItem -> lineItem.quantity } ?: 145
+    val activeEvent = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
+            ?: eventsState.firstOrNull()
+    }
+    val eventTitle = activeEvent?.title ?: if (viewModel != null) "Sin eventos activos" else "Boda Real Rosa & Dorado"
+    val itemCountTotal = activeEvent?.items?.sumOf { lineItem -> lineItem.quantity } ?: if (viewModel != null) 0 else 145
 
+    val (civilYear, civilMonth, _) = remember { DomainClockFormatter.currentCivilDateTriple() }
     val currentYearMonth = remember { DomainClockFormatter.currentYearMonthIso() }
-    val defaultYear = currentYearMonth.substringBefore("-").toIntOrNull() ?: 2026
-    val defaultMonth = currentYearMonth.substringAfter("-").toIntOrNull()?.coerceIn(1, 12) ?: 10
+    val defaultYear = currentYearMonth.substringBefore("-").toIntOrNull() ?: civilYear
+    val defaultMonth = currentYearMonth.substringAfter("-").toIntOrNull()?.coerceIn(1, 12) ?: civilMonth
 
     var displayedYear by remember { mutableStateOf(defaultYear) }
     var displayedMonth by remember { mutableStateOf(defaultMonth) }
@@ -5443,7 +5466,7 @@ internal fun RenderChangeDateModalS84(
                                     .background(RfThemeState.currentPalette.chipBg)
                                     .clickable {
                                         if (displayedMonth == 1) {
-                                            if (displayedYear > 2026) {
+                                            if (displayedYear > civilYear) {
                                                 displayedYear -= 1
                                                 displayedMonth = 12
                                             }
@@ -5738,13 +5761,18 @@ internal fun RenderCancelEventModalS85(
     }
     val eventsState = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val selectedEventId = viewModel?.selectedEventId?.collectAsState()?.value
-    val activeEvent = viewModel?.activeClientEvent()
-        ?: eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
-        ?: eventsState.firstOrNull()
+    val activeEvent = if (viewModel != null) {
+        viewModel.activeClientEventOrNull()
+    } else {
+        eventsState.firstOrNull { eventItem -> eventItem.id == selectedEventId }
+            ?: eventsState.firstOrNull()
+    }
+    val vmFormError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     val eventHeaderSubtitle = if (activeEvent != null) {
         "${activeEvent.title} · ${formatReadableSpanishDateText(activeEvent.dateLabel)}"
     } else {
-        "Evento activo"
+        "Sin eventos activos"
     }
     val paidDepositDop = activeEvent?.paidDepositDop ?: 0
     val daysUntilEvent = activeEvent?.daysUntilEvent ?: 10
@@ -5962,7 +5990,7 @@ internal fun RenderCancelEventModalS85(
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    BasicText("¿Por qué cancelas?", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF3B3550)))
+                    BasicText("¿Por qué cancelas?", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = RfThemeState.currentPalette.ink))
                     val cancelReasons = listOf("Cambio de planes", "Ajuste de presupuesto", "Cambio de fecha sin definir", "Otro motivo")
                     cancelReasons.forEach { reasonOption ->
                         val isReasonSelected = selectedReason == reasonOption
@@ -6031,14 +6059,19 @@ internal fun RenderCancelEventModalS85(
                             )
                         }
                     }
-                    RfValidationErrorText(errorMessage = activeReasonError)
+                    RfValidationErrorText(errorMessage = activeReasonError ?: vmFormError)
                 }
 
+                val promoGradient = if (RfThemeState.currentPalette.isDark) {
+                    Brush.horizontalGradient(listOf(Color(0xFF2D203C), Color(0xFF242146)))
+                } else {
+                    Brush.horizontalGradient(listOf(Color(0xFFFCE6F3), Color(0xFFECE4FD)))
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.horizontalGradient(listOf(Color(0xFFFCE6F3), Color(0xFFECE4FD))))
+                        .background(promoGradient)
                         .clickable { onSelectScreenCode("s84") }
                         .padding(10.dp, 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -6059,14 +6092,16 @@ internal fun RenderCancelEventModalS85(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
+                val hasMissingLiveEvent = if (viewModel != null) activeEvent == null else false
+                val canSubmitCancellation = if (hasMissingLiveEvent) false else !isSubmitting
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
                         .shadow(12.dp, RoundedCornerShape(16.dp), spotColor = Color(0x99B42345))
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFB42345))
-                        .clickable {
+                        .background(if (canSubmitCancellation) Color(0xFFB42345) else Color(0xFFB42345).copy(alpha = 0.45f))
+                        .clickable(enabled = canSubmitCancellation) {
                             val isCustomReason = selectedReason == "Otro motivo"
                             val customValidationError = if (isCustomReason) {
                                 InputValidator.validateNotes(
@@ -6096,8 +6131,6 @@ internal fun RenderCancelEventModalS85(
                                             eventId = activeEvent.id,
                                             reason = resolvedReason,
                                         )
-                                    } else {
-                                        viewModel?.submitCancelEvent(reason = resolvedReason)
                                     }
                                     onSelectScreenCode(dismissRoute)
                                 }
@@ -6105,7 +6138,12 @@ internal fun RenderCancelEventModalS85(
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    BasicText("Confirmar cancelación", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
+                    val cancelBtnLabel = when {
+                        hasMissingLiveEvent -> "Sin evento activo para cancelar"
+                        isSubmitting -> "Cancelando..."
+                        else -> "Confirmar cancelación"
+                    }
+                    BasicText(cancelBtnLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White))
                 }
                 Box(
                     modifier = Modifier

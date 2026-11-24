@@ -779,8 +779,11 @@ private fun AdminHeaderLeftSlot(
     val typo = LocalRfTypography.current
     when (screenCode) {
         "A01" -> {
+            val palette = RfThemeState.currentPalette
             val rawProfileName = viewModel.profileName.collectAsState().value
             val adminFirstName = rawProfileName.trim().substringBefore(" ").ifBlank { "María" }
+            val badgeBg = if (palette.isDark) palette.chipBg else Color(0xFFECEBFF)
+            val badgeInk = if (palette.isDark) Color(0xFFA7A5FF) else Color(0xFF4B47D6)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -793,8 +796,8 @@ private fun AdminHeaderLeftSlot(
                         .size(HEADER_ACTION_SIZE)
                         .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, RfColors.IndigoTint, CircleShape),
+                        .background(palette.surface)
+                        .border(1.dp, if (palette.isDark) palette.line else RfColors.IndigoTint, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     RfLogo(size = RfLogoSize.MEDIUM)
@@ -807,12 +810,12 @@ private fun AdminHeaderLeftSlot(
                     ) {
                         BasicText(
                             text = "Rosa Fiesta",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
                         )
                         Box(
                             modifier = Modifier
                                 .height(20.dp)
-                                .background(Color(0xFFECEBFF), CircleShape)
+                                .background(badgeBg, CircleShape)
                                 .padding(horizontal = 7.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -822,7 +825,7 @@ private fun AdminHeaderLeftSlot(
                                     fontFamily = typo.bodyFamily,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF4B47D6),
+                                    color = badgeInk,
                                 ),
                             )
                         }
@@ -835,7 +838,7 @@ private fun AdminHeaderLeftSlot(
                             fontFamily = typo.displayFamily,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF151729),
+                            color = palette.ink,
                             lineHeight = 24.sp,
                         ),
                     )
@@ -956,8 +959,11 @@ private fun AdminHeaderRightActions(
     viewModel: RosaFiestaViewModel,
     onSelectScreenCode: (String) -> Unit,
 ) {
+    val palette = RfThemeState.currentPalette
     val notifications = viewModel.notifications.collectAsState().value
     val unreadNotificationsCount = notifications.count { item -> !item.isRead }
+    val indigoAccent = if (palette.isDark) Color(0xFFA7A5FF) else Color(0xFF4B47D6)
+    val roseAccent = if (palette.isDark) Color(0xFFF48FB1) else Color(0xFFC2338F)
 
     when (screenCode) {
         "A09" -> {
@@ -967,21 +973,21 @@ private fun AdminHeaderRightActions(
             ) {
                 HeaderSurfaceActionCircle(
                     icon = RfIconKind.CATALOG,
-                    tint = Color(0xFF4B47D6),
+                    tint = indigoAccent,
                     accessibilityLabel = "Categorías",
                     isAdmin = true,
                     onClick = { onSelectScreenCode("A40") },
                 )
                 HeaderSurfaceActionCircle(
                     icon = RfIconKind.TREND_UP,
-                    tint = Color(0xFFC2338F),
+                    tint = roseAccent,
                     accessibilityLabel = "Tendencias",
                     isAdmin = true,
                     onClick = { onSelectScreenCode("A41") },
                 )
                 HeaderSurfaceActionCircle(
                     icon = RfIconKind.CALENDAR,
-                    tint = Color(0xFF151729),
+                    tint = palette.ink,
                     accessibilityLabel = "Calendario",
                     isAdmin = true,
                     onClick = { onSelectScreenCode("s63") },
@@ -1005,7 +1011,7 @@ private fun AdminHeaderRightActions(
             ) {
                 HeaderSurfaceActionCircle(
                     icon = RfIconKind.CALENDAR,
-                    tint = Color(0xFF151729),
+                    tint = palette.ink,
                     accessibilityLabel = "Calendario",
                     isAdmin = true,
                     onClick = { onSelectScreenCode("s63") },
@@ -1048,8 +1054,12 @@ private fun HeaderTitleBlock(
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
-    val titleColor = if (isAdmin) Color(0xFF2E324A) else palette.ink
-    val subtitleColor = if (isAdmin) Color(0xFF5F6377) else palette.muted
+    val titleColor = if (isAdmin) {
+        if (palette.isDark) palette.ink else Color(0xFF2E324A)
+    } else {
+        palette.ink
+    }
+    val subtitleColor = palette.muted
     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
         BasicText(
             text = title,
@@ -1083,7 +1093,7 @@ private fun HeaderBackAndTitleSlot(
     onBack: () -> Unit,
 ) {
     val palette = RfThemeState.currentPalette
-    val iconTint = if (isAdmin) Color(0xFF151729) else palette.ink
+    val iconTint = palette.ink
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1115,8 +1125,12 @@ private fun HeaderSurfaceActionCircle(
     onClick: () -> Unit,
 ) {
     val palette = RfThemeState.currentPalette
-    val surfaceColor = if (isAdmin) Color.White else palette.surface
-    val borderColor = if (isAdmin) Color(0xFFE3E4F2) else palette.line
+    val surfaceColor = palette.surface
+    val borderColor = if (isAdmin) {
+        if (palette.isDark) palette.line else Color(0xFFE3E4F2)
+    } else {
+        palette.line
+    }
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -1164,6 +1178,8 @@ private fun AdminNotificationBellButton(
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val borderColor = if (palette.isDark) palette.line else Color(0xFFE3E4F2)
     Box(
         modifier = Modifier
             .size(HEADER_ACTION_SIZE)
@@ -1174,11 +1190,11 @@ private fun AdminNotificationBellButton(
                 .fillMaxSize()
                 .rfIconButtonShadow(CircleShape, isAdmin = true)
                 .clip(CircleShape)
-                .background(Color.White)
-                .border(1.dp, Color(0xFFE3E4F2), CircleShape),
+                .background(palette.surface)
+                .border(1.dp, borderColor, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            RfIcon(kind = RfIconKind.BELL, tint = Color(0xFF151729), size = 21.dp)
+            RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 21.dp)
         }
         if (unreadCount > 0) {
             Box(

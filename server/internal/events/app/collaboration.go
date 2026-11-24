@@ -527,15 +527,16 @@ func (s *Service) PostChatMessage(
 	if cleanThread == "" {
 		return domain.ChatMessage{}, domain.ErrInvalidEventInput
 	}
-	eventID := strings.TrimSpace(cmd.EventID)
-	if eventID == "" {
-		eventID = strings.TrimPrefix(cleanThread, "thr-")
+	eventID, err := resolveChatThreadEventID(cleanThread, cmd.EventID)
+	if err != nil {
+		return domain.ChatMessage{}, err
 	}
 	if caller.IsClient() {
-		if eventID != "" {
-			if _, err := s.GetEventForCaller(ctx, eventID, caller, true); err != nil {
-				return domain.ChatMessage{}, err
-			}
+		if eventID == "" {
+			return domain.ChatMessage{}, domain.ErrEventForbidden
+		}
+		if _, err := s.GetEventForCaller(ctx, eventID, caller, true); err != nil {
+			return domain.ChatMessage{}, err
 		}
 	}
 	suffix := uuid.NewString()[:8]
@@ -572,6 +573,20 @@ func (s *Service) PostChatMessage(
 	}
 	s.publishChatMessage(ctx, msg)
 	return msg, nil
+}
+
+func resolveChatThreadEventID(cleanThread, rawEventID string) (string, error) {
+	eventID := strings.TrimSpace(rawEventID)
+	if !strings.HasPrefix(cleanThread, "thr-") {
+		return eventID, nil
+	}
+	threadEventID := strings.TrimPrefix(cleanThread, "thr-")
+	if eventID != "" {
+		if eventID != threadEventID {
+			return "", domain.ErrEventForbidden
+		}
+	}
+	return threadEventID, nil
 }
 
 func (s *Service) publishChatMessage(ctx context.Context, msg domain.ChatMessage) {
@@ -666,11 +681,9 @@ func (s *Service) syncGuestsFromStore(ctx context.Context, eventID string) {
 	if err != nil {
 		return
 	}
-	if len(rows) > 0 {
-		s.mu.Lock()
-		s.guests[eventID] = rows
-		s.mu.Unlock()
-	}
+	s.mu.Lock()
+	s.guests[eventID] = rows
+	s.mu.Unlock()
 }
 
 func (s *Service) syncScheduleFromStore(ctx context.Context, eventID string) {
@@ -706,9 +719,7 @@ func (s *Service) syncChatsFromStore(ctx context.Context) {
 	if err != nil {
 		return
 	}
-	if len(rows) > 0 {
-		s.mu.Lock()
-		s.messages = rows
-		s.mu.Unlock()
-	}
+	s.mu.Lock()
+	s.messages = rows
+	s.mu.Unlock()
 }

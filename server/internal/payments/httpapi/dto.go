@@ -246,6 +246,7 @@ var paymentErrorSpecs = []paymentErrorSpec{
 	{domain.ErrInvalidWebhookSignature, http.StatusUnauthorized, "INVALID_WEBHOOK_SIGNATURE", "VerifyStripeHMACSignature"},
 	{domain.ErrCardSessionNotPaid, http.StatusConflict, "CARD_SESSION_NOT_PAID", "StripeCheckoutPaidRequired"},
 	{domain.ErrRefundNotFound, http.StatusNotFound, "REFUND_NOT_FOUND", "RefundMustExist"},
+	{domain.ErrRefundAlreadyApproved, http.StatusConflict, "REFUND_ALREADY_APPROVED", "RefundIdempotentApprovalGuard"},
 	{domain.ErrCardCheckoutRequired, http.StatusForbidden, "CARD_CHECKOUT_REQUIRED", "RequireStripeCheckoutForClientCard"},
 	{domain.ErrClientCashRestricted, http.StatusForbidden, "CLIENT_CASH_PAYMENT_RESTRICTED", "RequireAdminForDirectCash"},
 }

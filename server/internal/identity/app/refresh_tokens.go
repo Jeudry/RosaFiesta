@@ -105,7 +105,7 @@ func (s *Service) ResetPasswordWithSession(ctx context.Context, cmd ResetPasswor
 	user.PasswordHash = passwordHash
 	s.users[user.ID] = user
 	s.updatePasswordInStoreLocked(ctx, user.Email, passwordHash)
-	s.revokeUserRefreshTokensLocked(ctx, user.ID, s.clock.Now())
+	s.revokeUserAccessLocked(ctx, user.ID)
 	return s.issueSessionBundleLocked(ctx, user, uuid.Nil), nil
 }
 
@@ -120,7 +120,7 @@ func (s *Service) OAuthLoginWithSession(ctx context.Context, provider, idToken s
 	if err != nil {
 		return AuthSession{}, err
 	}
-	return s.upsertOAuthUserWithSession(ctx, claims.Email, claims.Name), nil
+	return s.upsertOAuthUserWithSession(ctx, claims.Email, claims.Name)
 }
 
 func (s *Service) ExchangeOAuthCodeWithSession(
@@ -129,6 +129,7 @@ func (s *Service) ExchangeOAuthCodeWithSession(
 	code string,
 	codeVerifier string,
 	redirectURI string,
+	state string,
 ) (AuthSession, error) {
 	normalizedProvider := strings.ToLower(strings.TrimSpace(provider))
 	clientID, err := s.configuredOAuthClientID(normalizedProvider)
@@ -143,8 +144,11 @@ func (s *Service) ExchangeOAuthCodeWithSession(
 	if len(cleanVerifier) < minPKCEVerifierLen {
 		return AuthSession{}, domain.ErrInvalidInput
 	}
-	cleanRedirect, err := validateOAuthRedirectURI(redirectURI)
+	cleanRedirect, err := validateOAuthRedirectURI(redirectURI, s.opts.Env)
 	if err != nil {
+		return AuthSession{}, err
+	}
+	if err := s.consumeOAuthState(state, normalizedProvider, cleanRedirect); err != nil {
 		return AuthSession{}, err
 	}
 	idToken, err := s.requestOAuthIDToken(ctx, normalizedProvider, clientID, cleanCode, cleanVerifier, cleanRedirect)
@@ -155,7 +159,7 @@ func (s *Service) ExchangeOAuthCodeWithSession(
 	if err != nil {
 		return AuthSession{}, err
 	}
-	return s.upsertOAuthUserWithSession(ctx, claims.Email, claims.Name), nil
+	return s.upsertOAuthUserWithSession(ctx, claims.Email, claims.Name)
 }
 
 func (s *Service) RefreshSession(ctx context.Context, rawRefreshToken string) (AuthSession, error) {
@@ -258,23 +262,22 @@ func (s *Service) loadRefreshToken(ctx context.Context, tokenHash string) (domai
 	record, inMem := s.refreshTokens[tokenHash]
 	store := s.store
 	s.mu.RUnlock()
+	if store != nil {
+		if store.Enabled() {
+			dbRec, err := store.GetRefreshTokenByHash(ctx, tokenHash)
+			if err != nil {
+				return domain.RefreshTokenRecord{}, false
+			}
+			s.mu.Lock()
+			s.refreshTokens[tokenHash] = dbRec
+			s.mu.Unlock()
+			return dbRec, true
+		}
+	}
 	if inMem {
 		return record, true
 	}
-	if store == nil {
-		return domain.RefreshTokenRecord{}, false
-	}
-	if !store.Enabled() {
-		return domain.RefreshTokenRecord{}, false
-	}
-	dbRec, err := store.GetRefreshTokenByHash(ctx, tokenHash)
-	if err != nil {
-		return domain.RefreshTokenRecord{}, false
-	}
-	s.mu.Lock()
-	s.refreshTokens[tokenHash] = dbRec
-	s.mu.Unlock()
-	return dbRec, true
+	return domain.RefreshTokenRecord{}, false
 }
 
 func (s *Service) revokeSingleRefreshTokenLocked(ctx context.Context, tokenHash string, now time.Time) {
@@ -396,18 +399,21 @@ func (s *Service) updatePasswordInStoreLocked(ctx context.Context, email, passwo
 	_ = s.store.UpdatePassword(ctx, email, passwordHash)
 }
 
-func (s *Service) upsertOAuthUserWithSession(ctx context.Context, email, displayName string) AuthSession {
+func (s *Service) upsertOAuthUserWithSession(ctx context.Context, email, displayName string) (AuthSession, error) {
 	s.syncUsersFromStore(ctx)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	existing, found := s.findUserLocked(email)
 	if found {
-		return s.issueSessionBundleLocked(ctx, existing, uuid.Nil)
+		if !existing.Active {
+			return AuthSession{}, domain.ErrInvalidCredentials
+		}
+		return s.issueSessionBundleLocked(ctx, existing, uuid.Nil), nil
 	}
 	created := buildNewOAuthUser(email, displayName, s.clock.Now())
 	s.users[created.ID] = created
 	s.ensureAdminClientForUserLocked(ctx, created)
-	return s.issueSessionBundleLocked(ctx, created, uuid.Nil)
+	return s.issueSessionBundleLocked(ctx, created, uuid.Nil), nil
 }
 
 func resolveRegisterUsername(rawUsername, normalizedEmail string) string {

@@ -103,6 +103,15 @@ public object RfColors {
     public val AdminCardShadow: Color = Color(0x284650B4)
     public val AdminButtonShadow: Color = Color(0x555B6CF0)
 
+    // Modo oscuro de la App Administrativa
+    public val AdminDarkInk: Color = Color(0xFFF3F4FC)
+    public val AdminDarkMuted: Color = Color(0xFFA0A5C2)
+    public val AdminDarkBg: Color = Color(0xFF101322)
+    public val AdminDarkSurface: Color = Color(0xFF1A1E33)
+    public val AdminDarkLine: Color = Color(0xFF2B304D)
+    public val AdminDarkLineStrong: Color = Color(0xFF363C5E)
+    public val AdminDarkChipBg: Color = Color(0xFF242945)
+
     // primary: linear-gradient(135deg,#7C5CF0 0%,#5B6CF0 100%)
     public val AdminPrimaryGradient: Brush = Brush.linearGradient(
         0.0f to Color(0xFF7C5CF0),

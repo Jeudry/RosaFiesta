@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/Jeudry/rosafiesta/server/internal/identity/domain"
+	"github.com/Jeudry/rosafiesta/server/internal/platform/config"
 )
 
 const (
@@ -295,10 +296,11 @@ func parseOAuthClaims(
 	if now.Unix() >= claims.ExpiresAt {
 		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
 	}
-	if claims.EmailVerified != nil {
-		if !bool(*claims.EmailVerified) {
-			return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
-		}
+	if claims.EmailVerified == nil {
+		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
+	}
+	if !bool(*claims.EmailVerified) {
+		return oauthTokenClaims{}, domain.ErrOAuthInvalidToken
 	}
 	normalizedEmail, err := domain.NormalizeEmail(claims.Email)
 	if err != nil {
@@ -434,7 +436,7 @@ func (s *Service) StartOAuthAuthorization(
 	if err != nil {
 		return OAuthStartResult{}, err
 	}
-	cleanRedirect, err := validateOAuthRedirectURI(redirectURI)
+	cleanRedirect, err := validateOAuthRedirectURI(redirectURI, s.opts.Env)
 	if err != nil {
 		return OAuthStartResult{}, err
 	}
@@ -449,12 +451,65 @@ func (s *Service) StartOAuthAuthorization(
 			return OAuthStartResult{}, err
 		}
 	}
+	s.storeOAuthState(resolvedState, normalizedProvider, cleanRedirect)
 	authURL := buildOAuthAuthorizeURL(normalizedProvider, clientID, cleanRedirect, cleanChallenge, resolvedState)
 	return OAuthStartResult{
 		Provider:     normalizedProvider,
 		AuthorizeURL: authURL,
 		State:        resolvedState,
 	}, nil
+}
+
+const oauthStateTTL = 15 * time.Minute
+
+type oauthStateEntry struct {
+	Provider    string
+	RedirectURI string
+	ExpiresAt   time.Time
+}
+
+func (s *Service) storeOAuthState(state, provider, redirectURI string) {
+	now := s.clock.Now()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.oauthStates == nil {
+		s.oauthStates = make(map[string]oauthStateEntry)
+	}
+	for k, existing := range s.oauthStates {
+		if !now.Before(existing.ExpiresAt) {
+			delete(s.oauthStates, k)
+		}
+	}
+	s.oauthStates[state] = oauthStateEntry{
+		Provider:    provider,
+		RedirectURI: redirectURI,
+		ExpiresAt:   now.Add(oauthStateTTL),
+	}
+}
+
+func (s *Service) consumeOAuthState(state, provider, redirectURI string) error {
+	cleanState := strings.TrimSpace(state)
+	if cleanState == "" {
+		return domain.ErrInvalidInput
+	}
+	now := s.clock.Now()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	entry, exists := s.oauthStates[cleanState]
+	if !exists {
+		return domain.ErrInvalidInput
+	}
+	delete(s.oauthStates, cleanState)
+	if !now.Before(entry.ExpiresAt) {
+		return domain.ErrInvalidInput
+	}
+	if entry.Provider != provider {
+		return domain.ErrInvalidInput
+	}
+	if entry.RedirectURI != redirectURI {
+		return domain.ErrInvalidInput
+	}
+	return nil
 }
 
 func buildOAuthAuthorizeURL(provider, clientID, redirectURI, codeChallenge, state string) string {
@@ -476,7 +531,7 @@ func buildOAuthAuthorizeURL(provider, clientID, redirectURI, codeChallenge, stat
 	return googleAuthorizeURL + "?" + params.Encode()
 }
 
-func validateOAuthRedirectURI(raw string) (string, error) {
+func validateOAuthRedirectURI(raw string, env config.Environment) (string, error) {
 	trimmed := strings.TrimSpace(raw)
 	parsed, err := url.Parse(trimmed)
 	if err != nil {
@@ -486,19 +541,37 @@ func validateOAuthRedirectURI(raw string) (string, error) {
 	if scheme == "rosafiesta" {
 		return trimmed, nil
 	}
-	isHTTP := scheme == "http"
-	isHTTPS := scheme == "https"
-	if isHTTP {
-		if parsed.Host != "" {
+	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
+	if scheme == "https" {
+		if isAllowedHTTPSOAuthHost(host) {
 			return trimmed, nil
 		}
+		return "", domain.ErrInvalidInput
 	}
-	if isHTTPS {
-		if parsed.Host != "" {
-			return trimmed, nil
+	if env != config.EnvProduction {
+		if scheme == "http" {
+			if isLoopbackOAuthHost(host) {
+				return trimmed, nil
+			}
 		}
 	}
 	return "", domain.ErrInvalidInput
+}
+
+func isAllowedHTTPSOAuthHost(host string) bool {
+	switch host {
+	case "rosafiesta.do", "app.rosafiesta.do", "admin.rosafiesta.do", "api.rosafiesta.do":
+		return true
+	default:
+		return false
+	}
+}
+
+func isLoopbackOAuthHost(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	return host == "127.0.0.1"
 }
 
 type oauthTokenEndpointResponse struct {
@@ -511,8 +584,9 @@ func (s *Service) ExchangeOAuthCode(
 	code string,
 	codeVerifier string,
 	redirectURI string,
+	state string,
 ) (domain.User, string, error) {
-	session, err := s.ExchangeOAuthCodeWithSession(ctx, provider, code, codeVerifier, redirectURI)
+	session, err := s.ExchangeOAuthCodeWithSession(ctx, provider, code, codeVerifier, redirectURI, state)
 	if err != nil {
 		return domain.User{}, "", err
 	}

@@ -63,6 +63,7 @@ func (r *Repository) UpsertQuote(ctx context.Context, quote domain.Quote, now ti
 		DeliveryFeeDop:  quote.DeliveryFeeRD,
 		DiscountDop:     quote.DiscountRD,
 		TotalDop:        quote.TotalRD,
+		DepositPercent:  resolveStoredDepositPercent(quote.DepositPercent),
 		DepositDop:      quote.DepositRD,
 		BalanceDop:      quote.BalanceRD,
 		Status:          string(quote.Status),
@@ -148,7 +149,7 @@ func mapQuoteRow(row sqlcgen.ListQuotesRow) domain.Quote {
 		DeliveryFeeRD:   row.DeliveryFeeDop,
 		DiscountRD:      row.DiscountDop,
 		TotalRD:         row.TotalDop,
-		DepositPercent:  30,
+		DepositPercent:  resolveStoredDepositPercent(row.DepositPercent),
 		DepositRD:       row.DepositDop,
 		BalanceRD:       row.BalanceDop,
 		Status:          domain.QuoteStatus(row.Status),
@@ -159,4 +160,14 @@ func mapQuoteRow(row sqlcgen.ListQuotesRow) domain.Quote {
 		ContractPDFURL:  row.ContractPdfUrl,
 		RejectionReason: rejection,
 	}
+}
+
+func resolveStoredDepositPercent(pct int) int {
+	if pct <= 0 {
+		return 30
+	}
+	if pct > 100 {
+		return 30
+	}
+	return pct
 }

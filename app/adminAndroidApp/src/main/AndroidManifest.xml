@@ -7,7 +7,11 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
         android:label="RosaFiesta Admin"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
         <provider
@@ -35,7 +39,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="rosafiesta"
+                    android:scheme="rosafiesta-admin"
                     android:host="oauth"
                     android:pathPrefix="/callback" />
             </intent-filter>
@@ -44,11 +48,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
-                    android:scheme="rosafiesta"
+                    android:scheme="rosafiesta-admin"
                     android:host="payment"
                     android:pathPrefix="/success" />
                 <data
-                    android:scheme="rosafiesta"
+                    android:scheme="rosafiesta-admin"
                     android:host="payment"
                     android:pathPrefix="/cancel" />
             </intent-filter>

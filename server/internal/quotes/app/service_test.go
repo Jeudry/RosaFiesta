@@ -138,6 +138,10 @@ func TestCreateAndSignQuoteRejectsInsufficientStock(t *testing.T) {
 		t.Fatalf("create failed unexpectedly: %v", err)
 	}
 
+	admin := platformhttp.Principal{ID: uuid.New(), Email: "maria@rosafiesta.do", FullName: "María", Role: "admin"}
+	if _, err := openSvc.SendQuoteForAdmin(context.Background(), created.ID, app.EnrichAndSendQuoteCommand{}, admin); err != nil {
+		t.Fatalf("send quote failed: %v", err)
+	}
 	openSvc.WithStockChecker(fakeStockChecker{err: errors.New("reservado por otro cliente")})
 	_, signErr := openSvc.SignContractForCaller(context.Background(), created.ID, "Ana", "<svg/>", caller)
 	if !errors.Is(signErr, domain.ErrInsufficientStock) {
@@ -177,6 +181,10 @@ func TestSignContractProvisionsEventNotifiesAndEmitsRealtime(t *testing.T) {
 	}, caller)
 	if err != nil {
 		t.Fatalf("create quote failed: %v", err)
+	}
+	admin := platformhttp.Principal{ID: uuid.New(), Email: "maria@rosafiesta.do", FullName: "María", Role: "admin"}
+	if _, err := svc.SendQuoteForAdmin(context.Background(), quote.ID, app.EnrichAndSendQuoteCommand{}, admin); err != nil {
+		t.Fatalf("send quote failed: %v", err)
 	}
 
 	signed, err := svc.SignContractForCaller(context.Background(), quote.ID, "Camila Rodríguez", "<svg>sig</svg>", caller)
@@ -219,11 +227,64 @@ func assertSignedQuoteSideEffects(
 	if mailer.sentTo[0] != "camila@rosafiesta.do" {
 		t.Fatalf("unexpected email recipient: %q", mailer.sentTo[0])
 	}
-	if len(pub.events) != 1 {
-		t.Fatalf("expected 1 SSE event, got %d", len(pub.events))
+	if len(pub.events) != 2 {
+		t.Fatalf("expected 2 SSE events (quote.sent + quote.signed), got %d", len(pub.events))
 	}
-	if pub.events[0].Type != realtimedomain.EventQuoteSigned {
-		t.Fatalf("expected quote.signed SSE event, got %+v", pub.events)
+	if pub.events[0].Type != realtimedomain.EventQuoteSent {
+		t.Fatalf("expected first SSE event quote.sent, got %+v", pub.events)
+	}
+	if pub.events[1].Type != realtimedomain.EventQuoteSigned {
+		t.Fatalf("expected second SSE event quote.signed, got %+v", pub.events)
+	}
+}
+
+func TestClientQuoteDerivesCatalogPricingAndRequiresSentBeforeSign(t *testing.T) {
+	svc := app.NewService()
+	caller := platformhttp.Principal{
+		ID:       uuid.New(),
+		Email:    "cliente@rosafiesta.do",
+		FullName: "Cliente",
+		Role:     "client",
+	}
+
+	_, badErr := svc.CreateQuoteForCaller(context.Background(), app.CreateQuoteCommand{
+		EventTitle:     "Evento Inválido",
+		EventDateLabel: "2026-12-20",
+		EventDateISO:   "2026-12-20",
+		Lines: []domain.QuoteLine{
+			{ArticleCode: "non-existent-sku", Name: "Fake", Quantity: 5, UnitPriceRD: 1},
+		},
+	}, caller)
+	if !errors.Is(badErr, domain.ErrInvalidQuoteItem) {
+		t.Fatalf("expected ErrInvalidQuoteItem for unknown client SKU, got %v", badErr)
+	}
+
+	created, err := svc.CreateQuoteForCaller(context.Background(), app.CreateQuoteCommand{
+		EventTitle:     "Evento Precio Catálogo",
+		EventDateLabel: "2026-12-20",
+		EventDateISO:   "2026-12-20",
+		DeliveryFeeRD:  500,
+		DiscountRD:     9999,
+		Lines: []domain.QuoteLine{
+			{ArticleCode: "RF-001", Name: "Tampered", Quantity: 10, UnitPriceRD: 1},
+		},
+	}, caller)
+	if err != nil {
+		t.Fatalf("create quote failed: %v", err)
+	}
+	if created.Lines[0].UnitPriceRD != 4 {
+		t.Fatalf("expected catalog unit price 4 RD$, got %d", created.Lines[0].UnitPriceRD)
+	}
+	if created.DiscountRD != 0 {
+		t.Fatalf("expected client discount forced to 0, got %d", created.DiscountRD)
+	}
+	if created.TotalRD != 540 {
+		t.Fatalf("expected total 10*4 + 500 = 540, got %d", created.TotalRD)
+	}
+
+	_, signErr := svc.SignContractForCaller(context.Background(), created.ID, "Cliente", "<svg/>", caller)
+	if !errors.Is(signErr, domain.ErrQuoteNotSent) {
+		t.Fatalf("expected ErrQuoteNotSent when signing pending quote, got %v", signErr)
 	}
 }
 
@@ -430,8 +491,8 @@ func TestSendQuoteForAdminEnrichesAndMarksSent(t *testing.T) {
 	if sent.Status != domain.QuoteStatusSent {
 		t.Fatalf("expected status 'sent', got %q", sent.Status)
 	}
-	if sent.TotalRD != 600 {
-		t.Fatalf("expected recalculated total 600, got %d", sent.TotalRD)
+	if sent.TotalRD != 650 {
+		t.Fatalf("expected catalog-derived recalculated total 650, got %d", sent.TotalRD)
 	}
 	if sent.Notes != "Incluye montaje 2 horas antes" {
 		t.Fatalf("expected admin notes persisted, got %q", sent.Notes)

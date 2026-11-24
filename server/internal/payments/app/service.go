@@ -122,6 +122,7 @@ type CreateCardSessionCommand struct {
 // Service coordina pagos, emisión de NCF, pasarela de tarjetas, exporte DGII y reembolsos.
 type Service struct {
 	mu                  sync.RWMutex
+	verifyMu            sync.Mutex
 	clock               clock.Clock
 	store               Store
 	eventsReader        EventMetricsReader
@@ -589,6 +590,9 @@ func (s *Service) RegisterPaymentForCaller(
 	if authErr := validateCallerPaymentMethod(prepared.method, caller); authErr != nil {
 		return domain.Payment{}, authErr
 	}
+	if ownerErr := s.verifyClientOwnsEvent(ctx, cmd.EventID, caller); ownerErr != nil {
+		return domain.Payment{}, ownerErr
+	}
 	now := s.clock.Now()
 	effectiveRef := resolveEffectiveReference(cmd.ReferenceCode, cmd.ReferenceNumber)
 
@@ -619,16 +623,67 @@ func (s *Service) RegisterPaymentForCaller(
 }
 
 func validateCallerPaymentMethod(method domain.PaymentMethod, caller platformhttp.Principal) error {
+	if caller.IsClient() {
+		if method == domain.MethodCard {
+			return domain.ErrCardCheckoutRequired
+		}
+		if method == domain.MethodCash {
+			return domain.ErrClientCashRestricted
+		}
+		return nil
+	}
+	isImmediateMethod := method == domain.MethodCash
+	if !isImmediateMethod {
+		isImmediateMethod = method == domain.MethodCard
+	}
+	if !isImmediateMethod {
+		return nil
+	}
+	if hasPaymentOrFinanceAccess(caller) {
+		return nil
+	}
+	return domain.ErrPaymentForbidden
+}
+
+func hasPaymentOrFinanceAccess(caller platformhttp.Principal) bool {
+	if caller.Role == "admin" {
+		return true
+	}
+	if caller.HasPermission("pagos") {
+		return true
+	}
+	return caller.HasPermission("finanzas")
+}
+
+func (s *Service) verifyClientOwnsEvent(
+	ctx context.Context,
+	eventID string,
+	caller platformhttp.Principal,
+) error {
 	if !caller.IsClient() {
 		return nil
 	}
-	if method == domain.MethodCard {
-		return domain.ErrCardCheckoutRequired
+	s.mu.RLock()
+	eventsReader := s.eventsReader
+	s.mu.RUnlock()
+	if eventsReader == nil {
+		return nil
 	}
-	if method == domain.MethodCash {
-		return domain.ErrClientCashRestricted
+	trimmedEventID := strings.TrimSpace(eventID)
+	if trimmedEventID == "" {
+		return domain.ErrPaymentForbidden
 	}
-	return nil
+	snapshot := eventsReader.AllEventsSnapshot(ctx)
+	for _, evt := range snapshot {
+		if evt.ID != trimmedEventID {
+			continue
+		}
+		if evt.BelongsToClient(caller.ID, caller.Email, caller.FullName) {
+			return nil
+		}
+		return domain.ErrPaymentForbidden
+	}
+	return domain.ErrPaymentForbidden
 }
 
 func (s *Service) resolveITBISPercent(ctx context.Context) int {
@@ -890,6 +945,10 @@ func (s *Service) ApproveRefundWithOptions(
 	if !exists {
 		s.mu.Unlock()
 		return domain.Refund{}, domain.ErrRefundNotFound
+	}
+	if refund.Status == domain.RefundStatusApproved {
+		s.mu.Unlock()
+		return domain.Refund{}, domain.ErrRefundAlreadyApproved
 	}
 	linkedPayment, hasLinkedCardPayment := s.findConfirmedStripePaymentLocked(refund.EventID)
 	store := s.store

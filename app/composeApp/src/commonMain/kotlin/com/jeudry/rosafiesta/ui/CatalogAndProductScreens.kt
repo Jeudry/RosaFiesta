@@ -301,6 +301,7 @@ internal fun RenderPersonalCatalogS18(
                                     viewModel?.setSearchQuery(cappedQuery)
                                 },
                                 textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                                cursorBrush = SolidColor(RfThemeState.currentPalette.primaryAccent),
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                             )

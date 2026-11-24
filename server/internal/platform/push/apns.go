@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -128,7 +129,7 @@ func (s *APNSSender) resolveDeviceURL(deviceToken string) string {
 	if override != "" {
 		base = strings.TrimRight(override, "/")
 	}
-	return base + "/3/device/" + deviceToken
+	return base + "/3/device/" + url.PathEscape(strings.TrimSpace(deviceToken))
 }
 
 func (s *APNSSender) signProviderToken() (string, error) {

@@ -1723,13 +1723,16 @@ private fun PickedChatAttachmentBar(
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
+    val barBg = if (palette.isDark) palette.chipBg else Color(0xFFFDE6F2)
+    val barBorder = if (palette.isDark) palette.line else Color(0xFFF5B7DA)
+    val accentTint = if (palette.isDark) Color(0xFFF48FB1) else Color(0xFFC2338F)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFFFDE6F2))
-            .border(1.dp, Color(0xFFF5B7DA), RoundedCornerShape(12.dp))
+            .background(barBg)
+            .border(1.dp, barBorder, RoundedCornerShape(12.dp))
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1737,7 +1740,7 @@ private fun PickedChatAttachmentBar(
         CustomSvgIcon(
             pathData = "M20 11.5l-8.2 8.2a5 5 0 0 1-7-7L13 4.5a3.3 3.3 0 0 1 4.7 4.7l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4L14.5 7.5",
             size = 16.dp,
-            tint = Color(0xFFC2338F),
+            tint = accentTint,
         )
         BasicText(
             text = fileName,
@@ -1754,7 +1757,7 @@ private fun PickedChatAttachmentBar(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(999.dp))
-                .background(Color.White)
+                .background(palette.surface)
                 .clickable { onClear() }
                 .padding(horizontal = 8.dp, vertical = 3.dp),
         ) {
@@ -1764,7 +1767,7 @@ private fun PickedChatAttachmentBar(
                     fontFamily = typo.bodyFamily,
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFC2338F),
+                    color = accentTint,
                 ),
             )
         }
@@ -1782,9 +1785,24 @@ internal fun RenderEventChatTabS41(
     var localPickedFileName by remember { mutableStateOf("") }
     val observedEvents = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val observedSelectedEventId = viewModel?.selectedEventId?.collectAsState()?.value ?: ""
-    val activeEvent: ClientEvent = remember(observedEvents, observedSelectedEventId, viewModel) {
-        viewModel?.activeClientEvent() ?: observedEvents.first()
+    val activeEvent: ClientEvent? = remember(observedEvents, observedSelectedEventId, viewModel) {
+        if (viewModel != null) {
+            viewModel.activeClientEventOrNull()
+        } else {
+            observedEvents.first()
+        }
     }
+    if (activeEvent == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Chat del evento",
+            backTargetCode = "BACK:s37",
+            message = "Crea tu primer evento para conversar directamente con nuestro equipo.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
+    val formError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     val observedPayments = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
     val latestPaymentForEvent = remember(observedPayments, activeEvent.id) {
         observedPayments.firstOrNull { paymentItem -> paymentItem.eventId == activeEvent.id }
@@ -1859,13 +1877,15 @@ internal fun RenderEventChatTabS41(
     }
 
     val submitMessageS41 = {
-        val trimmedDraft = draftInputS41.trim()
-        val hasTextToSubmit = trimmedDraft.isNotEmpty()
-        val hasAttachmentToSubmit = activeAttachmentName.isNotEmpty()
-        val canSubmitNow = if (hasTextToSubmit) true else hasAttachmentToSubmit
-        if (canSubmitNow) {
-            sendChatPayload(trimmedDraft, activeAttachmentName)
-            draftInputS41 = ""
+        if (!isSubmitting) {
+            val trimmedDraft = draftInputS41.trim()
+            val hasTextToSubmit = trimmedDraft.isNotEmpty()
+            val hasAttachmentToSubmit = activeAttachmentName.isNotEmpty()
+            val canSubmitNow = if (hasTextToSubmit) true else hasAttachmentToSubmit
+            if (canSubmitNow) {
+                sendChatPayload(trimmedDraft, activeAttachmentName)
+                draftInputS41 = ""
+            }
         }
     }
 
@@ -2078,7 +2098,7 @@ internal fun RenderEventChatTabS41(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
-                        text = "María · Equipo Rosa Fiesta",
+                        text = if (viewModel != null) "Equipo Rosa Fiesta" else "María · Equipo Rosa Fiesta",
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 14.sp,
@@ -2232,7 +2252,7 @@ internal fun RenderEventChatTabS41(
                 ) {
                     if (draftInputS41.isEmpty()) {
                         BasicText(
-                            text = "Escríbele a María…",
+                            text = if (viewModel != null) "Escribe tu mensaje…" else "Escríbele a María…",
                             style = TextStyle(
                                 fontFamily = typo.bodyFamily,
                                 fontSize = 15.sp,
@@ -2261,7 +2281,7 @@ internal fun RenderEventChatTabS41(
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                        .clickable { submitMessageS41() },
+                        .clickable(enabled = !isSubmitting) { submitMessageS41() },
                     contentAlignment = Alignment.Center,
                 ) {
                     CustomSvgIcon(
@@ -2269,6 +2289,11 @@ internal fun RenderEventChatTabS41(
                         size = 20.dp,
                         tint = Color.White,
                     )
+                }
+            }
+            if (!formError.isNullOrBlank()) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    RfValidationErrorText(errorMessage = formError)
                 }
             }
         }
@@ -2288,9 +2313,24 @@ internal fun RenderEventChatS42(
 
     val observedEvents = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val observedSelectedEventId = viewModel?.selectedEventId?.collectAsState()?.value ?: ""
-    val activeEvent: ClientEvent = remember(observedEvents, observedSelectedEventId, viewModel) {
-        viewModel?.activeClientEvent() ?: observedEvents.first()
+    val activeEvent: ClientEvent? = remember(observedEvents, observedSelectedEventId, viewModel) {
+        if (viewModel != null) {
+            viewModel.activeClientEventOrNull()
+        } else {
+            observedEvents.first()
+        }
     }
+    if (activeEvent == null) {
+        PersonalEmptyEventStateScaffold(
+            headerTitle = "Chat del evento",
+            backTargetCode = "BACK:s37",
+            message = "Crea tu primer evento para conversar directamente con nuestro equipo.",
+            onSelectScreenCode = onSelectScreenCode,
+        )
+        return
+    }
+    val formError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     val businessSettings = viewModel?.businessSettings?.collectAsState()?.value ?: CanonicalSampleData.businessSettings
     val pickedFile = viewModel?.pickedAttachmentFile?.collectAsState()?.value
     val activeAttachmentName = pickedFile?.fileName.orEmpty()
@@ -2361,14 +2401,16 @@ internal fun RenderEventChatS42(
     }
 
     val submitMessageS42 = {
-        val trimmedDraft = draftInputS42.trim()
-        val hasTextToSubmit = trimmedDraft.isNotEmpty()
-        val hasAttachmentToSubmit = activeAttachmentName.isNotEmpty()
-        val canSubmitNow = if (hasTextToSubmit) true else hasAttachmentToSubmit
-        if (canSubmitNow) {
-            sendChatPayload(trimmedDraft, activeAttachmentName)
-            draftInputS42 = ""
-            showEmojiPickerRow = false
+        if (!isSubmitting) {
+            val trimmedDraft = draftInputS42.trim()
+            val hasTextToSubmit = trimmedDraft.isNotEmpty()
+            val hasAttachmentToSubmit = activeAttachmentName.isNotEmpty()
+            val canSubmitNow = if (hasTextToSubmit) true else hasAttachmentToSubmit
+            if (canSubmitNow) {
+                sendChatPayload(trimmedDraft, activeAttachmentName)
+                draftInputS42 = ""
+                showEmojiPickerRow = false
+            }
         }
     }
 
@@ -2529,7 +2571,7 @@ internal fun RenderEventChatS42(
 
             Column(modifier = Modifier.weight(1f)) {
                 BasicText(
-                    text = "María · ${businessSettings.businessName}",
+                    text = if (viewModel != null) businessSettings.businessName else "María · ${businessSettings.businessName}",
                     style = TextStyle(
                         fontFamily = typo.bodyFamily,
                         fontSize = 16.sp,
@@ -2697,7 +2739,7 @@ internal fun RenderEventChatS42(
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                         if (draftInputS42.isEmpty()) {
                             BasicText(
-                                text = "Escríbele a María…",
+                                text = if (viewModel != null) "Escribe tu mensaje…" else "Escríbele a María…",
                                 style = TextStyle(
                                     fontFamily = typo.bodyFamily,
                                     fontSize = 15.sp,
@@ -2745,7 +2787,7 @@ internal fun RenderEventChatS42(
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                        .clickable { submitMessageS42() },
+                        .clickable(enabled = !isSubmitting) { submitMessageS42() },
                     contentAlignment = Alignment.Center,
                 ) {
                     CustomSvgIcon(
@@ -2753,6 +2795,11 @@ internal fun RenderEventChatS42(
                         size = 20.dp,
                         tint = Color.White,
                     )
+                }
+            }
+            if (!formError.isNullOrBlank()) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    RfValidationErrorText(errorMessage = formError)
                 }
             }
         }
@@ -3161,13 +3208,16 @@ private fun nextLeadStageValue(rawStage: String): String = when (normalizeLeadSt
     else -> "GANADO"
 }
 
-private val ReportPeriodOptions = listOf(
-    "Ene–Jun 2026" to "2026-06",
-    "Jul–Dic 2026" to "2026-10",
-    "Anual 2026" to "2026-12",
-)
+private fun buildReportPeriodOptions(): List<Pair<String, String>> {
+    val (currentYear, _, _) = DomainClockFormatter.currentCivilDateTriple()
+    return listOf(
+        "Ene–Jun $currentYear" to "$currentYear-06",
+        "Jul–Dic $currentYear" to "$currentYear-10",
+        "Anual $currentYear" to "$currentYear-12",
+    )
+}
 
-private fun nextReportPeriodIndex(currentIndex: Int): Int = (currentIndex + 1) % ReportPeriodOptions.size
+private fun nextReportPeriodIndex(currentIndex: Int): Int = (currentIndex + 1) % buildReportPeriodOptions().size
 
 private val StockHighColor63 = Color(0xFF8DB52C)
 private val StockMediumColor63 = Color(0xFFF7B500)
@@ -4496,7 +4546,7 @@ internal fun RenderReportsIncomeS67(
     val analyticsSummary = viewModel?.analyticsSummary?.collectAsState()?.value
     val feedbackMessage = viewModel?.formFeedback?.collectAsState()?.value
     var periodIndex by remember { mutableStateOf(1) }
-    val activePeriodPair = ReportPeriodOptions[periodIndex]
+    val activePeriodPair = buildReportPeriodOptions()[periodIndex]
     val activePeriodLabel = activePeriodPair.first
     val activePeriodCode = activePeriodPair.second
 
@@ -4850,7 +4900,7 @@ internal fun RenderReportsEventsS68(
     val analyticsSummary = viewModel?.analyticsSummary?.collectAsState()?.value
     val feedbackMessage = viewModel?.formFeedback?.collectAsState()?.value
     var periodIndex by remember { mutableStateOf(1) }
-    val activePeriodPair = ReportPeriodOptions[periodIndex]
+    val activePeriodPair = buildReportPeriodOptions()[periodIndex]
     val activePeriodLabel = activePeriodPair.first
     val activePeriodCode = activePeriodPair.second
 
@@ -5029,7 +5079,7 @@ internal fun RenderReportsClientsS69(
     val leadsList = viewModel?.leads?.collectAsState()?.value ?: CanonicalSampleData.leads
     val feedbackMessage = viewModel?.formFeedback?.collectAsState()?.value
     var periodIndex by remember { mutableStateOf(1) }
-    val activePeriodPair = ReportPeriodOptions[periodIndex]
+    val activePeriodPair = buildReportPeriodOptions()[periodIndex]
     val activePeriodLabel = activePeriodPair.first
     val activePeriodCode = activePeriodPair.second
 
@@ -5230,7 +5280,7 @@ internal fun RenderReportsInventoryS70(
     val metricsSnapshot = viewModel?.metrics?.collectAsState()?.value ?: CanonicalSampleData.businessMetrics
     val feedbackMessage = viewModel?.formFeedback?.collectAsState()?.value
     var periodIndex by remember { mutableStateOf(1) }
-    val activePeriodPair = ReportPeriodOptions[periodIndex]
+    val activePeriodPair = buildReportPeriodOptions()[periodIndex]
     val activePeriodLabel = activePeriodPair.first
     val activePeriodCode = activePeriodPair.second
 
@@ -5955,8 +6005,11 @@ internal fun RenderBotQuestionsS72(
 ) {
     val botFaqsList = viewModel?.botFaqs?.collectAsState()?.value ?: CanonicalSampleData.botFaqs
     val feedbackMessage = viewModel?.formFeedback?.collectAsState()?.value
+    val formError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     var showFaqModal by remember { mutableStateOf(false) }
     var editingFaq by remember { mutableStateOf<BotFaqRecord?>(null) }
+    var pendingDeleteFaq by remember { mutableStateOf<BotFaqRecord?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         BotScaffold(
@@ -5986,13 +6039,33 @@ internal fun RenderBotQuestionsS72(
                         showFaqModal = true
                     },
                     onDeleteFaq = if (viewModel != null) {
-                        { viewModel.deleteBotFaq(faqItem.id) }
+                        { pendingDeleteFaq = faqItem }
                     } else {
                         null
                     },
                 )
             }
         }
+
+        val faqToDelete = pendingDeleteFaq
+        RfDeleteConfirmationDialog(
+            visible = faqToDelete != null,
+            title = "Eliminar pregunta frecuente",
+            message = if (faqToDelete != null) {
+                "¿Seguro que deseas eliminar \"${faqToDelete.question}\" del bot?"
+            } else {
+                ""
+            },
+            errorMessage = formError,
+            isSubmitting = isSubmitting,
+            onDismiss = { pendingDeleteFaq = null },
+            onConfirm = {
+                if (faqToDelete != null) {
+                    viewModel?.deleteBotFaq(faqToDelete.id)
+                    pendingDeleteFaq = null
+                }
+            },
+        )
 
         AnimatedCenteredDialogHost(
             visible = showFaqModal,
@@ -6374,8 +6447,11 @@ internal fun RenderBotKeywordsS73(
     val typo = LocalRfTypography.current
     val keywordRules = viewModel?.botKeywords?.collectAsState()?.value ?: CanonicalSampleData.botKeywords
     val feedbackMessage = viewModel?.formFeedback?.collectAsState()?.value
+    val formError = viewModel?.formError?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     var showRuleModal by remember { mutableStateOf(false) }
     var editingRule by remember { mutableStateOf<BotKeywordRecord?>(null) }
+    var pendingDeleteRule by remember { mutableStateOf<BotKeywordRecord?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         BotScaffold(
@@ -6468,7 +6544,7 @@ internal fun RenderBotKeywordsS73(
                                         .size(32.dp)
                                         .clip(CircleShape)
                                         .background(Color(0xFFFFEEF1))
-                                        .clickable { viewModel.deleteBotKeyword(ruleItem.id) },
+                                        .clickable { pendingDeleteRule = ruleItem },
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 14.dp)
@@ -6479,6 +6555,26 @@ internal fun RenderBotKeywordsS73(
                 }
             }
         }
+
+        val ruleToDelete = pendingDeleteRule
+        RfDeleteConfirmationDialog(
+            visible = ruleToDelete != null,
+            title = "Eliminar palabra clave",
+            message = if (ruleToDelete != null) {
+                "¿Seguro que deseas eliminar la regla \"${ruleToDelete.keyword}\" del bot?"
+            } else {
+                ""
+            },
+            errorMessage = formError,
+            isSubmitting = isSubmitting,
+            onDismiss = { pendingDeleteRule = null },
+            onConfirm = {
+                if (ruleToDelete != null) {
+                    viewModel?.deleteBotKeyword(ruleToDelete.id)
+                    pendingDeleteRule = null
+                }
+            },
+        )
 
         AnimatedCenteredDialogHost(
             visible = showRuleModal,
@@ -7126,7 +7222,9 @@ private fun AdminPanelScaffold(
                     modifier = Modifier.weight(1f),
                     style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
                 )
-                BasicText("Octubre 2026", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF5F6377)))
+                val (panelYear, panelMonth, _) = remember { DomainClockFormatter.currentCivilDateTriple() }
+                val panelPeriodLabel = "${spanishMonthName(panelMonth)} $panelYear"
+                BasicText(panelPeriodLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF5F6377)))
             }
             Spacer(Modifier.height(12.dp))
             AdminTabRow(

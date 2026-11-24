@@ -229,20 +229,27 @@ func (s *Service) ActiveEventsForClient(ctx context.Context, clientIdentifier st
 	s.syncFromStoreLocked(ctx)
 
 	trimmed := strings.TrimSpace(clientIdentifier)
-	target := strings.ToLower(trimmed)
+	if trimmed == "" {
+		return 0
+	}
+	targetUUID, uuidErr := uuid.Parse(trimmed)
+	hasUUID := uuidErr == nil
+	if hasUUID {
+		hasUUID = targetUUID != uuid.Nil
+	}
 	count := 0
 	for _, id := range s.order {
 		evt := s.events[id]
 		if !evt.IsActive() {
 			continue
 		}
-		matchesName := strings.EqualFold(evt.ClientName, target)
-		matchesEmail := strings.EqualFold(evt.ClientEmail, target)
-		if matchesName {
-			count++
+		if hasUUID {
+			if evt.ClientID == targetUUID {
+				count++
+			}
 			continue
 		}
-		if matchesEmail {
+		if strings.EqualFold(evt.ClientEmail, trimmed) {
 			count++
 		}
 	}
@@ -736,6 +743,9 @@ func defaultTrimmed(raw, fallback string) string {
 }
 
 func applyEventPatchForCaller(existing domain.Event, cmd UpdateEventCommand, caller platformhttp.Principal) (domain.Event, error) {
+	if isClientPatchBlockedOnCommittedEvent(existing, cmd, caller) {
+		return domain.Event{}, domain.ErrEventForbidden
+	}
 	updated := existing
 	if cmd.Title != nil {
 		trimmed := strings.TrimSpace(*cmd.Title)
@@ -808,6 +818,39 @@ func applyEventDetailsPatch(updated domain.Event, cmd UpdateEventCommand, caller
 		}
 	}
 	return updated, nil
+}
+
+func isClientPatchBlockedOnCommittedEvent(
+	existing domain.Event,
+	cmd UpdateEventCommand,
+	caller platformhttp.Principal,
+) bool {
+	if !caller.IsClient() {
+		return false
+	}
+	isCommitted := isCommittedEventStatus(existing.Status)
+	if !isCommitted {
+		return false
+	}
+	if cmd.Status != nil {
+		return true
+	}
+	if cmd.DateLabel != nil {
+		return true
+	}
+	if cmd.EventDateISO != nil {
+		return true
+	}
+	return cmd.Items != nil
+}
+
+func isCommittedEventStatus(status domain.EventStatus) bool {
+	switch status {
+	case domain.StatusConfirmed, domain.StatusInProgress, domain.StatusCompleted:
+		return true
+	default:
+		return false
+	}
 }
 
 func isClientAllowedStatus(status domain.EventStatus) bool {

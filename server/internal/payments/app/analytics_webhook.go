@@ -56,7 +56,13 @@ func (s *Service) ConfirmCardSession(
 	if cleanID == "" {
 		return domain.Payment{}, domain.ErrPaymentNotFound
 	}
+	s.verifyMu.Lock()
+	defer s.verifyMu.Unlock()
+
 	if existing, found := s.findVerifiedSessionPayment(ctx, cleanID); found {
+		if ownerErr := s.verifyClientOwnsEvent(ctx, existing.EventID, caller); ownerErr != nil {
+			return domain.Payment{}, ownerErr
+		}
 		return existing, nil
 	}
 	secretKey, _, apiBase := s.stripeSettingsSnapshot()
@@ -69,6 +75,10 @@ func (s *Service) ConfirmCardSession(
 	}
 	if !strings.EqualFold(session.PaymentStatus, "paid") {
 		return domain.Payment{}, domain.ErrCardSessionNotPaid
+	}
+	eventID := strings.TrimSpace(session.Metadata["event_id"])
+	if ownerErr := s.verifyClientOwnsEvent(ctx, eventID, caller); ownerErr != nil {
+		return domain.Payment{}, ownerErr
 	}
 	return s.recordVerifiedStripeSession(ctx, session, caller)
 }
@@ -118,6 +128,12 @@ func (s *Service) handleStripeCheckoutCompletedWebhook(ctx context.Context, rawD
 	if session.ID == "" {
 		return domain.Payment{}, domain.ErrPaymentNotFound
 	}
+	if !strings.EqualFold(session.PaymentStatus, "paid") {
+		return domain.Payment{}, domain.ErrCardSessionNotPaid
+	}
+	s.verifyMu.Lock()
+	defer s.verifyMu.Unlock()
+
 	if existing, found := s.findVerifiedSessionPayment(ctx, session.ID); found {
 		return existing, nil
 	}
@@ -270,7 +286,6 @@ func (s *Service) recordVerifiedStripeSession(
 	if err := s.dispatchRegistrationSideEffects(ctx, payment); err != nil {
 		return domain.Payment{}, err
 	}
-	s.sendVerificationReceiptIfConfigured(ctx, payment)
 	return payment, nil
 }
 
@@ -286,11 +301,15 @@ func (s *Service) buildStripeConfirmedPayment(
 	now time.Time,
 ) domain.Payment {
 	eventTitle, clientID, clientName, clientEmail := s.resolveStripeEventMetadata(ctx, eventID, session, caller)
-	subtotal, itbis := domain.ComputeDominicanTaxBreakdown(amountRD, 0)
+	itbisRate := s.resolveITBISPercent(ctx)
+	subtotal, itbis := domain.ComputeDominicanTaxBreakdownWithRate(amountRD, 0, itbisRate)
 	s.mu.Lock()
 	s.nextSeq++
 	seq := s.nextSeq
 	s.mu.Unlock()
+
+	sessionDigest := sha256.Sum256([]byte(session.ID))
+	refHash := strings.ToUpper(hex.EncodeToString(sessionDigest[:]))
 
 	return domain.Payment{
 		ID:                     "pay-" + uuid.NewString()[:8],
@@ -305,7 +324,7 @@ func (s *Service) buildStripeConfirmedPayment(
 		Kind:                   domain.NormalizePaymentKind(session.Metadata["kind"]),
 		BankName:               "Stripe Checkout",
 		PaidDateLabel:          domain.FormatSpanishShortDate(now),
-		ReferenceCode:          "STR-" + strings.ToUpper(session.ID[:minInt(len(session.ID), 12)]),
+		ReferenceCode:          "STR-" + refHash[:16],
 		Status:                 domain.PaymentConfirmed,
 		ReferenceNumber:        session.ID,
 		VerifiedBy:             "Pasarela Stripe",
@@ -361,7 +380,7 @@ func fetchStripeCheckoutSession(
 	secretKey string,
 	sessionID string,
 ) (stripeSessionPayload, error) {
-	endpoint := fmt.Sprintf("%s/v1/checkout/sessions/%s", strings.TrimRight(apiBase, "/"), sessionID)
+	endpoint := fmt.Sprintf("%s/v1/checkout/sessions/%s", strings.TrimRight(apiBase, "/"), url.PathEscape(sessionID))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return stripeSessionPayload{}, err
@@ -658,19 +677,58 @@ func resolveEventDate(evt eventsdomain.Event, fallback time.Time) time.Time {
 }
 
 func parseSpanishShortDate(raw string, fallback time.Time) time.Time {
-	clean := strings.ToLower(strings.TrimSpace(raw))
+	clean := strings.ToLower(strings.TrimSpace(strings.ReplaceAll(raw, ",", " ")))
 	if clean == "" {
 		return fallback
 	}
 	parts := strings.Fields(clean)
-	if len(parts) >= 2 {
-		day, dayErr := strconv.Atoi(parts[0])
-		month := spanishMonthIndex(parts[1])
-		if dayErr == nil && month > 0 {
-			return time.Date(fallback.Year(), time.Month(month), maxInt(1, minInt(day, 28)), 0, 0, 0, 0, fallback.Location())
+	if len(parts) >= 3 {
+		if _, err := strconv.Atoi(parts[0]); err != nil {
+			parts = parts[1:]
 		}
 	}
-	return fallback
+	if len(parts) < 2 {
+		return fallback
+	}
+	day, dayErr := strconv.Atoi(parts[0])
+	month := spanishMonthIndex(parts[1])
+	if dayErr != nil {
+		return fallback
+	}
+	if month <= 0 {
+		return fallback
+	}
+	year := inferSpanishDateYear(parts, month, fallback)
+	maxDay := daysInSpanishMonth(year, time.Month(month))
+	clampedDay := maxInt(1, minInt(day, maxDay))
+	return time.Date(year, time.Month(month), clampedDay, 0, 0, 0, 0, fallback.Location())
+}
+
+func inferSpanishDateYear(parts []string, month int, fallback time.Time) int {
+	if len(parts) >= 3 {
+		if explicitYear, err := strconv.Atoi(parts[2]); err == nil {
+			if explicitYear >= 2000 {
+				return explicitYear
+			}
+		}
+	}
+	year := fallback.Year()
+	fallbackMonth := int(fallback.Month())
+	if fallbackMonth >= 11 {
+		if month <= 2 {
+			return year + 1
+		}
+	}
+	if fallbackMonth <= 2 {
+		if month >= 11 {
+			return year - 1
+		}
+	}
+	return year
+}
+
+func daysInSpanishMonth(year int, month time.Month) int {
+	return time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
 }
 
 func spanishMonthIndex(token string) int {

@@ -25,12 +25,14 @@ import androidx.compose.ui.node.DrawModifierNode
 import kotlinx.coroutines.launch
 
 /**
- * Variante visual activa: App Personal clara (`s14`), App Personal oscura (`s15`) o App Administrativa (`theme.admin`).
+ * Variante visual activa: App Personal clara (`s14`), App Personal oscura (`s15`),
+ * App Administrativa clara (`theme.admin`) o App Administrativa oscura.
  */
 public enum class RfThemeVariant {
     PERSONAL,
     PERSONAL_DARK,
     ADMIN,
+    ADMIN_DARK,
 }
 
 /**
@@ -58,13 +60,28 @@ public data class RfPalette(
     public val toastBg: Color,
     public val cardShadow: Color,
 ) {
+    /**
+     * Indica si la paleta pertenece a la App Administrativa (clara u oscura).
+     */
     public val isAdmin: Boolean
-        get() = variant == RfThemeVariant.ADMIN
+        get() = when (variant) {
+            RfThemeVariant.ADMIN, RfThemeVariant.ADMIN_DARK -> true
+            RfThemeVariant.PERSONAL, RfThemeVariant.PERSONAL_DARK -> false
+        }
 
+    /**
+     * Indica si la paleta corresponde a modo oscuro (Personal o Admin).
+     */
     public val isDark: Boolean
-        get() = variant == RfThemeVariant.PERSONAL_DARK
+        get() = when (variant) {
+            RfThemeVariant.PERSONAL_DARK, RfThemeVariant.ADMIN_DARK -> true
+            RfThemeVariant.PERSONAL, RfThemeVariant.ADMIN -> false
+        }
 }
 
+/**
+ * Paleta resuelta para la variante activa (`theme.personal` vs `theme.admin`, Sección 2 de `entrega-de-diseno.md`).
+ */
 public fun paletteForVariant(variant: RfThemeVariant): RfPalette = when (variant) {
     RfThemeVariant.PERSONAL -> RfPalette(
         variant = RfThemeVariant.PERSONAL,
@@ -132,6 +149,30 @@ public fun paletteForVariant(variant: RfThemeVariant): RfPalette = when (variant
         rosaAssistantBgGradient = RfColors.AdminAssistantBgGradient,
         toastBg = RfColors.ToastAdmin,
         cardShadow = RfColors.AdminCardShadow,
+    )
+
+    RfThemeVariant.ADMIN_DARK -> RfPalette(
+        variant = RfThemeVariant.ADMIN_DARK,
+        ink = RfColors.AdminDarkInk,
+        muted = RfColors.AdminDarkMuted,
+        bg = RfColors.AdminDarkBg,
+        radialPrimary = Color(0xFF202247),
+        radialSecondary = Color(0xFF18223D),
+        surface = RfColors.AdminDarkSurface,
+        line = RfColors.AdminDarkLine,
+        lineSoft = RfColors.AdminDarkLine,
+        fieldBorder = RfColors.AdminDarkLineStrong,
+        chipBg = RfColors.AdminDarkChipBg,
+        primaryAccent = RfColors.IndigoBrand,
+        primaryGradient = RfColors.AdminPrimaryGradient,
+        heroGradient = RfColors.AdminHeroAndRosaGradient,
+        priceTextGradient = RfColors.AdminPrimaryGradient,
+        rosaAvatarGradient = RfColors.AdminHeroAndRosaGradient,
+        rosaAssistantBgGradient = Brush.verticalGradient(
+            listOf(Color(0xFF1A1C3A), Color(0xFF121426)),
+        ),
+        toastBg = Color(0xFF222742),
+        cardShadow = Color(0x40000000),
     )
 }
 
@@ -220,10 +261,16 @@ public fun RfTheme(
     variant: RfThemeVariant = RfThemeVariant.PERSONAL,
     content: @Composable () -> Unit,
 ) {
-    val effectiveVariant = if (variant == RfThemeVariant.PERSONAL) {
-        if (RfThemeState.isPersonalDark) RfThemeVariant.PERSONAL_DARK else RfThemeVariant.PERSONAL
-    } else {
-        variant
+    val effectiveVariant = when (variant) {
+        RfThemeVariant.PERSONAL -> {
+            if (RfThemeState.isPersonalDark) RfThemeVariant.PERSONAL_DARK else RfThemeVariant.PERSONAL
+        }
+
+        RfThemeVariant.ADMIN -> {
+            if (RfThemeState.isPersonalDark) RfThemeVariant.ADMIN_DARK else RfThemeVariant.ADMIN
+        }
+
+        RfThemeVariant.PERSONAL_DARK, RfThemeVariant.ADMIN_DARK -> variant
     }
     RfThemeState.activeVariant = effectiveVariant
     val palette = paletteForVariant(effectiveVariant)

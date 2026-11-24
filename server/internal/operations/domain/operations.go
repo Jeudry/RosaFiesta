@@ -14,12 +14,18 @@ var (
 	ErrInvalidReplacement = errors.New("replacement charge must be greater than or equal to zero")
 	// ErrReviewNotFound indica que la reseña solicitada no existe.
 	ErrReviewNotFound = errors.New("review not found")
+	// ErrReviewEventNotFound indica que el evento asociado a la reseña no existe.
+	ErrReviewEventNotFound = errors.New("review event not found")
+	// ErrReviewForbidden indica que el evento de la reseña no pertenece al cliente.
+	ErrReviewForbidden = errors.New("event does not belong to caller for review")
 	// ErrLeadNotFound indica que el prospecto CRM no existe.
 	ErrLeadNotFound = errors.New("crm lead not found")
 	// ErrNotificationNotFound indica que la notificación no existe.
 	ErrNotificationNotFound = errors.New("notification not found")
 	// ErrNotificationForbidden indica que la notificación pertenece a otro destinatario.
 	ErrNotificationForbidden = errors.New("notification belongs to another recipient")
+	// ErrOfflineActionForbidden indica que el usuario no tiene permisos para ejecutar una mutación offline.
+	ErrOfflineActionForbidden = errors.New("caller lacks permission for queued offline action")
 	// ErrSupplierNotFound indica que el proveedor solicitado no existe.
 	ErrSupplierNotFound = errors.New("supplier not found")
 	// ErrBotEntryNotFound indica que la regla o FAQ del bot no existe.

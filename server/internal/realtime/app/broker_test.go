@@ -3,6 +3,7 @@ package app_test
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"testing"
 	"time"
 
@@ -89,4 +90,27 @@ func TestBrokerDeliverRemoteEnvelopeSkipsSelfAndDeliversPeers(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for peer remote event")
 	}
+}
+
+func TestBrokerConcurrentPublishAndUnsubscribeNoPanic(t *testing.T) {
+	broker := app.NewBroker(time.Now)
+	var wg sync.WaitGroup
+	for i := 0; i < 16; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 25; j++ {
+				ctx, cancel := context.WithCancel(context.Background())
+				_, unsub := broker.Subscribe(ctx, app.SubscriberFilter{PrincipalRole: "admin"}, 0)
+				broker.Publish(domain.RealtimeEvent{
+					Type:     domain.EventQuoteCreated,
+					EntityID: "q-race",
+					Audience: domain.AudienceAdmin,
+				})
+				cancel()
+				unsub()
+			}
+		}()
+	}
+	wg.Wait()
 }

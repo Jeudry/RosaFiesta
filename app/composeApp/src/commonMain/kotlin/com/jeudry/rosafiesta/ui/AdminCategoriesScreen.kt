@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.jeudry.rosafiesta.designsystem.LocalRfTypography
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
+import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.looksLikeSvgBytes
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
 import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
@@ -91,6 +92,14 @@ internal fun RenderAdminCategoriesA40(
     var pendingDeleteCategory by remember { mutableStateOf<CatalogCategory?>(null) }
     var deleteLocalError by remember { mutableStateOf<String?>(null) }
 
+    val palette = RfThemeState.currentPalette
+    val pillIndigoBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
+    val pillIndigoInk = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
+    val pillDangerBg = if (palette.isDark) Color(0xFF3D1924) else Color(0xFFFCE3E8)
+    val pillDangerInk = if (palette.isDark) Color(0xFFFF7A96) else Color(0xFFB42345)
+    val pillSuccessBg = if (palette.isDark) Color(0xFF253516) else Color(0xFFEEF6D6)
+    val pillSuccessBorder = if (palette.isDark) Color(0xFF405C24) else Color(0xFFD5E8A4)
+    val pillSuccessInk = if (palette.isDark) Color(0xFFAEDB5C) else Color(0xFF4E6A10)
     val primaryBrush = Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
 
     val openCreateModal: () -> Unit = {
@@ -141,12 +150,12 @@ internal fun RenderAdminCategoriesA40(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
                         .clickable { onSelectScreenCode("BACK:A09") },
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
@@ -154,13 +163,13 @@ internal fun RenderAdminCategoriesA40(
                         text = "Categorías",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                     )
                     BasicText(
                         text = if (categories.isEmpty()) "Sin categorías creadas" else "${categories.size} configuradas en catálogo",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted),
                     )
                 }
 
@@ -189,15 +198,15 @@ internal fun RenderAdminCategoriesA40(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFEEF6D6))
-                        .border(1.dp, Color(0xFFD5E8A4), RoundedCornerShape(14.dp))
+                        .background(pillSuccessBg)
+                        .border(1.dp, pillSuccessBorder, RoundedCornerShape(14.dp))
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 ) {
                     BasicText(
                         text = formFeedback,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF4E6A10)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = pillSuccessInk),
                     )
                 }
             }
@@ -208,8 +217,8 @@ internal fun RenderAdminCategoriesA40(
                         .fillMaxWidth()
                         .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                         .clip(RoundedCornerShape(22.dp))
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, RoundedCornerShape(22.dp))
                         .padding(horizontal = 20.dp, vertical = 26.dp),
                 ) {
                     Column(
@@ -221,18 +230,18 @@ internal fun RenderAdminCategoriesA40(
                             modifier = Modifier
                                 .size(56.dp)
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xFFECEBFF)),
+                                .background(pillIndigoBg),
                             contentAlignment = Alignment.Center,
                         ) {
-                            RfIcon(kind = RfIconKind.CATALOG, tint = Color(0xFF4B47D6), size = 28.dp)
+                            RfIcon(kind = RfIconKind.CATALOG, tint = pillIndigoInk, size = 28.dp)
                         }
                         BasicText(
                             text = "No hay categorías creadas",
-                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                         )
                         BasicText(
                             text = "Crea tus propias categorías (por ejemplo: Sillas, Iluminación, Flores o Sonido) para organizar inventario y filtros.",
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377), lineHeight = 19.sp),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted, lineHeight = 19.sp),
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Box(
@@ -260,8 +269,8 @@ internal fun RenderAdminCategoriesA40(
                             .fillMaxWidth()
                             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(Color.White)
-                            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+                            .background(palette.surface)
+                            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
                             .clickable { openEditModal(categoryItem) }
                             .padding(horizontal = 14.dp, vertical = 12.dp),
                     ) {
@@ -274,7 +283,7 @@ internal fun RenderAdminCategoriesA40(
                                 modifier = Modifier
                                     .size(44.dp)
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(Color(0xFFECEBFF)),
+                                    .background(pillIndigoBg),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 RfCategoryCustomOrFallbackIcon(
@@ -290,13 +299,13 @@ internal fun RenderAdminCategoriesA40(
                                     text = categoryItem.name,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.5.sp, fontWeight = FontWeight.SemiBold, color = palette.ink),
                                 )
                                 BasicText(
                                     text = if (linkedArticleCount == 1) "1 artículo asociado" else "$linkedArticleCount artículos asociados",
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted),
                                 )
                             }
 
@@ -304,18 +313,18 @@ internal fun RenderAdminCategoriesA40(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFFECEBFF))
+                                    .background(pillIndigoBg)
                                     .clickable { openEditModal(categoryItem) },
                                 contentAlignment = Alignment.Center,
                             ) {
-                                RfIcon(kind = RfIconKind.EDIT, tint = Color(0xFF4B47D6), size = 17.dp)
+                                RfIcon(kind = RfIconKind.EDIT, tint = pillIndigoInk, size = 17.dp)
                             }
 
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFFFCE3E8))
+                                    .background(pillDangerBg)
                                     .clickable {
                                         deleteLocalError = null
                                         viewModel?.clearFormError()
@@ -323,7 +332,7 @@ internal fun RenderAdminCategoriesA40(
                                     },
                                 contentAlignment = Alignment.Center,
                             ) {
-                                RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 17.dp)
+                                RfIcon(kind = RfIconKind.TRASH, tint = pillDangerInk, size = 17.dp)
                             }
                         }
                     }
@@ -345,11 +354,11 @@ internal fun RenderAdminCategoriesA40(
             ) {
                 BasicText(
                     text = if (isEditingExisting) "Editar categoría" else "Nueva categoría",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                 )
                 RfIcon(
                     kind = RfIconKind.CLOSE,
-                    tint = Color(0xFF5F6377),
+                    tint = palette.muted,
                     size = 20.dp,
                     modifier = Modifier.clickable { showEditorSheet = false },
                 )
@@ -375,15 +384,15 @@ internal fun RenderAdminCategoriesA40(
                 minHeight = 50.dp,
                 horizontalPadding = 14.dp,
                 textFontSize = 15.sp,
-                textColor = Color(0xFF2E324A),
+                textColor = palette.ink,
                 labelFontSize = 13.sp,
-                labelColor = Color(0xFF3A3D52),
+                labelColor = palette.ink,
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 BasicText(
                     text = "Ícono SVG personalizado (opcional)",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF3A3D52)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = palette.ink),
                 )
                 val hasCustomSvg = isCustomMediaIconKey(selectedIconKey)
                 val uploadSvgStatus = when {
@@ -396,8 +405,8 @@ internal fun RenderAdminCategoriesA40(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFF6F6FB))
-                        .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(16.dp))
+                        .background(palette.chipBg)
+                        .border(1.dp, palette.fieldBorder, RoundedCornerShape(16.dp))
                         .clickable(enabled = !isUploadingSvg) {
                             viewModel?.pickMediaAttachment(listOf("svg")) { pickedFile ->
                                 val isValidSvg = looksLikeSvgBytes(pickedFile.bytes)
@@ -430,7 +439,7 @@ internal fun RenderAdminCategoriesA40(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFECEBFF)),
+                            .background(pillIndigoBg),
                         contentAlignment = Alignment.Center,
                     ) {
                         RfCategoryCustomOrFallbackIcon(
@@ -445,13 +454,13 @@ internal fun RenderAdminCategoriesA40(
                             text = if (hasCustomSvg) "SVG cargado" else "Subir ícono SVG",
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E324A)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = palette.ink),
                         )
                         BasicText(
                             text = uploadSvgStatus,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)),
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = palette.muted),
                         )
                     }
                     if (hasCustomSvg) {
@@ -459,7 +468,7 @@ internal fun RenderAdminCategoriesA40(
                             modifier = Modifier
                                 .testTag("a40-clear-svg-btn")
                                 .clip(CircleShape)
-                                .background(Color(0xFFFCE3E8))
+                                .background(pillDangerBg)
                                 .clickable {
                                     selectedIconKey = "cat-default"
                                     selectedSvgFileName = null
@@ -468,7 +477,7 @@ internal fun RenderAdminCategoriesA40(
                         ) {
                             BasicText(
                                 text = "Quitar",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = pillDangerInk),
                             )
                         }
                     } else {
@@ -476,12 +485,12 @@ internal fun RenderAdminCategoriesA40(
                             modifier = Modifier
                                 .testTag("a40-upload-svg-btn")
                                 .clip(CircleShape)
-                                .background(Color(0xFFECEBFF))
+                                .background(pillIndigoBg)
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             BasicText(
                                 text = "Elegir .svg",
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = pillIndigoInk),
                             )
                         }
                     }
@@ -496,11 +505,11 @@ internal fun RenderAdminCategoriesA40(
                         .weight(1f)
                         .height(48.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFF2F2F8))
+                        .background(palette.chipBg)
                         .clickable { showEditorSheet = false },
                     contentAlignment = Alignment.Center,
                 ) {
-                    BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
+                    BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, color = palette.muted))
                 }
                 val canSaveCategory = if (isSubmitting) false else !isUploadingSvg
                 Box(
@@ -562,7 +571,7 @@ internal fun RenderAdminCategoriesA40(
                 val linkedCount = countArticlesInCategory(targetDelete, articles)
                 BasicText(
                     text = "Eliminar categoría",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                 )
                 BasicText(
                     text = if (linkedCount > 0) {
@@ -570,7 +579,7 @@ internal fun RenderAdminCategoriesA40(
                     } else {
                         "¿Seguro que deseas eliminar \"${targetDelete.name}\"? Esta acción quitará la categoría del catálogo."
                     },
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = Color(0xFF5F6377), lineHeight = 19.sp),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted, lineHeight = 19.sp),
                 )
                 AdminFormErrorBanner(errorMessage = deleteLocalError)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -579,11 +588,11 @@ internal fun RenderAdminCategoriesA40(
                             .weight(1f)
                             .height(48.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFF2F2F8))
+                            .background(palette.chipBg)
                             .clickable { pendingDeleteCategory = null },
                         contentAlignment = Alignment.Center,
                     ) {
-                        BasicText("Cerrar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)))
+                        BasicText("Cerrar", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, color = palette.muted))
                     }
                     if (linkedCount == 0) {
                         Box(

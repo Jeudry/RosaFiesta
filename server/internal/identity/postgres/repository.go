@@ -48,10 +48,9 @@ func (r *Repository) UpsertUser(ctx context.Context, user domain.User, rawSessio
 	if !r.Enabled() {
 		return nil
 	}
-	passwordHash := user.PasswordHash
+	passwordHash := strings.TrimSpace(user.PasswordHash)
 	if passwordHash == "" {
-		generatedHash, _ := domain.HashPassword("secret123")
-		passwordHash = generatedHash
+		return domain.ErrInvalidCredentials
 	}
 	username := strings.TrimSpace(user.Username)
 	if username == "" {
@@ -286,6 +285,22 @@ func (r *Repository) MarkOTPUsed(ctx context.Context, email string) error {
 	trimmed := strings.TrimSpace(email)
 	normalized := strings.ToLower(trimmed)
 	return r.queries.MarkOTPUsed(ctx, normalized)
+}
+
+func (r *Repository) ConsumeOTPResetToken(ctx context.Context, email, resetTokenHash string) (bool, error) {
+	if !r.Enabled() {
+		return true, nil
+	}
+	trimmed := strings.TrimSpace(email)
+	normalized := strings.ToLower(trimmed)
+	rows, err := r.queries.ConsumeOTPResetToken(ctx, sqlcgen.ConsumeOTPResetTokenParams{
+		Email:          normalized,
+		ResetTokenHash: resetTokenHash,
+	})
+	if err != nil {
+		return false, err
+	}
+	return rows > 0, nil
 }
 
 func (r *Repository) ListAdminClients(ctx context.Context) ([]domain.AdminClient, error) {

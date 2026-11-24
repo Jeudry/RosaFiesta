@@ -149,13 +149,16 @@ func defaultSTTModelFor(provider string) string {
 	}
 }
 
-func callerRateLimitKey(caller platformhttp.Principal) string {
+func callerRateLimitKey(ctx context.Context, caller platformhttp.Principal) string {
 	if caller.ID != uuid.Nil {
 		return caller.ID.String()
 	}
 	email := strings.TrimSpace(caller.Email)
 	if email != "" {
 		return strings.ToLower(email)
+	}
+	if clientIP := strings.TrimSpace(platformhttp.ClientIP(ctx)); clientIP != "" {
+		return "ip:" + clientIP
 	}
 	return "anonymous"
 }

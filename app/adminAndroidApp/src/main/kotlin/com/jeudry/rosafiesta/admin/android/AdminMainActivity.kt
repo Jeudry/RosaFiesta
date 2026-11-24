@@ -19,15 +19,15 @@ import com.jeudry.rosafiesta.data.registerAndroidMediaPickerBridge
 import com.jeudry.rosafiesta.domain.platform.AppLifecycleBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
-import kotlin.coroutines.Continuation
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * Android entrypoint for the Administrative RosaFiesta application (María, Pedro, Yuli, and Andrés).
  */
 class AdminMainActivity : ComponentActivity() {
-    private var pendingMediaContinuation: Continuation<PickedMediaFile?>? = null
+    private var pendingMediaContinuation: CancellableContinuation<PickedMediaFile?>? = null
     private var pendingCredentialCallback: ((Boolean) -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,18 +57,25 @@ class AdminMainActivity : ComponentActivity() {
             val continuation = pendingMediaContinuation
             pendingMediaContinuation = null
             if (continuation != null) {
-                val picked = if (selectedUri != null) {
-                    readAndroidPickedUri(applicationContext, selectedUri)
-                } else {
-                    null
+                if (continuation.isActive) {
+                    val picked = if (selectedUri != null) {
+                        readAndroidPickedUri(applicationContext, selectedUri)
+                    } else {
+                        null
+                    }
+                    continuation.resume(picked)
                 }
-                continuation.resume(picked)
             }
         }
         registerAndroidMediaPickerBridge { allowedExtensions ->
             val mimeTypes = mapAllowedExtensionsToMimeTypes(allowedExtensions)
-            suspendCoroutine { continuation ->
+            suspendCancellableCoroutine { continuation ->
                 pendingMediaContinuation = continuation
+                continuation.invokeOnCancellation {
+                    if (pendingMediaContinuation === continuation) {
+                        pendingMediaContinuation = null
+                    }
+                }
                 documentLauncher.launch(mimeTypes)
             }
         }
@@ -99,6 +106,9 @@ class AdminMainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        pendingMediaContinuation?.cancel()
+        pendingMediaContinuation = null
+        pendingCredentialCallback = null
         registerAndroidAudioPermissionRequester(null)
         registerAndroidMediaPickerBridge(null)
         registerAndroidDeviceAuthBridge(null, null)

@@ -998,7 +998,7 @@ public interface RosaFiestaRepository {
     ): StaffMember = inviteStaffMember(fullName, email, roleLabel, role, phone, permissions)
 
     /**
-     * Creates a catalog article including an uploaded remote [photoUrl].
+     * Creates a catalog article including an uploaded remote [photoUrl] and full metadata.
      */
     public fun createArticleWithMedia(
         code: String,
@@ -1007,6 +1007,10 @@ public interface RosaFiestaRepository {
         pricePerDayDop: Int,
         totalStock: Int,
         photoUrl: String = "",
+        description: String = "",
+        dimensions: String = "",
+        material: String = "",
+        visibleInCatalog: Boolean = true,
     ) {
         createArticle(code, name, category, pricePerDayDop, totalStock)
     }

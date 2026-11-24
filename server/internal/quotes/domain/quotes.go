@@ -19,6 +19,10 @@ var (
 	ErrInvalidSignature = errors.New("digital signature and signer name are required")
 	// ErrQuoteAlreadyDecided impide reprocesar una cotización ya firmada o rechazada.
 	ErrQuoteAlreadyDecided = errors.New("quote has already been processed")
+	// ErrQuoteNotSent exige que la cotización esté enviada por administración antes de firmarse.
+	ErrQuoteNotSent = errors.New("quote must be sent before contract signature")
+	// ErrInvalidQuoteItem rechaza artículos inexistentes o cantidades inválidas en cotizaciones de cliente.
+	ErrInvalidQuoteItem = errors.New("quote line references an unknown or invalid catalog item")
 	// ErrInvalidAudioPayload indica audio base64 vacío o inválido.
 	ErrInvalidAudioPayload = errors.New("invalid or empty base64 audio payload")
 	// ErrInsufficientStock indica inventario insuficiente en la fecha solicitada.
@@ -83,26 +87,20 @@ type Quote struct {
 	RejectionReason string      `json:"rejectionReason,omitempty"`
 }
 
-func (q Quote) BelongsToClient(userID, email, fullName string) bool {
-	trimmedUserID := strings.TrimSpace(userID)
-	if trimmedUserID != "" {
-		if q.ClientID == trimmedUserID {
-			return true
+func (q Quote) BelongsToClient(userID, email, _ string) bool {
+	storedClientID := strings.TrimSpace(q.ClientID)
+	if storedClientID != "" {
+		trimmedUserID := strings.TrimSpace(userID)
+		if trimmedUserID == "" {
+			return false
 		}
+		return storedClientID == trimmedUserID
 	}
 	trimmedEmail := strings.TrimSpace(email)
-	if trimmedEmail != "" {
-		if strings.EqualFold(q.ClientEmail, trimmedEmail) {
-			return true
-		}
+	if trimmedEmail == "" {
+		return false
 	}
-	trimmedName := strings.TrimSpace(fullName)
-	if trimmedName != "" {
-		if strings.EqualFold(q.ClientName, trimmedName) {
-			return true
-		}
-	}
-	return false
+	return strings.EqualFold(q.ClientEmail, trimmedEmail)
 }
 
 func CalculateQuoteTotals(

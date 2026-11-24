@@ -10,6 +10,8 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -406,5 +408,84 @@ class ContractTest {
 
         val pushDisabled = api.unregisterDevicePushToken("fcm-token-123")
         assertTrue(pushDisabled.disabled)
+    }
+
+    @Test
+    fun `api client notifies expiry once on 401 without refresh and verifyCredentials keeps active tokens`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        var expiryCount = 0
+        var logoutAuthHeader = ""
+        val mockEngine = MockEngine { request ->
+            val jsonHeaders = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            when (request.url.encodedPath) {
+                "/v1/quotes" -> respond(
+                    content = """{"code":"UNAUTHORIZED"}""",
+                    status = HttpStatusCode.Unauthorized,
+                    headers = jsonHeaders,
+                )
+
+                "/v1/auth/login" -> respond(
+                    content = """{"accessToken":"temp-verify-token","refreshToken":"temp-refresh","expiresIn":900,"user":{"id":"u1","username":"camila","email":"camila@rosafiesta.do","fullName":"Camila","role":"client"}}""",
+                    status = HttpStatusCode.OK,
+                    headers = jsonHeaders,
+                )
+
+                "/v1/auth/logout" -> {
+                    logoutAuthHeader = request.headers[HttpHeaders.Authorization].orEmpty()
+                    respond(content = """{"loggedOut":true}""", status = HttpStatusCode.OK, headers = jsonHeaders)
+                }
+
+                else -> respond(content = """{"ok":true}""", status = HttpStatusCode.OK, headers = jsonHeaders)
+            }
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val api = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = dispatcher,
+            httpClient = httpClient,
+        )
+        api.setSessionLifecycleCallbacks(
+            onTokensRefreshed = { _, _ -> },
+            onSessionExpired = { expiryCount += 1 },
+        )
+        api.setAccessToken("active-server-token")
+        api.setRefreshToken(null)
+
+        runCatching { api.listQuotes() }
+        assertEquals(1, expiryCount)
+
+        api.setAccessToken("active-server-token")
+        api.setRefreshToken("real-refresh-token")
+        val verified = api.verifyCredentials(LoginInputDto(email = "camila@rosafiesta.do", password = "pw"))
+        assertTrue(verified)
+        assertEquals("active-server-token", api.currentAccessToken())
+        assertEquals("real-refresh-token", api.currentRefreshToken())
+
+        api.logout(refreshToken = "real-refresh-token", bearerToken = "active-server-token")
+        assertEquals("Bearer active-server-token", logoutAuthHeader)
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @Test
+    fun `realtime client skips rf-local tokens without opening SSE connections`() = runTest {
+        var networkHits = 0
+        val mockEngine = MockEngine { _ ->
+            networkHits += 1
+            respond(content = "", status = HttpStatusCode.OK)
+        }
+        val realtime = RosaFiestaRealtimeClient(
+            httpClient = HttpClient(mockEngine),
+            baseUrl = "http://localhost:8788",
+        )
+        val job = launch {
+            realtime.observeStream(accessTokenProvider = { "rf-local.sample.token" }).collect { _ -> }
+        }
+        testScheduler.advanceTimeBy(3_500L)
+        job.cancel()
+        assertEquals(0, networkHits)
     }
 }

@@ -3456,13 +3456,18 @@
           "redirectUri": {
             "description": "Callback URI used during authorization start.",
             "type": "string"
+          },
+          "state": {
+            "description": "Anti-CSRF OAuth state issued by /v1/auth/oauth/{provider}/start.",
+            "type": "string"
           }
         },
         "required": [
           "provider",
           "code",
           "codeVerifier",
-          "redirectUri"
+          "redirectUri",
+          "state"
         ],
         "type": "object"
       },

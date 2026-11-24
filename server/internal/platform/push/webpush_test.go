@@ -67,10 +67,11 @@ func TestWebPushSenderEncryptsRFC8291AndSignsVAPID(t *testing.T) {
 	})
 
 	webSender := push.NewWebPushSender(push.WebPushConfig{
-		VAPIDPublicKey:  vapidPubB64,
-		VAPIDPrivateKey: vapidPrivB64,
-		Subject:         "mailto:alertas@rosafiesta.do",
-		Clock:           func() time.Time { return time.Unix(1700000000, 0).UTC() },
+		VAPIDPublicKey:        vapidPubB64,
+		VAPIDPrivateKey:       vapidPrivB64,
+		Subject:               "mailto:alertas@rosafiesta.do",
+		AllowPrivateEndpoints: true,
+		Clock:                 func() time.Time { return time.Unix(1700000000, 0).UTC() },
 	})
 	multi := push.NewMultiSender(nil, nil).WithWebPush(webSender)
 	if !multi.IsConfigured() {

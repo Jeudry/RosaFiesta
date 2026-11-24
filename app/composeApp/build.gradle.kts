@@ -89,6 +89,12 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "RosaFiesta"
             packageVersion = "1.0.0"
+            macOS {
+                bundleID = "com.jeudry.rosafiesta.desktop"
+            }
+            windows {
+                menuGroup = "RosaFiesta"
+            }
         }
     }
 }

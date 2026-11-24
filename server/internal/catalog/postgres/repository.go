@@ -438,7 +438,13 @@ func (r *Repository) ReplaceEventReservations(
 	if !r.Enabled() {
 		return nil
 	}
-	if err := r.queries.DeleteReservationsByEvent(ctx, eventID); err != nil {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := r.queries.WithTx(tx)
+	if err := qtx.DeleteReservationsByEvent(ctx, eventID); err != nil {
 		return err
 	}
 	for _, item := range items {
@@ -450,7 +456,7 @@ func (r *Repository) ReplaceEventReservations(
 		if updatedAt.IsZero() {
 			updatedAt = createdAt
 		}
-		if err := r.queries.UpsertStockReservation(ctx, sqlcgen.UpsertStockReservationParams{
+		if err := qtx.UpsertStockReservation(ctx, sqlcgen.UpsertStockReservationParams{
 			ID:            item.ID,
 			ArticleID:     item.ArticleID,
 			EventID:       item.EventID,
@@ -465,7 +471,7 @@ func (r *Repository) ReplaceEventReservations(
 			return err
 		}
 	}
-	return nil
+	return tx.Commit(ctx)
 }
 
 // UpdateReservationStatusByEvent actualiza el estado de las reservas de un evento.

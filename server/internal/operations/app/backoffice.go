@@ -103,12 +103,10 @@ func (s *Service) ListReviews(ctx context.Context, eventID string) []domain.Revi
 func (s *Service) loadReviews(ctx context.Context) []domain.Review {
 	if store, enabled := s.storeEnabled(); enabled {
 		if rows, err := store.ListReviews(ctx); err == nil {
-			if len(rows) > 0 {
-				s.mu.Lock()
-				s.reviews = rows
-				s.mu.Unlock()
-				return rows
-			}
+			s.mu.Lock()
+			s.reviews = rows
+			s.mu.Unlock()
+			return rows
 		}
 	}
 	s.mu.RLock()
@@ -133,17 +131,23 @@ func (s *Service) CreateReview(
 	if comment == "" {
 		return domain.Review{}, domain.ErrInvalidOperationsInput
 	}
-	clientName := strings.TrimSpace(cmd.ClientName)
-	if clientName == "" {
-		clientName = strings.TrimSpace(caller.FullName)
+	eventID := strings.TrimSpace(cmd.EventID)
+	s.mu.RLock()
+	eventChecker := s.eventChecker
+	s.mu.RUnlock()
+	if eventChecker != nil {
+		if eventID == "" {
+			return domain.Review{}, domain.ErrInvalidOperationsInput
+		}
+		if err := eventChecker.VerifyEventOwnership(ctx, eventID, caller); err != nil {
+			return domain.Review{}, err
+		}
 	}
-	if clientName == "" {
-		clientName = "Cliente Verificado"
-	}
+	clientName := resolveReviewClientName(cmd.ClientName, caller)
 	now := s.clock.Now()
 	review := domain.Review{
 		ID:             "rev-" + uuid.NewString()[:8],
-		EventID:        strings.TrimSpace(cmd.EventID),
+		EventID:        eventID,
 		ClientName:     clientName,
 		Rating:         cmd.Rating,
 		Comment:        comment,
@@ -203,11 +207,9 @@ func (s *Service) ReplyReview(
 func (s *Service) ListSuppliers(ctx context.Context, category string) []domain.Supplier {
 	if store, enabled := s.storeEnabled(); enabled {
 		if rows, err := store.ListSuppliers(ctx); err == nil {
-			if len(rows) > 0 {
-				s.mu.Lock()
-				s.suppliers = rows
-				s.mu.Unlock()
-			}
+			s.mu.Lock()
+			s.suppliers = rows
+			s.mu.Unlock()
 		}
 	}
 	filter := strings.TrimSpace(category)
@@ -350,11 +352,9 @@ func (s *Service) saveSupplierInMemory(sup domain.Supplier) {
 func (s *Service) ListLeads(ctx context.Context, stage string) []domain.Lead {
 	if store, enabled := s.storeEnabled(); enabled {
 		if rows, err := store.ListLeads(ctx); err == nil {
-			if len(rows) > 0 {
-				s.mu.Lock()
-				s.leads = rows
-				s.mu.Unlock()
-			}
+			s.mu.Lock()
+			s.leads = rows
+			s.mu.Unlock()
 		}
 	}
 	filter := strings.TrimSpace(stage)
@@ -459,11 +459,9 @@ func (s *Service) GetSettings(ctx context.Context) (domain.BusinessSettings, []d
 			s.mu.Unlock()
 		}
 		if dbZones, err := store.ListDeliveryZones(ctx); err == nil {
-			if len(dbZones) > 0 {
-				s.mu.Lock()
-				s.deliveryZones = dbZones
-				s.mu.Unlock()
-			}
+			s.mu.Lock()
+			s.deliveryZones = dbZones
+			s.mu.Unlock()
 		}
 	}
 	s.mu.RLock()
@@ -539,11 +537,9 @@ func nonEmptyOr(candidate, fallback string) string {
 func (s *Service) ListNotifications(ctx context.Context, caller platformhttp.Principal) []domain.Notification {
 	if store, enabled := s.storeEnabled(); enabled {
 		if rows, err := store.ListNotifications(ctx); err == nil {
-			if len(rows) > 0 {
-				s.mu.Lock()
-				s.notifications = rows
-				s.mu.Unlock()
-			}
+			s.mu.Lock()
+			s.notifications = rows
+			s.mu.Unlock()
 		}
 	}
 	s.mu.RLock()
@@ -568,7 +564,7 @@ func isNotificationVisibleToCaller(ntf domain.Notification, caller platformhttp.
 		return false
 	}
 	if ntf.UserID == "" {
-		return true
+		return false
 	}
 	return ntf.UserID == caller.ID.String()
 }
@@ -627,12 +623,10 @@ func (s *Service) MarkNotificationRead(ctx context.Context, id string) (domain.N
 func (s *Service) ListInsurancePolicies(ctx context.Context) []domain.InsurancePolicy {
 	if store, enabled := s.storeEnabled(); enabled {
 		if rows, err := store.ListInsurancePolicies(ctx); err == nil {
-			if len(rows) > 0 {
-				s.mu.Lock()
-				s.policies = rows
-				s.mu.Unlock()
-				return rows
-			}
+			s.mu.Lock()
+			s.policies = rows
+			s.mu.Unlock()
+			return rows
 		}
 	}
 	s.mu.RLock()
@@ -645,12 +639,10 @@ func (s *Service) ListInsurancePolicies(ctx context.Context) []domain.InsuranceP
 func (s *Service) ListAuditLogs(ctx context.Context) []domain.AuditLog {
 	if store, enabled := s.storeEnabled(); enabled {
 		if rows, err := store.ListAuditLogs(ctx); err == nil {
-			if len(rows) > 0 {
-				s.mu.Lock()
-				s.auditLogs = rows
-				s.mu.Unlock()
-				return rows
-			}
+			s.mu.Lock()
+			s.auditLogs = rows
+			s.mu.Unlock()
+			return rows
 		}
 	}
 	s.mu.RLock()
@@ -710,12 +702,10 @@ func (s *Service) recordAudit(
 func (s *Service) ListBotFAQs(ctx context.Context) []domain.BotFAQ {
 	if store, enabled := s.storeEnabled(); enabled {
 		if rows, err := store.ListBotFAQs(ctx); err == nil {
-			if len(rows) > 0 {
-				s.mu.Lock()
-				s.botFAQs = rows
-				s.mu.Unlock()
-				return rows
-			}
+			s.mu.Lock()
+			s.botFAQs = rows
+			s.mu.Unlock()
+			return rows
 		}
 	}
 	s.mu.RLock()
@@ -804,12 +794,10 @@ func (s *Service) saveBotFAQInMemory(faq domain.BotFAQ) {
 func (s *Service) ListBotKeywords(ctx context.Context) []domain.BotKeyword {
 	if store, enabled := s.storeEnabled(); enabled {
 		if rows, err := store.ListBotKeywords(ctx); err == nil {
-			if len(rows) > 0 {
-				s.mu.Lock()
-				s.botKeywords = rows
-				s.mu.Unlock()
-				return rows
-			}
+			s.mu.Lock()
+			s.botKeywords = rows
+			s.mu.Unlock()
+			return rows
 		}
 	}
 	s.mu.RLock()
@@ -896,12 +884,10 @@ func (s *Service) saveBotKeywordInMemory(kw domain.BotKeyword) {
 func (s *Service) ListBotThreads(ctx context.Context) []domain.BotThread {
 	if store, enabled := s.storeEnabled(); enabled {
 		if rows, err := store.ListBotThreads(ctx); err == nil {
-			if len(rows) > 0 {
-				s.mu.Lock()
-				s.botThreads = rows
-				s.mu.Unlock()
-				return rows
-			}
+			s.mu.Lock()
+			s.botThreads = rows
+			s.mu.Unlock()
+			return rows
 		}
 	}
 	s.mu.RLock()
@@ -995,11 +981,11 @@ func (s *Service) ExportReport(ctx context.Context, reportType, period string) (
 }
 
 // HasSentEventReminder consulta si el recordatorio especificado ya fue enviado para un evento.
-func (s *Service) HasSentEventReminder(ctx context.Context, eventID, reminderKind string) (bool, error) {
-	key := eventID + ":" + reminderKind
+func (s *Service) HasSentEventReminder(ctx context.Context, eventID string, userID uuid.UUID, reminderKind string) (bool, error) {
+	key := eventID + ":" + userID.String() + ":" + reminderKind
 	if store, enabled := s.storeEnabled(); enabled {
 		if remStore, ok := store.(ReminderStore); ok {
-			return remStore.HasSentEventReminder(ctx, eventID, reminderKind)
+			return remStore.HasSentEventReminder(ctx, eventID, userID, reminderKind)
 		}
 	}
 	s.mu.RLock()
@@ -1008,9 +994,9 @@ func (s *Service) HasSentEventReminder(ctx context.Context, eventID, reminderKin
 }
 
 // MarkEventReminderSent registra el envío idempotente de un recordatorio de evento.
-func (s *Service) MarkEventReminderSent(ctx context.Context, eventID, reminderKind string) error {
+func (s *Service) MarkEventReminderSent(ctx context.Context, eventID string, userID uuid.UUID, reminderKind string) error {
 	now := s.clock.Now()
-	key := eventID + ":" + reminderKind
+	key := eventID + ":" + userID.String() + ":" + reminderKind
 	s.mu.Lock()
 	if s.sentReminders == nil {
 		s.sentReminders = make(map[string]bool)
@@ -1021,11 +1007,32 @@ func (s *Service) MarkEventReminderSent(ctx context.Context, eventID, reminderKi
 	if store != nil {
 		if store.Enabled() {
 			if remStore, ok := store.(ReminderStore); ok {
-				return remStore.InsertSentEventReminder(ctx, eventID, reminderKind, now)
+				return remStore.InsertSentEventReminder(ctx, eventID, userID, reminderKind, now)
 			}
 		}
 	}
 	return nil
+}
+
+func resolveReviewClientName(requested string, caller platformhttp.Principal) string {
+	authenticated := strings.TrimSpace(caller.FullName)
+	if authenticated == "" {
+		authenticated = strings.TrimSpace(caller.Email)
+	}
+	if caller.IsClient() {
+		if authenticated != "" {
+			return authenticated
+		}
+		return "Cliente Verificado"
+	}
+	trimmed := strings.TrimSpace(requested)
+	if trimmed != "" {
+		return trimmed
+	}
+	if authenticated != "" {
+		return authenticated
+	}
+	return "Cliente Verificado"
 }
 
 func shortMonthLabel(month int) string {

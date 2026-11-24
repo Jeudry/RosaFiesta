@@ -543,6 +543,9 @@ var operationsErrorSpecs = []operationsErrorSpec{
 	{domain.ErrWhatsAppVerifyFailed, http.StatusForbidden, "WHATSAPP_WEBHOOK_FORBIDDEN", "WhatsAppWebhookTokenVerification"},
 	{domain.ErrWebhookSignatureInvalid, http.StatusForbidden, "WHATSAPP_SIGNATURE_INVALID", "WhatsAppWebhookSignatureVerification"},
 	{domain.ErrNotificationForbidden, http.StatusForbidden, "NOTIFICATION_FORBIDDEN", "NotificationOwnershipPolicy"},
+	{domain.ErrOfflineActionForbidden, http.StatusForbidden, "OFFLINE_ACTION_FORBIDDEN", "OfflineSyncPermissionPolicy"},
+	{domain.ErrReviewForbidden, http.StatusForbidden, "REVIEW_FORBIDDEN", "ReviewEventOwnershipPolicy"},
+	{domain.ErrReviewEventNotFound, http.StatusNotFound, "REVIEW_EVENT_NOT_FOUND", "ReviewEventMustExist"},
 }
 
 func mapOperationsError(err error, endpoint, defaultCode, policy string, defaultStatus int) *platformhttp.APIError {

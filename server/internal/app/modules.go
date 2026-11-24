@@ -147,89 +147,96 @@ type seedUser struct {
 }
 
 func adminOnlySeedUsers(now time.Time) []seedUser {
+	defaultHash := identityapp.CanonicalSeedPasswordHash()
 	return []seedUser{
 		{
 			sessionKey: "rf-token-maria",
 			user: identitydomain.User{
-				ID:          uuid.MustParse("22222222-2222-2222-2222-222222222222"),
-				Username:    "maria",
-				FullName:    "María (Dueña)",
-				Email:       "maria@rosafiesta.do",
-				Phone:       "809-555-0100",
-				BirthDate:   "12/04/1990",
-				Active:      true,
-				Role:        identitydomain.RoleAdmin,
-				Permissions: []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "finanzas", "reembolsos", "reportes", "ajustes"},
-				ActiveView:  identitydomain.ViewAdmin,
-				CreatedAt:   now,
+				ID:           uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+				Username:     "maria",
+				FullName:     "María (Dueña)",
+				Email:        "maria@rosafiesta.do",
+				Phone:        "809-555-0100",
+				BirthDate:    "12/04/1990",
+				Active:       true,
+				Role:         identitydomain.RoleAdmin,
+				Permissions:  []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "finanzas", "reembolsos", "reportes", "ajustes"},
+				ActiveView:   identitydomain.ViewAdmin,
+				CreatedAt:    now,
+				PasswordHash: defaultHash,
 			},
 		},
 		{
 			sessionKey: "rf-token-yuli",
 			user: identitydomain.User{
-				ID:          uuid.MustParse("33333333-3333-3333-3333-333333333333"),
-				Username:    "yuli",
-				FullName:    "Yuli",
-				Email:       "yuli@rosafiesta.do",
-				Phone:       "809-555-0102",
-				BirthDate:   "22/09/1996",
-				Active:      true,
-				Role:        identitydomain.RoleStaff,
-				Permissions: []string{"decoracion", "tareas"},
-				ActiveView:  identitydomain.ViewAdmin,
-				CreatedAt:   now,
+				ID:           uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+				Username:     "yuli",
+				FullName:     "Yuli",
+				Email:        "yuli@rosafiesta.do",
+				Phone:        "809-555-0102",
+				BirthDate:    "22/09/1996",
+				Active:       true,
+				Role:         identitydomain.RoleStaff,
+				Permissions:  []string{"decoracion", "tareas"},
+				ActiveView:   identitydomain.ViewAdmin,
+				CreatedAt:    now,
+				PasswordHash: defaultHash,
 			},
 		},
 	}
 }
 
 func canonicalSeedUsers(now time.Time) []seedUser {
+	defaultHash := identityapp.CanonicalSeedPasswordHash()
 	return []seedUser{
 		{
 			sessionKey: "rf-token-camila",
 			user: identitydomain.User{
-				ID:         uuid.MustParse("11111111-1111-1111-1111-111111111111"),
-				Username:   "camila",
-				FullName:   "Camila Rodríguez",
-				Email:      "camila@rosafiesta.do",
-				Phone:      "809-555-0142",
-				BirthDate:  "15/08/1998",
-				Active:     true,
-				Role:       identitydomain.RoleClient,
-				ActiveView: identitydomain.ViewPersonal,
-				CreatedAt:  now,
+				ID:           uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+				Username:     "camila",
+				FullName:     "Camila Rodríguez",
+				Email:        "camila@rosafiesta.do",
+				Phone:        "809-555-0142",
+				BirthDate:    "15/08/1998",
+				Active:       true,
+				Role:         identitydomain.RoleClient,
+				ActiveView:   identitydomain.ViewPersonal,
+				CreatedAt:    now,
+				PasswordHash: defaultHash,
 			},
 		},
 		{
 			sessionKey: "rf-token-maria",
 			user: identitydomain.User{
-				ID:          uuid.MustParse("22222222-2222-2222-2222-222222222222"),
-				Username:    "maria",
-				FullName:    "María (Dueña)",
-				Email:       "maria@rosafiesta.do",
-				Phone:       "809-555-0100",
-				BirthDate:   "12/04/1990",
-				Active:      true,
-				Role:        identitydomain.RoleAdmin,
-				Permissions: []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "finanzas", "reembolsos", "reportes", "ajustes"},
-				ActiveView:  identitydomain.ViewAdmin,
-				CreatedAt:   now,
+				ID:           uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+				Username:     "maria",
+				FullName:     "María (Dueña)",
+				Email:        "maria@rosafiesta.do",
+				Phone:        "809-555-0100",
+				BirthDate:    "12/04/1990",
+				Active:       true,
+				Role:         identitydomain.RoleAdmin,
+				Permissions:  []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "finanzas", "reembolsos", "reportes", "ajustes"},
+				ActiveView:   identitydomain.ViewAdmin,
+				CreatedAt:    now,
+				PasswordHash: defaultHash,
 			},
 		},
 		{
 			sessionKey: "rf-token-yuli",
 			user: identitydomain.User{
-				ID:          uuid.MustParse("33333333-3333-3333-3333-333333333333"),
-				Username:    "yuli",
-				FullName:    "Yuli",
-				Email:       "yuli@rosafiesta.do",
-				Phone:       "809-555-0102",
-				BirthDate:   "22/09/1996",
-				Active:      true,
-				Role:        identitydomain.RoleStaff,
-				Permissions: []string{"decoracion", "tareas"},
-				ActiveView:  identitydomain.ViewAdmin,
-				CreatedAt:   now,
+				ID:           uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+				Username:     "yuli",
+				FullName:     "Yuli",
+				Email:        "yuli@rosafiesta.do",
+				Phone:        "809-555-0102",
+				BirthDate:    "22/09/1996",
+				Active:       true,
+				Role:         identitydomain.RoleStaff,
+				Permissions:  []string{"decoracion", "tareas"},
+				ActiveView:   identitydomain.ViewAdmin,
+				CreatedAt:    now,
+				PasswordHash: defaultHash,
 			},
 		},
 	}
@@ -328,7 +335,9 @@ func wireServices(deps Dependencies, clk clock.Clock) assembledServices {
 		media:      mediaSvc,
 		broker:     broker,
 	}
-	if deps.AdminOnlySeed {
+	if deps.Config.Env == config.EnvProduction {
+		resetServicesEmpty(context.Background(), svcs)
+	} else if deps.AdminOnlySeed {
 		resetServicesAdminOnly(context.Background(), svcs)
 	}
 	attachPostgresStores(deps.Pool, clk, svcs)
@@ -471,7 +480,8 @@ func buildOperationsService(
 		WithReplacementChargeRecorder(damageChargeAdapter{payments: paymentsSvc}).
 		WithRealtimePublisher(broker).
 		WithWhatsAppConfig(cfg.WhatsAppPhoneNumberID, cfg.WhatsAppAccessToken, cfg.WhatsAppVerifyToken).
-		WithWhatsAppAppSecret(cfg.WhatsAppAppSecret)
+		WithWhatsAppAppSecret(cfg.WhatsAppAppSecret).
+		WithRequireWhatsAppSignature(cfg.Env == config.EnvProduction)
 }
 
 func connectCrossModuleBridges(
@@ -507,6 +517,7 @@ func connectCrossModuleBridges(
 		WithTaxRateProvider(settingsAdapter).
 		WithRefundApprovedHook(refundAdapter)
 	operationsSvc.
+		WithEventOwnershipChecker(reviewEventAdapter{events: eventsSvc}).
 		WithReportSnapshotProvider(reportAdapter).
 		WithOfflineDispatcher(offlineDispatcherAdapter{events: eventsSvc, operations: operationsSvc, payments: paymentsSvc})
 }
@@ -518,6 +529,15 @@ func attachPostgresStores(pool *pgxpool.Pool, clk clock.Clock, svcs assembledSer
 	svcs.quotes.WithStore(quotespg.NewRepository(pool))
 	svcs.payments.WithStore(paymentspg.NewRepository(pool))
 	svcs.operations.WithStore(operationspg.NewRepository(pool))
+}
+
+func resetServicesEmpty(ctx context.Context, svcs assembledServices) {
+	svcs.events.ResetEmpty(ctx)
+	svcs.identity.ResetEmpty(ctx)
+	svcs.catalog.ResetEmpty(ctx)
+	svcs.quotes.ResetEmpty(ctx)
+	svcs.payments.ResetEmpty(ctx)
+	svcs.operations.ResetEmpty(ctx)
 }
 
 func resetServicesAdminOnly(ctx context.Context, svcs assembledServices) {

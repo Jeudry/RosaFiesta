@@ -1,9 +1,14 @@
 package com.jeudry.rosafiesta.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +26,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,12 +49,14 @@ import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
 import com.jeudry.rosafiesta.designsystem.RfPhoto
 import com.jeudry.rosafiesta.designsystem.RfPhotoKey
+import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.RfSwitch
 import com.jeudry.rosafiesta.designsystem.RfTag
 import com.jeudry.rosafiesta.designsystem.RfTagTone
 import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.rememberDecodedImageBitmap
 import com.jeudry.rosafiesta.designsystem.rfCardShadow
+import com.jeudry.rosafiesta.designsystem.rfIconButtonShadow
 import com.jeudry.rosafiesta.designsystem.rfPrimaryButtonShadow
 import com.jeudry.rosafiesta.domain.PhotoAsset
 
@@ -459,17 +467,17 @@ internal fun RfEmptyStateCard(
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
-    val cardBg = if (isAdmin) Color.White else palette.surface
-    val cardBorder = if (isAdmin) Color(0xFFECECF5) else palette.line
-    val titleColor = if (isAdmin) Color(0xFF151729) else palette.ink
-    val subtitleColor = if (isAdmin) Color(0xFF5F6377) else palette.muted
+    val cardBg = palette.surface
+    val cardBorder = palette.line
+    val titleColor = palette.ink
+    val subtitleColor = palette.muted
     val iconBadgeBg = when {
-        isAdmin -> Color(0xFFECEBFF)
+        isAdmin -> if (palette.isDark) Color(0xFF282B52) else Color(0xFFECEBFF)
         palette.isDark -> Color(0xFF33265A)
         else -> Color(0xFFFDE6F2)
     }
     val iconTint = when {
-        isAdmin -> Color(0xFF4B47D6)
+        isAdmin -> if (palette.isDark) Color(0xFFA7A5FF) else Color(0xFF4B47D6)
         palette.isDark -> Color(0xFFF48FB1)
         else -> Color(0xFFC2338F)
     }
@@ -681,6 +689,201 @@ internal fun RfSavedCartPreviewToast(
                 .clickable(onClick = onDismiss),
         ) {
             RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 12.dp)
+        }
+    }
+}
+
+/**
+ * Centered confirmation modal guarding destructive delete actions across Personal and Admin screens.
+ */
+@Composable
+internal fun RfDeleteConfirmationDialog(
+    visible: Boolean,
+    title: String,
+    message: String,
+    confirmLabel: String = "Eliminar",
+    cancelLabel: String = "Cancelar",
+    errorMessage: String? = null,
+    isSubmitting: Boolean = false,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val palette = RfThemeState.currentPalette
+    val typo = LocalRfTypography.current
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(150)),
+        exit = fadeOut(tween(120)),
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        val scrimInteraction = remember { MutableInteractionSource() }
+        val cardInteraction = remember { MutableInteractionSource() }
+        val dangerBg = Color(0xFFB42345)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x73141632))
+                .clickable(
+                    interactionSource = scrimInteraction,
+                    indication = null,
+                    onClick = {
+                        if (!isSubmitting) {
+                            onDismiss()
+                        }
+                    },
+                )
+                .padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 420.dp)
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(22.dp))
+                    .clickable(
+                        interactionSource = cardInteraction,
+                        indication = null,
+                        onClick = {},
+                    )
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                BasicText(
+                    text = title,
+                    style = typo.sheetOrEmptyTitle.copy(color = palette.ink),
+                )
+                BasicText(
+                    text = message,
+                    style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
+                )
+                if (!errorMessage.isNullOrBlank()) {
+                    BasicText(
+                        text = errorMessage,
+                        style = typo.caption.copy(
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (palette.isDark) Color(0xFFFF7A96) else dangerBg,
+                        ),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(palette.chipBg)
+                            .clickable(enabled = !isSubmitting, onClick = onDismiss),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = cancelLabel,
+                            style = typo.buttonLabel.copy(fontSize = 14.sp, color = palette.muted),
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(dangerBg)
+                            .clickable(enabled = !isSubmitting, onClick = onConfirm),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = if (isSubmitting) "Eliminando..." else confirmLabel,
+                            style = typo.buttonLabel.copy(fontSize = 14.sp, color = Color.White),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+internal fun rfAdminIndigoPillBg(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
+
+internal fun rfAdminIndigoPillInk(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
+
+internal fun rfAdminSuccessPillBg(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFF253516) else Color(0xFFEEF6D6)
+
+internal fun rfAdminSuccessPillInk(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFFAEDB5C) else Color(0xFF4E6A10)
+
+internal fun rfAdminWarnPillBg(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFF3A2F16) else Color(0xFFFFF2C9)
+
+internal fun rfAdminWarnPillInk(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFFF5C954) else Color(0xFF7A5700)
+
+internal fun rfAdminTealPillBg(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFF173636) else Color(0xFFDDF4F3)
+
+internal fun rfAdminTealPillInk(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFF5CD6CE) else Color(0xFF1F8A84)
+
+internal fun rfAdminDangerPillBg(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFF3D1924) else Color(0xFFFCE3E8)
+
+internal fun rfAdminDangerPillInk(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFFFF7A96) else Color(0xFFB42345)
+
+internal fun rfAdminSoftTintBg(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFF262348) else Color(0xFFF7F6FF)
+
+internal fun rfAdminNoteAmberBg(): Color = if (RfThemeState.currentPalette.isDark) Color(0xFF332A16) else Color(0xFFFFF8E5)
+
+/**
+ * Full-screen Personal empty-state scaffold shown when the client has no active events yet.
+ */
+@Composable
+internal fun PersonalEmptyEventStateScaffold(
+    headerTitle: String,
+    backTargetCode: String,
+    message: String,
+    onSelectScreenCode: (String) -> Unit,
+    actionLabel: String = "Crear mi evento",
+    actionTargetCode: String = "s38",
+) {
+    val palette = RfThemeState.currentPalette
+    val typo = LocalRfTypography.current
+    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
+                        .clickable { onSelectScreenCode(backTargetCode) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                }
+                BasicText(
+                    text = headerTitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = typo.screenTitle.copy(color = palette.ink),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            RfEmptyStateCard(
+                icon = RfIconKind.CALENDAR,
+                title = "Aún no tienes eventos",
+                subtitle = message,
+                actionLabel = actionLabel,
+                isAdmin = false,
+                onAction = { onSelectScreenCode(actionTargetCode) },
+            )
         }
     }
 }

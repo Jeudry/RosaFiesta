@@ -37,6 +37,11 @@ type ReportSnapshotProvider interface {
 	BuildReportSnapshot(ctx context.Context, months int, now time.Time) (domain.ReportSnapshot, error)
 }
 
+// EventOwnershipChecker valida que el evento asociado exista y pertenezca al cliente.
+type EventOwnershipChecker interface {
+	VerifyEventOwnership(ctx context.Context, eventID string, caller platformhttp.Principal) error
+}
+
 // DeletableStore abstrae eliminaciones persistentes de proveedores y reglas de bot.
 type DeletableStore interface {
 	DeleteSupplier(ctx context.Context, id string) error
@@ -46,8 +51,8 @@ type DeletableStore interface {
 
 // ReminderStore abstrae el registro idempotente de recordatorios enviados.
 type ReminderStore interface {
-	HasSentEventReminder(ctx context.Context, eventID, reminderKind string) (bool, error)
-	InsertSentEventReminder(ctx context.Context, eventID, reminderKind string, sentAt time.Time) error
+	HasSentEventReminder(ctx context.Context, eventID string, userID uuid.UUID, reminderKind string) (bool, error)
+	InsertSentEventReminder(ctx context.Context, eventID string, userID uuid.UUID, reminderKind string, sentAt time.Time) error
 }
 
 // Store abstrae la persistencia PostgreSQL del módulo de operaciones.
@@ -116,6 +121,7 @@ type Service struct {
 	store               Store
 	octRevenueFn        func(ctx context.Context) int
 	reportSnapshotFn    ReportSnapshotProvider
+	eventChecker        EventOwnershipChecker
 	stockAdjuster       DamagedStockAdjuster
 	chargeRecorder      ReplacementChargeRecorder
 	offlineDispatcher   OfflineMutationDispatcher
@@ -125,6 +131,7 @@ type Service struct {
 	whatsAppVerifyToken string
 	whatsAppAppSecret   string
 	whatsAppAPIBaseURL  string
+	requireWhatsAppSig  bool
 	logistics           map[string]domain.EventLogistics
 	routeStops          []domain.RouteStop
 	offlineQueue        []domain.OfflineMutation
@@ -174,6 +181,14 @@ func (s *Service) WithRevenueProvider(fn func(ctx context.Context) int) *Service
 func (s *Service) WithReportSnapshotProvider(provider ReportSnapshotProvider) *Service {
 	s.mu.Lock()
 	s.reportSnapshotFn = provider
+	s.mu.Unlock()
+	return s
+}
+
+// WithEventOwnershipChecker conecta la validación de propiedad de evento para reseñas verificadas.
+func (s *Service) WithEventOwnershipChecker(checker EventOwnershipChecker) *Service {
+	s.mu.Lock()
+	s.eventChecker = checker
 	s.mu.Unlock()
 	return s
 }
@@ -232,6 +247,14 @@ func (s *Service) WithWhatsAppConfig(phoneNumberID, accessToken, verifyToken str
 func (s *Service) WithWhatsAppAppSecret(secret string) *Service {
 	s.mu.Lock()
 	s.whatsAppAppSecret = strings.TrimSpace(secret)
+	s.mu.Unlock()
+	return s
+}
+
+// WithRequireWhatsAppSignature exige secreto configurado y firma válida (obligatorio en producción).
+func (s *Service) WithRequireWhatsAppSignature(required bool) *Service {
+	s.mu.Lock()
+	s.requireWhatsAppSig = required
 	s.mu.Unlock()
 	return s
 }
@@ -471,9 +494,7 @@ func applyChecklistToggle(
 func (s *Service) ListRouteStops() []domain.RouteStop {
 	if store, enabled := s.storeEnabled(); enabled {
 		if dbStops, err := store.ListDeliveryStops(context.Background()); err == nil {
-			if len(dbStops) > 0 {
-				return dbStops
-			}
+			return dbStops
 		}
 	}
 	s.mu.RLock()
@@ -550,9 +571,7 @@ func (s *Service) ReportDamageWithDetails(
 func (s *Service) ListDamages(ctx context.Context, eventID string) []domain.DamageReport {
 	if store, enabled := s.storeEnabled(); enabled {
 		if dbList, err := store.ListDamageIncidents(ctx, eventID); err == nil {
-			if len(dbList) > 0 {
-				return dbList
-			}
+			return dbList
 		}
 	}
 	filterEvent := strings.TrimSpace(eventID)
@@ -574,12 +593,10 @@ func (s *Service) ListDamages(ctx context.Context, eventID string) []domain.Dama
 func (s *Service) ListOfflineQueue(ctx context.Context) []domain.OfflineMutation {
 	if store, enabled := s.storeEnabled(); enabled {
 		if dbQueue, err := store.ListOfflineMutations(ctx); err == nil {
-			if len(dbQueue) > 0 {
-				s.mu.Lock()
-				s.offlineQueue = dbQueue
-				s.mu.Unlock()
-				return dbQueue
-			}
+			s.mu.Lock()
+			s.offlineQueue = dbQueue
+			s.mu.Unlock()
+			return dbQueue
 		}
 	}
 	s.mu.RLock()

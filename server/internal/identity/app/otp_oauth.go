@@ -111,7 +111,10 @@ func (s *Service) RequestOTP(ctx context.Context, rawEmail string) (OTPRequestRe
 	_, found := s.findUserLocked(normalizedEmail)
 	s.mu.RUnlock()
 	if !found {
-		return OTPRequestResult{}, domain.ErrUserNotFound
+		return OTPRequestResult{
+			Sent:             true,
+			ExpiresInSeconds: int(otpValidityTTL.Seconds()),
+		}, nil
 	}
 	code, err := domain.GenerateDigitsOTP()
 	if err != nil {
@@ -353,6 +356,9 @@ func (s *Service) configuredOAuthClientID(provider string) (string, error) {
 }
 
 func (s *Service) authorizePasswordReset(ctx context.Context, email, rawResetToken, rawOTPCode string) error {
+	s.otpMu.Lock()
+	defer s.otpMu.Unlock()
+
 	record, found := s.loadOTPRecord(ctx, email)
 	if !found {
 		return domain.ErrResetTokenInvalid
@@ -364,7 +370,13 @@ func (s *Service) authorizePasswordReset(ctx context.Context, email, rawResetTok
 		if !record.IsResetTokenValid(resetHash, now) {
 			return domain.ErrResetTokenInvalid
 		}
-		s.consumeOTPRecord(ctx, record)
+		consumed, err := s.consumeOTPResetTokenAtomically(ctx, record, resetHash)
+		if err != nil {
+			return domain.ErrResetTokenInvalid
+		}
+		if !consumed {
+			return domain.ErrResetTokenInvalid
+		}
 		return nil
 	}
 	trimmedOTP := strings.TrimSpace(rawOTPCode)
@@ -378,6 +390,32 @@ func (s *Service) authorizePasswordReset(ctx context.Context, email, rawResetTok
 		return nil
 	}
 	return domain.ErrResetTokenInvalid
+}
+
+func (s *Service) consumeOTPResetTokenAtomically(
+	ctx context.Context,
+	record domain.OTPRecord,
+	resetHash string,
+) (bool, error) {
+	s.mu.RLock()
+	store := s.store
+	s.mu.RUnlock()
+	if store != nil {
+		if store.Enabled() {
+			ok, err := store.ConsumeOTPResetToken(ctx, record.Email, resetHash)
+			if err != nil {
+				return false, err
+			}
+			if !ok {
+				return false, nil
+			}
+		}
+	}
+	record.Used = true
+	s.mu.Lock()
+	s.otps[record.Email] = record
+	s.mu.Unlock()
+	return true, nil
 }
 
 func (s *Service) saveOTPRecord(ctx context.Context, record domain.OTPRecord) {

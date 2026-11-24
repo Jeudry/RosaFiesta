@@ -3874,6 +3874,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
     var forceShowVerificationOtpError by remember { mutableStateOf(false) }
     val formError = viewModel?.formError?.collectAsState()?.value
     val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     LaunchedEffect(spec.code) {
         recoveryEmailError = null
         forceShowRecoveryEmailError = false
@@ -4189,7 +4190,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot, ambientColor = Color.Transparent)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(authColors.primaryButtonBrush)
-                                .clickable {
+                                .clickable(enabled = !isSubmitting) {
                                     hasInteractedRecoveryEmail = true
                                     forceShowRecoveryEmailError = true
                                     val trimmedRec = recoveryEmail.trim()
@@ -4211,7 +4212,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     }
                                 },
                         ) {
-                            BasicText("Enviar enlace", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                            BasicText(
+                                text = if (isSubmitting) "Enviando..." else "Enviar enlace",
+                                style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                            )
                         }
 
                         Spacer(Modifier.height(16.dp))
@@ -4633,7 +4637,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
                             .clip(RoundedCornerShape(16.dp))
                             .background(authColors.primaryButtonBrush)
-                            .clickable {
+                            .clickable(enabled = !isSubmitting) {
                                 hasInteractedResetOtp = true
                                 hasInteractedNewPassword = true
                                 hasInteractedConfirmPassword = true
@@ -4658,7 +4662,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 }
                             },
                     ) {
-                        BasicText("Guardar contraseña", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        BasicText(
+                            text = if (isSubmitting) "Guardando..." else "Guardar contraseña",
+                            style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
                     }
                 }
             }
@@ -4883,7 +4890,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             color = authColors.primaryLinkColor,
                             textDecoration = TextDecoration.Underline,
                         ),
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.clickable(enabled = !isSubmitting) {
                             val resendTarget = recoveryEmail.ifBlank { viewModel?.loginEmail?.value.orEmpty() }
                             viewModel?.requestPasswordResetOtp(resendTarget)
                         },
@@ -4899,7 +4906,7 @@ internal fun RenderRecoveryAndConfirmationScreens(
                             .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot)
                             .clip(RoundedCornerShape(16.dp))
                             .background(authColors.primaryButtonBrush)
-                            .clickable {
+                            .clickable(enabled = !isSubmitting) {
                                 hasInteractedVerificationOtp = true
                                 forceShowVerificationOtpError = true
                                 val otpError = InputValidator.validateOtpCode(verificationOtp)
@@ -4916,7 +4923,10 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                 }
                             },
                     ) {
-                        BasicText("Verificar código", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        BasicText(
+                            text = if (isSubmitting) "Verificando..." else "Verificar código",
+                            style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                        )
                     }
                 }
             }
@@ -5398,6 +5408,7 @@ internal fun RenderGuestCatalogS01(
                                 },
                                 singleLine = true,
                                 textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                                cursorBrush = SolidColor(RfThemeState.currentPalette.primaryAccent),
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }

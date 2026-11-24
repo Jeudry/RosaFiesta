@@ -1222,7 +1222,7 @@ public fun RfToast(
 ) {
     val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
-    val bg = if (isAdmin) RfColors.AdminInk else palette.toastBg
+    val bg = palette.toastBg
 
     Row(
         verticalAlignment = Alignment.CenterVertically,

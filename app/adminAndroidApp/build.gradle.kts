@@ -30,6 +30,15 @@ android {
                 ?: System.getenv("ROSAFIESTA_API_URL")
                 ?: ""
         manifestPlaceholders["ROSAFIESTA_API_URL"] = configuredApiUrl.trim()
+        val isReleaseTaskRequested =
+            gradle.startParameter.taskNames.any { taskName ->
+                taskName.contains("Release", ignoreCase = true)
+            }
+        if (isReleaseTaskRequested) {
+            if (configuredApiUrl.isBlank()) {
+                logger.warn("ROSAFIESTA_API_URL is empty for adminAndroidApp release build; set -PROSAFIESTA_API_URL or ROSAFIESTA_API_URL.")
+            }
+        }
     }
 
     compileOptions {
@@ -39,6 +48,7 @@ android {
 
     val keystorePath =
         (project.findProperty("ROSAFIESTA_ADMIN_KEYSTORE_PATH") as? String)
+            ?: System.getenv("ROSAFIESTA_ADMIN_KEYSTORE_PATH")
             ?: (project.findProperty("ROSAFIESTA_KEYSTORE_PATH") as? String)
             ?: System.getenv("ROSAFIESTA_KEYSTORE_PATH")
             ?: ""
@@ -52,6 +62,7 @@ android {
                     ?: System.getenv("ROSAFIESTA_KEYSTORE_PASSWORD")
                     ?: ""
                 keyAlias = (project.findProperty("ROSAFIESTA_ADMIN_KEY_ALIAS") as? String)
+                    ?: System.getenv("ROSAFIESTA_ADMIN_KEY_ALIAS")
                     ?: (project.findProperty("ROSAFIESTA_KEY_ALIAS") as? String)
                     ?: System.getenv("ROSAFIESTA_KEY_ALIAS")
                     ?: ""

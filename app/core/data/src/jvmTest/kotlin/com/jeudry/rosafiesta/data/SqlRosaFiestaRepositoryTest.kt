@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SqlRosaFiestaRepositoryTest {
@@ -508,5 +509,167 @@ class SqlRosaFiestaRepositoryTest {
             quantity = 1,
         )
         assertTrue(availability.isSuccess)
+    }
+
+    @Test
+    fun `preserves server JWT on profile edit rejects expired JWT wipes SQL on logout and validates payments`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val driver = DriverFactory().createDriver()
+        val mockEngine = MockEngine { request ->
+            val jsonHeaders = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            when (request.url.encodedPath) {
+                "/v1/auth/me" -> respond(
+                    content = """{"user":{"id":"usr-real","username":"ana_real","email":"ana.real@correo.do","fullName":"Ana Real","phone":"8095550177","birthDate":"1995-03-14","role":"client"}}""",
+                    status = HttpStatusCode.OK,
+                    headers = jsonHeaders,
+                )
+
+                else -> respond(
+                    content = """{"ok":true}""",
+                    status = HttpStatusCode.OK,
+                    headers = jsonHeaders,
+                )
+            }
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+        val repo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = apiClient,
+            seedDemoData = false,
+        )
+        testScheduler.advanceUntilIdle()
+
+        val unauthenticatedEdit = repo.updateUserProfile(
+            fullName = "Ana Real",
+            email = "ana.real@correo.do",
+            phone = "8095550177",
+            birthDate = "14/03/1995",
+            username = "ana_real",
+        )
+        assertFalse(unauthenticatedEdit.success)
+        assertEquals("AUTH_UNAUTHORIZED", unauthenticatedEdit.errorCode)
+
+        val account = com.jeudry.rosafiesta.domain.security.RegisteredUserAccount(
+            id = "usr-real",
+            username = "ana_real",
+            email = "ana.real@correo.do",
+            fullName = "Ana Real",
+            passwordHash = "hash",
+            salt = "salt",
+            birthDate = "14/03/1995",
+            phone = "8095550177",
+            role = "client",
+        )
+        val initialToken = com.jeudry.rosafiesta.domain.security.JwtAuthManager.issueAccessToken(
+            account = account,
+            ttlSeconds = 7200L,
+        )
+        apiClient.setAccessToken(initialToken)
+        apiClient.setRefreshToken("refresh-real-123")
+        val restored = repo.restoreSessionFromJwt(initialToken)
+        assertEquals("ana.real@correo.do", restored?.email)
+
+        val profileOutcome = repo.updateUserProfile(
+            fullName = "Ana Real Actualizada",
+            email = "ana.real@correo.do",
+            phone = "8095550188",
+            birthDate = "14/03/1995",
+            username = "ana_real",
+        )
+        assertTrue(profileOutcome.success)
+        assertEquals(initialToken, profileOutcome.accessToken)
+        assertEquals("refresh-real-123", profileOutcome.refreshToken)
+
+        val missingEventPayment = repo.registerPaymentAsync(
+            eventId = "evt-does-not-exist",
+            amountDop = 2000,
+            methodLabel = "Efectivo",
+            referenceCode = "EF-01",
+        )
+        assertNull(missingEventPayment)
+
+        val expiredToken = com.jeudry.rosafiesta.domain.security.JwtAuthManager.issueAccessToken(
+            account = account,
+            issuedAtEpochSeconds = 100L,
+            ttlSeconds = 10L,
+        )
+        assertNull(repo.restoreSessionFromJwt(expiredToken))
+
+        repo.logoutSession()
+        testScheduler.advanceUntilIdle()
+        assertTrue(repo.events.value.isEmpty())
+        assertTrue(repo.payments.value.isEmpty())
+        assertTrue(repo.quotes.value.isEmpty())
+        assertNull(repo.currentSessionJwt.value)
+    }
+
+    @Test
+    fun `persists extended article event checklist fields in SQLite and keeps outbox unsynced offline`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val driver = DriverFactory().createDriver()
+
+        val offlineRepo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = null,
+            seedDemoData = true,
+        )
+        testScheduler.advanceUntilIdle()
+
+        offlineRepo.createArticleAsync(
+            code = "RF-META-1",
+            name = "Mesa Imperial Cristal",
+            category = "Mesas",
+            pricePerDayDop = 4500,
+            totalStock = 4,
+            photoUrl = "",
+            description = "Mesa con tope biselado",
+            dimensions = "240x110cm",
+            material = "Acero y vidrio",
+            visibleInCatalog = false,
+        )
+        offlineRepo.createEventAsync(
+            title = "Boda Jardin",
+            clientName = "Clara Diaz",
+            dateLabel = "25 Nov 2026",
+            venue = "Salon Norte",
+            guests = 40,
+            preassignedEventId = "evt-meta-1",
+        )
+        offlineRepo.cancelEventAsync("evt-meta-1", reason = "Cambio de ciudad")
+        offlineRepo.syncOfflineQueueAsync()
+
+        val pendingOffline = offlineRepo.offlineQueue.value.filter { item -> !item.synced }
+        assertTrue(pendingOffline.any { item -> item.operationType == "create_article" })
+        assertTrue(pendingOffline.any { item -> item.operationType == "create_event" })
+        assertTrue(pendingOffline.any { item -> item.operationType == "cancel_event" })
+
+        val reloadedRepo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = null,
+            seedDemoData = true,
+        )
+        testScheduler.advanceUntilIdle()
+
+        val reloadedArticle = reloadedRepo.articles.value.first { art -> art.code == "RF-META-1" }
+        assertEquals("240x110cm", reloadedArticle.dimensions)
+        assertEquals("Acero y vidrio", reloadedArticle.material)
+        assertFalse(reloadedArticle.visibleInCatalog)
+
+        val reloadedEvent = reloadedRepo.events.value.first { evt -> evt.id == "evt-meta-1" }
+        assertEquals("Cambio de ciudad", reloadedEvent.cancellationReason)
+        assertTrue(reloadedEvent.items.isNotEmpty())
+        assertTrue(reloadedRepo.offlineQueue.value.any { item -> !item.synced })
     }
 }

@@ -76,20 +76,18 @@ func (m Module) uploadHandler(ctx context.Context, in *uploadMediaInput) (*uploa
 	return &uploadMediaOutput{Status: http.StatusCreated, Body: asset}, nil
 }
 
-func isPrivateMediaPurpose(purpose string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(purpose))
-	switch normalized {
-	case "voucher", "chat", "damage":
-		return true
-	default:
-		return false
-	}
-}
-
 func (m Module) serveMediaHandler(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	asset, content, err := m.Service.Open(r.Context(), id)
+	asset, err := m.Service.FindAsset(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
+		http.Error(w, "recurso multimedia no encontrado", http.StatusNotFound)
+		return
+	}
+	isPrivate := domain.IsPrivatePurpose(asset.Purpose)
+	if !m.authorizeMediaAccess(w, r, asset, isPrivate) {
+		return
+	}
+	content, readErr := m.Service.ReadBlob(r.Context(), asset)
+	if readErr != nil {
 		http.Error(w, "recurso multimedia no encontrado", http.StatusNotFound)
 		return
 	}
@@ -97,14 +95,29 @@ func (m Module) serveMediaHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "archivo multimedia inválido", http.StatusUnsupportedMediaType)
 		return
 	}
-	isPrivate := isPrivateMediaPurpose(asset.Purpose)
-	if isPrivate {
-		_, authenticated := platformhttp.AuthenticateHTTPRequest(r, m.Auth)
-		if !authenticated {
-			http.Error(w, "autenticación requerida", http.StatusUnauthorized)
-			return
+	writeMediaResponseHeaders(w, asset, isPrivate)
+	http.ServeContent(w, r, asset.Filename, asset.CreatedAt, bytes.NewReader(content))
+}
+
+func (m Module) authorizeMediaAccess(w http.ResponseWriter, r *http.Request, asset domain.Asset, isPrivate bool) bool {
+	if !isPrivate {
+		return true
+	}
+	caller, authenticated := platformhttp.AuthenticateHTTPRequest(r, m.Auth)
+	if !authenticated {
+		http.Error(w, "autenticación requerida", http.StatusUnauthorized)
+		return false
+	}
+	if caller.IsClient() {
+		if asset.OwnerID != caller.ID.String() {
+			http.Error(w, "sin permisos para acceder a este recurso", http.StatusForbidden)
+			return false
 		}
 	}
+	return true
+}
+
+func writeMediaResponseHeaders(w http.ResponseWriter, asset domain.Asset, isPrivate bool) {
 	headers := w.Header()
 	headers.Set("Content-Type", asset.MimeType)
 	if isPrivate {
@@ -115,7 +128,6 @@ func (m Module) serveMediaHandler(w http.ResponseWriter, r *http.Request) {
 	headers.Set("ETag", fmt.Sprintf(`"%s"`, asset.SHA256))
 	headers.Set("X-Content-Type-Options", "nosniff")
 	headers.Set("Content-Security-Policy", "sandbox")
-	http.ServeContent(w, r, asset.Filename, asset.CreatedAt, bytes.NewReader(content))
 }
 
 func decodeBase64Payload(raw string) ([]byte, error) {

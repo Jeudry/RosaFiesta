@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -118,6 +119,19 @@ func isPDF(data []byte) bool {
 	return bytes.HasPrefix(data, []byte("%PDF"))
 }
 
+var svgEventAttrPattern = regexp.MustCompile(`(?i)\bon[a-z]+\s*=`)
+
+// IsPrivatePurpose defaults empty and unknown purposes to private; only explicit catalog/public asset purposes are public.
+func IsPrivatePurpose(purpose string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(purpose))
+	switch normalized {
+	case "catalog", "category", "category-icon", "package", "trend", "avatar":
+		return false
+	default:
+		return true
+	}
+}
+
 func isSVG(data []byte) bool {
 	trimmed := bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
 	trimmed = bytes.TrimSpace(trimmed)
@@ -136,11 +150,11 @@ func isSVG(data []byte) bool {
 		return false
 	}
 	lowerFull := strings.ToLower(string(trimmed))
-	if strings.Contains(lowerFull, "<script") {
-		return false
+	blocked := []string{"<script", "javascript:", "<animate", "<foreignobject", "<set", "data:text/html"}
+	for _, marker := range blocked {
+		if strings.Contains(lowerFull, marker) {
+			return false
+		}
 	}
-	if strings.Contains(lowerFull, "javascript:") {
-		return false
-	}
-	return true
+	return !svgEventAttrPattern.MatchString(lowerFull)
 }

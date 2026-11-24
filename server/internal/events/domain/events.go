@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/google/uuid"
 )
@@ -50,6 +51,14 @@ type EventTask struct {
 	CreatedAt    time.Time `json:"createdAt"`
 }
 
+func santoDomingoLocation() *time.Location {
+	loc, err := time.LoadLocation("America/Santo_Domingo")
+	if err == nil {
+		return loc
+	}
+	return time.FixedZone("America/Santo_Domingo", -4*3600)
+}
+
 // ComputeDaysUntilEvent calcula los días restantes entre la fecha actual y la fecha ISO del evento.
 func ComputeDaysUntilEvent(eventDateISO string, now time.Time, fallback int) int {
 	trimmed := strings.TrimSpace(eventDateISO)
@@ -60,7 +69,8 @@ func ComputeDaysUntilEvent(eventDateISO string, now time.Time, fallback int) int
 	if err != nil {
 		return fallback
 	}
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	localNow := now.In(santoDomingoLocation())
+	today := time.Date(localNow.Year(), localNow.Month(), localNow.Day(), 0, 0, 0, 0, time.UTC)
 	target := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC)
 	return int(target.Sub(today).Hours() / 24)
 }
@@ -196,25 +206,18 @@ func (e *Event) CompleteCloseout(notes string) error {
 	return nil
 }
 
-func (e Event) BelongsToClient(userID uuid.UUID, email, fullName string) bool {
-	if userID != uuid.Nil {
-		if e.ClientID == userID {
-			return true
+func (e Event) BelongsToClient(userID uuid.UUID, email, _ string) bool {
+	if e.ClientID != uuid.Nil {
+		if userID == uuid.Nil {
+			return false
 		}
+		return e.ClientID == userID
 	}
 	trimmedEmail := strings.TrimSpace(email)
-	if trimmedEmail != "" {
-		if strings.EqualFold(e.ClientEmail, trimmedEmail) {
-			return true
-		}
+	if trimmedEmail == "" {
+		return false
 	}
-	trimmedName := strings.TrimSpace(fullName)
-	if trimmedName != "" {
-		if strings.EqualFold(e.ClientName, trimmedName) {
-			return true
-		}
-	}
-	return false
+	return strings.EqualFold(e.ClientEmail, trimmedEmail)
 }
 
 type RefundPolicyResult struct {

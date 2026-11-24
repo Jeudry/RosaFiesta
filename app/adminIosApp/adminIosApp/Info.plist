@@ -18,7 +18,7 @@
 		</dict>
 	</array>
 	<key>RosaFiestaApiUrl</key>
-	<string></string>
+	<string>$(ROSAFIESTA_API_URL)</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
@@ -32,8 +32,6 @@
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
-		<true/>
-		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
 </dict>

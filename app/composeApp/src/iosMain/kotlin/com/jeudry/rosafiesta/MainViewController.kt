@@ -3,6 +3,7 @@ package com.jeudry.rosafiesta
 import androidx.compose.ui.window.ComposeUIViewController
 import com.jeudry.rosafiesta.data.handleIosIncomingDeepLinkUrl
 import com.jeudry.rosafiesta.data.registerIosApnsDeviceToken
+import com.jeudry.rosafiesta.domain.platform.AppLifecycleBridge
 import platform.UIKit.UIViewController
 
 /** Punto de entrada de iOS para la App Personal de RosaFiesta. */
@@ -35,3 +36,10 @@ public fun handleApnsRegistrationFailure() {
  * Dispatches an incoming custom URL scheme callback (`rosafiesta://payment/...`) opened by iOS.
  */
 public fun handleIncomingDeepLinkUrl(urlString: String): Boolean = handleIosIncomingDeepLinkUrl(urlString)
+
+/**
+ * Notifies active ViewModels that the iOS application transitioned into the background.
+ */
+public fun notifyAppBackgrounded() {
+    AppLifecycleBridge.dispatchAppBackgrounded()
+}

@@ -29,6 +29,28 @@ func (q *Queries) AddUserFavorite(ctx context.Context, arg AddUserFavoriteParams
 	return err
 }
 
+const consumeOTPResetToken = `-- name: ConsumeOTPResetToken :execrows
+UPDATE auth_otp_codes
+SET used = TRUE
+WHERE email = $1
+  AND reset_token_hash = $2
+  AND verified = TRUE
+  AND used = FALSE
+`
+
+type ConsumeOTPResetTokenParams struct {
+	Email          string
+	ResetTokenHash string
+}
+
+func (q *Queries) ConsumeOTPResetToken(ctx context.Context, arg ConsumeOTPResetTokenParams) (int64, error) {
+	result, err := q.db.Exec(ctx, consumeOTPResetToken, arg.Email, arg.ResetTokenHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteExpiredOTPCodes = `-- name: DeleteExpiredOTPCodes :execrows
 DELETE FROM auth_otp_codes
 WHERE expires_at < $1 AND (used = TRUE OR reset_expires_at < $1)

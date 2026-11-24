@@ -21,12 +21,15 @@ func (m Module) Register(api huma.API) {
 }
 
 func (m Module) registerPublicRoutes(api huma.API) {
+	optMW := m.optionalAuthMiddlewares(api)
+
 	huma.Register(api, huma.Operation{
 		OperationID: "catalog-list-articles",
 		Method:      http.MethodGet,
 		Path:        "/v1/catalog/articles",
 		Summary:     "List rental catalog articles and live stock",
 		Tags:        []string{"Catalog"},
+		Middlewares: optMW,
 	}, m.handleListArticles)
 
 	huma.Register(api, huma.Operation{
@@ -51,9 +54,10 @@ func (m Module) registerPublicRoutes(api huma.API) {
 		Path:        "/v1/catalog/packages",
 		Summary:     "List themed event packages and included items",
 		Tags:        []string{"Catalog"},
+		Middlewares: optMW,
 	}, m.handleListPackages)
 
-	m.registerPublicTrendAndBannerRoutes(api)
+	m.registerPublicTrendAndBannerRoutes(api, optMW)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "catalog-availability",
@@ -72,13 +76,14 @@ func (m Module) registerPublicRoutes(api huma.API) {
 	}, m.handleAvailabilityCheck)
 }
 
-func (m Module) registerPublicTrendAndBannerRoutes(api huma.API) {
+func (m Module) registerPublicTrendAndBannerRoutes(api huma.API, optMW huma.Middlewares) {
 	huma.Register(api, huma.Operation{
 		OperationID: "catalog-list-trends",
 		Method:      http.MethodGet,
 		Path:        "/v1/catalog/trends",
 		Summary:     "List catalog seasonal trends",
 		Tags:        []string{"Catalog"},
+		Middlewares: optMW,
 	}, m.handleListTrends)
 
 	huma.Register(api, huma.Operation{
@@ -233,6 +238,21 @@ func (m Module) registerTrendAndBannerAdminRoutes(api huma.API, mw huma.Middlewa
 	}, m.handleSaveSeasonBanner)
 }
 
+func (m Module) optionalAuthMiddlewares(api huma.API) huma.Middlewares {
+	if m.Auth == nil {
+		return nil
+	}
+	return huma.Middlewares{platformhttp.OptionalAuth(api, m.Auth)}
+}
+
+func isAdminOrStaffPrincipal(ctx context.Context) bool {
+	caller, ok := platformhttp.CurrentPrincipal(ctx)
+	if !ok {
+		return false
+	}
+	return caller.IsAdminOrStaff()
+}
+
 func (m Module) inventoryMiddlewares(api huma.API) huma.Middlewares {
 	if m.Auth == nil {
 		return nil
@@ -242,6 +262,11 @@ func (m Module) inventoryMiddlewares(api huma.API) huma.Middlewares {
 
 func (m Module) handleListArticles(ctx context.Context, in *ArticlesInput) (*ArticlesOutput, error) {
 	filter := in.ToFilter()
+	if filter.IncludeHidden {
+		if !isAdminOrStaffPrincipal(ctx) {
+			filter.IncludeHidden = false
+		}
+	}
 	out := &ArticlesOutput{}
 	out.Body.Articles = m.Service.ArticlesFiltered(ctx, filter)
 	return out, nil
@@ -260,8 +285,14 @@ func (m Module) handleListCategories(ctx context.Context, _ *struct{}) (*Categor
 }
 
 func (m Module) handleListPackages(ctx context.Context, in *PackagesInput) (*PackagesOutput, error) {
+	includeHidden := in.IncludeHidden
+	if includeHidden {
+		if !isAdminOrStaffPrincipal(ctx) {
+			includeHidden = false
+		}
+	}
 	out := &PackagesOutput{}
-	out.Body.Packages = m.Service.PackagesFiltered(ctx, in.IncludeHidden)
+	out.Body.Packages = m.Service.PackagesFiltered(ctx, includeHidden)
 	return out, nil
 }
 
@@ -377,8 +408,14 @@ func (m Module) handleDeleteCategory(ctx context.Context, in *DeleteCategoryInpu
 }
 
 func (m Module) handleListTrends(ctx context.Context, in *TrendsInput) (*TrendsOutput, error) {
+	includeInactive := in.IncludeInactive
+	if includeInactive {
+		if !isAdminOrStaffPrincipal(ctx) {
+			includeInactive = false
+		}
+	}
 	out := &TrendsOutput{}
-	out.Body.Trends = m.Service.Trends(ctx, in.IncludeInactive)
+	out.Body.Trends = m.Service.Trends(ctx, includeInactive)
 	return out, nil
 }
 

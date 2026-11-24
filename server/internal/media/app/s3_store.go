@@ -17,6 +17,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/Jeudry/rosafiesta/server/internal/media/domain"
 )
 
 const (
@@ -68,6 +70,7 @@ type S3Config struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	PublicBaseURL   string
+	MaxBytes        int64
 	HTTPClient      *http.Client
 	Clock           func() time.Time
 }
@@ -165,10 +168,24 @@ func (s s3BlobStore) Get(ctx context.Context, storageRef string) ([]byte, error)
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	if resp.StatusCode < 200 {
 		return nil, fmt.Errorf("s3 get returned status %d", resp.StatusCode)
 	}
-	return io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("s3 get returned status %d", resp.StatusCode)
+	}
+	limit := s.cfg.MaxBytes
+	if limit <= 0 {
+		limit = defaultMaxMediaBytes
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > limit {
+		return nil, domain.ErrFileTooLarge
+	}
+	return data, nil
 }
 
 func (s s3BlobStore) Delete(ctx context.Context, storageRef string) error {

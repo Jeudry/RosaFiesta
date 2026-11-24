@@ -2,6 +2,7 @@
 
 package com.jeudry.rosafiesta.data
 
+import com.jeudry.rosafiesta.domain.platform.AppLifecycleBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalOAuthCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
@@ -23,6 +24,9 @@ import kotlin.coroutines.resume
 
 @JsFun("() => { try { return typeof window !== 'undefined' && !!window.localStorage; } catch (err) { return false; } }")
 private external fun jsHasBrowserLocalStorage(): Boolean
+
+@JsFun("() => { try { return typeof window !== 'undefined' && !!window.sessionStorage; } catch (err) { return false; } }")
+private external fun jsHasBrowserSessionStorage(): Boolean
 
 @JsFun(
     """() => {
@@ -51,6 +55,15 @@ private external fun jsLocalStorageSetItem(key: String, value: String): Boolean
 
 @JsFun("(key) => { try { window.localStorage.removeItem(key); } catch (err) {} }")
 private external fun jsLocalStorageRemoveItem(key: String)
+
+@JsFun("(key) => { try { return window.sessionStorage.getItem(key); } catch (err) { return null; } }")
+private external fun jsSessionStorageGetItem(key: String): String?
+
+@JsFun("(key, value) => { try { window.sessionStorage.setItem(key, value); return true; } catch (err) { return false; } }")
+private external fun jsSessionStorageSetItem(key: String, value: String): Boolean
+
+@JsFun("(key) => { try { window.sessionStorage.removeItem(key); } catch (err) {} }")
+private external fun jsSessionStorageRemoveItem(key: String)
 
 @JsFun(
     """(primaryHz, secondaryHz, durationMs, volume) => {
@@ -251,10 +264,14 @@ private external fun jsStopWebSpeechRecognition()
     """() => {
         try {
             if (typeof window === 'undefined') return '';
-            if (window.localStorage) {
-                const stored = window.localStorage.getItem('ROSAFIESTA_API_URL');
-                const hasStoredUrl = stored ? stored.trim().length > 0 : false;
-                if (hasStoredUrl) return stored.trim();
+            const host = String(window.location && window.location.hostname ? window.location.hostname : '').trim().toLowerCase();
+            const isLocalDevHost = host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+            if (isLocalDevHost) {
+                if (window.localStorage) {
+                    const stored = window.localStorage.getItem('ROSAFIESTA_API_URL');
+                    const hasStoredUrl = stored ? stored.trim().length > 0 : false;
+                    if (hasStoredUrl) return stored.trim();
+                }
             }
             const globalUrl = window.__ROSAFIESTA_API_URL ? String(window.__ROSAFIESTA_API_URL).trim() : '';
             if (globalUrl.length > 0) {
@@ -497,33 +514,40 @@ private external fun jsConsumePendingOAuthCallback(
                 return;
             }
             Notification.requestPermission().then((perm) => {
-                if (perm !== 'granted' || !navigator.serviceWorker) {
+                const isPushBlocked = perm !== 'granted' || !navigator.serviceWorker;
+                if (isPushBlocked) {
                     onDone('');
                     return;
                 }
-                navigator.serviceWorker.register('./sw.js').catch(() => null);
-                navigator.serviceWorker.ready.then((reg) => {
-                    if (!reg || !reg.pushManager) {
+                navigator.serviceWorker.register('./sw.js').then((registered) => {
+                    if (!registered) {
                         onDone('');
                         return;
                     }
-                    reg.pushManager.getSubscription().then((existing) => {
-                        if (existing) {
-                            onDone(JSON.stringify(existing));
-                            return;
-                        }
-                        const cleanKey = (vapidPublicKey || '').trim();
-                        if (!cleanKey) {
+                    return navigator.serviceWorker.ready.then((reg) => {
+                        const hasPushManager = Boolean(reg && reg.pushManager);
+                        if (!hasPushManager) {
                             onDone('');
                             return;
                         }
-                        reg.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: decodeVapidKey(cleanKey)
-                        }).then((created) => {
-                            onDone(created ? JSON.stringify(created) : '');
+                        reg.pushManager.getSubscription().then((existing) => {
+                            if (existing) {
+                                onDone(JSON.stringify(existing));
+                                return;
+                            }
+                            const cleanKey = (vapidPublicKey || '').trim();
+                            if (!cleanKey) {
+                                onDone('');
+                                return;
+                            }
+                            reg.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: decodeVapidKey(cleanKey)
+                            }).then((created) => {
+                                onDone(created ? JSON.stringify(created) : '');
+                            }).catch(() => onDone(''));
                         }).catch(() => onDone(''));
-                    }).catch(() => onDone(''));
+                    });
                 }).catch(() => onDone(''));
             }).catch(() => onDone(''));
         } catch (err) {
@@ -573,6 +597,22 @@ private external fun jsInstallPaymentReturnListener(
     expectedApiOrigin: String,
     onPaymentReturn: (String, String, Boolean) -> Unit,
 )
+
+@JsFun(
+    """(onHidden) => {
+        try {
+            if (typeof document === 'undefined') return;
+            if (document.__rfVisibilityListenerAttached) return;
+            document.__rfVisibilityListenerAttached = true;
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    onHidden();
+                }
+            });
+        } catch (err) {}
+    }""",
+)
+private external fun jsInstallVisibilityChangeListener(onHidden: () -> Unit)
 
 @JsFun(
     """(title, body) => {
@@ -710,24 +750,51 @@ internal class WasmSoundPlayer : SoundPlayer {
 internal class WasmLocalStorageSecureStorage : SecureStorage {
     private val headlessFallback = InMemorySecureStorage()
 
+    private fun isSessionTokenKey(cleanKey: String): Boolean {
+        if (cleanKey == SecureStorage.KEY_ACCESS_TOKEN) return true
+        return cleanKey == SecureStorage.KEY_REFRESH_TOKEN
+    }
+
     override suspend fun get(key: String): String? {
         val cleanKey = key.trim()
         if (cleanKey.isEmpty()) return null
+        val namespacedKey = "$STORAGE_NAMESPACE$cleanKey"
+        if (isSessionTokenKey(cleanKey)) {
+            if (!jsHasBrowserSessionStorage()) {
+                return headlessFallback.get(cleanKey)
+            }
+            return jsSessionStorageGetItem(namespacedKey)
+        }
         if (!jsHasBrowserLocalStorage()) {
             return headlessFallback.get(cleanKey)
         }
-        return jsLocalStorageGetItem("$STORAGE_NAMESPACE$cleanKey")
+        return jsLocalStorageGetItem(namespacedKey)
     }
 
     override suspend fun put(key: String, value: String) {
         val cleanKey = key.trim()
         if (cleanKey.isEmpty()) return
         val cleanValue = value.trim()
+        val namespacedKey = "$STORAGE_NAMESPACE$cleanKey"
+        if (isSessionTokenKey(cleanKey)) {
+            if (jsHasBrowserLocalStorage()) {
+                jsLocalStorageRemoveItem(namespacedKey)
+            }
+            if (!jsHasBrowserSessionStorage()) {
+                headlessFallback.put(cleanKey, cleanValue)
+                return
+            }
+            val saved = jsSessionStorageSetItem(namespacedKey, cleanValue)
+            if (!saved) {
+                headlessFallback.put(cleanKey, cleanValue)
+            }
+            return
+        }
         if (!jsHasBrowserLocalStorage()) {
             headlessFallback.put(cleanKey, cleanValue)
             return
         }
-        val saved = jsLocalStorageSetItem("$STORAGE_NAMESPACE$cleanKey", cleanValue)
+        val saved = jsLocalStorageSetItem(namespacedKey, cleanValue)
         if (!saved) {
             headlessFallback.put(cleanKey, cleanValue)
         }
@@ -736,11 +803,22 @@ internal class WasmLocalStorageSecureStorage : SecureStorage {
     override suspend fun remove(key: String) {
         val cleanKey = key.trim()
         if (cleanKey.isEmpty()) return
+        val namespacedKey = "$STORAGE_NAMESPACE$cleanKey"
+        if (isSessionTokenKey(cleanKey)) {
+            if (jsHasBrowserSessionStorage()) {
+                jsSessionStorageRemoveItem(namespacedKey)
+            }
+            if (jsHasBrowserLocalStorage()) {
+                jsLocalStorageRemoveItem(namespacedKey)
+            }
+            headlessFallback.remove(cleanKey)
+            return
+        }
         if (!jsHasBrowserLocalStorage()) {
             headlessFallback.remove(cleanKey)
             return
         }
-        jsLocalStorageRemoveItem("$STORAGE_NAMESPACE$cleanKey")
+        jsLocalStorageRemoveItem(namespacedKey)
         headlessFallback.remove(cleanKey)
     }
 
@@ -829,6 +907,9 @@ internal class WasmVoiceInputMonitor : VoiceInputMonitor {
 
 internal class WasmPlatformActions : PlatformActions {
     init {
+        jsInstallVisibilityChangeListener {
+            AppLifecycleBridge.dispatchAppBackgrounded()
+        }
         val apiOrigin = extractOrigin(defaultApiBaseUrl())
         jsInstallPaymentReturnListener(apiOrigin) { sessionId, eventId, cancelled ->
             ExternalPaymentCallbackBridge.dispatchPaymentPayload(

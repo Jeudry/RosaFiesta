@@ -258,6 +258,7 @@ public fun RenderAdminWebDesktopA39(
                             activeSection = targetSection
                             activeModal = A39DesktopModal.NONE
                         },
+                        onOpenScreenCode = onSelectScreenCode,
                         onSwitchToMobile = { onSelectScreenCode("A01") },
                     )
 
@@ -579,9 +580,13 @@ private fun AdminDesktopSidebar(
     profileName: String,
     profileEmail: String,
     onSelectSection: (A39DesktopSection) -> Unit,
+    onOpenScreenCode: (String) -> Unit,
     onSwitchToMobile: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
+    val pillIndigoBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
+    val pillIndigoInk = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
     val navItems = listOf(
         A39NavItem(A39DesktopSection.INICIO, "Inicio", RfIconKind.HOME),
         A39NavItem(
@@ -603,19 +608,30 @@ private fun AdminDesktopSidebar(
         ),
         A39NavItem(A39DesktopSection.REPORTES, "Reportes", RfIconKind.ORDERS),
     )
+    val moduleShortcuts = listOf(
+        Triple("Paquetes", RfIconKind.GIFT, "A24"),
+        Triple("Equipo", RfIconKind.USER, "A28"),
+        Triple("Reembolsos", RfIconKind.WARNING, "A32"),
+        Triple("Reseñas", RfIconKind.STAR, "s71"),
+        Triple("Proveedores", RfIconKind.TRUCK, "s55"),
+        Triple("Bot", RfIconKind.WHATSAPP, "s72"),
+    )
 
     Column(
         verticalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
             .width(256.dp)
             .fillMaxHeight()
-            .background(Color.White)
-            .border(width = 1.dp, color = Color(0xFFECECF5))
+            .background(palette.surface)
+            .border(width = 1.dp, color = palette.line)
             .padding(horizontal = 16.dp, vertical = 24.dp),
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -631,7 +647,7 @@ private fun AdminDesktopSidebar(
                         style = typo.backScreenTitle.copy(
                             fontSize = 17.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF151729),
+                            color = palette.ink,
                         ),
                     )
                     Spacer(Modifier.height(2.dp))
@@ -640,13 +656,13 @@ private fun AdminDesktopSidebar(
                         modifier = Modifier
                             .height(20.dp)
                             .clip(RoundedCornerShape(999.dp))
-                            .background(Color(0xFFECEBFF))
+                            .background(pillIndigoBg)
                             .padding(horizontal = 7.dp),
                     ) {
                         BasicText(
                             text = "Admin",
                             style = typo.tagLabel.copy(
-                                color = Color(0xFF4B47D6),
+                                color = pillIndigoInk,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                             ),
@@ -663,6 +679,22 @@ private fun AdminDesktopSidebar(
                     badge = item.badge,
                     isSelected = isSelected,
                     onClick = { onSelectSection(item.section) },
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+            BasicText(
+                text = "MÓDULOS",
+                style = typo.sectionCap.copy(fontSize = 11.sp, color = palette.muted),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            )
+            moduleShortcuts.forEach { shortcut ->
+                AdminDesktopSidebarNavRow(
+                    label = shortcut.first,
+                    icon = shortcut.second,
+                    badge = null,
+                    isSelected = false,
+                    onClick = { onOpenScreenCode(shortcut.third) },
                 )
             }
         }
@@ -683,7 +715,7 @@ private fun AdminDesktopSidebar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Color(0xFFECECF5)),
+                    .background(palette.line),
             )
 
             Row(
@@ -704,12 +736,12 @@ private fun AdminDesktopSidebar(
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFECEBFF)),
+                            .background(pillIndigoBg),
                     ) {
                         BasicText(
                             text = avatarInitial,
                             style = typo.bodyStrong.copy(
-                                color = Color(0xFF4B47D6),
+                                color = pillIndigoInk,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 14.sp,
                             ),
@@ -718,11 +750,11 @@ private fun AdminDesktopSidebar(
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText(
                             text = profileName.substringBefore(' ').ifBlank { "María" },
-                            style = typo.bodyStrong.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                            style = typo.bodyStrong.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.ink),
                         )
                         BasicText(
                             text = profileEmail,
-                            style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            style = typo.secondary.copy(fontSize = 12.5.sp, color = palette.muted),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -733,14 +765,14 @@ private fun AdminDesktopSidebar(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFF2F2F8))
+                        .background(palette.chipBg)
                         .clickable(onClick = onSwitchToMobile)
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     BasicText(
                         text = "Móvil",
                         style = typo.caption.copy(
-                            color = Color(0xFF4B47D6),
+                            color = pillIndigoInk,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
                         ),
@@ -760,6 +792,7 @@ private fun AdminDesktopSidebarNavRow(
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     val bgModifier = if (isSelected) {
         Modifier.background(
             brush = Brush.linearGradient(
@@ -788,7 +821,7 @@ private fun AdminDesktopSidebarNavRow(
         ) {
             RfIcon(
                 kind = icon,
-                tint = if (isSelected) Color.White else Color(0xFF3A3D52),
+                tint = if (isSelected) Color.White else palette.ink,
                 size = 19.dp,
             )
             BasicText(
@@ -796,7 +829,7 @@ private fun AdminDesktopSidebarNavRow(
                 style = typo.body.copy(
                     fontSize = 14.5.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (isSelected) Color.White else Color(0xFF3A3D52),
+                    color = if (isSelected) Color.White else palette.ink,
                 ),
             )
         }
@@ -839,6 +872,7 @@ private fun AdminDesktopTopBar(
     onSwitchAppMode: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     val headingText = if (activeSection == A39DesktopSection.INICIO) {
         "Hola, $profileFirstName"
     } else {
@@ -858,7 +892,7 @@ private fun AdminDesktopTopBar(
         Column(modifier = Modifier.weight(1f)) {
             BasicText(
                 text = subtitleText,
-                style = typo.secondary.copy(fontSize = 14.sp, color = Color(0xFF5F6377)),
+                style = typo.secondary.copy(fontSize = 14.sp, color = palette.muted),
             )
             Spacer(Modifier.height(2.dp))
             BasicText(
@@ -878,8 +912,8 @@ private fun AdminDesktopTopBar(
                     .width(340.dp)
                     .height(46.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(14.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.fieldBorder, RoundedCornerShape(14.dp))
                     .padding(horizontal = 14.dp),
             ) {
                 Row(
@@ -889,7 +923,7 @@ private fun AdminDesktopTopBar(
                 ) {
                     RfIcon(
                         kind = RfIconKind.SEARCH,
-                        tint = Color(0xFF5F6377),
+                        tint = palette.muted,
                         size = 18.dp,
                     )
                     BasicTextField(
@@ -898,8 +932,8 @@ private fun AdminDesktopTopBar(
                             onSearchChange(updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH))
                         },
                         singleLine = true,
-                        textStyle = typo.body.copy(fontSize = 14.sp, color = Color(0xFF151729)),
-                        cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                        textStyle = typo.body.copy(fontSize = 14.sp, color = palette.ink),
+                        cursorBrush = SolidColor(palette.primaryAccent),
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(searchFocusRequester),
@@ -907,7 +941,7 @@ private fun AdminDesktopTopBar(
                             if (searchQuery.isEmpty()) {
                                 BasicText(
                                     text = "Buscar eventos, clientes, artículos",
-                                    style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF5F6377)),
+                                    style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
                                     maxLines = 1,
                                 )
                             }
@@ -924,7 +958,7 @@ private fun AdminDesktopTopBar(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0xFFF2F2F8))
+                                .background(palette.chipBg)
                                 .clickable { onSearchChange("") }
                                 .padding(horizontal = 6.dp, vertical = 3.dp),
                         ) {
@@ -933,7 +967,7 @@ private fun AdminDesktopTopBar(
                                 style = typo.caption.copy(
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF5F6377),
+                                    color = palette.muted,
                                 ),
                             )
                         }
@@ -942,7 +976,7 @@ private fun AdminDesktopTopBar(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFFF2F2F8))
+                            .background(palette.chipBg)
                             .clickable(onClick = onFocusSearch)
                             .padding(horizontal = 7.dp, vertical = 3.dp),
                     ) {
@@ -951,7 +985,7 @@ private fun AdminDesktopTopBar(
                             style = typo.caption.copy(
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF5F6377),
+                                color = palette.muted,
                             ),
                         )
                     }
@@ -964,11 +998,11 @@ private fun AdminDesktopTopBar(
                     .size(44.dp)
                     .rfIconButtonShadow(CircleShape, isAdmin = true)
                     .clip(CircleShape)
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFECECF5), CircleShape)
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, CircleShape)
                     .clickable(onClick = onOpenNotifications),
             ) {
-                RfIcon(kind = RfIconKind.BELL, tint = Color(0xFF151729), size = 20.dp)
+                RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 20.dp)
                 if (bellBadgeCount > 0) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -996,8 +1030,8 @@ private fun AdminDesktopTopBar(
                 modifier = Modifier
                     .height(46.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(16.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.fieldBorder, RoundedCornerShape(16.dp))
                     .clickable(onClick = onOpenRosaAi)
                     .padding(horizontal = 16.dp),
             ) {
@@ -1005,7 +1039,7 @@ private fun AdminDesktopTopBar(
                 BasicText(
                     text = "Crear con Rosa",
                     style = typo.buttonLabel.copy(
-                        color = Color(0xFF151729),
+                        color = palette.ink,
                         fontSize = 14.5.sp,
                         fontWeight = FontWeight.Bold,
                     ),
@@ -1092,9 +1126,22 @@ private fun AdminDesktopFeedbackBanner(
     onDismiss: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    val bgColor = if (isError) Color(0xFFFDE8EE) else Color(0xFFEEF6D6)
-    val borderColor = if (isError) Color(0xFFF2B6C5) else Color(0xFFCDE29B)
-    val textColor = if (isError) Color(0xFFB42345) else Color(0xFF3E560B)
+    val palette = LocalRfPalette.current
+    val bgColor = if (isError) {
+        if (palette.isDark) Color(0xFF3D1924) else Color(0xFFFDE8EE)
+    } else {
+        if (palette.isDark) Color(0xFF253516) else Color(0xFFEEF6D6)
+    }
+    val borderColor = if (isError) {
+        if (palette.isDark) Color(0xFF703144) else Color(0xFFF2B6C5)
+    } else {
+        if (palette.isDark) Color(0xFF405C24) else Color(0xFFCDE29B)
+    }
+    val textColor = if (isError) {
+        if (palette.isDark) Color(0xFFFF7A96) else Color(0xFFB42345)
+    } else {
+        if (palette.isDark) Color(0xFFAEDB5C) else Color(0xFF3E560B)
+    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -1175,6 +1222,23 @@ private fun AdminDesktopInicioContent(
         else -> "▲ 22% vs. septiembre"
     }
 
+    val palette = LocalRfPalette.current
+    val statCardColors = if (palette.isDark) {
+        listOf(
+            Color(0xFFAEDB5C), Color(0xFF253516), Color(0xFFAEDB5C),
+            palette.muted, Color(0xFF3A2F16), Color(0xFFF5C954),
+            palette.muted, Color(0xFF2B2852), Color(0xFFA7A3FF),
+            palette.muted, Color(0xFF2B2852), Color(0xFFC5B8FF),
+        )
+    } else {
+        listOf(
+            Color(0xFF4E6A10), Color(0xFFEEF6D6), Color(0xFF4E6A10),
+            Color(0xFF5F6377), Color(0xFFFFF2C9), Color(0xFF7A5700),
+            Color(0xFF5F6377), Color(0xFFECEBFF), Color(0xFF4B47D6),
+            Color(0xFF5F6377), RfColors.VioletaTint, RfColors.VioletaTintInk,
+        )
+    }
+
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp),
         modifier = modifier.fillMaxWidth(),
@@ -1187,10 +1251,10 @@ private fun AdminDesktopInicioContent(
                 label = "Ingresos de ${metrics.monthLabel.lowercase()}",
                 value = formatDesktopDop(metrics.octoberRevenueDop),
                 subtext = revenueSubtext,
-                subtextColor = Color(0xFF4E6A10),
+                subtextColor = statCardColors[0],
                 iconKind = RfIconKind.ORDERS,
-                tileBg = Color(0xFFEEF6D6),
-                tileTint = Color(0xFF4E6A10),
+                tileBg = statCardColors[1],
+                tileTint = statCardColors[2],
                 onClick = { onNavigateSection(A39DesktopSection.REPORTES) },
                 modifier = Modifier.weight(1f),
             )
@@ -1198,10 +1262,10 @@ private fun AdminDesktopInicioContent(
                 label = "Por cobrar",
                 value = formatDesktopDop(metrics.accountsReceivableDop),
                 subtext = pendingReceivableLabel,
-                subtextColor = Color(0xFF5F6377),
+                subtextColor = statCardColors[3],
                 iconKind = RfIconKind.WALLET,
-                tileBg = Color(0xFFFFF2C9),
-                tileTint = Color(0xFF7A5700),
+                tileBg = statCardColors[4],
+                tileTint = statCardColors[5],
                 onClick = { onNavigateSection(A39DesktopSection.PAGOS) },
                 modifier = Modifier.weight(1f),
             )
@@ -1209,10 +1273,10 @@ private fun AdminDesktopInicioContent(
                 label = "Eventos activos",
                 value = activeEventsCount.toString(),
                 subtext = nextEventSubtext,
-                subtextColor = Color(0xFF5F6377),
+                subtextColor = statCardColors[6],
                 iconKind = RfIconKind.CALENDAR,
-                tileBg = Color(0xFFECEBFF),
-                tileTint = Color(0xFF4B47D6),
+                tileBg = statCardColors[7],
+                tileTint = statCardColors[8],
                 onClick = { onNavigateSection(A39DesktopSection.EVENTOS) },
                 modifier = Modifier.weight(1f),
             )
@@ -1220,10 +1284,10 @@ private fun AdminDesktopInicioContent(
                 label = "Solicitudes nuevas",
                 value = requestsCount.toString(),
                 subtext = requestsSubtext,
-                subtextColor = Color(0xFF5F6377),
+                subtextColor = statCardColors[9],
                 iconKind = RfIconKind.ORDERS,
-                tileBg = RfColors.VioletaTint,
-                tileTint = RfColors.VioletaTintInk,
+                tileBg = statCardColors[10],
+                tileTint = statCardColors[11],
                 onClick = { onNavigateSection(A39DesktopSection.SOLICITUDES) },
                 modifier = Modifier.weight(1f),
             )
@@ -1325,13 +1389,14 @@ private fun AdminStatCard(
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
@@ -1342,7 +1407,7 @@ private fun AdminStatCard(
         ) {
             BasicText(
                 text = label,
-                style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF5F6377)),
+                style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = palette.muted),
             )
             Box(
                 contentAlignment = Alignment.Center,
@@ -1356,7 +1421,7 @@ private fun AdminStatCard(
         }
         BasicText(
             text = value,
-            style = typo.webKpi.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF151729)),
+            style = typo.webKpi.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink),
         )
         BasicText(
             text = subtext,
@@ -1374,6 +1439,7 @@ private fun AdminUpcomingEventsTable(
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     val mappedRows = remember(eventsList) {
         eventsList.take(4).map { eventItem ->
             mapEventToDesktopRowSpec(eventItem)
@@ -1392,14 +1458,13 @@ private fun AdminUpcomingEventsTable(
             }
         }
     }
-
     Column(
         modifier = modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1417,7 +1482,7 @@ private fun AdminUpcomingEventsTable(
                 style = typo.buttonLabel.copy(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF4B47D6),
+                    color = palette.primaryAccent,
                 ),
                 modifier = Modifier.clickable(onClick = onViewAll),
             )
@@ -1427,7 +1492,7 @@ private fun AdminUpcomingEventsTable(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFF8F8FC))
+                .background(palette.chipBg)
                 .padding(horizontal = 20.dp, vertical = 8.dp),
         ) {
             BasicText("EVENTO", modifier = Modifier.weight(3.0f), style = typo.sectionCap.copy(fontSize = 11.sp))
@@ -1516,11 +1581,12 @@ private fun AdminEventRow(
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .border(width = 0.5.dp, color = Color(0xFFF2F0F5))
+            .border(width = 0.5.dp, color = palette.line)
             .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
@@ -1551,7 +1617,7 @@ private fun AdminEventRow(
             style = typo.cardTitle.copy(
                 fontSize = 15.sp,
                 fontWeight = if (total.startsWith("RD$")) FontWeight.Bold else FontWeight.Normal,
-                color = if (total.startsWith("RD$")) Color(0xFF151729) else Color(0xFF5F6377),
+                color = if (total.startsWith("RD$")) palette.ink else palette.muted,
             ),
         )
         Row(
@@ -1564,7 +1630,7 @@ private fun AdminEventRow(
                     .weight(1f)
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp))
-                    .background(Color(0xFFEDEDF5)),
+                    .background(palette.chipBg),
             ) {
                 if (percent > 0) {
                     Box(
@@ -1582,7 +1648,7 @@ private fun AdminEventRow(
             }
             BasicText(
                 text = "$percent%",
-                style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                style = typo.secondary.copy(fontSize = 12.5.sp, color = palette.muted),
                 modifier = Modifier.width(30.dp),
             )
         }
@@ -1612,13 +1678,14 @@ private fun AdminMonthlyRevenueChart(
         onRequestMonthsRange(selectedMonths)
     }
 
+    val palette = LocalRfPalette.current
     Column(
         modifier = modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
         Row(
@@ -1633,7 +1700,7 @@ private fun AdminMonthlyRevenueChart(
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFFF2F2F8))
+                    .background(palette.chipBg)
                     .padding(3.dp),
             ) {
                 val isSixMonths = selectedMonths == 6
@@ -1642,7 +1709,7 @@ private fun AdminMonthlyRevenueChart(
                     modifier = Modifier
                         .height(30.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSixMonths) Color.White else Color.Transparent)
+                        .background(if (isSixMonths) palette.surface else Color.Transparent)
                         .clickable { selectedMonths = 6 }
                         .padding(horizontal = 12.dp),
                 ) {
@@ -1651,7 +1718,7 @@ private fun AdminMonthlyRevenueChart(
                         style = typo.caption.copy(
                             fontSize = 13.sp,
                             fontWeight = if (isSixMonths) FontWeight.Bold else FontWeight.SemiBold,
-                            color = if (isSixMonths) Color(0xFF151729) else Color(0xFF5F6377),
+                            color = if (isSixMonths) palette.ink else palette.muted,
                         ),
                     )
                 }
@@ -1661,7 +1728,7 @@ private fun AdminMonthlyRevenueChart(
                     modifier = Modifier
                         .height(30.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isTwelveMonths) Color.White else Color.Transparent)
+                        .background(if (isTwelveMonths) palette.surface else Color.Transparent)
                         .clickable { selectedMonths = 12 }
                         .padding(horizontal = 12.dp),
                 ) {
@@ -1670,7 +1737,7 @@ private fun AdminMonthlyRevenueChart(
                         style = typo.caption.copy(
                             fontSize = 13.sp,
                             fontWeight = if (isTwelveMonths) FontWeight.Bold else FontWeight.SemiBold,
-                            color = if (isTwelveMonths) Color(0xFF151729) else Color(0xFF5F6377),
+                            color = if (isTwelveMonths) palette.ink else palette.muted,
                         ),
                     )
                 }
@@ -1711,15 +1778,16 @@ private fun AdminMonthlyRevenueChart(
                         style = typo.caption.copy(
                             fontSize = labelSize,
                             fontWeight = FontWeight.Bold,
-                            color = if (isLatestMonth) Color(0xFF151729) else Color(0xFF5F6377),
+                            color = if (isLatestMonth) palette.ink else palette.muted,
                         ),
                     )
+                    val mutedBarColor = if (palette.isDark) Color(0xFF2D314B) else Color(0xFFE3E4F5)
                     val barBrush = if (isLatestMonth) {
                         Brush.linearGradient(
                             listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0), Color(0xFF2FB8C8)),
                         )
                     } else {
-                        Brush.linearGradient(listOf(Color(0xFFE3E4F5), Color(0xFFE3E4F5)))
+                        Brush.linearGradient(listOf(mutedBarColor, mutedBarColor))
                     }
                     Box(
                         modifier = Modifier
@@ -1731,7 +1799,7 @@ private fun AdminMonthlyRevenueChart(
                     BasicText(
                         text = bar.month,
                         maxLines = 1,
-                        style = typo.secondary.copy(fontSize = labelSize, color = Color(0xFF5F6377)),
+                        style = typo.secondary.copy(fontSize = labelSize, color = palette.muted),
                     )
                 }
             }
@@ -1887,13 +1955,14 @@ private fun AdminNewRequestsCard(
         "2"
     }
 
+    val palette = LocalRfPalette.current
     Column(
         modifier = modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1962,12 +2031,13 @@ private fun AdminNewRequestRow(
     onQuoteClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(width = 0.5.dp, color = Color(0xFFF2F0F5))
+            .border(width = 0.5.dp, color = palette.line)
             .padding(horizontal = 18.dp, vertical = 12.dp),
     ) {
         RfPhoto(
@@ -1986,7 +2056,7 @@ private fun AdminNewRequestRow(
             )
             BasicText(
                 text = subtitle,
-                style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                style = typo.secondary.copy(fontSize = 12.5.sp, color = palette.muted),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -2061,13 +2131,14 @@ private fun AdminAttentionTodayCard(
         ),
     )
 
+    val palette = LocalRfPalette.current
     Column(
         modifier = modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp)),
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp)),
     ) {
         BasicText(
             text = "Atención hoy",
@@ -2176,8 +2247,8 @@ private fun AdminDesktopLeadsSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFF9F9FD))
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(14.dp))
+                        .background(LocalRfPalette.current.chipBg)
+                        .border(1.dp, LocalRfPalette.current.line, RoundedCornerShape(14.dp))
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -2187,7 +2258,7 @@ private fun AdminDesktopLeadsSection(
                         )
                         BasicText(
                             text = "${formatReadableSpanishDateText(lead.dateLabel)} · ${lead.guests} invitados · ${formatDesktopDop(lead.estimatedDop)} · Canal ${lead.channel}",
-                            style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            style = typo.secondary.copy(fontSize = 12.5.sp, color = LocalRfPalette.current.muted),
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -2250,8 +2321,8 @@ private fun AdminDesktopEventsSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFF9F9FD))
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(14.dp))
+                        .background(LocalRfPalette.current.chipBg)
+                        .border(1.dp, LocalRfPalette.current.line, RoundedCornerShape(14.dp))
                         .clickable { onOpenEventDetail(eventItem.id) }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
@@ -2264,7 +2335,7 @@ private fun AdminDesktopEventsSection(
                         BasicText(text = eventItem.title, style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                         BasicText(
                             text = "${formatReadableSpanishDateText(eventItem.dateLabel)} · ${eventItem.clientName} · ${eventItem.venue} · ${eventItem.guests} inv.",
-                            style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            style = typo.secondary.copy(fontSize = 12.5.sp, color = LocalRfPalette.current.muted),
                         )
                     }
                     BasicText(
@@ -2336,42 +2407,44 @@ private fun AdminDesktopInventorySection(
                             style = typo.bodyStrong.copy(fontSize = 12.5.sp, color = Color.White),
                         )
                     }
+                    val invPalette = LocalRfPalette.current
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFFDE6F2))
-                            .border(1.dp, Color(0xFFF2C2DF), RoundedCornerShape(10.dp))
+                            .background(if (invPalette.isDark) Color(0xFF3B1A33) else Color(0xFFFDE6F2))
+                            .border(1.dp, if (invPalette.isDark) Color(0xFF6B2D5C) else Color(0xFFF2C2DF), RoundedCornerShape(10.dp))
                             .clickable { onOpenTrends() }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                     ) {
                         BasicText(
                             text = "Tendencias y portada",
-                            style = typo.bodyStrong.copy(fontSize = 12.5.sp, color = Color(0xFFC2338F)),
+                            style = typo.bodyStrong.copy(fontSize = 12.5.sp, color = if (invPalette.isDark) Color(0xFFF48AD0) else Color(0xFFC2338F)),
                         )
                     }
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFECEBFF))
-                            .border(1.dp, Color(0xFFD5D4F7), RoundedCornerShape(10.dp))
+                            .background(if (invPalette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF))
+                            .border(1.dp, if (invPalette.isDark) Color(0xFF474285) else Color(0xFFD5D4F7), RoundedCornerShape(10.dp))
                             .clickable { onOpenCategories() }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                     ) {
                         BasicText(
                             text = "Gestionar categorías",
-                            style = typo.bodyStrong.copy(fontSize = 12.5.sp, color = Color(0xFF4B47D6)),
+                            style = typo.bodyStrong.copy(fontSize = 12.5.sp, color = if (invPalette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)),
                         )
                     }
                 }
                 filtered.forEach { article ->
+                    val rowPalette = LocalRfPalette.current
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFF9F9FD))
-                            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(14.dp))
+                            .background(rowPalette.chipBg)
+                            .border(1.dp, rowPalette.line, RoundedCornerShape(14.dp))
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                     ) {
                         RfUploadedOrCatalogPhoto(
@@ -2386,7 +2459,7 @@ private fun AdminDesktopInventorySection(
                             BasicText(text = article.name, style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                             BasicText(
                                 text = "${article.category} · ${formatDesktopDop(article.pricePerDayDop)}/día · Disp.: ${article.availableOct23}/${article.totalStock}",
-                                style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                                style = typo.secondary.copy(fontSize = 12.5.sp, color = rowPalette.muted),
                             )
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -2402,14 +2475,18 @@ private fun AdminDesktopInventorySection(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFFFCE3E8))
+                                    .background(if (rowPalette.isDark) Color(0xFF3D1924) else Color(0xFFFCE3E8))
                                     .clickable {
                                         deleteLocalError = null
                                         pendingDeleteArticle = article
                                     },
                                 contentAlignment = Alignment.Center,
                             ) {
-                                RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 16.dp)
+                                RfIcon(
+                                    kind = RfIconKind.TRASH,
+                                    tint = if (rowPalette.isDark) Color(0xFFFF7A96) else Color(0xFFB42345),
+                                    size = 16.dp,
+                                )
                             }
                         }
                     }
@@ -2479,15 +2556,15 @@ private fun AdminDesktopQuotesSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFF9F9FD))
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(14.dp))
+                        .background(LocalRfPalette.current.chipBg)
+                        .border(1.dp, LocalRfPalette.current.line, RoundedCornerShape(14.dp))
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         BasicText(text = "${quote.code} · ${quote.eventTitle}", style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                         BasicText(
                             text = "${quote.clientName} · ${formatReadableSpanishDateText(quote.dateLabel)} · Total ${formatDesktopDop(quote.totalDop)}",
-                            style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            style = typo.secondary.copy(fontSize = 12.5.sp, color = LocalRfPalette.current.muted),
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -2597,12 +2674,15 @@ private fun AdminDesktopPaymentsSection(
         modifier = modifier,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+            val payPalette = LocalRfPalette.current
+            val payCardBg = if (payPalette.isDark) Color(0xFF2B2852) else Color(0xFFF3F2FE)
+            val payAccentInk = if (payPalette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFF3F2FE))
+                    .background(payCardBg)
                     .padding(12.dp),
             ) {
                 if (eventsList.isNotEmpty()) {
@@ -2611,14 +2691,14 @@ private fun AdminDesktopPaymentsSection(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     ) {
-                        BasicText("Evento:", style = typo.caption.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)))
+                        BasicText("Evento:", style = typo.caption.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = payAccentInk))
                         eventsList.take(8).forEach { ev ->
                             val isSelectedEvent = ev.id == selectedQuickEventId
                             Box(
                                 modifier = Modifier
                                     .clip(CircleShape)
-                                    .background(if (isSelectedEvent) Color(0xFF4B47D6) else Color.White)
-                                    .border(1.dp, if (isSelectedEvent) Color(0xFF4B47D6) else Color(0xFFDCDDEA), CircleShape)
+                                    .background(if (isSelectedEvent) Color(0xFF4B47D6) else payPalette.surface)
+                                    .border(1.dp, if (isSelectedEvent) Color(0xFF4B47D6) else payPalette.fieldBorder, CircleShape)
                                     .clickable { selectedQuickEventId = ev.id }
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                             ) {
@@ -2627,7 +2707,7 @@ private fun AdminDesktopPaymentsSection(
                                     style = typo.caption.copy(
                                         fontSize = 12.sp,
                                         fontWeight = if (isSelectedEvent) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelectedEvent) Color.White else Color(0xFF2E324A),
+                                        color = if (isSelectedEvent) Color.White else payPalette.ink,
                                     ),
                                 )
                             }
@@ -2699,15 +2779,15 @@ private fun AdminDesktopPaymentsSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFF9F9FD))
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(14.dp))
+                        .background(payPalette.chipBg)
+                        .border(1.dp, payPalette.line, RoundedCornerShape(14.dp))
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText(text = "${payment.receiptNumber} · ${payment.eventTitle}", style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                         BasicText(
                             text = "${payment.clientName} · ${payment.methodLabel} · ${formatReadableSpanishDateText(payment.dateLabel)} · Ref ${payment.referenceCode}",
-                            style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            style = typo.secondary.copy(fontSize = 12.5.sp, color = payPalette.muted),
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -2773,15 +2853,15 @@ private fun AdminDesktopClientsSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFFF9F9FD))
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(14.dp))
+                        .background(LocalRfPalette.current.chipBg)
+                        .border(1.dp, LocalRfPalette.current.line, RoundedCornerShape(14.dp))
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         BasicText(text = client.fullName, style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                         BasicText(
                             text = "${client.email} · ${InputValidator.formatPhoneDisplay(client.phone)} · ${client.zone} · ${client.eventsCount} eventos",
-                            style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            style = typo.secondary.copy(fontSize = 12.5.sp, color = LocalRfPalette.current.muted),
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -2824,6 +2904,9 @@ private fun AdminDesktopChatsSection(
         modifier = modifier,
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxSize()) {
+            val chatsPalette = LocalRfPalette.current
+            val selectedThreadBg = if (chatsPalette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
+            val threadTagInk = if (chatsPalette.isDark) Color(0xFFA7A3FF) else Color(0xFF4B47D6)
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.width(300.dp).fillMaxHeight().verticalScroll(rememberScrollState()),
@@ -2834,16 +2917,16 @@ private fun AdminDesktopChatsSection(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) Color(0xFFECEBFF) else Color(0xFFF9F9FD))
-                            .border(1.dp, if (isSelected) Color(0xFF7C5CF0) else Color(0xFFECECF5), RoundedCornerShape(12.dp))
+                            .background(if (isSelected) selectedThreadBg else chatsPalette.chipBg)
+                            .border(1.dp, if (isSelected) Color(0xFF7C5CF0) else chatsPalette.line, RoundedCornerShape(12.dp))
                             .clickable { onSelectThread(thread.id) }
                             .padding(12.dp),
                     ) {
                         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                             BasicText(text = thread.contactName, style = typo.bodyStrong.copy(fontSize = 14.sp))
-                            BasicText(text = thread.timestampLabel, style = typo.caption.copy(fontSize = 11.5.sp, color = Color(0xFF5F6377)))
+                            BasicText(text = thread.timestampLabel, style = typo.caption.copy(fontSize = 11.5.sp, color = chatsPalette.muted))
                         }
-                        BasicText(text = thread.eventTitle, style = typo.caption.copy(fontSize = 12.sp, color = Color(0xFF4B47D6)))
+                        BasicText(text = thread.eventTitle, style = typo.caption.copy(fontSize = 12.sp, color = threadTagInk))
                         BasicText(text = thread.lastMessage, maxLines = 1, overflow = TextOverflow.Ellipsis, style = typo.secondary.copy(fontSize = 12.5.sp))
                     }
                 }
@@ -2855,8 +2938,8 @@ private fun AdminDesktopChatsSection(
                     .weight(1f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFF9F9FD))
-                    .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(14.dp))
+                    .background(chatsPalette.chipBg)
+                    .border(1.dp, chatsPalette.line, RoundedCornerShape(14.dp))
                     .padding(16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -2868,7 +2951,7 @@ private fun AdminDesktopChatsSection(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isStaffBubble) Color(0xFFECEBFF) else Color.White)
+                                .background(if (isStaffBubble) selectedThreadBg else chatsPalette.surface)
                                 .padding(10.dp),
                         ) {
                             Column {
@@ -2953,15 +3036,15 @@ private fun AdminDesktopReportsSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFF9F9FD))
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(12.dp))
+                        .background(LocalRfPalette.current.chipBg)
+                        .border(1.dp, LocalRfPalette.current.line, RoundedCornerShape(12.dp))
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                 ) {
                     Column {
                         BasicText(text = "${member.name} · ${member.roleLabel}", style = typo.bodyStrong.copy(fontSize = 14.sp))
                         BasicText(
                             text = "Acceso financiero: ${if (memberHasPayments) "Habilitado" else "Restringido"} · ${member.activeEventsCount} eventos",
-                            style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                            style = typo.secondary.copy(fontSize = 12.5.sp, color = LocalRfPalette.current.muted),
                         )
                     }
                     if (canViewPayments) {
@@ -3236,8 +3319,8 @@ private fun AdminDesktopModalHost(
                     )
                     .width(560.dp)
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color.White)
-                    .border(1.dp, Color(0xFFE3E4EF), RoundedCornerShape(22.dp))
+                    .background(LocalRfPalette.current.surface)
+                    .border(1.dp, LocalRfPalette.current.fieldBorder, RoundedCornerShape(22.dp))
                     .clickable(
                         interactionSource = cardInteraction,
                         indication = null,
@@ -3309,12 +3392,14 @@ private fun AdminDesktopNotificationsModal(
     onDismiss: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
+    val unreadNotifBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFECEBFF)
     Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         BasicText(text = "Notificaciones recientes", style = typo.cardTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold))
         DesktopSmallPillButton(label = "Cerrar", onClick = onDismiss)
     }
     if (notifications.isEmpty()) {
-        BasicText(text = "No tienes alertas pendientes en este momento.", style = typo.body.copy(fontSize = 14.sp, color = Color(0xFF5F6377)))
+        BasicText(text = "No tienes alertas pendientes en este momento.", style = typo.body.copy(fontSize = 14.sp, color = palette.muted))
     } else {
         notifications.take(5).forEach { notif ->
             Row(
@@ -3323,7 +3408,7 @@ private fun AdminDesktopNotificationsModal(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (notif.isRead) Color(0xFFF9F9FD) else Color(0xFFECEBFF))
+                    .background(if (notif.isRead) palette.chipBg else unreadNotifBg)
                     .padding(12.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -3336,7 +3421,7 @@ private fun AdminDesktopNotificationsModal(
             }
         }
     }
-    DesktopGradientPillButton(label = "Abrir centro A29", onClick = onOpenFullCenter)
+    DesktopGradientPillButton(label = "Centro de notificaciones", onClick = onOpenFullCenter)
 }
 
 @Composable
@@ -3346,6 +3431,8 @@ private fun AdminDesktopRosaAiModal(
     onDismiss: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
+    val isSubmitting = viewModel?.isSubmitting?.collectAsState()?.value ?: false
     val rosaReply = viewModel?.rosaProposalMessage?.collectAsState()?.value
     var promptText by remember { mutableStateOf("") }
     var promptTouched by remember { mutableStateOf(false) }
@@ -3387,7 +3474,7 @@ private fun AdminDesktopRosaAiModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFF3F2FE))
+                .background(if (palette.isDark) Color(0xFF2B2852) else Color(0xFFF3F2FE))
                 .padding(12.dp),
         ) {
             BasicText(text = rosaReply, style = typo.body.copy(fontSize = 13.5.sp))
@@ -3395,7 +3482,8 @@ private fun AdminDesktopRosaAiModal(
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         DesktopGradientPillButton(
-            label = "Generar con Rosa",
+            label = if (isSubmitting) "Generando..." else "Generar con Rosa",
+            enabled = !isSubmitting,
             onClick = {
                 generateAttempted = true
                 val validation = InputValidator.validateEntityName(
@@ -3410,7 +3498,7 @@ private fun AdminDesktopRosaAiModal(
                 }
             },
         )
-        DesktopSmallPillButton(label = "Abrir pantalla A08", onClick = onOpenFullScreen)
+        DesktopSmallPillButton(label = "Asistente completo", onClick = onOpenFullScreen)
     }
 }
 
@@ -3593,7 +3681,7 @@ private fun AdminDesktopNewEventModal(
                 }
             },
         )
-        DesktopSmallPillButton(label = "Asistente completo A04", onClick = onOpenMobileWizard)
+        DesktopSmallPillButton(label = "Asistente completo", onClick = onOpenMobileWizard)
     }
 }
 
@@ -3605,6 +3693,7 @@ private fun AdminDesktopEventDetailModal(
     onDismiss: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         BasicText(text = selectedEvent?.title ?: "Detalle de evento", style = typo.cardTitle.copy(fontSize = 18.sp, fontWeight = FontWeight.ExtraBold))
         DesktopSmallPillButton(label = "Cerrar", onClick = onDismiss)
@@ -3616,7 +3705,7 @@ private fun AdminDesktopEventDetailModal(
         )
         BasicText(
             text = "Lugar: ${selectedEvent.venue} · ${selectedEvent.guests} invitados · Total: ${formatDesktopDop(selectedEvent.totalDop)} · Pagado: ${formatDesktopDop(selectedEvent.paidDepositDop)}",
-            style = typo.secondary.copy(fontSize = 13.5.sp, color = Color(0xFF5F6377)),
+            style = typo.secondary.copy(fontSize = 13.5.sp, color = palette.muted),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             DesktopGradientPillButton(
@@ -3632,7 +3721,7 @@ private fun AdminDesktopEventDetailModal(
                     onDismiss()
                 },
             )
-            DesktopSmallPillButton(label = "Abrir ficha A13", onClick = onOpenFullDetail)
+            DesktopSmallPillButton(label = "Abrir ficha completa", onClick = onOpenFullDetail)
         }
     }
 }
@@ -3646,14 +3735,15 @@ private fun DesktopSectionCardContainer(
     content: @Composable () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     Column(
         verticalArrangement = Arrangement.spacedBy(14.dp),
         modifier = modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.White)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(20.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(20.dp))
             .padding(20.dp),
     ) {
         Row(
@@ -3682,13 +3772,14 @@ private fun DesktopInlineInput(
     onFocusChanged: ((Boolean) -> Unit)? = null,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = modifier
             .height(42.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(Color.White)
-            .border(1.dp, if (isError) Color(0xFFD63031) else Color(0xFFE3E4EF), RoundedCornerShape(10.dp))
+            .background(palette.surface)
+            .border(1.dp, if (isError) Color(0xFFD63031) else palette.fieldBorder, RoundedCornerShape(10.dp))
             .padding(horizontal = 12.dp),
     ) {
         if (cursorMask != null) {
@@ -3699,8 +3790,8 @@ private fun DesktopInlineInput(
                 maskTransform = cursorMask,
                 singleLine = true,
                 keyboardOptions = keyboardOptions,
-                textStyle = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF151729)),
-                cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                textStyle = typo.body.copy(fontSize = 13.5.sp, color = palette.ink),
+                cursorBrush = SolidColor(palette.primaryAccent),
                 modifier = Modifier
                     .fillMaxWidth()
                     .rfTrackValidationFocus(focusKey = maskKey) { isFocused ->
@@ -3708,7 +3799,7 @@ private fun DesktopInlineInput(
                     },
                 decorationBox = { inner ->
                     if (value.isEmpty()) {
-                        BasicText(text = placeholder, style = typo.secondary.copy(fontSize = 13.5.sp, color = Color(0xFF8C90A6)))
+                        BasicText(text = placeholder, style = typo.secondary.copy(fontSize = 13.5.sp, color = palette.muted))
                     }
                     inner()
                 },
@@ -3720,8 +3811,8 @@ private fun DesktopInlineInput(
                 onValueChange = onValueChange,
                 singleLine = true,
                 keyboardOptions = keyboardOptions,
-                textStyle = typo.body.copy(fontSize = 13.5.sp, color = Color(0xFF151729)),
-                cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                textStyle = typo.body.copy(fontSize = 13.5.sp, color = palette.ink),
+                cursorBrush = SolidColor(palette.primaryAccent),
                 modifier = Modifier
                     .fillMaxWidth()
                     .rfTrackValidationFocus(focusKey = plainKey) { isFocused ->
@@ -3729,7 +3820,7 @@ private fun DesktopInlineInput(
                     },
                 decorationBox = { inner ->
                     if (value.isEmpty()) {
-                        BasicText(text = placeholder, style = typo.secondary.copy(fontSize = 13.5.sp, color = Color(0xFF8C90A6)))
+                        BasicText(text = placeholder, style = typo.secondary.copy(fontSize = 13.5.sp, color = palette.muted))
                     }
                     inner()
                 },
@@ -3741,6 +3832,7 @@ private fun DesktopInlineInput(
 @Composable
 private fun DesktopGradientPillButton(
     label: String,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -3750,10 +3842,17 @@ private fun DesktopGradientPillButton(
             .height(34.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
     ) {
-        BasicText(text = label, style = typo.buttonLabel.copy(color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.Bold))
+        BasicText(
+            text = label,
+            style = typo.buttonLabel.copy(
+                color = if (enabled) Color.White else Color.White.copy(alpha = 0.65f),
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+        )
     }
 }
 
@@ -3763,16 +3862,17 @@ private fun DesktopSmallPillButton(
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .height(34.dp)
             .clip(RoundedCornerShape(999.dp))
-            .background(Color(0xFFF2F2F8))
+            .background(palette.chipBg)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
     ) {
-        BasicText(text = label, style = typo.buttonLabel.copy(color = Color(0xFF3A3D52), fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold))
+        BasicText(text = label, style = typo.buttonLabel.copy(color = palette.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold))
     }
 }
 
@@ -3800,11 +3900,7 @@ private fun formatCompactClientName(fullName: String): String {
     if (parts.size < 2) {
         return fullName.ifBlank { "Cliente" }
     }
-    return if (parts.first() == "Camila") {
-        "Camila ${parts.last().first()}."
-    } else {
-        "${parts.first()} ${parts.last()}"
-    }
+    return "${parts.first()} ${parts.last()}"
 }
 
 private fun photoKeyForDesktopEvent(photo: PhotoAsset): RfPhotoKey = when (photo) {

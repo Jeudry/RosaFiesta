@@ -82,6 +82,9 @@ func (s *Service) ReserveStockForEvent(
 	if trimmedEvent == "" {
 		return nil
 	}
+	s.reserveMu.Lock()
+	defer s.reserveMu.Unlock()
+
 	check, err := s.CheckAvailabilityForDate(ctx, rawDate, trimmedEvent, requirements)
 	if err != nil {
 		return err
@@ -253,9 +256,6 @@ func matchesArticleRef(article domain.Article, ref, name string) bool {
 		if nameLower == trimmedName {
 			return true
 		}
-		if strings.Contains(nameLower, trimmedName) {
-			return true
-		}
 	}
 	return false
 }
@@ -301,10 +301,14 @@ func computePeakConcurrentDemand(reservations []domain.StockReservation, article
 	}
 	peak := 0
 	for _, anchor := range active {
+		day := anchor.PickupDateISO
 		overlapQty := 0
 		for _, other := range active {
-			overlaps := anchor.PickupDateISO <= other.ReturnDateISO && other.PickupDateISO <= anchor.ReturnDateISO
-			if overlaps {
+			inWindow := other.PickupDateISO <= day
+			if inWindow {
+				inWindow = day <= other.ReturnDateISO
+			}
+			if inWindow {
 				overlapQty += other.Quantity
 			}
 		}

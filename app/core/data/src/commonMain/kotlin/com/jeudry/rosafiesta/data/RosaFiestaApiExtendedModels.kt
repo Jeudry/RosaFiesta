@@ -76,6 +76,7 @@ public data class OAuthExchangeInputDto(
     public val code: String,
     public val codeVerifier: String,
     public val redirectUri: String,
+    public val state: String = "",
 )
 
 @Serializable

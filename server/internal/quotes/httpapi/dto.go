@@ -212,6 +212,8 @@ var quoteErrorSpecs = []quoteErrorSpec{
 	{domain.ErrQuoteForbidden, http.StatusForbidden, "FORBIDDEN_QUOTE_ACCESS", "ClientQuoteIsolation"},
 	{domain.ErrQuoteNotFound, http.StatusNotFound, "QUOTE_NOT_FOUND", "QuoteMustExist"},
 	{domain.ErrQuoteAlreadyDecided, http.StatusConflict, "QUOTE_ALREADY_DECIDED", "QuoteTransitionGuard"},
+	{domain.ErrQuoteNotSent, http.StatusConflict, "QUOTE_NOT_SENT", "QuoteSentRequiredBeforeSign"},
+	{domain.ErrInvalidQuoteItem, http.StatusBadRequest, "INVALID_QUOTE_ITEM", "QuoteCatalogPriceValidation"},
 	{domain.ErrInsufficientStock, http.StatusConflict, "STOCK_INSUFFICIENT_FOR_DATE", "CheckDateAvailability"},
 	{domain.ErrAIProviderNotConfigured, http.StatusServiceUnavailable, "AI_PROVIDER_NOT_CONFIGURED", "RequireConfiguredAIProvider"},
 	{domain.ErrSTTProviderNotConfigured, http.StatusServiceUnavailable, "STT_PROVIDER_NOT_CONFIGURED", "RequireConfiguredSTTProvider"},

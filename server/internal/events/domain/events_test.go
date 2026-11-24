@@ -3,6 +3,8 @@ package domain_test
 import (
 	"testing"
 
+	"github.com/google/uuid"
+
 	"github.com/Jeudry/rosafiesta/server/internal/events/domain"
 )
 
@@ -66,5 +68,37 @@ func TestCanonicalEvents_MatchSampleData(t *testing.T) {
 	quince := events[1]
 	if quince.Title != "Quinceañera Valentina Crystal" || quince.TotalRD != 6200 || quince.PaidDepositRD != 1860 || quince.BalanceRD() != 4340 {
 		t.Fatalf("datos incoherentes en Quinceañera Valentina: %+v (balance %d)", quince, quince.BalanceRD())
+	}
+}
+
+func TestBelongsToClient_BlocksNameAndEmailSpoofingIDOR(t *testing.T) {
+	t.Parallel()
+
+	victimID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	attackerID := uuid.MustParse("99999999-9999-9999-9999-999999999999")
+	evt := domain.Event{
+		ID:          "evt-victim",
+		ClientID:    victimID,
+		ClientEmail: "victim@rosafiesta.do",
+		ClientName:  "Camila Rodríguez",
+	}
+
+	if !evt.BelongsToClient(victimID, "victim@rosafiesta.do", "Camila Rodríguez") {
+		t.Fatal("expected owner userID to match owned event")
+	}
+	if evt.BelongsToClient(attackerID, "victim@rosafiesta.do", "Camila Rodríguez") {
+		t.Fatal("attacker with victim email and name must not match when ClientID differs")
+	}
+	if evt.BelongsToClient(uuid.Nil, "victim@rosafiesta.do", "Camila Rodríguez") {
+		t.Fatal("nil userID must not match event owned by ClientID")
+	}
+
+	unlinked := domain.Event{
+		ID:          "evt-email-only",
+		ClientEmail: "owner@rosafiesta.do",
+		ClientName:  "Nombre Comun",
+	}
+	if unlinked.BelongsToClient(attackerID, "attacker@rosafiesta.do", "Nombre Comun") {
+		t.Fatal("mutable fullName alone must never grant ownership")
 	}
 }

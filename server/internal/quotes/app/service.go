@@ -348,6 +348,12 @@ func (s *Service) CreateQuoteForCaller(
 	cmd CreateQuoteCommand,
 	caller platformhttp.Principal,
 ) (domain.Quote, error) {
+	lines, discountRD, err := s.normalizeQuoteInputsForCaller(ctx, cmd.Lines, cmd.DiscountRD, caller)
+	if err != nil {
+		return domain.Quote{}, err
+	}
+	cmd.Lines = lines
+	cmd.DiscountRD = discountRD
 	depositPct := s.resolveDepositPercent(ctx)
 	total, deposit, balance, err := domain.CalculateQuoteTotalsWithDeposit(cmd.Lines, cmd.DeliveryFeeRD, cmd.DiscountRD, depositPct)
 	if err != nil {
@@ -367,6 +373,49 @@ func (s *Service) CreateQuoteForCaller(
 		}
 	}
 	return quote, nil
+}
+
+func (s *Service) normalizeQuoteInputsForCaller(
+	ctx context.Context,
+	rawLines []domain.QuoteLine,
+	rawDiscountRD int,
+	caller platformhttp.Principal,
+) ([]domain.QuoteLine, int, error) {
+	if !caller.IsClient() {
+		return rawLines, rawDiscountRD, nil
+	}
+	skus := s.loadLiveCatalogSKUs(ctx)
+	byRef := make(map[string]domain.CatalogSKU, len(skus)*2)
+	for _, sku := range skus {
+		if codeKey := strings.ToLower(strings.TrimSpace(sku.Code)); codeKey != "" {
+			byRef[codeKey] = sku
+		}
+		if idKey := strings.ToLower(strings.TrimSpace(sku.ID)); idKey != "" {
+			byRef[idKey] = sku
+		}
+	}
+	normalized := make([]domain.QuoteLine, 0, len(rawLines))
+	for _, line := range rawLines {
+		if line.Quantity <= 0 {
+			return nil, 0, domain.ErrInvalidQuoteItem
+		}
+		ref := strings.ToLower(strings.TrimSpace(line.ArticleCode))
+		sku, matched := byRef[ref]
+		if !matched {
+			return nil, 0, domain.ErrInvalidQuoteItem
+		}
+		name := strings.TrimSpace(sku.Name)
+		if name == "" {
+			name = strings.TrimSpace(line.Name)
+		}
+		normalized = append(normalized, domain.QuoteLine{
+			ArticleCode: line.ArticleCode,
+			Name:        name,
+			Quantity:    line.Quantity,
+			UnitPriceRD: sku.UnitPriceRD,
+		})
+	}
+	return normalized, 0, nil
 }
 
 func (s *Service) resolveDepositPercent(ctx context.Context) int {
@@ -502,6 +551,9 @@ func (s *Service) SignContractForCaller(
 	quote, err := s.GetQuoteForCaller(ctx, id, caller, true)
 	if err != nil {
 		return domain.Quote{}, err
+	}
+	if quote.Status != domain.QuoteStatusSent {
+		return domain.Quote{}, domain.ErrQuoteNotSent
 	}
 	if err := s.checkQuoteStockAvailability(ctx, quote.EventDateISO, quote.EventDateLabel, quote.EventID, quote.Lines); err != nil {
 		return domain.Quote{}, err
@@ -658,13 +710,16 @@ func (s *Service) ChatWithRosa(
 		return domain.RosaChatResponse{}, domain.ErrAIProviderNotConfigured
 	}
 	if limiter != nil {
-		allowed := limiter.allow(callerRateLimitKey(caller), s.clock.Now(), cfg.RateLimitMax, cfg.RateLimitWindow)
+		allowed := limiter.allow(callerRateLimitKey(ctx, caller), s.clock.Now(), cfg.RateLimitMax, cfg.RateLimitWindow)
 		if !allowed {
 			return domain.RosaChatResponse{}, domain.ErrAIRateLimited
 		}
 	}
 	skus := s.loadLiveCatalogSKUs(ctx)
-	snap := s.buildAdminSnapshot(ctx)
+	var snap domain.RosaAdminSnapshot
+	if caller.IsAdminOrStaff() {
+		snap = s.buildAdminSnapshot(ctx)
+	}
 	systemPrompt := buildRosaSystemPrompt(caller.IsAdminOrStaff(), req, skus, snap)
 	reply, err := callAIChatProvider(ctx, client, cfg, systemPrompt, message)
 	if err != nil {
@@ -696,7 +751,7 @@ func (s *Service) GenerateRosaSketch(
 		return domain.RosaSketchResponse{}, domain.ErrAIProviderNotConfigured
 	}
 	if limiter != nil {
-		allowed := limiter.allow(callerRateLimitKey(caller), s.clock.Now(), cfg.RateLimitMax, cfg.RateLimitWindow)
+		allowed := limiter.allow(callerRateLimitKey(ctx, caller), s.clock.Now(), cfg.RateLimitMax, cfg.RateLimitWindow)
 		if !allowed {
 			return domain.RosaSketchResponse{}, domain.ErrAIRateLimited
 		}
@@ -722,7 +777,7 @@ func (s *Service) TranscribeAudioForCaller(
 	s.mu.RUnlock()
 
 	if limiter != nil {
-		allowed := limiter.allow(callerRateLimitKey(caller), s.clock.Now(), cfg.RateLimitMax, cfg.RateLimitWindow)
+		allowed := limiter.allow(callerRateLimitKey(ctx, caller), s.clock.Now(), cfg.RateLimitMax, cfg.RateLimitWindow)
 		if !allowed {
 			return domain.TranscriptionResult{}, domain.ErrAIRateLimited
 		}

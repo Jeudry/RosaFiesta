@@ -44,6 +44,13 @@ func (m Module) optionalAuthMiddlewares(api huma.API) huma.Middlewares {
 	return huma.Middlewares{platformhttp.OptionalAuth(api, m.Auth)}
 }
 
+func (m Module) adminPermissionMiddlewares(api huma.API, permission string) huma.Middlewares {
+	if m.Auth == nil {
+		return nil
+	}
+	return huma.Middlewares{platformhttp.RequirePermission(api, m.Auth, permission)}
+}
+
 func (m Module) registerReadAndCreateRoutes(api huma.API) {
 	mw := m.authMiddlewares(api)
 
@@ -80,6 +87,7 @@ func (m Module) registerReadAndCreateRoutes(api huma.API) {
 
 func (m Module) registerDecisionRoutes(api huma.API) {
 	mw := m.authMiddlewares(api)
+	sendMW := m.adminPermissionMiddlewares(api, "eventos")
 
 	huma.Register(api, huma.Operation{
 		OperationID: "quotes-send",
@@ -88,7 +96,7 @@ func (m Module) registerDecisionRoutes(api huma.API) {
 		Summary:     "Admin enriches, approves and sends a quote to the client",
 		Tags:        []string{"Quotes"},
 		Security:    platformhttp.Secured(),
-		Middlewares: mw,
+		Middlewares: sendMW,
 	}, m.handleSendQuote)
 
 	huma.Register(api, huma.Operation{

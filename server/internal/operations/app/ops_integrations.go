@@ -463,10 +463,14 @@ func (s *Service) VerifyWhatsAppWebhook(mode, token, challenge string) (string, 
 func (s *Service) VerifyWhatsAppSignature(signatureHeader string, payload []byte) error {
 	s.mu.RLock()
 	secret := s.whatsAppAppSecret
+	requireSig := s.requireWhatsAppSig
 	s.mu.RUnlock()
 
 	cleanSig := strings.TrimSpace(signatureHeader)
 	if secret == "" {
+		if requireSig {
+			return domain.ErrWebhookSignatureInvalid
+		}
 		if cleanSig != "" {
 			return domain.ErrWebhookSignatureInvalid
 		}

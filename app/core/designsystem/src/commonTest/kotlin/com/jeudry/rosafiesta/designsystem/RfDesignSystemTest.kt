@@ -19,14 +19,19 @@ class RfDesignSystemTest {
         val personal = paletteForVariant(RfThemeVariant.PERSONAL)
         val admin = paletteForVariant(RfThemeVariant.ADMIN)
         val dark = paletteForVariant(RfThemeVariant.PERSONAL_DARK)
+        val adminDark = paletteForVariant(RfThemeVariant.ADMIN_DARK)
 
         assertFalse(personal.isAdmin)
         assertTrue(admin.isAdmin)
         assertTrue(dark.isDark)
+        assertTrue(adminDark.isAdmin)
+        assertTrue(adminDark.isDark)
 
         assertEquals(RfColors.PersonalInk, personal.ink)
         assertEquals(RfColors.AdminInk, admin.ink)
         assertEquals(RfColors.PersonalDarkBg, dark.bg)
+        assertEquals(RfColors.AdminDarkBg, adminDark.bg)
+        assertEquals(RfColors.AdminDarkInk, adminDark.ink)
         assertEquals(RfColors.ToastPersonal, personal.toastBg)
         assertEquals(RfColors.ToastAdmin, admin.toastBg)
     }

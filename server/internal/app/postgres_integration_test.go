@@ -235,6 +235,15 @@ func TestPostgresIntegration_QuotesAndPaymentsPersistence(t *testing.T) {
 
 	handler, _ := httpapi.New(slog.New(slog.DiscardHandler), app.Modules(app.Dependencies{Pool: pool})...)
 
+	sendReq := httptest.NewRequestWithContext(ctx, http.MethodPost, "/v1/quotes/quo-cumple-mateo/send", strings.NewReader(`{}`))
+	sendReq.Header.Set("Content-Type", "application/json")
+	sendReq.Header.Set("Authorization", "Bearer rf-token-maria")
+	sendRec := httptest.NewRecorder()
+	handler.ServeHTTP(sendRec, sendReq)
+	if sendRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on quote send, got %d: %s", sendRec.Code, sendRec.Body.String())
+	}
+
 	signReq := httptest.NewRequestWithContext(
 		ctx,
 		http.MethodPost,

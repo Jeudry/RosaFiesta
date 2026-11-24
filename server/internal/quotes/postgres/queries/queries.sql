@@ -2,13 +2,13 @@
 INSERT INTO quotes (
     id, code, event_id, client_id, client_email, client_name, event_title,
     event_date_label, event_date_iso, package_id, venue, guests, lines_json, delivery_fee_dop, discount_dop,
-    total_dop, deposit_dop, balance_dop, status, version, notes,
+    total_dop, deposit_percent, deposit_dop, balance_dop, status, version, notes,
     signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason, created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7,
     $8, $9, $10, $11, $12, $13, $14, $15,
-    $16, $17, $18, $19, $20, $21,
-    $22, $23, $24, $25, $26, $27
+    $16, $17, $18, $19, $20, $21, $22,
+    $23, $24, $25, $26, $27, $28
 )
 ON CONFLICT (id) DO UPDATE SET
     code = EXCLUDED.code,
@@ -26,6 +26,7 @@ ON CONFLICT (id) DO UPDATE SET
     delivery_fee_dop = EXCLUDED.delivery_fee_dop,
     discount_dop = EXCLUDED.discount_dop,
     total_dop = EXCLUDED.total_dop,
+    deposit_percent = EXCLUDED.deposit_percent,
     deposit_dop = EXCLUDED.deposit_dop,
     balance_dop = EXCLUDED.balance_dop,
     status = EXCLUDED.status,
@@ -40,7 +41,7 @@ ON CONFLICT (id) DO UPDATE SET
 -- name: ListQuotes :many
 SELECT id, code, event_id, client_id, client_email, client_name, event_title,
        event_date_label, event_date_iso, package_id, venue, guests, lines_json, delivery_fee_dop, discount_dop,
-       total_dop, deposit_dop, balance_dop, status, version, notes,
+       total_dop, deposit_percent, deposit_dop, balance_dop, status, version, notes,
        signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason, created_at
 FROM quotes
 ORDER BY created_at, id;
@@ -48,7 +49,7 @@ ORDER BY created_at, id;
 -- name: GetQuoteByID :one
 SELECT id, code, event_id, client_id, client_email, client_name, event_title,
        event_date_label, event_date_iso, package_id, venue, guests, lines_json, delivery_fee_dop, discount_dop,
-       total_dop, deposit_dop, balance_dop, status, version, notes,
+       total_dop, deposit_percent, deposit_dop, balance_dop, status, version, notes,
        signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason, created_at
 FROM quotes
 WHERE id = $1;

@@ -70,7 +70,7 @@
 			dependencies = (
 			);
 			name = adminIosApp;
-			productName = iosApp;
+			productName = adminIosApp;
 			productReference = A10000000000000000000012 /* RosaFiestaAdmin.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -222,6 +222,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jeudry.rosafiesta.admin;
 				PRODUCT_NAME = RosaFiestaAdmin;
+				ROSAFIESTA_API_URL = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -260,6 +261,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jeudry.rosafiesta.admin;
 				PRODUCT_NAME = RosaFiestaAdmin;
+				ROSAFIESTA_API_URL = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};

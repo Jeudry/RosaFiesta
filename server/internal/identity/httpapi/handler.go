@@ -299,6 +299,8 @@ func (m Module) registerAdminStaffRoutes(api huma.API) {
 		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
 	}, m.handleListStaff)
 
+	adminRoleMW := huma.Middlewares{platformhttp.RequireRole(api, m.Service, "admin")}
+
 	huma.Register(api, huma.Operation{
 		OperationID: "admin-invite-staff",
 		Method:      http.MethodPost,
@@ -306,7 +308,7 @@ func (m Module) registerAdminStaffRoutes(api huma.API) {
 		Summary:     "Invite a new staff member and configure permissions",
 		Tags:        []string{"Identity"},
 		Security:    platformhttp.Secured(),
-		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
+		Middlewares: adminRoleMW,
 	}, m.handleInviteStaff)
 
 	huma.Register(api, huma.Operation{
@@ -316,7 +318,7 @@ func (m Module) registerAdminStaffRoutes(api huma.API) {
 		Summary:     "Update staff member role and operational permissions",
 		Tags:        []string{"Identity"},
 		Security:    platformhttp.Secured(),
-		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
+		Middlewares: adminRoleMW,
 	}, m.handleUpdateStaff)
 
 	huma.Register(api, huma.Operation{
@@ -326,7 +328,7 @@ func (m Module) registerAdminStaffRoutes(api huma.API) {
 		Summary:     "Deactivate and remove an operational staff member",
 		Tags:        []string{"Identity"},
 		Security:    platformhttp.Secured(),
-		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
+		Middlewares: adminRoleMW,
 	}, m.handleDeleteStaff)
 }
 
@@ -373,6 +375,7 @@ func (m Module) handleOAuthExchange(ctx context.Context, in *OAuthExchangeInput)
 		in.Body.Code,
 		in.Body.CodeVerifier,
 		in.Body.RedirectURI,
+		in.Body.State,
 	)
 	if err != nil {
 		return nil, mapOAuthError(err)

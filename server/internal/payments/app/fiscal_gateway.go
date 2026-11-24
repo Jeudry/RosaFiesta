@@ -32,6 +32,9 @@ func (s *Service) VerifyPaymentForCaller(
 	if !hasFinanceAccess(caller) {
 		return domain.Payment{}, domain.ErrPaymentForbidden
 	}
+	s.verifyMu.Lock()
+	defer s.verifyMu.Unlock()
+
 	targetID := strings.TrimSpace(paymentID)
 	ncfType, err := s.ensurePendingPaymentNCFType(ctx, targetID)
 	if err != nil {
@@ -43,7 +46,8 @@ func (s *Service) VerifyPaymentForCaller(
 	}
 
 	now := s.clock.Now()
-	verified, store, lockErr := s.markPaymentConfirmedLocked(ctx, targetID, ncfType, ncfNumber, notesOrReason, caller, now)
+	itbisRate := s.resolveITBISPercent(ctx)
+	verified, store, lockErr := s.markPaymentConfirmedLocked(ctx, targetID, ncfType, ncfNumber, notesOrReason, itbisRate, caller, now)
 	if lockErr != nil {
 		return domain.Payment{}, lockErr
 	}
@@ -54,7 +58,7 @@ func (s *Service) VerifyPaymentForCaller(
 		return domain.Payment{}, syncErr
 	}
 	s.sendVerificationReceiptIfConfigured(ctx, verified)
-	s.publishPaymentEvent(realtimedomain.EventPaymentVerified, realtimedomain.AudienceAll, verified, "Pago verificado y comprobante NCF emitido")
+	s.publishPaymentEvent(realtimedomain.EventPaymentVerified, resolvePaymentAudience(verified), verified, "Pago verificado y comprobante NCF emitido")
 	return verified, nil
 }
 
@@ -83,7 +87,7 @@ func (s *Service) RejectPaymentForCaller(
 		return domain.Payment{}, persistErr
 	}
 	s.invokeRejectedHook(ctx, rejected, cleanReason)
-	s.publishPaymentEvent(realtimedomain.EventPaymentRejected, realtimedomain.AudienceAll, rejected, cleanReason)
+	s.publishPaymentEvent(realtimedomain.EventPaymentRejected, resolvePaymentAudience(rejected), rejected, cleanReason)
 	return rejected, nil
 }
 
@@ -104,6 +108,9 @@ func (s *Service) CreateCardSession(
 ) (domain.CardSessionResult, error) {
 	if cmd.AmountRD <= 0 {
 		return domain.CardSessionResult{}, domain.ErrInvalidPaymentAmount
+	}
+	if ownerErr := s.verifyClientOwnsEvent(ctx, cmd.EventID, caller); ownerErr != nil {
+		return domain.CardSessionResult{}, ownerErr
 	}
 	ncfType, cleanedRNC, ncfErr := domain.ValidateRNCForNCF(cmd.NCFType, cmd.ClientRNC)
 	if ncfErr != nil {
@@ -224,6 +231,7 @@ func (s *Service) markPaymentConfirmedLocked(
 	ncfType string,
 	ncfNumber string,
 	notesOrReason string,
+	itbisPercent int,
 	caller platformhttp.Principal,
 	now time.Time,
 ) (domain.Payment, Store, error) {
@@ -238,7 +246,7 @@ func (s *Service) markPaymentConfirmedLocked(
 	if !item.IsPendingVerification() {
 		return domain.Payment{}, nil, domain.ErrPaymentNotPending
 	}
-	applyConfirmedDetails(&item, ncfType, ncfNumber, notesOrReason, caller, now)
+	applyConfirmedDetails(&item, ncfType, ncfNumber, notesOrReason, itbisPercent, caller, now)
 	s.payments[paymentID] = item
 	return item, s.store, nil
 }
@@ -248,6 +256,7 @@ func applyConfirmedDetails(
 	ncfType string,
 	ncfNumber string,
 	notesOrReason string,
+	itbisPercent int,
 	caller platformhttp.Principal,
 	now time.Time,
 ) {
@@ -260,7 +269,7 @@ func applyConfirmedDetails(
 	item.NCFNumber = ncfNumber
 	if item.SubtotalDOP == 0 {
 		if item.ITBISDOP == 0 {
-			subtotal, itbis := domain.ComputeDominicanTaxBreakdown(item.AmountRD, item.SecurityDepositDOP)
+			subtotal, itbis := domain.ComputeDominicanTaxBreakdownWithRate(item.AmountRD, item.SecurityDepositDOP, itbisPercent)
 			item.SubtotalDOP = subtotal
 			item.ITBISDOP = itbis
 		}
@@ -333,8 +342,15 @@ func (s *Service) dispatchRegistrationSideEffects(ctx context.Context, payment d
 		return err
 	}
 	s.sendVerificationReceiptIfConfigured(ctx, payment)
-	s.publishPaymentEvent(realtimedomain.EventPaymentVerified, realtimedomain.AudienceAll, payment, "Pago confirmado con NCF emitido")
+	s.publishPaymentEvent(realtimedomain.EventPaymentVerified, resolvePaymentAudience(payment), payment, "Pago confirmado con NCF emitido")
 	return nil
+}
+
+func resolvePaymentAudience(payment domain.Payment) realtimedomain.Audience {
+	if strings.TrimSpace(payment.ClientID) != "" {
+		return realtimedomain.AudienceClient
+	}
+	return realtimedomain.AudienceAdmin
 }
 
 func (s *Service) invokeVerifiedSynchronizer(ctx context.Context, payment domain.Payment) error {
@@ -362,9 +378,10 @@ func (s *Service) sendVerificationReceiptIfConfigured(ctx context.Context, payme
 	if !sender.IsConfigured() {
 		return
 	}
+	itbisPercent := s.resolveITBISPercent(ctx)
 	subject := fmt.Sprintf("Recibo confirmado %s - %s", payment.ReceiptNumber, payment.EventTitle)
 	body := fmt.Sprintf(
-		"Hola %s,\n\nTu pago #%s por RD$%d para %s ha sido confirmado.\nNCF (%s): %s\nSubtotal: RD$%d | ITBIS (18%%): RD$%d\nVerificado por: %s\n\nGracias por elegir RosaFiesta.",
+		"Hola %s,\n\nTu pago #%s por RD$%d para %s ha sido confirmado.\nNCF (%s): %s\nSubtotal: RD$%d | ITBIS (%d%%): RD$%d\nVerificado por: %s\n\nGracias por elegir RosaFiesta.",
 		payment.ClientName,
 		payment.ReceiptNumber,
 		payment.AmountRD,
@@ -372,6 +389,7 @@ func (s *Service) sendVerificationReceiptIfConfigured(ctx context.Context, payme
 		payment.NCFType,
 		payment.NCFNumber,
 		payment.SubtotalDOP,
+		itbisPercent,
 		payment.ITBISDOP,
 		payment.VerifiedBy,
 	)
