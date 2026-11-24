@@ -172,6 +172,11 @@ func (m Module) registerSessionAndProfileRoutes(api huma.API) {
 		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Service)},
 	}, m.handleUpdatePreferences)
 
+	m.registerFavoritesRoutes(api)
+	m.registerUserPasswordAndAdminListRoutes(api)
+}
+
+func (m Module) registerUserPasswordAndAdminListRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "auth-change-password",
 		Method:      http.MethodPost,
@@ -191,6 +196,40 @@ func (m Module) registerSessionAndProfileRoutes(api huma.API) {
 		Security:    platformhttp.Secured(),
 		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
 	}, m.handleListUsers)
+}
+
+func (m Module) registerFavoritesRoutes(api huma.API) {
+	authMW := huma.Middlewares{platformhttp.RequireAuth(api, m.Service)}
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-list-favorites",
+		Method:      http.MethodGet,
+		Path:        "/v1/auth/me/favorites",
+		Summary:     "List authenticated user favorite article IDs",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: authMW,
+	}, m.handleListFavorites)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-add-favorite",
+		Method:      http.MethodPut,
+		Path:        "/v1/auth/me/favorites/{articleId}",
+		Summary:     "Add an article to authenticated user favorites",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: authMW,
+	}, m.handleAddFavorite)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "auth-remove-favorite",
+		Method:      http.MethodDelete,
+		Path:        "/v1/auth/me/favorites/{articleId}",
+		Summary:     "Remove an article from authenticated user favorites",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: authMW,
+	}, m.handleRemoveFavorite)
 }
 
 func (m Module) registerDevicePushRoutes(api huma.API) {
@@ -279,6 +318,16 @@ func (m Module) registerAdminStaffRoutes(api huma.API) {
 		Security:    platformhttp.Secured(),
 		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
 	}, m.handleUpdateStaff)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "admin-delete-staff",
+		Method:      http.MethodDelete,
+		Path:        "/v1/admin/staff/{id}",
+		Summary:     "Deactivate and remove an operational staff member",
+		Tags:        []string{"Identity"},
+		Security:    platformhttp.Secured(),
+		Middlewares: huma.Middlewares{platformhttp.RequirePermission(api, m.Service, "ajustes")},
+	}, m.handleDeleteStaff)
 }
 
 func (m Module) handleLogin(ctx context.Context, in *LoginInput) (*LoginOutput, error) {
@@ -563,5 +612,43 @@ func (m Module) handleUpdateStaff(ctx context.Context, in *UpdateStaffInput) (*S
 	}
 	out := &StaffMemberOutput{}
 	out.Body.Member = updated
+	return out, nil
+}
+
+func (m Module) handleDeleteStaff(ctx context.Context, in *DeleteStaffInput) (*DeleteStaffOutput, error) {
+	if err := m.Service.DeleteStaff(ctx, in.ID); err != nil {
+		return nil, mapAdminMutationError(err, "DELETE /v1/admin/staff/"+in.ID)
+	}
+	out := &DeleteStaffOutput{}
+	out.Body.Deleted = true
+	return out, nil
+}
+
+func (m Module) handleListFavorites(ctx context.Context, _ *struct{}) (*FavoritesOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	out := &FavoritesOutput{}
+	out.Body.Favorites = m.Service.ListFavorites(ctx, userID)
+	return out, nil
+}
+
+func (m Module) handleAddFavorite(ctx context.Context, in *FavoriteArticleInput) (*FavoritesOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	favs, err := m.Service.AddFavorite(ctx, userID, in.ArticleID)
+	if err != nil {
+		return nil, mapAdminMutationError(err, "PUT /v1/auth/me/favorites/"+in.ArticleID)
+	}
+	out := &FavoritesOutput{}
+	out.Body.Favorites = favs
+	return out, nil
+}
+
+func (m Module) handleRemoveFavorite(ctx context.Context, in *FavoriteArticleInput) (*FavoritesOutput, error) {
+	userID, _ := platformhttp.UserID(ctx)
+	favs, err := m.Service.RemoveFavorite(ctx, userID, in.ArticleID)
+	if err != nil {
+		return nil, mapAdminMutationError(err, "DELETE /v1/auth/me/favorites/"+in.ArticleID)
+	}
+	out := &FavoritesOutput{}
+	out.Body.Favorites = favs
 	return out, nil
 }

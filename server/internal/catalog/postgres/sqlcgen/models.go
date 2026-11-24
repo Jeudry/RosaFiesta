@@ -272,6 +272,15 @@ type EventTask struct {
 	CompletedAtLabel string
 }
 
+type EventTeamTask struct {
+	ID           string
+	EventID      string
+	Title        string
+	AssigneeName string
+	Done         bool
+	CreatedAt    time.Time
+}
+
 type InsurancePolicy struct {
 	ID              string
 	ProviderName    string
@@ -463,6 +472,12 @@ type Review struct {
 	CreatedAt  time.Time
 }
 
+type RevokedToken struct {
+	TokenHash string
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
+
 type SeasonBanner struct {
 	ID               string
 	BadgeLabel       string
@@ -470,6 +485,14 @@ type SeasonBanner struct {
 	CtaLabel         string
 	TargetScreenCode string
 	Active           bool
+}
+
+type SentEventReminder struct {
+	ID           string
+	EventID      string
+	UserID       uuid.UUID
+	ReminderKind string
+	SentAt       time.Time
 }
 
 type Session struct {
@@ -536,4 +559,16 @@ type User struct {
 	EmailReceiptsEnabled     bool
 	BiometricLockEnabled     bool
 	AutoSyncWifiOnly         bool
+	Active                   bool
+	EventRemindersEnabled    bool
+	PreferredLanguage        string
+	DarkThemeEnabled         bool
+	SavedPaymentMethod       string
+	ProfileZone              string
+}
+
+type UserFavorite struct {
+	UserID    uuid.UUID
+	ArticleID string
+	CreatedAt time.Time
 }

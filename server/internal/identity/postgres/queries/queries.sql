@@ -1,11 +1,12 @@
 -- name: UpsertUser :exec
 INSERT INTO users (
     id, full_name, email, phone, password_hash, role, permissions, created_at,
-    username, birth_date, avatar_key,
+    username, birth_date, avatar_key, active,
     push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled,
-    biometric_lock_enabled, auto_sync_wifi_only
+    biometric_lock_enabled, auto_sync_wifi_only, event_reminders_enabled,
+    preferred_language, dark_theme_enabled, saved_payment_method, profile_zone
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     email = EXCLUDED.email,
@@ -16,27 +17,36 @@ ON CONFLICT (id) DO UPDATE SET
     username = EXCLUDED.username,
     birth_date = EXCLUDED.birth_date,
     avatar_key = EXCLUDED.avatar_key,
+    active = EXCLUDED.active,
     push_notifications_enabled = EXCLUDED.push_notifications_enabled,
     whatsapp_alerts_enabled = EXCLUDED.whatsapp_alerts_enabled,
     email_receipts_enabled = EXCLUDED.email_receipts_enabled,
     biometric_lock_enabled = EXCLUDED.biometric_lock_enabled,
-    auto_sync_wifi_only = EXCLUDED.auto_sync_wifi_only;
+    auto_sync_wifi_only = EXCLUDED.auto_sync_wifi_only,
+    event_reminders_enabled = EXCLUDED.event_reminders_enabled,
+    preferred_language = EXCLUDED.preferred_language,
+    dark_theme_enabled = EXCLUDED.dark_theme_enabled,
+    saved_payment_method = EXCLUDED.saved_payment_method,
+    profile_zone = EXCLUDED.profile_zone;
 
 -- name: GetUserByID :one
 SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
-       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only,
+       active, event_reminders_enabled, preferred_language, dark_theme_enabled, saved_payment_method, profile_zone
 FROM users
 WHERE id = $1;
 
 -- name: GetUserByEmail :one
 SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
-       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only,
+       active, event_reminders_enabled, preferred_language, dark_theme_enabled, saved_payment_method, profile_zone
 FROM users
 WHERE email = $1;
 
 -- name: ListAllUsers :many
 SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
-       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only,
+       active, event_reminders_enabled, preferred_language, dark_theme_enabled, saved_payment_method, profile_zone
 FROM users
 ORDER BY created_at ASC;
 
@@ -46,7 +56,12 @@ SET push_notifications_enabled = $2,
     whatsapp_alerts_enabled = $3,
     email_receipts_enabled = $4,
     biometric_lock_enabled = $5,
-    auto_sync_wifi_only = $6
+    auto_sync_wifi_only = $6,
+    event_reminders_enabled = $7,
+    preferred_language = $8,
+    dark_theme_enabled = $9,
+    saved_payment_method = $10,
+    profile_zone = $11
 WHERE id = $1;
 
 -- name: UpdateUserPasswordByEmail :exec
@@ -199,8 +214,61 @@ FROM device_push_tokens d
 INNER JOIN users u ON u.id = d.user_id
 WHERE d.enabled = TRUE
   AND d.app_variant = 'admin'
+  AND u.role IN ('admin', 'staff')
+  AND u.active = TRUE
   AND u.push_notifications_enabled = TRUE
 ORDER BY d.updated_at DESC;
+
+-- name: GetLatestActiveViewByUserID :one
+SELECT active_view
+FROM sessions
+WHERE user_id = $1 AND expires_at > $2
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: UpsertRevokedToken :exec
+INSERT INTO revoked_tokens (token_hash, expires_at, created_at)
+VALUES ($1, $2, $3)
+ON CONFLICT (token_hash) DO UPDATE SET
+    expires_at = EXCLUDED.expires_at;
+
+-- name: IsTokenRevoked :one
+SELECT EXISTS (
+    SELECT 1
+    FROM revoked_tokens
+    WHERE token_hash = $1 AND expires_at > $2
+);
+
+-- name: DeleteExpiredRevokedTokens :execrows
+DELETE FROM revoked_tokens
+WHERE expires_at < $1;
+
+-- name: DeleteExpiredSessions :execrows
+DELETE FROM sessions
+WHERE expires_at < $1;
+
+-- name: DeleteExpiredOTPCodes :execrows
+DELETE FROM auth_otp_codes
+WHERE expires_at < $1 AND (used = TRUE OR reset_expires_at < $1);
+
+-- name: DeleteStaffMemberByID :exec
+DELETE FROM staff_members
+WHERE id = $1;
+
+-- name: ListUserFavorites :many
+SELECT article_id
+FROM user_favorites
+WHERE user_id = $1
+ORDER BY created_at DESC, article_id ASC;
+
+-- name: AddUserFavorite :exec
+INSERT INTO user_favorites (user_id, article_id, created_at)
+VALUES ($1, $2, $3)
+ON CONFLICT (user_id, article_id) DO NOTHING;
+
+-- name: RemoveUserFavorite :exec
+DELETE FROM user_favorites
+WHERE user_id = $1 AND article_id = $2;
 
 -- name: InsertRefreshToken :exec
 INSERT INTO refresh_tokens (id, user_id, family_id, token_hash, revoked, expires_at, created_at, updated_at)

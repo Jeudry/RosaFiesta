@@ -138,6 +138,219 @@ func (s *Service) UpdateGuest(
 	return updated, nil
 }
 
+// DeleteGuest elimina un invitado de la lista del evento.
+func (s *Service) DeleteGuest(
+	ctx context.Context,
+	eventID string,
+	guestID string,
+	caller platformhttp.Principal,
+) error {
+	if _, err := s.GetEventForCaller(ctx, eventID, caller, true); err != nil {
+		return err
+	}
+	s.syncGuestsFromStore(ctx, eventID)
+	s.mu.Lock()
+	list := s.guests[eventID]
+	idx := -1
+	for i, existing := range list {
+		if existing.ID == guestID {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		s.mu.Unlock()
+		return domain.ErrGuestNotFound
+	}
+	s.guests[eventID] = append(list[:idx], list[idx+1:]...)
+	store := s.store
+	s.mu.Unlock()
+	if store != nil {
+		if store.Enabled() {
+			return store.DeleteGuest(ctx, eventID, guestID)
+		}
+	}
+	return nil
+}
+
+// AddTeamTaskCommand encapsula los datos para crear una tarea dentro de un evento.
+type AddTeamTaskCommand struct {
+	Title        string
+	AssigneeName string
+	Done         bool
+}
+
+// UpdateTeamTaskCommand encapsula cambios parciales sobre una tarea del evento.
+type UpdateTeamTaskCommand struct {
+	Title        *string
+	AssigneeName *string
+	Done         *bool
+}
+
+// ListTeamTasks lista las tareas colaborativas del evento.
+func (s *Service) ListTeamTasks(ctx context.Context, eventID string, caller platformhttp.Principal) ([]domain.EventTask, error) {
+	if _, err := s.GetEventForCaller(ctx, eventID, caller, true); err != nil {
+		return nil, err
+	}
+	s.syncTeamTasksFromStore(ctx, eventID)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	list := s.tasks[eventID]
+	out := make([]domain.EventTask, len(list))
+	copy(out, list)
+	return out, nil
+}
+
+// AddTeamTask agrega una nueva tarea colaborativa al evento y la persiste.
+func (s *Service) AddTeamTask(
+	ctx context.Context,
+	eventID string,
+	cmd AddTeamTaskCommand,
+	caller platformhttp.Principal,
+) (domain.EventTask, error) {
+	if _, err := s.GetEventForCaller(ctx, eventID, caller, true); err != nil {
+		return domain.EventTask{}, err
+	}
+	cleanTitle := strings.TrimSpace(cmd.Title)
+	if cleanTitle == "" {
+		return domain.EventTask{}, domain.ErrInvalidEventInput
+	}
+	task := domain.EventTask{
+		ID:           "tsk-" + uuid.NewString()[:8],
+		EventID:      eventID,
+		Title:        cleanTitle,
+		AssigneeName: strings.TrimSpace(cmd.AssigneeName),
+		Done:         cmd.Done,
+		CreatedAt:    s.clock.Now(),
+	}
+	s.syncTeamTasksFromStore(ctx, eventID)
+	s.mu.Lock()
+	s.tasks[eventID] = append(s.tasks[eventID], task)
+	store := s.store
+	s.mu.Unlock()
+	if store != nil {
+		if store.Enabled() {
+			if err := store.UpsertTeamTask(ctx, task); err != nil {
+				return domain.EventTask{}, err
+			}
+		}
+	}
+	return task, nil
+}
+
+// UpdateTeamTask actualiza el título, responsable o estado de una tarea del evento.
+func (s *Service) UpdateTeamTask(
+	ctx context.Context,
+	eventID string,
+	taskID string,
+	cmd UpdateTeamTaskCommand,
+	caller platformhttp.Principal,
+) (domain.EventTask, error) {
+	if _, err := s.GetEventForCaller(ctx, eventID, caller, true); err != nil {
+		return domain.EventTask{}, err
+	}
+	s.syncTeamTasksFromStore(ctx, eventID)
+	s.mu.Lock()
+	list := s.tasks[eventID]
+	idx := findTaskIndex(list, taskID)
+	if idx < 0 {
+		s.mu.Unlock()
+		return domain.EventTask{}, domain.ErrTeamTaskNotFound
+	}
+	updated, patchErr := applyTeamTaskPatch(list[idx], cmd)
+	if patchErr != nil {
+		s.mu.Unlock()
+		return domain.EventTask{}, patchErr
+	}
+	list[idx] = updated
+	s.tasks[eventID] = list
+	store := s.store
+	s.mu.Unlock()
+	if store != nil {
+		if store.Enabled() {
+			if err := store.UpsertTeamTask(ctx, updated); err != nil {
+				return domain.EventTask{}, err
+			}
+		}
+	}
+	return updated, nil
+}
+
+// DeleteTeamTask elimina una tarea colaborativa del evento.
+func (s *Service) DeleteTeamTask(
+	ctx context.Context,
+	eventID string,
+	taskID string,
+	caller platformhttp.Principal,
+) error {
+	if _, err := s.GetEventForCaller(ctx, eventID, caller, true); err != nil {
+		return err
+	}
+	s.syncTeamTasksFromStore(ctx, eventID)
+	s.mu.Lock()
+	list := s.tasks[eventID]
+	idx := findTaskIndex(list, taskID)
+	if idx < 0 {
+		s.mu.Unlock()
+		return domain.ErrTeamTaskNotFound
+	}
+	s.tasks[eventID] = append(list[:idx], list[idx+1:]...)
+	store := s.store
+	s.mu.Unlock()
+	if store != nil {
+		if store.Enabled() {
+			return store.DeleteTeamTask(ctx, eventID, taskID)
+		}
+	}
+	return nil
+}
+
+func findTaskIndex(list []domain.EventTask, taskID string) int {
+	for i, existing := range list {
+		if existing.ID == taskID {
+			return i
+		}
+	}
+	return -1
+}
+
+func applyTeamTaskPatch(existing domain.EventTask, cmd UpdateTeamTaskCommand) (domain.EventTask, error) {
+	updated := existing
+	if cmd.Title != nil {
+		cleanTitle := strings.TrimSpace(*cmd.Title)
+		if cleanTitle == "" {
+			return domain.EventTask{}, domain.ErrInvalidEventInput
+		}
+		updated.Title = cleanTitle
+	}
+	if cmd.AssigneeName != nil {
+		updated.AssigneeName = strings.TrimSpace(*cmd.AssigneeName)
+	}
+	if cmd.Done != nil {
+		updated.Done = *cmd.Done
+	}
+	return updated, nil
+}
+
+func (s *Service) syncTeamTasksFromStore(ctx context.Context, eventID string) {
+	s.mu.RLock()
+	store := s.store
+	s.mu.RUnlock()
+	if store == nil {
+		return
+	}
+	if !store.Enabled() {
+		return
+	}
+	rows, err := store.ListTeamTasks(ctx, eventID)
+	if err != nil {
+		return
+	}
+	s.mu.Lock()
+	s.tasks[eventID] = rows
+	s.mu.Unlock()
+}
+
 func (s *Service) ListSchedule(ctx context.Context, eventID string, caller platformhttp.Principal) ([]domain.ScheduleBlock, error) {
 	if _, err := s.GetEventForCaller(ctx, eventID, caller, true); err != nil {
 		return nil, err

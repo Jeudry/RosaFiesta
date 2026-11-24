@@ -126,6 +126,20 @@ func (in *UpdateArticleInput) ToCommand() catalogapp.UpdateArticleCommand {
 	}
 }
 
+type PackagesInput struct {
+	IncludeHidden bool `query:"includeHidden" doc:"Include hidden event packages."`
+}
+
+type DeletePackageInput struct {
+	ID string `path:"id" doc:"Package identifier to delete."`
+}
+
+type DeletePackageOutput struct {
+	Body struct {
+		DeletedID string `json:"deletedId"`
+	}
+}
+
 type CategoriesOutput struct {
 	Body struct {
 		Categories []domain.Category `json:"categories" doc:"Catalog categories."`

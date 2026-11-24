@@ -147,6 +147,16 @@ func (m Module) registerArticleAndPackageAdminRoutes(api huma.API, mw huma.Middl
 		Security:    platformhttp.Secured(),
 		Middlewares: mw,
 	}, m.handleUpdatePackage)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "catalog-delete-package",
+		Method:      http.MethodDelete,
+		Path:        "/v1/catalog/packages/{id}",
+		Summary:     "Delete a themed event package",
+		Tags:        []string{"Catalog"},
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleDeletePackage)
 }
 
 func (m Module) registerCategoryAdminRoutes(api huma.API, mw huma.Middlewares) {
@@ -249,9 +259,9 @@ func (m Module) handleListCategories(ctx context.Context, _ *struct{}) (*Categor
 	return out, nil
 }
 
-func (m Module) handleListPackages(ctx context.Context, _ *struct{}) (*PackagesOutput, error) {
+func (m Module) handleListPackages(ctx context.Context, in *PackagesInput) (*PackagesOutput, error) {
 	out := &PackagesOutput{}
-	out.Body.Packages = m.Service.Packages(ctx)
+	out.Body.Packages = m.Service.PackagesFiltered(ctx, in.IncludeHidden)
 	return out, nil
 }
 
@@ -323,6 +333,15 @@ func (m Module) handleUpdatePackage(ctx context.Context, in *UpdatePackageInput)
 	}
 	out := &PackageOutput{}
 	out.Body.Package = updated
+	return out, nil
+}
+
+func (m Module) handleDeletePackage(ctx context.Context, in *DeletePackageInput) (*DeletePackageOutput, error) {
+	if err := m.Service.DeletePackage(ctx, in.ID); err != nil {
+		return nil, mapCatalogError(err, "DELETE /v1/catalog/packages/"+in.ID)
+	}
+	out := &DeletePackageOutput{}
+	out.Body.DeletedID = in.ID
 	return out, nil
 }
 

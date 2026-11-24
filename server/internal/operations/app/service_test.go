@@ -246,3 +246,34 @@ func TestService_OfflineIdempotencyDispatchAndWhatsApp(t *testing.T) {
 		t.Fatalf("IngestWhatsAppWebhook failed: %v", err)
 	}
 }
+
+func TestService_WhatsAppBotAutoReplyAndNotificationsOwnership(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	svc := app.NewService()
+
+	var outboundCount int
+	mockWA := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		outboundCount++
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"messages":[{"id":"wamid.auto"}]}`))
+	}))
+	defer mockWA.Close()
+
+	svc.WithWhatsAppConfig("123456", "wa-token", "verify-tok").WithWhatsAppAPIBaseURL(mockWA.URL)
+	if err := svc.IngestWhatsAppWebhook(ctx, []byte(`{"from":"8095554321","name":"Sofía","message":"Quiero cotizar un cumple"}`)); err != nil {
+		t.Fatalf("auto-reply webhook failed: %v", err)
+	}
+	if outboundCount != 1 {
+		t.Fatalf("expected 1 automatic WhatsApp reply for keyword 'cotizar', got %d", outboundCount)
+	}
+
+	otherCaller := svc.CreateNotification(ctx, "Pago confirmado", "RD$5000", "pagos", "client", "11111111-1111-1111-1111-111111111111")
+	if _, err := svc.MarkNotificationReadForCaller(ctx, otherCaller.ID, platformhttpPrincipalForTest()); !errors.Is(err, domain.ErrNotificationForbidden) {
+		t.Fatalf("expected ErrNotificationForbidden when another client marks notification read, got %v", err)
+	}
+}
+
+func platformhttpPrincipalForTest() platformhttp.Principal {
+	return platformhttp.Principal{ID: [16]byte{9}, Role: "client"}
+}

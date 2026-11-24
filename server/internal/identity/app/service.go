@@ -50,6 +50,11 @@ type UpdatePreferencesCommand struct {
 	EmailReceiptsEnabled     *bool
 	BiometricLockEnabled     *bool
 	AutoSyncWifiOnly         *bool
+	EventRemindersEnabled    *bool
+	PreferredLanguage        *string
+	DarkThemeEnabled         *bool
+	SavedPaymentMethod       *string
+	ProfileZone              *string
 }
 
 // Options define las dependencias y políticas de autenticación del servicio de identidad.
@@ -112,6 +117,13 @@ type Store interface {
 	RevokeRefreshTokenFamily(ctx context.Context, familyID uuid.UUID, updatedAt time.Time) error
 	RevokeRefreshTokensByUser(ctx context.Context, userID uuid.UUID, updatedAt time.Time) error
 	DeleteExpiredRefreshTokens(ctx context.Context, expiresBefore, revokedUpdatedBefore time.Time) (int64, error)
+	RevokeAccessToken(ctx context.Context, tokenHash string, expiresAt time.Time) error
+	IsAccessTokenRevoked(ctx context.Context, tokenHash string) (bool, error)
+	DeleteExpiredMaintenanceRows(ctx context.Context, before time.Time) (int64, error)
+	DeleteStaffMember(ctx context.Context, staffID string) error
+	ListUserFavorites(ctx context.Context, userID uuid.UUID) ([]string, error)
+	AddUserFavorite(ctx context.Context, userID uuid.UUID, articleID string) error
+	RemoveUserFavorite(ctx context.Context, userID uuid.UUID, articleID string) error
 }
 
 type sessionEntry struct {
@@ -134,6 +146,7 @@ type Service struct {
 	refreshTokens          map[string]domain.RefreshTokenRecord
 	otps                   map[string]domain.OTPRecord
 	pushTokens             map[string]domain.DevicePushToken
+	favorites              map[uuid.UUID]map[string]struct{}
 	clients                []domain.AdminClient
 	staff                  []domain.StaffRecord
 	jwksCache              *jwksKeyCache
@@ -194,6 +207,7 @@ func (s *Service) Reset(_ context.Context) {
 	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
 	s.otps = make(map[string]domain.OTPRecord)
 	s.pushTokens = make(map[string]domain.DevicePushToken)
+	s.favorites = make(map[uuid.UUID]map[string]struct{})
 	s.clients = defaultClients(now)
 	s.staff = defaultStaff(now)
 	s.mu.Unlock()
@@ -213,6 +227,7 @@ func (s *Service) ResetAdminOnly(_ context.Context) {
 	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
 	s.otps = make(map[string]domain.OTPRecord)
 	s.pushTokens = make(map[string]domain.DevicePushToken)
+	s.favorites = make(map[uuid.UUID]map[string]struct{})
 	s.clients = nil
 	s.staff = defaultAdminStaff(now)
 	s.mu.Unlock()
@@ -238,23 +253,45 @@ func (s *Service) Authenticate(ctx context.Context, accessToken string) (uuid.UU
 	_, isRevoked := s.revokedHashes[tokenHash]
 	store := s.store
 	entry, inMem := s.sessionHashes[tokenHash]
-	_, userExists := s.users[entry.UserID]
+	userMem, userExists := s.users[entry.UserID]
 	s.mu.RUnlock()
 	if isRevoked {
 		return uuid.Nil, domain.ErrInvalidCredentials
 	}
-	if store != nil {
-		if store.Enabled() {
-			if dbUserID, err := store.Authenticate(ctx, cleanToken); err == nil {
-				return dbUserID, nil
-			}
-		}
+	if s.isTokenRevokedInStore(ctx, store, tokenHash) {
+		return uuid.Nil, domain.ErrInvalidCredentials
 	}
-	if subjectID, err := s.tokenMgr.Verify(cleanToken, now); err == nil {
-		if parsedUUID, parseErr := uuid.Parse(subjectID); parseErr == nil {
-			return parsedUUID, nil
-		}
+	if dbUserID, ok := s.authenticateViaStore(ctx, store, cleanToken); ok {
+		return dbUserID, nil
 	}
+	if parsedUUID, ok := s.verifyStatelessJWT(ctx, cleanToken, now); ok {
+		return parsedUUID, nil
+	}
+	return validateMemSessionEntry(entry, inMem, userMem, userExists, now)
+}
+
+func (s *Service) verifyStatelessJWT(ctx context.Context, cleanToken string, now time.Time) (uuid.UUID, bool) {
+	subjectID, err := s.tokenMgr.Verify(cleanToken, now)
+	if err != nil {
+		return uuid.Nil, false
+	}
+	parsedUUID, parseErr := uuid.Parse(subjectID)
+	if parseErr != nil {
+		return uuid.Nil, false
+	}
+	if !s.isUserActiveOrUnknown(ctx, parsedUUID) {
+		return uuid.Nil, false
+	}
+	return parsedUUID, true
+}
+
+func validateMemSessionEntry(
+	entry sessionEntry,
+	inMem bool,
+	userMem domain.User,
+	userExists bool,
+	now time.Time,
+) (uuid.UUID, error) {
 	if !inMem {
 		return uuid.Nil, domain.ErrInvalidCredentials
 	}
@@ -264,7 +301,51 @@ func (s *Service) Authenticate(ctx context.Context, accessToken string) (uuid.UU
 	if !userExists {
 		return uuid.Nil, domain.ErrInvalidCredentials
 	}
+	if !userMem.Active {
+		return uuid.Nil, domain.ErrInvalidCredentials
+	}
 	return entry.UserID, nil
+}
+
+func (s *Service) isTokenRevokedInStore(ctx context.Context, store Store, tokenHash string) bool {
+	hasStore := store != nil
+	if !hasStore {
+		return false
+	}
+	if !store.Enabled() {
+		return false
+	}
+	revoked, err := store.IsAccessTokenRevoked(ctx, tokenHash)
+	if err != nil {
+		return false
+	}
+	return revoked
+}
+
+func (s *Service) authenticateViaStore(ctx context.Context, store Store, cleanToken string) (uuid.UUID, bool) {
+	hasStore := store != nil
+	if !hasStore {
+		return uuid.Nil, false
+	}
+	if !store.Enabled() {
+		return uuid.Nil, false
+	}
+	dbUserID, err := store.Authenticate(ctx, cleanToken)
+	if err != nil {
+		return uuid.Nil, false
+	}
+	if !s.isUserActiveOrUnknown(ctx, dbUserID) {
+		return uuid.Nil, false
+	}
+	return dbUserID, true
+}
+
+func (s *Service) isUserActiveOrUnknown(ctx context.Context, userID uuid.UUID) bool {
+	user, err := s.CurrentUser(ctx, userID)
+	if err != nil {
+		return false
+	}
+	return user.Active
 }
 
 func (s *Service) ResolvePrincipal(ctx context.Context, userID uuid.UUID) (platformhttp.Principal, error) {
@@ -336,15 +417,19 @@ func (s *Service) Logout(ctx context.Context, rawToken string) error {
 	if tokenHash == "" {
 		return domain.ErrInvalidCredentials
 	}
+	expiresAt := s.clock.Now().Add(defaultAccessTokenTTL)
 	s.mu.Lock()
 	delete(s.sessionHashes, tokenHash)
 	s.revokedHashes[tokenHash] = struct{}{}
 	store := s.store
 	s.mu.Unlock()
-	if store != nil {
-		if store.Enabled() {
-			_ = store.DeleteSession(ctx, rawToken)
-		}
+	storeEnabled := store != nil
+	if storeEnabled {
+		storeEnabled = store.Enabled()
+	}
+	if storeEnabled {
+		_ = store.DeleteSession(ctx, rawToken)
+		_ = store.RevokeAccessToken(ctx, tokenHash, expiresAt)
 	}
 	return nil
 }
@@ -424,7 +509,14 @@ func mergeUserPreferences(
 	current domain.UserPreferences,
 	cmd UpdatePreferencesCommand,
 ) domain.UserPreferences {
-	updated := current
+	updated := mergeNotificationAndSecurityPrefs(current, cmd)
+	return mergeLocalizationAndProfilePrefs(updated, cmd)
+}
+
+func mergeNotificationAndSecurityPrefs(
+	updated domain.UserPreferences,
+	cmd UpdatePreferencesCommand,
+) domain.UserPreferences {
 	if cmd.PushNotificationsEnabled != nil {
 		updated.PushNotificationsEnabled = *cmd.PushNotificationsEnabled
 	}
@@ -439,6 +531,35 @@ func mergeUserPreferences(
 	}
 	if cmd.AutoSyncWifiOnly != nil {
 		updated.AutoSyncWifiOnly = *cmd.AutoSyncWifiOnly
+	}
+	if cmd.EventRemindersEnabled != nil {
+		updated.EventRemindersEnabled = *cmd.EventRemindersEnabled
+	}
+	return updated
+}
+
+func mergeLocalizationAndProfilePrefs(
+	updated domain.UserPreferences,
+	cmd UpdatePreferencesCommand,
+) domain.UserPreferences {
+	if cmd.PreferredLanguage != nil {
+		lang := strings.ToLower(strings.TrimSpace(*cmd.PreferredLanguage))
+		switch lang {
+		case "en", "english":
+			updated.PreferredLanguage = "en"
+		case "":
+		default:
+			updated.PreferredLanguage = "es"
+		}
+	}
+	if cmd.DarkThemeEnabled != nil {
+		updated.DarkThemeEnabled = *cmd.DarkThemeEnabled
+	}
+	if cmd.SavedPaymentMethod != nil {
+		updated.SavedPaymentMethod = strings.TrimSpace(*cmd.SavedPaymentMethod)
+	}
+	if cmd.ProfileZone != nil {
+		updated.ProfileZone = strings.TrimSpace(*cmd.ProfileZone)
 	}
 	return updated
 }
@@ -471,6 +592,9 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, currentP
 func (s *Service) AuthorizePermission(ctx context.Context, userID uuid.UUID, permission string) error {
 	user, err := s.CurrentUser(ctx, userID)
 	if err != nil {
+		return domain.ErrInvalidCredentials
+	}
+	if !user.Active {
 		return domain.ErrInvalidCredentials
 	}
 	if !user.HasPermission(permission) {
@@ -635,4 +759,84 @@ func (s *Service) findUserLocked(cleanIdentifier string) (domain.User, bool) {
 		}
 	}
 	return domain.User{}, false
+}
+
+// ListFavorites devuelve los IDs de artículos favoritos del usuario autenticado.
+func (s *Service) ListFavorites(ctx context.Context, userID uuid.UUID) []string {
+	s.mu.RLock()
+	store := s.store
+	s.mu.RUnlock()
+	storeEnabled := store != nil
+	if storeEnabled {
+		storeEnabled = store.Enabled()
+	}
+	if storeEnabled {
+		if rows, err := store.ListUserFavorites(ctx, userID); err == nil {
+			s.mu.Lock()
+			favMap := make(map[string]struct{}, len(rows))
+			for _, id := range rows {
+				favMap[id] = struct{}{}
+			}
+			s.favorites[userID] = favMap
+			s.mu.Unlock()
+			return rows
+		}
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	favSet := s.favorites[userID]
+	out := make([]string, 0, len(favSet))
+	for articleID := range favSet {
+		out = append(out, articleID)
+	}
+	return out
+}
+
+// AddFavorite agrega un artículo a los favoritos del usuario autenticado.
+func (s *Service) AddFavorite(ctx context.Context, userID uuid.UUID, articleID string) ([]string, error) {
+	cleanID := strings.TrimSpace(articleID)
+	if cleanID == "" {
+		return nil, domain.ErrInvalidInput
+	}
+	s.mu.Lock()
+	if s.favorites[userID] == nil {
+		s.favorites[userID] = make(map[string]struct{})
+	}
+	s.favorites[userID][cleanID] = struct{}{}
+	store := s.store
+	s.mu.Unlock()
+	storeEnabled := store != nil
+	if storeEnabled {
+		storeEnabled = store.Enabled()
+	}
+	if storeEnabled {
+		if err := store.AddUserFavorite(ctx, userID, cleanID); err != nil {
+			return nil, err
+		}
+	}
+	return s.ListFavorites(ctx, userID), nil
+}
+
+// RemoveFavorite elimina un artículo de los favoritos del usuario autenticado.
+func (s *Service) RemoveFavorite(ctx context.Context, userID uuid.UUID, articleID string) ([]string, error) {
+	cleanID := strings.TrimSpace(articleID)
+	if cleanID == "" {
+		return nil, domain.ErrInvalidInput
+	}
+	s.mu.Lock()
+	if favSet := s.favorites[userID]; favSet != nil {
+		delete(favSet, cleanID)
+	}
+	store := s.store
+	s.mu.Unlock()
+	storeEnabled := store != nil
+	if storeEnabled {
+		storeEnabled = store.Enabled()
+	}
+	if storeEnabled {
+		if err := store.RemoveUserFavorite(ctx, userID, cleanID); err != nil {
+			return nil, err
+		}
+	}
+	return s.ListFavorites(ctx, userID), nil
 }

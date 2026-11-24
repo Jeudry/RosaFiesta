@@ -91,6 +91,7 @@ type Config struct {
 	WhatsAppPhoneNumberID  string
 	WhatsAppAccessToken    string
 	WhatsAppVerifyToken    string
+	WhatsAppAppSecret      string
 }
 
 // Load lee y valida la configuración del servidor a partir de getenv.
@@ -172,6 +173,7 @@ func populateIntegrations(getenv func(string) string, cfg *Config) error {
 	cfg.WhatsAppPhoneNumberID = strings.TrimSpace(getenv("WHATSAPP_PHONE_NUMBER_ID"))
 	cfg.WhatsAppAccessToken = strings.TrimSpace(getenv("WHATSAPP_ACCESS_TOKEN"))
 	cfg.WhatsAppVerifyToken = strings.TrimSpace(getenv("WHATSAPP_VERIFY_TOKEN"))
+	cfg.WhatsAppAppSecret = strings.TrimSpace(getenv("WHATSAPP_APP_SECRET"))
 	return nil
 }
 

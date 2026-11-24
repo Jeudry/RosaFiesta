@@ -241,6 +241,43 @@ func callGeminiChat(
 	return parseStructuredRosaReply(rawText, "gemini", model), nil
 }
 
+func callOpenAICompatRawText(
+	ctx context.Context,
+	client *http.Client,
+	endpoint string,
+	provider string,
+	model string,
+	apiKey string,
+	systemPrompt string,
+	userMessage string,
+) (string, error) {
+	body := map[string]any{
+		"model": model,
+		"messages": []map[string]string{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": userMessage},
+		},
+	}
+	respBytes, err := postJSON(ctx, client, endpoint, apiKey, body)
+	if err != nil {
+		return "", err
+	}
+	var parsed struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(respBytes, &parsed); err != nil {
+		return "", err
+	}
+	if len(parsed.Choices) == 0 {
+		return "", fmt.Errorf("empty %s completion response", provider)
+	}
+	return parsed.Choices[0].Message.Content, nil
+}
+
 func callOpenAICompatChat(
 	ctx context.Context,
 	client *http.Client,
@@ -251,31 +288,10 @@ func callOpenAICompatChat(
 	systemPrompt string,
 	userMessage string,
 ) (domain.RosaChatReply, error) {
-	body := map[string]any{
-		"model": model,
-		"messages": []map[string]string{
-			{"role": "system", "content": systemPrompt},
-			{"role": "user", "content": userMessage},
-		},
-	}
-	respBytes, err := postJSON(ctx, client, endpoint, apiKey, body)
+	rawText, err := callOpenAICompatRawText(ctx, client, endpoint, provider, model, apiKey, systemPrompt, userMessage)
 	if err != nil {
 		return domain.RosaChatReply{}, err
 	}
-	var parsed struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-	}
-	if err := json.Unmarshal(respBytes, &parsed); err != nil {
-		return domain.RosaChatReply{}, err
-	}
-	if len(parsed.Choices) == 0 {
-		return domain.RosaChatReply{}, fmt.Errorf("empty %s completion response", provider)
-	}
-	rawText := parsed.Choices[0].Message.Content
 	return parseStructuredRosaReply(rawText, provider, model), nil
 }
 
@@ -383,12 +399,10 @@ func requestAIJSONText(
 	switch cfg.AIProvider {
 	case "groq":
 		endpoint := defaultURL(cfg.AIBaseURL, "https://api.groq.com") + "/openai/v1/chat/completions"
-		reply, err := callOpenAICompatChat(ctx, client, endpoint, cfg.AIProvider, cfg.AIModel, cfg.AIAPIKey, systemPrompt, userMessage)
-		return reply.Reply, err
+		return callOpenAICompatRawText(ctx, client, endpoint, cfg.AIProvider, cfg.AIModel, cfg.AIAPIKey, systemPrompt, userMessage)
 	case "openai":
 		endpoint := defaultURL(cfg.AIBaseURL, "https://api.openai.com") + "/v1/chat/completions"
-		reply, err := callOpenAICompatChat(ctx, client, endpoint, cfg.AIProvider, cfg.AIModel, cfg.AIAPIKey, systemPrompt, userMessage)
-		return reply.Reply, err
+		return callOpenAICompatRawText(ctx, client, endpoint, cfg.AIProvider, cfg.AIModel, cfg.AIAPIKey, systemPrompt, userMessage)
 	default:
 		baseURL := defaultURL(cfg.AIBaseURL, "https://generativelanguage.googleapis.com")
 		endpoint := fmt.Sprintf("%s/v1beta/models/%s:generateContent?key=%s", baseURL, cfg.AIModel, cfg.AIAPIKey)

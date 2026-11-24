@@ -241,8 +241,8 @@ func (m Module) handleListRefunds(ctx context.Context, _ *struct{}) (*RefundsLis
 
 func (m Module) handleApproveRefund(ctx context.Context, in *ApproveRefundInput) (*RefundOutput, error) {
 	caller, _ := platformhttp.CurrentPrincipal(ctx)
-	approver := in.Approver(caller.FullName)
-	refund, err := m.Service.ApproveRefund(ctx, in.ID, approver)
+	opts := in.ToOptions(caller.FullName)
+	refund, err := m.Service.ApproveRefundWithOptions(ctx, in.ID, opts)
 	if err != nil {
 		return nil, mapPaymentError(err, "POST /v1/refunds/"+in.ID+"/approve", "REFUND_APPROVE_FAILED", "ApproveRefund", http.StatusBadRequest)
 	}

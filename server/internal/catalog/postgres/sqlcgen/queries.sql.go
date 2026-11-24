@@ -43,6 +43,16 @@ func (q *Queries) DeleteCategory(ctx context.Context, id string) error {
 	return err
 }
 
+const deletePackage = `-- name: DeletePackage :exec
+DELETE FROM packages
+WHERE id = $1
+`
+
+func (q *Queries) DeletePackage(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deletePackage, id)
+	return err
+}
+
 const deletePackageItems = `-- name: DeletePackageItems :exec
 DELETE FROM package_items
 WHERE package_id = $1

@@ -23,6 +23,11 @@ type ArticleDeleteStore interface {
 	DeleteArticle(ctx context.Context, articleID string) error
 }
 
+// PackageDeleteStore persists package deletion operations in PostgreSQL.
+type PackageDeleteStore interface {
+	DeletePackage(ctx context.Context, packageID string) error
+}
+
 // TrendAndBannerStore persists catalog trends and the seasonal home banner in PostgreSQL.
 type TrendAndBannerStore interface {
 	ListTrends(ctx context.Context) ([]domain.Trend, error)
@@ -374,16 +379,60 @@ func (s *Service) DeleteCategory(ctx context.Context, categoryID string) error {
 }
 
 func (s *Service) Packages(ctx context.Context) []domain.PackageBundle {
+	return s.PackagesFiltered(ctx, false)
+}
+
+// PackagesFiltered devuelve los paquetes del catálogo, opcionalmente incluyendo los ocultos.
+func (s *Service) PackagesFiltered(ctx context.Context, includeHidden bool) []domain.PackageBundle {
 	s.syncFromStore(ctx)
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	out := make([]domain.PackageBundle, 0, len(s.packages))
 	for _, pkg := range s.packages {
-		if pkg.Visible {
+		isVisible := includeHidden
+		if !isVisible {
+			isVisible = pkg.Visible
+		}
+		if isVisible {
 			out = append(out, pkg)
 		}
 	}
 	return out
+}
+
+// DeletePackage elimina un paquete temático por identificador.
+func (s *Service) DeletePackage(ctx context.Context, packageID string) error {
+	trimmedID := strings.TrimSpace(packageID)
+	if trimmedID == "" {
+		return domain.ErrInvalidCatalog
+	}
+	s.syncFromStore(ctx)
+	s.mu.Lock()
+	idx := -1
+	for i, existing := range s.packages {
+		if existing.ID == trimmedID {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		s.mu.Unlock()
+		return domain.ErrArticleNotFound
+	}
+	s.packages = append(s.packages[:idx], s.packages[idx+1:]...)
+	store := s.store
+	s.mu.Unlock()
+	if store != nil {
+		if store.Enabled() {
+			if delStore, ok := store.(PackageDeleteStore); ok {
+				if err := delStore.DeletePackage(ctx, trimmedID); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	s.publishCatalogUpdated(trimmedID, "package.deleted")
+	return nil
 }
 
 func (s *Service) Availability(ctx context.Context, articleID, month string) (domain.ArticleAvailability, error) {
@@ -394,7 +443,7 @@ func (s *Service) Availability(ctx context.Context, articleID, month string) (do
 	}
 	targetMonth := strings.TrimSpace(month)
 	if targetMonth == "" {
-		targetMonth = "2026-10"
+		targetMonth = time.Now().UTC().Format("2006-01")
 	}
 	startOfMonth, err := time.Parse("2006-01", targetMonth)
 	if err != nil {

@@ -274,19 +274,8 @@ func (s *Service) replaceEventReservationsLocked(eventID string, nextRows []doma
 func (s *Service) recomputeAvailableStockLocked(ctx context.Context, store Store) {
 	nowISO := time.Now().UTC().Format("2006-01-02")
 	for idx, article := range s.articles {
-		reservedToday := 0
-		for _, res := range s.stockReservations {
-			if res.ArticleID != article.ID {
-				continue
-			}
-			if !res.Status.IsActive() {
-				continue
-			}
-			if res.ReturnDateISO >= nowISO {
-				reservedToday += res.Quantity
-			}
-		}
-		nextAvail := article.UsableStock() - reservedToday
+		peakReserved := computePeakConcurrentDemand(s.stockReservations, article.ID, nowISO)
+		nextAvail := article.UsableStock() - peakReserved
 		if nextAvail < 0 {
 			nextAvail = 0
 		}
@@ -295,6 +284,35 @@ func (s *Service) recomputeAvailableStockLocked(ctx context.Context, store Store
 			_ = store.UpsertArticle(ctx, s.articles[idx])
 		}
 	}
+}
+
+func computePeakConcurrentDemand(reservations []domain.StockReservation, articleID, minReturnISO string) int {
+	active := make([]domain.StockReservation, 0)
+	for _, res := range reservations {
+		if res.ArticleID != articleID {
+			continue
+		}
+		if !res.Status.IsActive() {
+			continue
+		}
+		if res.ReturnDateISO >= minReturnISO {
+			active = append(active, res)
+		}
+	}
+	peak := 0
+	for _, anchor := range active {
+		overlapQty := 0
+		for _, other := range active {
+			overlaps := anchor.PickupDateISO <= other.ReturnDateISO && other.PickupDateISO <= anchor.ReturnDateISO
+			if overlaps {
+				overlapQty += other.Quantity
+			}
+		}
+		if overlapQty > peak {
+			peak = overlapQty
+		}
+	}
+	return peak
 }
 
 func isStoreEnabled(store Store) bool {

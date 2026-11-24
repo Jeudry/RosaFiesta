@@ -217,6 +217,47 @@ type SupplierOutput struct {
 	}
 }
 
+type PatchSupplierInput struct {
+	ID   string `path:"id" doc:"Supplier identifier."`
+	Body struct {
+		Name        string `json:"name,omitempty"`
+		Category    string `json:"category,omitempty"`
+		Specialty   string `json:"specialty,omitempty"`
+		ContactName string `json:"contactName,omitempty"`
+		Phone       string `json:"phone,omitempty"`
+		Email       string `json:"email,omitempty"`
+		Website     string `json:"website,omitempty"`
+		Rating      string `json:"rating,omitempty"`
+		Notes       string `json:"notes,omitempty"`
+	}
+}
+
+func (in *PatchSupplierInput) ToCommand() app.UpsertSupplierCommand {
+	return app.UpsertSupplierCommand{
+		ID:          in.ID,
+		Name:        in.Body.Name,
+		Category:    in.Body.Category,
+		Specialty:   in.Body.Specialty,
+		ContactName: in.Body.ContactName,
+		Phone:       in.Body.Phone,
+		Email:       in.Body.Email,
+		Website:     in.Body.Website,
+		Rating:      in.Body.Rating,
+		Notes:       in.Body.Notes,
+	}
+}
+
+type OperationsEntityByIDInput struct {
+	ID string `path:"id" doc:"Entity identifier."`
+}
+
+type DeleteEntityOutput struct {
+	Body struct {
+		Deleted bool   `json:"deleted"`
+		ID      string `json:"id"`
+	}
+}
+
 type LeadsListInput struct {
 	Stage string `query:"stage" doc:"Optional CRM pipeline stage filter."`
 }
@@ -479,7 +520,8 @@ type PlainTextOutput struct {
 
 // IngestWhatsAppWebhookInput recibe la carga cruda del webhook de Meta WhatsApp.
 type IngestWhatsAppWebhookInput struct {
-	RawBody []byte
+	Signature256 string `header:"X-Hub-Signature-256"`
+	RawBody      []byte
 }
 
 // WhatsAppWebhookAckOutput confirma la recepción del webhook de WhatsApp.
@@ -499,6 +541,8 @@ type operationsErrorSpec struct {
 var operationsErrorSpecs = []operationsErrorSpec{
 	{domain.ErrWhatsAppNotConfigured, http.StatusServiceUnavailable, "WHATSAPP_PROVIDER_NOT_CONFIGURED", "WhatsAppCloudAPIConfiguration"},
 	{domain.ErrWhatsAppVerifyFailed, http.StatusForbidden, "WHATSAPP_WEBHOOK_FORBIDDEN", "WhatsAppWebhookTokenVerification"},
+	{domain.ErrWebhookSignatureInvalid, http.StatusForbidden, "WHATSAPP_SIGNATURE_INVALID", "WhatsAppWebhookSignatureVerification"},
+	{domain.ErrNotificationForbidden, http.StatusForbidden, "NOTIFICATION_FORBIDDEN", "NotificationOwnershipPolicy"},
 }
 
 func mapOperationsError(err error, endpoint, defaultCode, policy string, defaultStatus int) *platformhttp.APIError {
@@ -544,6 +588,12 @@ func isOperationsNotFound(err error) bool {
 		return true
 	}
 	if errors.Is(err, domain.ErrNotificationNotFound) {
+		return true
+	}
+	if errors.Is(err, domain.ErrSupplierNotFound) {
+		return true
+	}
+	if errors.Is(err, domain.ErrBotEntryNotFound) {
 		return true
 	}
 	return errors.Is(err, domain.ErrBotThreadNotFound)

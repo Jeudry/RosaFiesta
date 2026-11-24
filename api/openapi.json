@@ -66,6 +66,33 @@
         ],
         "type": "object"
       },
+      "AddTeamTaskInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/AddTeamTaskInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "assigneeName": {
+            "type": "string"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
       "AdminClient": {
         "additionalProperties": false,
         "properties": {
@@ -151,6 +178,18 @@
           },
           "approvedBy": {
             "type": "string"
+          },
+          "clientMessage": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "notifyWhatsapp": {
+            "type": "boolean"
+          },
+          "releaseInventory": {
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -2021,6 +2060,73 @@
         ],
         "type": "object"
       },
+      "DeleteEntityOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeleteEntityOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "deleted",
+          "id"
+        ],
+        "type": "object"
+      },
+      "DeleteGuestOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeleteGuestOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeletePackageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeletePackageOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deletedId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "deletedId"
+        ],
+        "type": "object"
+      },
       "DeletePushTokenOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -2049,6 +2155,48 @@
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
               "https://example.com/schemas/DeleteScheduleBlockOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeleteStaffOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeleteStaffOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeleteTeamTaskOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/DeleteTeamTaskOutputBody.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -2578,6 +2726,39 @@
         ],
         "type": "object"
       },
+      "EventTask": {
+        "additionalProperties": false,
+        "properties": {
+          "assigneeName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "eventId",
+          "title",
+          "assigneeName",
+          "done",
+          "createdAt"
+        ],
+        "type": "object"
+      },
       "EventTemplate": {
         "additionalProperties": false,
         "properties": {
@@ -2650,6 +2831,33 @@
         },
         "required": [
           "events"
+        ],
+        "type": "object"
+      },
+      "FavoritesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/FavoritesOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "favorites": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "favorites"
         ],
         "type": "object"
       },
@@ -3683,6 +3891,48 @@
         "required": [
           "updated"
         ],
+        "type": "object"
+      },
+      "PatchSupplierInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/PatchSupplierInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "contactName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "string"
+          },
+          "specialty": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "Payment": {
@@ -6314,6 +6564,54 @@
         },
         "type": "object"
       },
+      "TeamTaskOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TeamTaskOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "task": {
+            "$ref": "#/components/schemas/EventTask"
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "type": "object"
+      },
+      "TeamTasksListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TeamTasksListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/EventTask"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "tasks"
+        ],
+        "type": "object"
+      },
       "TemplatesOutputBody": {
         "additionalProperties": false,
         "properties": {
@@ -6868,11 +7166,26 @@
           "biometricLockEnabled": {
             "type": "boolean"
           },
+          "darkThemeEnabled": {
+            "type": "boolean"
+          },
           "emailReceiptsEnabled": {
             "type": "boolean"
           },
+          "eventRemindersEnabled": {
+            "type": "boolean"
+          },
+          "preferredLanguage": {
+            "type": "string"
+          },
+          "profileZone": {
+            "type": "string"
+          },
           "pushNotificationsEnabled": {
             "type": "boolean"
+          },
+          "savedPaymentMethod": {
+            "type": "string"
           },
           "whatsappAlertsEnabled": {
             "type": "boolean"
@@ -7011,6 +7324,30 @@
           },
           "roleLabel": {
             "description": "Updated role title.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateTeamTaskInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/UpdateTeamTaskInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "assigneeName": {
+            "type": "string"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "title": {
             "type": "string"
           }
         },
@@ -7232,6 +7569,9 @@
       "User": {
         "additionalProperties": false,
         "properties": {
+          "active": {
+            "type": "boolean"
+          },
           "activeView": {
             "type": "string"
           },
@@ -7283,6 +7623,7 @@
           "email",
           "phone",
           "birthDate",
+          "active",
           "role",
           "permissions",
           "activeView",
@@ -7300,11 +7641,26 @@
           "biometricLockEnabled": {
             "type": "boolean"
           },
+          "darkThemeEnabled": {
+            "type": "boolean"
+          },
           "emailReceiptsEnabled": {
             "type": "boolean"
           },
+          "eventRemindersEnabled": {
+            "type": "boolean"
+          },
+          "preferredLanguage": {
+            "type": "string"
+          },
+          "profileZone": {
+            "type": "string"
+          },
           "pushNotificationsEnabled": {
             "type": "boolean"
+          },
+          "savedPaymentMethod": {
+            "type": "string"
           },
           "whatsappAlertsEnabled": {
             "type": "boolean"
@@ -7315,7 +7671,12 @@
           "whatsappAlertsEnabled",
           "emailReceiptsEnabled",
           "biometricLockEnabled",
-          "autoSyncWifiOnly"
+          "autoSyncWifiOnly",
+          "eventRemindersEnabled",
+          "preferredLanguage",
+          "darkThemeEnabled",
+          "savedPaymentMethod",
+          "profileZone"
         ],
         "type": "object"
       },
@@ -7650,6 +8011,52 @@
       }
     },
     "/v1/admin/staff/{id}": {
+      "delete": {
+        "operationId": "admin-delete-staff",
+        "parameters": [
+          {
+            "description": "Staff member identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Staff member identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteStaffOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deactivate and remove an operational staff member",
+        "tags": [
+          "Identity"
+        ]
+      },
       "patch": {
         "operationId": "admin-update-staff",
         "parameters": [
@@ -7916,6 +8323,136 @@
           }
         ],
         "summary": "Update the authenticated user profile",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/me/favorites": {
+      "get": {
+        "operationId": "auth-list-favorites",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List authenticated user favorite article IDs",
+        "tags": [
+          "Identity"
+        ]
+      }
+    },
+    "/v1/auth/me/favorites/{articleId}": {
+      "delete": {
+        "operationId": "auth-remove-favorite",
+        "parameters": [
+          {
+            "description": "Catalog article identifier.",
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "description": "Catalog article identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove an article from authenticated user favorites",
+        "tags": [
+          "Identity"
+        ]
+      },
+      "put": {
+        "operationId": "auth-add-favorite",
+        "parameters": [
+          {
+            "description": "Catalog article identifier.",
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "description": "Catalog article identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an article to authenticated user favorites",
         "tags": [
           "Identity"
         ]
@@ -9078,6 +9615,18 @@
     "/v1/catalog/packages": {
       "get": {
         "operationId": "catalog-list-packages",
+        "parameters": [
+          {
+            "description": "Include hidden event packages.",
+            "explode": false,
+            "in": "query",
+            "name": "includeHidden",
+            "schema": {
+              "description": "Include hidden event packages.",
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -9151,6 +9700,52 @@
       }
     },
     "/v1/catalog/packages/{id}": {
+      "delete": {
+        "operationId": "catalog-delete-package",
+        "parameters": [
+          {
+            "description": "Package identifier to delete.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Package identifier to delete.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePackageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a themed event package",
+        "tags": [
+          "Catalog"
+        ]
+      },
       "put": {
         "operationId": "catalog-update-package",
         "parameters": [
@@ -10259,6 +10854,62 @@
       }
     },
     "/v1/events/{id}/guests/{guestId}": {
+      "delete": {
+        "operationId": "events-delete-guest",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Guest identifier.",
+            "in": "path",
+            "name": "guestId",
+            "required": true,
+            "schema": {
+              "description": "Guest identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteGuestOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a guest from an event",
+        "tags": [
+          "Events"
+        ]
+      },
       "patch": {
         "operationId": "events-update-guest",
         "parameters": [
@@ -10545,6 +11196,234 @@
         ]
       }
     },
+    "/v1/events/{id}/tasks": {
+      "get": {
+        "operationId": "events-list-tasks",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamTasksListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List event collaborative tasks",
+        "tags": [
+          "Events"
+        ]
+      },
+      "post": {
+        "operationId": "events-add-task",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTeamTaskInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamTaskOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an event collaborative task",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
+    "/v1/events/{id}/tasks/{taskId}": {
+      "delete": {
+        "operationId": "events-delete-task",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Task identifier.",
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "description": "Task identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteTeamTaskOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete an event collaborative task",
+        "tags": [
+          "Events"
+        ]
+      },
+      "patch": {
+        "operationId": "events-update-task",
+        "parameters": [
+          {
+            "description": "Event identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Event identifier.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Task identifier.",
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "schema": {
+              "description": "Task identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamTaskInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamTaskOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an event collaborative task",
+        "tags": [
+          "Events"
+        ]
+      }
+    },
     "/v1/media": {
       "post": {
         "operationId": "upload-media-asset",
@@ -10791,6 +11670,54 @@
         ]
       }
     },
+    "/v1/operations/bot/faqs/{id}": {
+      "delete": {
+        "operationId": "operations-delete-bot-faq",
+        "parameters": [
+          {
+            "description": "Entity identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Entity identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteEntityOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a WhatsApp bot FAQ entry",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
     "/v1/operations/bot/keywords": {
       "get": {
         "operationId": "operations-list-bot-keywords",
@@ -10866,6 +11793,54 @@
           }
         ],
         "summary": "Create or update a WhatsApp bot keyword trigger",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/bot/keywords/{id}": {
+      "delete": {
+        "operationId": "operations-delete-bot-keyword",
+        "parameters": [
+          {
+            "description": "Entity identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Entity identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteEntityOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a WhatsApp bot keyword trigger",
         "tags": [
           "Operations"
         ]
@@ -11745,6 +12720,110 @@
           }
         ],
         "summary": "Create or update a supplier directory entry",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
+    "/v1/operations/suppliers/{id}": {
+      "delete": {
+        "operationId": "operations-delete-supplier",
+        "parameters": [
+          {
+            "description": "Entity identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Entity identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteEntityOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a supplier directory entry",
+        "tags": [
+          "Operations"
+        ]
+      },
+      "patch": {
+        "operationId": "operations-patch-supplier",
+        "parameters": [
+          {
+            "description": "Supplier identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Supplier identifier.",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchSupplierInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Partially update a supplier directory entry",
         "tags": [
           "Operations"
         ]
@@ -13107,6 +14186,15 @@
       },
       "post": {
         "operationId": "operations-whatsapp-webhook-ingest",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Hub-Signature-256",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/octet-stream": {

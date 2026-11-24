@@ -268,6 +268,14 @@ func (r *Repository) DeleteArticle(ctx context.Context, articleID string) error 
 	return r.queries.DeleteArticle(ctx, articleID)
 }
 
+// DeletePackage elimina un paquete temático de PostgreSQL.
+func (r *Repository) DeletePackage(ctx context.Context, packageID string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DeletePackage(ctx, packageID)
+}
+
 func (r *Repository) UpsertCategory(ctx context.Context, cat domain.Category) error {
 	if !r.Enabled() {
 		return nil

@@ -58,6 +58,7 @@ func (s *Service) CreateTrend(ctx context.Context, cmd SaveTrendCommand) (domain
 	if cmd.Active != nil {
 		active = *cmd.Active
 	}
+	s.syncFromStore(ctx)
 	s.mu.Lock()
 	if hasDuplicateTrendLocked(s.trends, trendID, cleanTitle, "") {
 		s.mu.Unlock()
@@ -100,6 +101,7 @@ func (s *Service) UpdateTrend(
 	if !isValidTrendTitle(cleanTitle) {
 		return domain.Trend{}, domain.ErrInvalidCatalog
 	}
+	s.syncFromStore(ctx)
 	s.mu.Lock()
 	targetIdx := findTrendIndexLocked(s.trends, trimmedID)
 	if targetIdx < 0 {
@@ -144,6 +146,7 @@ func (s *Service) DeleteTrend(ctx context.Context, trendID string) error {
 	if trimmedID == "" {
 		return domain.ErrTrendNotFound
 	}
+	s.syncFromStore(ctx)
 	s.mu.Lock()
 	targetIdx := findTrendIndexLocked(s.trends, trimmedID)
 	if targetIdx < 0 {

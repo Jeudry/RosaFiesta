@@ -71,11 +71,17 @@ func (r *Repository) UpsertUser(ctx context.Context, user domain.User, rawSessio
 		Username:                 username,
 		BirthDate:                user.BirthDate,
 		AvatarKey:                user.AvatarKey,
+		Active:                   user.Active,
 		PushNotificationsEnabled: user.Preferences.PushNotificationsEnabled,
 		WhatsappAlertsEnabled:    user.Preferences.WhatsAppAlertsEnabled,
 		EmailReceiptsEnabled:     user.Preferences.EmailReceiptsEnabled,
 		BiometricLockEnabled:     user.Preferences.BiometricLockEnabled,
 		AutoSyncWifiOnly:         user.Preferences.AutoSyncWifiOnly,
+		EventRemindersEnabled:    user.Preferences.EventRemindersEnabled,
+		PreferredLanguage:        user.Preferences.PreferredLanguage,
+		DarkThemeEnabled:         user.Preferences.DarkThemeEnabled,
+		SavedPaymentMethod:       user.Preferences.SavedPaymentMethod,
+		ProfileZone:              user.Preferences.ProfileZone,
 	})
 	if err != nil {
 		return err
@@ -130,7 +136,18 @@ func (r *Repository) GetUserByID(ctx context.Context, userID uuid.UUID) (domain.
 	if err != nil {
 		return domain.User{}, domain.ErrInvalidCredentials
 	}
-	return mapRowToDomainUser(row), nil
+	mapped := mapRowToDomainUser(row)
+	viewStr, viewErr := r.queries.GetLatestActiveViewByUserID(ctx, sqlcgen.GetLatestActiveViewByUserIDParams{
+		UserID:    userID,
+		ExpiresAt: r.clock.Now(),
+	})
+	if viewErr == nil {
+		candidate := domain.AppView(viewStr)
+		if mapped.CanAccessView(candidate) {
+			mapped.ActiveView = candidate
+		}
+	}
+	return mapped, nil
 }
 
 func (r *Repository) UpdatePassword(ctx context.Context, email, passwordHash string) error {
@@ -370,6 +387,92 @@ func (r *Repository) UpdateUserPreferences(ctx context.Context, userID uuid.UUID
 		EmailReceiptsEnabled:     prefs.EmailReceiptsEnabled,
 		BiometricLockEnabled:     prefs.BiometricLockEnabled,
 		AutoSyncWifiOnly:         prefs.AutoSyncWifiOnly,
+		EventRemindersEnabled:    prefs.EventRemindersEnabled,
+		PreferredLanguage:        prefs.PreferredLanguage,
+		DarkThemeEnabled:         prefs.DarkThemeEnabled,
+		SavedPaymentMethod:       prefs.SavedPaymentMethod,
+		ProfileZone:              prefs.ProfileZone,
+	})
+}
+
+func (r *Repository) RevokeAccessToken(ctx context.Context, tokenHash string, expiresAt time.Time) error {
+	if !r.Enabled() {
+		return nil
+	}
+	if strings.TrimSpace(tokenHash) == "" {
+		return nil
+	}
+	return r.queries.UpsertRevokedToken(ctx, sqlcgen.UpsertRevokedTokenParams{
+		TokenHash: tokenHash,
+		ExpiresAt: expiresAt,
+		CreatedAt: r.clock.Now(),
+	})
+}
+
+func (r *Repository) IsAccessTokenRevoked(ctx context.Context, tokenHash string) (bool, error) {
+	if !r.Enabled() {
+		return false, nil
+	}
+	if strings.TrimSpace(tokenHash) == "" {
+		return false, nil
+	}
+	return r.queries.IsTokenRevoked(ctx, sqlcgen.IsTokenRevokedParams{
+		TokenHash: tokenHash,
+		ExpiresAt: r.clock.Now(),
+	})
+}
+
+func (r *Repository) DeleteExpiredMaintenanceRows(ctx context.Context, before time.Time) (int64, error) {
+	if !r.Enabled() {
+		return 0, nil
+	}
+	revokedCount, err := r.queries.DeleteExpiredRevokedTokens(ctx, before)
+	if err != nil {
+		return 0, err
+	}
+	sessCount, err := r.queries.DeleteExpiredSessions(ctx, before)
+	if err != nil {
+		return revokedCount, err
+	}
+	otpCount, err := r.queries.DeleteExpiredOTPCodes(ctx, before)
+	if err != nil {
+		return revokedCount + sessCount, err
+	}
+	return revokedCount + sessCount + otpCount, nil
+}
+
+func (r *Repository) DeleteStaffMember(ctx context.Context, staffID string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DeleteStaffMemberByID(ctx, staffID)
+}
+
+func (r *Repository) ListUserFavorites(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	return r.queries.ListUserFavorites(ctx, userID)
+}
+
+func (r *Repository) AddUserFavorite(ctx context.Context, userID uuid.UUID, articleID string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.AddUserFavorite(ctx, sqlcgen.AddUserFavoriteParams{
+		UserID:    userID,
+		ArticleID: articleID,
+		CreatedAt: r.clock.Now(),
+	})
+}
+
+func (r *Repository) RemoveUserFavorite(ctx context.Context, userID uuid.UUID, articleID string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.RemoveUserFavorite(ctx, sqlcgen.RemoveUserFavoriteParams{
+		UserID:    userID,
+		ArticleID: articleID,
 	})
 }
 
@@ -543,6 +646,7 @@ func mapRowToDomainUser(row sqlcgen.User) domain.User {
 		Phone:       row.Phone,
 		BirthDate:   row.BirthDate,
 		AvatarKey:   row.AvatarKey,
+		Active:      row.Active,
 		Role:        role,
 		Permissions: perms,
 		ActiveView:  activeView,
@@ -552,6 +656,11 @@ func mapRowToDomainUser(row sqlcgen.User) domain.User {
 			EmailReceiptsEnabled:     row.EmailReceiptsEnabled,
 			BiometricLockEnabled:     row.BiometricLockEnabled,
 			AutoSyncWifiOnly:         row.AutoSyncWifiOnly,
+			EventRemindersEnabled:    row.EventRemindersEnabled,
+			PreferredLanguage:        row.PreferredLanguage,
+			DarkThemeEnabled:         row.DarkThemeEnabled,
+			SavedPaymentMethod:       row.SavedPaymentMethod,
+			ProfileZone:              row.ProfileZone,
 		},
 		CreatedAt:    row.CreatedAt,
 		PasswordHash: row.PasswordHash,

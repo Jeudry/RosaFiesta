@@ -31,6 +31,10 @@ var (
 	ErrInvalidPaymentAmount = errors.New("payment amount must be greater than zero")
 	// ErrInvalidPaymentMethod indica que el método de pago no es válido.
 	ErrInvalidPaymentMethod = errors.New("invalid payment method; use transferencia, tarjeta, or efectivo")
+	// ErrCardCheckoutRequired indica que un cliente debe usar la pasarela Stripe para pagar con tarjeta.
+	ErrCardCheckoutRequired = errors.New("card payments require Stripe checkout session")
+	// ErrClientCashRestricted indica que solo administración puede registrar pagos inmediatos en efectivo.
+	ErrClientCashRestricted = errors.New("clients must pay via transfer voucher or card checkout")
 )
 
 // PaymentMethod representa el medio utilizado para efectuar el pago.
@@ -257,6 +261,11 @@ func extractDigitsOnly(raw string) string {
 
 // ComputeDominicanTaxBreakdown calcula subtotal neto e ITBIS del 18% excluyendo depósito en garantía.
 func ComputeDominicanTaxBreakdown(amountDOP, securityDepositDOP int) (subtotal, itbis int) {
+	return ComputeDominicanTaxBreakdownWithRate(amountDOP, securityDepositDOP, 18)
+}
+
+// ComputeDominicanTaxBreakdownWithRate calcula subtotal neto e ITBIS con una tasa configurable excluyendo depósito en garantía.
+func ComputeDominicanTaxBreakdownWithRate(amountDOP, securityDepositDOP, itbisPercent int) (subtotal, itbis int) {
 	deposit := securityDepositDOP
 	if deposit < 0 {
 		deposit = 0
@@ -268,7 +277,12 @@ func ComputeDominicanTaxBreakdown(amountDOP, securityDepositDOP int) (subtotal, 
 	if taxable <= 0 {
 		return 0, 0
 	}
-	subtotal = int(math.Round(float64(taxable) / 1.18))
+	rate := itbisPercent
+	if rate < 0 {
+		rate = 0
+	}
+	divisor := 1.0 + (float64(rate) / 100.0)
+	subtotal = int(math.Round(float64(taxable) / divisor))
 	itbis = taxable - subtotal
 	return subtotal, itbis
 }

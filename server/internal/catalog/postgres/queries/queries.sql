@@ -92,6 +92,10 @@ SELECT id, name, event_type, photo_key, photo_url, total_price_dop, guest_capaci
 FROM packages
 ORDER BY id;
 
+-- name: DeletePackage :exec
+DELETE FROM packages
+WHERE id = $1;
+
 -- name: DeletePackageItems :exec
 DELETE FROM package_items
 WHERE package_id = $1;

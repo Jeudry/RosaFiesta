@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -178,6 +179,30 @@ func (a quoteLifecycleAdapter) NotifyQuoteSigned(ctx context.Context, quote quot
 	return nil
 }
 
+func (a quoteLifecycleAdapter) NotifyQuoteSent(ctx context.Context, quote quotesdomain.Quote) {
+	if a.operations == nil {
+		return
+	}
+	clientID := strings.TrimSpace(quote.ClientID)
+	title := "Cotización lista: " + quote.EventTitle
+	body := fmt.Sprintf("Recibiste la cotización %s por RD$%d. Revísala y fírmala en la app.", quote.Code, quote.TotalRD)
+	a.operations.CreateNotification(ctx, title, body, "cotizaciones", "client", clientID)
+	clientUUID := parseOptionalUUID(clientID)
+	canPushClient := a.identity != nil
+	if canPushClient {
+		canPushClient = clientUUID != uuid.Nil
+	}
+	if !canPushClient {
+		return
+	}
+	prefs := a.identity.PreferencesForAccount(ctx, clientUUID, quote.ClientEmail)
+	if !prefs.PushNotificationsEnabled {
+		return
+	}
+	tokens := a.identity.ActivePushTokensForUser(ctx, clientUUID)
+	dispatchRemotePush(ctx, a.pushSender, tokens, title, body, "cotizaciones")
+}
+
 func parseOptionalUUID(raw string) uuid.UUID {
 	parsed, err := uuid.Parse(strings.TrimSpace(raw))
 	if err != nil {
@@ -189,31 +214,77 @@ func parseOptionalUUID(raw string) uuid.UUID {
 type paymentVerifiedAdapter struct {
 	events     *eventsapp.Service
 	operations *operationsapp.Service
+	identity   *identityapp.Service
+	pushSender push.Sender
 }
 
 func (a paymentVerifiedAdapter) OnPaymentVerified(ctx context.Context, payment paymentsdomain.Payment) error {
 	eventID := strings.TrimSpace(payment.EventID)
-	if eventID == "" {
-		return nil
+	if eventID != "" {
+		evt, _, err := a.events.ApplyVerifiedPayment(ctx, eventID, payment.AmountRD)
+		isUnexpectedErr := err != nil
+		if isUnexpectedErr {
+			isUnexpectedErr = !errors.Is(err, eventsdomain.ErrEventNotFound)
+		}
+		if isUnexpectedErr {
+			return err
+		}
+		isConfirmed := err == nil
+		if isConfirmed {
+			isConfirmed = evt.Status == eventsdomain.StatusConfirmed
+		}
+		if isConfirmed {
+			if logiErr := a.operations.EnsureLogisticsForConfirmedEvent(
+				ctx,
+				evt.ID,
+				evt.Title,
+				evt.Venue,
+				evt.Zone,
+				evt.DateLabel,
+			); logiErr != nil {
+				return logiErr
+			}
+		}
 	}
-	evt, _, err := a.events.ApplyVerifiedPayment(ctx, eventID, payment.AmountRD)
-	if errors.Is(err, eventsdomain.ErrEventNotFound) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	if evt.Status == eventsdomain.StatusConfirmed {
-		return a.operations.EnsureLogisticsForConfirmedEvent(
-			ctx,
-			evt.ID,
-			evt.Title,
-			evt.Venue,
-			evt.Zone,
-			evt.DateLabel,
-		)
-	}
+	a.notifyPaymentClient(
+		ctx,
+		payment,
+		"Pago confirmado · "+payment.ReceiptNumber,
+		fmt.Sprintf("Tu pago de RD$%d para %s fue verificado.", payment.AmountRD, payment.EventTitle),
+	)
 	return nil
+}
+
+func (a paymentVerifiedAdapter) OnPaymentRejected(ctx context.Context, payment paymentsdomain.Payment, reason string) {
+	body := fmt.Sprintf("Tu comprobante de RD$%d para %s fue rechazado: %s", payment.AmountRD, payment.EventTitle, reason)
+	a.notifyPaymentClient(ctx, payment, "Comprobante rechazado · "+payment.ReceiptNumber, body)
+}
+
+func (a paymentVerifiedAdapter) notifyPaymentClient(
+	ctx context.Context,
+	payment paymentsdomain.Payment,
+	title string,
+	body string,
+) {
+	if a.operations == nil {
+		return
+	}
+	clientID := strings.TrimSpace(payment.ClientID)
+	a.operations.CreateNotification(ctx, title, body, "pagos", "client", clientID)
+	clientUUID := parseOptionalUUID(clientID)
+	canPushClient := a.identity != nil
+	if canPushClient {
+		canPushClient = clientUUID != uuid.Nil
+	}
+	if !canPushClient {
+		return
+	}
+	prefs := a.identity.PreferencesForAccount(ctx, clientUUID, payment.ClientEmail)
+	if !prefs.PushNotificationsEnabled {
+		return
+	}
+	tokens := a.identity.ActivePushTokensForUser(ctx, clientUUID)
+	dispatchRemotePush(ctx, a.pushSender, tokens, title, body, "pagos")
 }
 
 type damageChargeAdapter struct {
@@ -495,7 +566,261 @@ func (a userPreferencesAdapter) lookupClientPhone(ctx context.Context, event eve
 			return strings.TrimSpace(client.Phone)
 		}
 	}
+	for _, usr := range a.identity.ListRegisteredUsers(ctx) {
+		if event.ClientID != uuid.Nil {
+			if usr.ID == event.ClientID {
+				return strings.TrimSpace(usr.Phone)
+			}
+		}
+		if strings.EqualFold(usr.Email, event.ClientEmail) {
+			return strings.TrimSpace(usr.Phone)
+		}
+		if strings.EqualFold(usr.FullName, event.ClientName) {
+			return strings.TrimSpace(usr.Phone)
+		}
+	}
 	return ""
+}
+
+type businessSettingsAdapter struct {
+	operations *operationsapp.Service
+}
+
+func (a businessSettingsAdapter) CurrentITBISPercent(ctx context.Context) int {
+	if a.operations == nil {
+		return 18
+	}
+	settings, _ := a.operations.GetSettings(ctx)
+	if settings.ItbisPercent > 0 {
+		return settings.ItbisPercent
+	}
+	return 18
+}
+
+func (a businessSettingsAdapter) CurrentDepositPercent(ctx context.Context) int {
+	if a.operations == nil {
+		return 50
+	}
+	settings, _ := a.operations.GetSettings(ctx)
+	if settings.DepositPercent > 0 {
+		return settings.DepositPercent
+	}
+	return 50
+}
+
+type refundApprovedAdapter struct {
+	events     *eventsapp.Service
+	catalog    *catalogapp.Service
+	operations *operationsapp.Service
+	identity   *identityapp.Service
+	pushSender push.Sender
+}
+
+func (a refundApprovedAdapter) OnRefundApproved(
+	ctx context.Context,
+	refund paymentsdomain.Refund,
+	opts paymentsapp.ApproveRefundOptions,
+) {
+	shouldRelease := opts.ReleaseInventory
+	if shouldRelease {
+		shouldRelease = strings.TrimSpace(refund.EventID) != ""
+	}
+	if shouldRelease {
+		if a.catalog != nil {
+			_ = a.catalog.TransitionEventReservations(ctx, refund.EventID, catalogdomain.ReservationReleased)
+		}
+	}
+	event, hasEvent := a.lookupEvent(ctx, refund.EventID)
+	clientID := ""
+	clientEmail := ""
+	clientName := refund.ClientName
+	if hasEvent {
+		if event.ClientID != uuid.Nil {
+			clientID = event.ClientID.String()
+		}
+		clientEmail = event.ClientEmail
+		if strings.TrimSpace(event.ClientName) != "" {
+			clientName = event.ClientName
+		}
+	}
+	body := strings.TrimSpace(opts.ClientMessage)
+	if body == "" {
+		body = fmt.Sprintf("Hola %s, tu reembolso %s por RD$%d fue aprobado.", clientName, refund.ID, refund.RefundDop)
+	}
+	if a.operations != nil {
+		a.operations.CreateNotification(ctx, "Reembolso aprobado · "+refund.ID, body, "pagos", "client", clientID)
+	}
+	a.dispatchRefundAlertChannels(ctx, hasEvent, event, clientID, clientEmail, body, opts.NotifyWhatsApp)
+}
+
+func (a refundApprovedAdapter) lookupEvent(ctx context.Context, eventID string) (eventsdomain.Event, bool) {
+	if a.events == nil {
+		return eventsdomain.Event{}, false
+	}
+	if strings.TrimSpace(eventID) == "" {
+		return eventsdomain.Event{}, false
+	}
+	for _, evt := range a.events.AllEventsSnapshot(ctx) {
+		if evt.ID == eventID {
+			return evt, true
+		}
+	}
+	return eventsdomain.Event{}, false
+}
+
+func (a refundApprovedAdapter) dispatchRefundAlertChannels(
+	ctx context.Context,
+	hasEvent bool,
+	event eventsdomain.Event,
+	clientID string,
+	clientEmail string,
+	body string,
+	notifyWhatsApp bool,
+) {
+	if a.identity == nil {
+		return
+	}
+	clientUUID := parseOptionalUUID(clientID)
+	prefs := a.identity.PreferencesForAccount(ctx, clientUUID, clientEmail)
+	canPush := prefs.PushNotificationsEnabled
+	if canPush {
+		canPush = clientUUID != uuid.Nil
+	}
+	if canPush {
+		tokens := a.identity.ActivePushTokensForUser(ctx, clientUUID)
+		dispatchRemotePush(ctx, a.pushSender, tokens, "Reembolso aprobado", body, "pagos")
+	}
+	canSendWhatsApp := notifyWhatsApp
+	if canSendWhatsApp {
+		canSendWhatsApp = prefs.WhatsAppAlertsEnabled
+	}
+	if canSendWhatsApp {
+		canSendWhatsApp = a.operations != nil
+	}
+	if canSendWhatsApp {
+		canSendWhatsApp = hasEvent
+	}
+	if canSendWhatsApp {
+		phone := userPreferencesAdapter{identity: a.identity}.lookupClientPhone(ctx, event)
+		if phone != "" {
+			_, _ = a.operations.SendWhatsAppBotReply(ctx, "", phone, body)
+		}
+	}
+}
+
+type reportSnapshotAdapter struct {
+	payments *paymentsapp.Service
+	events   *eventsapp.Service
+	catalog  *catalogapp.Service
+	identity *identityapp.Service
+}
+
+func (a reportSnapshotAdapter) BuildReportSnapshot(
+	ctx context.Context,
+	months int,
+	now time.Time,
+) (operationsdomain.ReportSnapshot, error) {
+	byKey := make(map[string]*operationsdomain.ReportMonthMetric, months)
+	anchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	for offset := 0; offset < months; offset++ {
+		ts := anchor.AddDate(0, -offset, 0)
+		key := fmt.Sprintf("%04d-%02d", ts.Year(), int(ts.Month()))
+		byKey[key] = &operationsdomain.ReportMonthMetric{Year: ts.Year(), Month: ts.Month()}
+	}
+	eventDateByID := a.aggregateEventsIntoSnapshot(ctx, byKey)
+	a.aggregatePaymentsIntoSnapshot(byKey, eventDateByID, anchor)
+	a.applyTotalsToSnapshot(ctx, byKey)
+
+	out := make([]operationsdomain.ReportMonthMetric, 0, len(byKey))
+	for _, metric := range byKey {
+		out = append(out, *metric)
+	}
+	return operationsdomain.ReportSnapshot{Months: out}, nil
+}
+
+func (a reportSnapshotAdapter) aggregateEventsIntoSnapshot(
+	ctx context.Context,
+	byKey map[string]*operationsdomain.ReportMonthMetric,
+) map[string]time.Time {
+	datesByEvent := make(map[string]time.Time)
+	if a.events == nil {
+		return datesByEvent
+	}
+	for _, evt := range a.events.AllEventsSnapshot(ctx) {
+		parsed, ok := parseReminderEventDate(evt.EventDateISO)
+		if !ok {
+			continue
+		}
+		datesByEvent[evt.ID] = parsed
+		if evt.Status == eventsdomain.StatusCancelled {
+			continue
+		}
+		key := fmt.Sprintf("%04d-%02d", parsed.Year(), int(parsed.Month()))
+		if metric, exists := byKey[key]; exists {
+			metric.EventsCount++
+		}
+	}
+	return datesByEvent
+}
+
+func (a reportSnapshotAdapter) aggregatePaymentsIntoSnapshot(
+	byKey map[string]*operationsdomain.ReportMonthMetric,
+	datesByEvent map[string]time.Time,
+	fallback time.Time,
+) {
+	if a.payments == nil {
+		return
+	}
+	for _, pay := range a.payments.ListPayments("") {
+		if !pay.IsVerifiedOrConfirmed() {
+			continue
+		}
+		ts := resolvePaymentReportTime(pay, datesByEvent, fallback)
+		key := fmt.Sprintf("%04d-%02d", ts.Year(), int(ts.Month()))
+		if metric, exists := byKey[key]; exists {
+			metric.IncomeRD += pay.AmountRD
+		}
+	}
+}
+
+func (a reportSnapshotAdapter) applyTotalsToSnapshot(
+	ctx context.Context,
+	byKey map[string]*operationsdomain.ReportMonthMetric,
+) {
+	totalStock := 0
+	if a.catalog != nil {
+		for _, article := range a.catalog.Articles(ctx, "") {
+			totalStock += article.TotalStock
+		}
+	}
+	totalClients := 0
+	if a.identity != nil {
+		totalClients = len(a.identity.Clients(ctx))
+	}
+	for _, metric := range byKey {
+		metric.InventoryCount = totalStock
+		metric.ClientsCount = totalClients
+	}
+}
+
+func resolvePaymentReportTime(
+	pay paymentsdomain.Payment,
+	datesByEvent map[string]time.Time,
+	fallback time.Time,
+) time.Time {
+	trimmedISO := strings.TrimSpace(pay.VerifiedAtISO)
+	if trimmedISO != "" {
+		if parsed, err := time.Parse(time.RFC3339, trimmedISO); err == nil {
+			return parsed
+		}
+		if parsed, ok := parseReminderEventDate(trimmedISO); ok {
+			return parsed
+		}
+	}
+	if evtDate, ok := datesByEvent[pay.EventID]; ok {
+		return evtDate
+	}
+	return fallback
 }
 
 func dispatchRemotePush(

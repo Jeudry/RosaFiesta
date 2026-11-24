@@ -49,6 +49,10 @@ type Store interface {
 	UpdateStatusAndReason(ctx context.Context, id string, status domain.EventStatus, reason string) error
 	ListGuests(ctx context.Context, eventID string) ([]domain.EventGuest, error)
 	UpsertGuest(ctx context.Context, guest domain.EventGuest) error
+	DeleteGuest(ctx context.Context, eventID, guestID string) error
+	ListTeamTasks(ctx context.Context, eventID string) ([]domain.EventTask, error)
+	UpsertTeamTask(ctx context.Context, task domain.EventTask) error
+	DeleteTeamTask(ctx context.Context, eventID, taskID string) error
 	ListScheduleBlocks(ctx context.Context, eventID string) ([]domain.ScheduleBlock, error)
 	UpsertScheduleBlock(ctx context.Context, block domain.ScheduleBlock) error
 	DeleteScheduleBlock(ctx context.Context, eventID, blockID string) error
@@ -120,6 +124,7 @@ type Service struct {
 	events             map[string]domain.Event
 	order              []string
 	guests             map[string][]domain.EventGuest
+	tasks              map[string][]domain.EventTask
 	schedules          map[string][]domain.ScheduleBlock
 	messages           []domain.ChatMessage
 }
@@ -192,6 +197,7 @@ func (s *Service) Reset(_ context.Context) {
 	s.events = events
 	s.order = order
 	s.guests = guests
+	s.tasks = make(map[string][]domain.EventTask)
 	s.schedules = schedules
 	s.messages = domain.CanonicalChatMessages(now)
 	s.mu.Unlock()
@@ -199,10 +205,11 @@ func (s *Service) Reset(_ context.Context) {
 
 func (s *Service) ResetEmpty(_ context.Context) {
 	s.mu.Lock()
-	s.templates = nil
+	s.templates = domain.CanonicalTemplates()
 	s.events = make(map[string]domain.Event)
 	s.order = nil
 	s.guests = make(map[string][]domain.EventGuest)
+	s.tasks = make(map[string][]domain.EventTask)
 	s.schedules = make(map[string][]domain.ScheduleBlock)
 	s.messages = nil
 	s.mu.Unlock()
@@ -315,7 +322,7 @@ func (s *Service) ListEventsForCaller(
 				}
 			}
 		}
-		result = append(result, evt)
+		result = append(result, s.withComputedDaysUntil(evt))
 	}
 	return result
 }
@@ -340,7 +347,14 @@ func (s *Service) GetEventForCaller(
 			}
 		}
 	}
-	return evt, nil
+	return s.withComputedDaysUntil(evt), nil
+}
+
+func (s *Service) withComputedDaysUntil(evt domain.Event) domain.Event {
+	if strings.TrimSpace(evt.EventDateISO) != "" {
+		evt.DaysUntilEvent = domain.ComputeDaysUntilEvent(evt.EventDateISO, s.clock.Now(), evt.DaysUntilEvent)
+	}
+	return evt
 }
 
 func (s *Service) CreateEvent(
@@ -367,6 +381,9 @@ func (s *Service) CreateEventForCaller(
 	now := s.clock.Now()
 	newEvt := buildCreatedEvent(cmd, title, caller, now)
 	applyEventDateRange(&newEvt, now.Year())
+	if strings.TrimSpace(newEvt.EventDateISO) != "" {
+		newEvt.DaysUntilEvent = domain.ComputeDaysUntilEvent(newEvt.EventDateISO, now, newEvt.DaysUntilEvent)
+	}
 	if err := s.reserveStockForEvent(ctx, newEvt, reservationStatusForEvent(newEvt.Status)); err != nil {
 		return domain.Event{}, err
 	}
@@ -396,13 +413,16 @@ func (s *Service) UpdateEventForCaller(
 	if err != nil {
 		return domain.Event{}, err
 	}
-	updated, err := applyEventPatch(evt, cmd)
+	updated, err := applyEventPatchForCaller(evt, cmd, caller)
 	if err != nil {
 		return domain.Event{}, err
 	}
 	now := s.clock.Now()
 	if patchChangesDate(cmd) {
 		applyEventDateRange(&updated, now.Year())
+		if strings.TrimSpace(updated.EventDateISO) != "" {
+			updated.DaysUntilEvent = domain.ComputeDaysUntilEvent(updated.EventDateISO, now, updated.DaysUntilEvent)
+		}
 	}
 	if patchRequiresStockSync(cmd) {
 		if err := s.reserveStockForEvent(ctx, updated, reservationStatusForEvent(updated.Status)); err != nil {
@@ -462,7 +482,15 @@ func (s *Service) RequestDateChangeForCaller(
 	evt.DateLabel = strings.TrimSpace(newDateLabel)
 	evt.EventDateISO = ""
 	applyEventDateRange(&evt, s.clock.Now().Year())
-	evt.DaysUntilEvent = newDaysUntilEvent
+	computedDays := domain.ComputeDaysUntilEvent(evt.EventDateISO, s.clock.Now(), newDaysUntilEvent)
+	canUseAdminDays := !caller.IsClient()
+	if canUseAdminDays {
+		canUseAdminDays = newDaysUntilEvent > 0
+	}
+	if canUseAdminDays {
+		computedDays = newDaysUntilEvent
+	}
+	evt.DaysUntilEvent = computedDays
 	evt.DateChangesUsed = eval.NextCount
 	evt.TotalRD += eval.FeeRD
 	if err := s.reserveStockForEvent(ctx, evt, reservationStatusForEvent(evt.Status)); err != nil {
@@ -487,6 +515,9 @@ func (s *Service) CancelEventForCaller(
 	}
 	if evt.Status == domain.StatusCompleted {
 		return domain.Event{}, domain.RefundPolicyResult{}, domain.ErrCannotCancelCompleted
+	}
+	if evt.Status == domain.StatusCancelled {
+		return domain.Event{}, domain.RefundPolicyResult{}, domain.ErrAlreadyCancelled
 	}
 	cleanReason := defaultTrimmed(reason, "Cancellation requested by client")
 	refund := domain.CalculateCancellationRefund(evt.PaidDepositRD, evt.DaysUntilEvent)
@@ -649,6 +680,10 @@ func buildCreatedEvent(
 	}
 	upperSuffix := strings.ToUpper(suffix[:4])
 	code := fmt.Sprintf("RF-%d-%s", now.Year(), upperSuffix)
+	paidDeposit := cmd.PaidDepositRD
+	if caller.IsClient() {
+		paidDeposit = 0
+	}
 	return domain.Event{
 		ID:             "evt-" + suffix,
 		Code:           code,
@@ -666,7 +701,7 @@ func buildCreatedEvent(
 		Guests:         cmd.Guests,
 		ArticleCount:   articlesCount,
 		TotalRD:        totalRD,
-		PaidDepositRD:  cmd.PaidDepositRD,
+		PaidDepositRD:  paidDeposit,
 		BalanceDueDate: strings.TrimSpace(cmd.BalanceDueDate),
 		Status:         domain.StatusPending,
 		AssignedLead:   strings.TrimSpace(cmd.AssignedLead),
@@ -700,7 +735,7 @@ func defaultTrimmed(raw, fallback string) string {
 	return trimmed
 }
 
-func applyEventPatch(existing domain.Event, cmd UpdateEventCommand) (domain.Event, error) {
+func applyEventPatchForCaller(existing domain.Event, cmd UpdateEventCommand, caller platformhttp.Principal) (domain.Event, error) {
 	updated := existing
 	if cmd.Title != nil {
 		trimmed := strings.TrimSpace(*cmd.Title)
@@ -721,13 +756,17 @@ func applyEventPatch(existing domain.Event, cmd UpdateEventCommand) (domain.Even
 	if cmd.EventDateISO != nil {
 		updated.EventDateISO = strings.TrimSpace(*cmd.EventDateISO)
 	}
-	if cmd.DaysUntilEvent != nil {
+	canOverrideDays := !caller.IsClient()
+	if canOverrideDays {
+		canOverrideDays = cmd.DaysUntilEvent != nil
+	}
+	if canOverrideDays {
 		updated.DaysUntilEvent = *cmd.DaysUntilEvent
 	}
-	return applyEventDetailsPatch(updated, cmd)
+	return applyEventDetailsPatch(updated, cmd, caller)
 }
 
-func applyEventDetailsPatch(updated domain.Event, cmd UpdateEventCommand) (domain.Event, error) {
+func applyEventDetailsPatch(updated domain.Event, cmd UpdateEventCommand, caller platformhttp.Principal) (domain.Event, error) {
 	if cmd.Guests != nil {
 		if *cmd.Guests < 0 {
 			return domain.Event{}, domain.ErrInvalidGuestCount
@@ -740,9 +779,20 @@ func applyEventDetailsPatch(updated domain.Event, cmd UpdateEventCommand) (domai
 		if !domain.IsValidEventStatus(candidate) {
 			return domain.Event{}, domain.ErrInvalidEventStatus
 		}
+		clientDenied := caller.IsClient()
+		if clientDenied {
+			clientDenied = !isClientAllowedStatus(candidate)
+		}
+		if clientDenied {
+			return domain.Event{}, domain.ErrEventForbidden
+		}
 		updated.Status = candidate
 	}
-	if cmd.AssignedLead != nil {
+	canAssignLead := !caller.IsClient()
+	if canAssignLead {
+		canAssignLead = cmd.AssignedLead != nil
+	}
+	if canAssignLead {
 		updated.AssignedLead = strings.TrimSpace(*cmd.AssignedLead)
 	}
 	if cmd.SketchJSON != nil {
@@ -758,6 +808,13 @@ func applyEventDetailsPatch(updated domain.Event, cmd UpdateEventCommand) (domai
 		}
 	}
 	return updated, nil
+}
+
+func isClientAllowedStatus(status domain.EventStatus) bool {
+	if status == domain.StatusDraft {
+		return true
+	}
+	return status == domain.StatusPending
 }
 
 func sumEventItems(items []domain.EventItem) (int, int) {

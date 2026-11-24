@@ -58,11 +58,16 @@ var canonicalStaffPermissions = map[string]struct{}{
 }
 
 type UserPreferences struct {
-	PushNotificationsEnabled bool `json:"pushNotificationsEnabled"`
-	WhatsAppAlertsEnabled    bool `json:"whatsappAlertsEnabled"`
-	EmailReceiptsEnabled     bool `json:"emailReceiptsEnabled"`
-	BiometricLockEnabled     bool `json:"biometricLockEnabled"`
-	AutoSyncWifiOnly         bool `json:"autoSyncWifiOnly"`
+	PushNotificationsEnabled bool   `json:"pushNotificationsEnabled"`
+	WhatsAppAlertsEnabled    bool   `json:"whatsappAlertsEnabled"`
+	EmailReceiptsEnabled     bool   `json:"emailReceiptsEnabled"`
+	BiometricLockEnabled     bool   `json:"biometricLockEnabled"`
+	AutoSyncWifiOnly         bool   `json:"autoSyncWifiOnly"`
+	EventRemindersEnabled    bool   `json:"eventRemindersEnabled"`
+	PreferredLanguage        string `json:"preferredLanguage"`
+	DarkThemeEnabled         bool   `json:"darkThemeEnabled"`
+	SavedPaymentMethod       string `json:"savedPaymentMethod"`
+	ProfileZone              string `json:"profileZone"`
 }
 
 func DefaultUserPreferences() UserPreferences {
@@ -72,6 +77,11 @@ func DefaultUserPreferences() UserPreferences {
 		EmailReceiptsEnabled:     true,
 		BiometricLockEnabled:     false,
 		AutoSyncWifiOnly:         false,
+		EventRemindersEnabled:    true,
+		PreferredLanguage:        "es",
+		DarkThemeEnabled:         false,
+		SavedPaymentMethod:       "",
+		ProfileZone:              "",
 	}
 }
 
@@ -83,6 +93,7 @@ type User struct {
 	Phone        string          `json:"phone"`
 	BirthDate    string          `json:"birthDate"`
 	AvatarKey    string          `json:"avatarKey,omitempty"`
+	Active       bool            `json:"active"`
 	Role         Role            `json:"role"`
 	Permissions  []string        `json:"permissions"`
 	ActiveView   AppView         `json:"activeView"`

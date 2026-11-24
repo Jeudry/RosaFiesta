@@ -2,7 +2,9 @@
 package domain
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -108,6 +110,16 @@ func CalculateQuoteTotals(
 	deliveryFeeRD int,
 	discountRD int,
 ) (totalRD int, depositRD int, balanceRD int, err error) {
+	return CalculateQuoteTotalsWithDeposit(lines, deliveryFeeRD, discountRD, 30)
+}
+
+// CalculateQuoteTotalsWithDeposit calcula total, anticipo configurable y saldo pendiente.
+func CalculateQuoteTotalsWithDeposit(
+	lines []QuoteLine,
+	deliveryFeeRD int,
+	discountRD int,
+	depositPercent int,
+) (totalRD int, depositRD int, balanceRD int, err error) {
 	if len(lines) == 0 {
 		return 0, 0, 0, ErrEmptyQuoteItems
 	}
@@ -124,9 +136,108 @@ func CalculateQuoteTotals(
 	if totalRD < 0 {
 		totalRD = 0
 	}
-	depositRD = (totalRD * 30) / 100
+	pct := depositPercent
+	if pct <= 0 {
+		pct = 30
+	}
+	if pct > 100 {
+		pct = 30
+	}
+	depositRD = (totalRD * pct) / 100
 	balanceRD = totalRD - depositRD
 	return totalRD, depositRD, balanceRD, nil
+}
+
+// BuildQuoteContractPDF genera un documento PDF 1.4 válido con el detalle del contrato y firma.
+func BuildQuoteContractPDF(quote Quote) []byte {
+	lines := buildContractLines(quote)
+	var stream bytes.Buffer
+	stream.WriteString("BT\n/F1 11 Tf\n48 750 Td\n15 TL\n")
+	for idx, line := range lines {
+		escaped := escapePDFText(line)
+		if idx == 0 {
+			fmt.Fprintf(&stream, "(%s) Tj\n", escaped)
+		} else {
+			fmt.Fprintf(&stream, "T* (%s) Tj\n", escaped)
+		}
+	}
+	stream.WriteString("ET\n")
+	streamBytes := stream.Bytes()
+
+	objects := []string{
+		"<< /Type /Catalog /Pages 2 0 R >>",
+		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+		fmt.Sprintf("<< /Length %d >>\nstream\n%sendstream", len(streamBytes), streamBytes),
+		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+	}
+
+	var out bytes.Buffer
+	out.WriteString("%PDF-1.4\n")
+	offsets := make([]int, len(objects)+1)
+	for i, obj := range objects {
+		offsets[i+1] = out.Len()
+		fmt.Fprintf(&out, "%d 0 obj\n%s\nendobj\n", i+1, obj)
+	}
+	xrefOffset := out.Len()
+	fmt.Fprintf(&out, "xref\n0 %d\n0000000000 65535 f \n", len(objects)+1)
+	for i := 1; i <= len(objects); i++ {
+		fmt.Fprintf(&out, "%010d 00000 n \n", offsets[i])
+	}
+	fmt.Fprintf(&out, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(objects)+1, xrefOffset)
+	return out.Bytes()
+}
+
+func buildContractLines(quote Quote) []string {
+	statusLabel := string(quote.Status)
+	signerLabel := strings.TrimSpace(quote.SignedByName)
+	if signerLabel == "" {
+		signerLabel = "Pendiente de firma"
+	}
+	lines := []string{
+		"ROSAFIESTA SRL - CONTRATO Y COTIZACION",
+		fmt.Sprintf("Codigo: %s | Estado: %s", quote.Code, statusLabel),
+		fmt.Sprintf("Evento: %s", quote.EventTitle),
+		fmt.Sprintf("Cliente: %s (%s)", quote.ClientName, quote.ClientEmail),
+		fmt.Sprintf("Fecha: %s | Lugar: %s | Invitados: %d", quote.EventDateLabel, quote.Venue, quote.Guests),
+		"------------------------------------------------------------",
+		"Detalle de articulos:",
+	}
+	for _, item := range quote.Lines {
+		lines = append(lines, fmt.Sprintf("- %s x%d @ RD$%d = RD$%d", item.Name, item.Quantity, item.UnitPriceRD, item.SubtotalRD()))
+	}
+	lines = append(lines,
+		"------------------------------------------------------------",
+		fmt.Sprintf("Transporte: RD$%d | Descuento: RD$%d", quote.DeliveryFeeRD, quote.DiscountRD),
+		fmt.Sprintf("Total: RD$%d | Anticipo (%d%%): RD$%d | Saldo: RD$%d", quote.TotalRD, quote.DepositPercent, quote.DepositRD, quote.BalanceRD),
+		fmt.Sprintf("Firmado por: %s | Fecha firma: %s", signerLabel, quote.SignedAtISO),
+	)
+	return lines
+}
+
+func escapePDFText(raw string) string {
+	var b strings.Builder
+	for _, r := range raw {
+		switch r {
+		case '\\', '(', ')':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		default:
+			if isPrintableASCII(r) {
+				b.WriteRune(r)
+			} else {
+				b.WriteByte(' ')
+			}
+		}
+	}
+	return b.String()
+}
+
+func isPrintableASCII(r rune) bool {
+	if r < 32 {
+		return false
+	}
+	return r <= 126
 }
 
 func CanonicalQuotes() []Quote {

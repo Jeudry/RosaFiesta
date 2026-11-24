@@ -526,8 +526,9 @@ func (s *Service) ComputeAnalytics(ctx context.Context, rawRange string) domain.
 	series := buildMonthlyAnalyticsSeries(now, monthCount, allPayments, allRefunds, allEvents)
 	filteredPayments := filterPaymentsByCutoff(allPayments, now, hasCutoff, cutoff)
 	filteredEvents := filterEventsByCutoff(allEvents, now, hasCutoff, cutoff)
+	filteredRefunds := filterRefundsByCutoff(allRefunds, now, hasCutoff, cutoff)
 	totalRev := sumVerifiedPayments(filteredPayments)
-	approvedRefunds := sumApprovedRefunds(allRefunds)
+	approvedRefunds := sumApprovedRefunds(filteredRefunds)
 	totalExp := approvedRefunds + damageExpense
 	netMargin := computeNetMarginPercent(totalRev, totalExp)
 	confirmed, pending, completed, cancelled, typesBreakdown, uniqueClients, repeatClients, collectionPct := aggregateEventAnalytics(filteredEvents)
@@ -727,6 +728,20 @@ func sumApprovedRefunds(items []domain.Refund) int {
 		}
 	}
 	return total
+}
+
+func filterRefundsByCutoff(items []domain.Refund, now time.Time, hasCutoff bool, cutoff time.Time) []domain.Refund {
+	if !hasCutoff {
+		return items
+	}
+	out := make([]domain.Refund, 0, len(items))
+	for _, item := range items {
+		dt := parseSpanishShortDate(item.ApprovedAtLabel, now)
+		if !dt.Before(cutoff) {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 func computeNetMarginPercent(revenue, expenses int) int {

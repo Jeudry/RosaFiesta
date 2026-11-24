@@ -12,6 +12,36 @@ import (
 	"github.com/google/uuid"
 )
 
+const addUserFavorite = `-- name: AddUserFavorite :exec
+INSERT INTO user_favorites (user_id, article_id, created_at)
+VALUES ($1, $2, $3)
+ON CONFLICT (user_id, article_id) DO NOTHING
+`
+
+type AddUserFavoriteParams struct {
+	UserID    uuid.UUID
+	ArticleID string
+	CreatedAt time.Time
+}
+
+func (q *Queries) AddUserFavorite(ctx context.Context, arg AddUserFavoriteParams) error {
+	_, err := q.db.Exec(ctx, addUserFavorite, arg.UserID, arg.ArticleID, arg.CreatedAt)
+	return err
+}
+
+const deleteExpiredOTPCodes = `-- name: DeleteExpiredOTPCodes :execrows
+DELETE FROM auth_otp_codes
+WHERE expires_at < $1 AND (used = TRUE OR reset_expires_at < $1)
+`
+
+func (q *Queries) DeleteExpiredOTPCodes(ctx context.Context, expiresAt time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredOTPCodes, expiresAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteExpiredOrRevokedRefreshTokens = `-- name: DeleteExpiredOrRevokedRefreshTokens :execrows
 DELETE FROM refresh_tokens
 WHERE expires_at < $1
@@ -25,6 +55,32 @@ type DeleteExpiredOrRevokedRefreshTokensParams struct {
 
 func (q *Queries) DeleteExpiredOrRevokedRefreshTokens(ctx context.Context, arg DeleteExpiredOrRevokedRefreshTokensParams) (int64, error) {
 	result, err := q.db.Exec(ctx, deleteExpiredOrRevokedRefreshTokens, arg.ExpiresAt, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteExpiredRevokedTokens = `-- name: DeleteExpiredRevokedTokens :execrows
+DELETE FROM revoked_tokens
+WHERE expires_at < $1
+`
+
+func (q *Queries) DeleteExpiredRevokedTokens(ctx context.Context, expiresAt time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredRevokedTokens, expiresAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteExpiredSessions = `-- name: DeleteExpiredSessions :execrows
+DELETE FROM sessions
+WHERE expires_at < $1
+`
+
+func (q *Queries) DeleteExpiredSessions(ctx context.Context, expiresAt time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredSessions, expiresAt)
 	if err != nil {
 		return 0, err
 	}
@@ -48,6 +104,16 @@ WHERE user_id = $1
 
 func (q *Queries) DeleteSessionsByUserID(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteSessionsByUserID, userID)
+	return err
+}
+
+const deleteStaffMemberByID = `-- name: DeleteStaffMemberByID :exec
+DELETE FROM staff_members
+WHERE id = $1
+`
+
+func (q *Queries) DeleteStaffMemberByID(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteStaffMemberByID, id)
 	return err
 }
 
@@ -94,6 +160,26 @@ type DisableDevicePushTokenParams struct {
 func (q *Queries) DisableDevicePushToken(ctx context.Context, arg DisableDevicePushTokenParams) error {
 	_, err := q.db.Exec(ctx, disableDevicePushToken, arg.UserID, arg.Token, arg.UpdatedAt)
 	return err
+}
+
+const getLatestActiveViewByUserID = `-- name: GetLatestActiveViewByUserID :one
+SELECT active_view
+FROM sessions
+WHERE user_id = $1 AND expires_at > $2
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type GetLatestActiveViewByUserIDParams struct {
+	UserID    uuid.UUID
+	ExpiresAt time.Time
+}
+
+func (q *Queries) GetLatestActiveViewByUserID(ctx context.Context, arg GetLatestActiveViewByUserIDParams) (string, error) {
+	row := q.db.QueryRow(ctx, getLatestActiveViewByUserID, arg.UserID, arg.ExpiresAt)
+	var active_view string
+	err := row.Scan(&active_view)
+	return active_view, err
 }
 
 const getOTPCodeByEmail = `-- name: GetOTPCodeByEmail :one
@@ -167,7 +253,8 @@ func (q *Queries) GetSessionByTokenHash(ctx context.Context, arg GetSessionByTok
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
-       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only,
+       active, event_reminders_enabled, preferred_language, dark_theme_enabled, saved_payment_method, profile_zone
 FROM users
 WHERE email = $1
 `
@@ -192,13 +279,20 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.EmailReceiptsEnabled,
 		&i.BiometricLockEnabled,
 		&i.AutoSyncWifiOnly,
+		&i.Active,
+		&i.EventRemindersEnabled,
+		&i.PreferredLanguage,
+		&i.DarkThemeEnabled,
+		&i.SavedPaymentMethod,
+		&i.ProfileZone,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
-       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only,
+       active, event_reminders_enabled, preferred_language, dark_theme_enabled, saved_payment_method, profile_zone
 FROM users
 WHERE id = $1
 `
@@ -223,6 +317,12 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.EmailReceiptsEnabled,
 		&i.BiometricLockEnabled,
 		&i.AutoSyncWifiOnly,
+		&i.Active,
+		&i.EventRemindersEnabled,
+		&i.PreferredLanguage,
+		&i.DarkThemeEnabled,
+		&i.SavedPaymentMethod,
+		&i.ProfileZone,
 	)
 	return i, err
 }
@@ -268,12 +368,34 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 	return err
 }
 
+const isTokenRevoked = `-- name: IsTokenRevoked :one
+SELECT EXISTS (
+    SELECT 1
+    FROM revoked_tokens
+    WHERE token_hash = $1 AND expires_at > $2
+)
+`
+
+type IsTokenRevokedParams struct {
+	TokenHash string
+	ExpiresAt time.Time
+}
+
+func (q *Queries) IsTokenRevoked(ctx context.Context, arg IsTokenRevokedParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isTokenRevoked, arg.TokenHash, arg.ExpiresAt)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const listActiveAdminPushTokens = `-- name: ListActiveAdminPushTokens :many
 SELECT d.id, d.user_id, d.platform, d.token, d.app_variant, d.enabled, d.updated_at
 FROM device_push_tokens d
 INNER JOIN users u ON u.id = d.user_id
 WHERE d.enabled = TRUE
   AND d.app_variant = 'admin'
+  AND u.role IN ('admin', 'staff')
+  AND u.active = TRUE
   AND u.push_notifications_enabled = TRUE
 ORDER BY d.updated_at DESC
 `
@@ -379,7 +501,8 @@ func (q *Queries) ListAdminClients(ctx context.Context) ([]AdminClient, error) {
 
 const listAllUsers = `-- name: ListAllUsers :many
 SELECT id, full_name, email, phone, password_hash, role, permissions, created_at, username, birth_date, avatar_key,
-       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only
+       push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled, biometric_lock_enabled, auto_sync_wifi_only,
+       active, event_reminders_enabled, preferred_language, dark_theme_enabled, saved_payment_method, profile_zone
 FROM users
 ORDER BY created_at ASC
 `
@@ -410,6 +533,12 @@ func (q *Queries) ListAllUsers(ctx context.Context) ([]User, error) {
 			&i.EmailReceiptsEnabled,
 			&i.BiometricLockEnabled,
 			&i.AutoSyncWifiOnly,
+			&i.Active,
+			&i.EventRemindersEnabled,
+			&i.PreferredLanguage,
+			&i.DarkThemeEnabled,
+			&i.SavedPaymentMethod,
+			&i.ProfileZone,
 		); err != nil {
 			return nil, err
 		}
@@ -458,6 +587,33 @@ func (q *Queries) ListStaffMembers(ctx context.Context) ([]StaffMember, error) {
 	return items, nil
 }
 
+const listUserFavorites = `-- name: ListUserFavorites :many
+SELECT article_id
+FROM user_favorites
+WHERE user_id = $1
+ORDER BY created_at DESC, article_id ASC
+`
+
+func (q *Queries) ListUserFavorites(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	rows, err := q.db.Query(ctx, listUserFavorites, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var article_id string
+		if err := rows.Scan(&article_id); err != nil {
+			return nil, err
+		}
+		items = append(items, article_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markOTPUsed = `-- name: MarkOTPUsed :exec
 UPDATE auth_otp_codes
 SET used = TRUE
@@ -485,6 +641,21 @@ type MarkOTPVerifiedParams struct {
 
 func (q *Queries) MarkOTPVerified(ctx context.Context, arg MarkOTPVerifiedParams) error {
 	_, err := q.db.Exec(ctx, markOTPVerified, arg.Email, arg.ResetTokenHash, arg.ResetExpiresAt)
+	return err
+}
+
+const removeUserFavorite = `-- name: RemoveUserFavorite :exec
+DELETE FROM user_favorites
+WHERE user_id = $1 AND article_id = $2
+`
+
+type RemoveUserFavoriteParams struct {
+	UserID    uuid.UUID
+	ArticleID string
+}
+
+func (q *Queries) RemoveUserFavorite(ctx context.Context, arg RemoveUserFavoriteParams) error {
+	_, err := q.db.Exec(ctx, removeUserFavorite, arg.UserID, arg.ArticleID)
 	return err
 }
 
@@ -577,7 +748,12 @@ SET push_notifications_enabled = $2,
     whatsapp_alerts_enabled = $3,
     email_receipts_enabled = $4,
     biometric_lock_enabled = $5,
-    auto_sync_wifi_only = $6
+    auto_sync_wifi_only = $6,
+    event_reminders_enabled = $7,
+    preferred_language = $8,
+    dark_theme_enabled = $9,
+    saved_payment_method = $10,
+    profile_zone = $11
 WHERE id = $1
 `
 
@@ -588,6 +764,11 @@ type UpdateUserPreferencesByIDParams struct {
 	EmailReceiptsEnabled     bool
 	BiometricLockEnabled     bool
 	AutoSyncWifiOnly         bool
+	EventRemindersEnabled    bool
+	PreferredLanguage        string
+	DarkThemeEnabled         bool
+	SavedPaymentMethod       string
+	ProfileZone              string
 }
 
 func (q *Queries) UpdateUserPreferencesByID(ctx context.Context, arg UpdateUserPreferencesByIDParams) error {
@@ -598,6 +779,11 @@ func (q *Queries) UpdateUserPreferencesByID(ctx context.Context, arg UpdateUserP
 		arg.EmailReceiptsEnabled,
 		arg.BiometricLockEnabled,
 		arg.AutoSyncWifiOnly,
+		arg.EventRemindersEnabled,
+		arg.PreferredLanguage,
+		arg.DarkThemeEnabled,
+		arg.SavedPaymentMethod,
+		arg.ProfileZone,
 	)
 	return err
 }
@@ -736,6 +922,24 @@ func (q *Queries) UpsertOTPCode(ctx context.Context, arg UpsertOTPCodeParams) er
 	return err
 }
 
+const upsertRevokedToken = `-- name: UpsertRevokedToken :exec
+INSERT INTO revoked_tokens (token_hash, expires_at, created_at)
+VALUES ($1, $2, $3)
+ON CONFLICT (token_hash) DO UPDATE SET
+    expires_at = EXCLUDED.expires_at
+`
+
+type UpsertRevokedTokenParams struct {
+	TokenHash string
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
+
+func (q *Queries) UpsertRevokedToken(ctx context.Context, arg UpsertRevokedTokenParams) error {
+	_, err := q.db.Exec(ctx, upsertRevokedToken, arg.TokenHash, arg.ExpiresAt, arg.CreatedAt)
+	return err
+}
+
 const upsertSession = `-- name: UpsertSession :exec
 INSERT INTO sessions (token_hash, user_id, active_view, created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5)
@@ -811,11 +1015,12 @@ func (q *Queries) UpsertStaffMember(ctx context.Context, arg UpsertStaffMemberPa
 const upsertUser = `-- name: UpsertUser :exec
 INSERT INTO users (
     id, full_name, email, phone, password_hash, role, permissions, created_at,
-    username, birth_date, avatar_key,
+    username, birth_date, avatar_key, active,
     push_notifications_enabled, whatsapp_alerts_enabled, email_receipts_enabled,
-    biometric_lock_enabled, auto_sync_wifi_only
+    biometric_lock_enabled, auto_sync_wifi_only, event_reminders_enabled,
+    preferred_language, dark_theme_enabled, saved_payment_method, profile_zone
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
 ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     email = EXCLUDED.email,
@@ -826,11 +1031,17 @@ ON CONFLICT (id) DO UPDATE SET
     username = EXCLUDED.username,
     birth_date = EXCLUDED.birth_date,
     avatar_key = EXCLUDED.avatar_key,
+    active = EXCLUDED.active,
     push_notifications_enabled = EXCLUDED.push_notifications_enabled,
     whatsapp_alerts_enabled = EXCLUDED.whatsapp_alerts_enabled,
     email_receipts_enabled = EXCLUDED.email_receipts_enabled,
     biometric_lock_enabled = EXCLUDED.biometric_lock_enabled,
-    auto_sync_wifi_only = EXCLUDED.auto_sync_wifi_only
+    auto_sync_wifi_only = EXCLUDED.auto_sync_wifi_only,
+    event_reminders_enabled = EXCLUDED.event_reminders_enabled,
+    preferred_language = EXCLUDED.preferred_language,
+    dark_theme_enabled = EXCLUDED.dark_theme_enabled,
+    saved_payment_method = EXCLUDED.saved_payment_method,
+    profile_zone = EXCLUDED.profile_zone
 `
 
 type UpsertUserParams struct {
@@ -845,11 +1056,17 @@ type UpsertUserParams struct {
 	Username                 string
 	BirthDate                string
 	AvatarKey                string
+	Active                   bool
 	PushNotificationsEnabled bool
 	WhatsappAlertsEnabled    bool
 	EmailReceiptsEnabled     bool
 	BiometricLockEnabled     bool
 	AutoSyncWifiOnly         bool
+	EventRemindersEnabled    bool
+	PreferredLanguage        string
+	DarkThemeEnabled         bool
+	SavedPaymentMethod       string
+	ProfileZone              string
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) error {
@@ -865,11 +1082,17 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) error {
 		arg.Username,
 		arg.BirthDate,
 		arg.AvatarKey,
+		arg.Active,
 		arg.PushNotificationsEnabled,
 		arg.WhatsappAlertsEnabled,
 		arg.EmailReceiptsEnabled,
 		arg.BiometricLockEnabled,
 		arg.AutoSyncWifiOnly,
+		arg.EventRemindersEnabled,
+		arg.PreferredLanguage,
+		arg.DarkThemeEnabled,
+		arg.SavedPaymentMethod,
+		arg.ProfileZone,
 	)
 	return err
 }

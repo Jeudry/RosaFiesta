@@ -186,6 +186,60 @@ func (m Module) registerGuestRoutes(api huma.API) {
 		Security:    platformhttp.Secured(),
 		Middlewares: mw,
 	}, m.handleUpdateGuest)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "events-delete-guest",
+		Method:      http.MethodDelete,
+		Path:        "/v1/events/{id}/guests/{guestId}",
+		Summary:     "Remove a guest from an event",
+		Tags:        []string{"Events"},
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleDeleteGuest)
+
+	m.registerTeamTaskRoutes(api, mw)
+}
+
+func (m Module) registerTeamTaskRoutes(api huma.API, mw huma.Middlewares) {
+	huma.Register(api, huma.Operation{
+		OperationID: "events-list-tasks",
+		Method:      http.MethodGet,
+		Path:        "/v1/events/{id}/tasks",
+		Summary:     "List event collaborative tasks",
+		Tags:        []string{"Events"},
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleListTeamTasks)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "events-add-task",
+		Method:      http.MethodPost,
+		Path:        "/v1/events/{id}/tasks",
+		Summary:     "Create an event collaborative task",
+		Tags:        []string{"Events"},
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleAddTeamTask)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "events-update-task",
+		Method:      http.MethodPatch,
+		Path:        "/v1/events/{id}/tasks/{taskId}",
+		Summary:     "Update an event collaborative task",
+		Tags:        []string{"Events"},
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleUpdateTeamTask)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "events-delete-task",
+		Method:      http.MethodDelete,
+		Path:        "/v1/events/{id}/tasks/{taskId}",
+		Summary:     "Delete an event collaborative task",
+		Tags:        []string{"Events"},
+		Security:    platformhttp.Secured(),
+		Middlewares: mw,
+	}, m.handleDeleteTeamTask)
 }
 
 func (m Module) registerScheduleRoutes(api huma.API) {
@@ -451,5 +505,58 @@ func (m Module) handlePostChatMessage(ctx context.Context, in *PostChatMessageIn
 	}
 	out := &ChatMessageOutput{}
 	out.Body.Message = msg
+	return out, nil
+}
+
+func (m Module) handleDeleteGuest(ctx context.Context, in *DeleteGuestInput) (*DeleteGuestOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	if err := m.Service.DeleteGuest(ctx, in.ID, in.GuestID, caller); err != nil {
+		return nil, mapEventError(err, "DELETE /v1/events/"+in.ID+"/guests/"+in.GuestID, "EVENT_GUEST_DELETE_FAILED", "DeleteEventGuest", http.StatusBadRequest)
+	}
+	out := &DeleteGuestOutput{}
+	out.Body.Deleted = true
+	return out, nil
+}
+
+func (m Module) handleListTeamTasks(ctx context.Context, in *EventByIDInput) (*TeamTasksListOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	tasks, err := m.Service.ListTeamTasks(ctx, in.ID, caller)
+	if err != nil {
+		return nil, mapEventError(err, "GET /v1/events/"+in.ID+"/tasks", "EVENT_TASKS_FAILED", "ListEventTasks", http.StatusBadRequest)
+	}
+	out := &TeamTasksListOutput{}
+	out.Body.Tasks = tasks
+	return out, nil
+}
+
+func (m Module) handleAddTeamTask(ctx context.Context, in *AddTeamTaskInput) (*TeamTaskOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	task, err := m.Service.AddTeamTask(ctx, in.ID, in.ToCommand(), caller)
+	if err != nil {
+		return nil, mapEventError(err, "POST /v1/events/"+in.ID+"/tasks", "EVENT_TASK_INVALID", "AddEventTask", http.StatusBadRequest)
+	}
+	out := &TeamTaskOutput{}
+	out.Body.Task = task
+	return out, nil
+}
+
+func (m Module) handleUpdateTeamTask(ctx context.Context, in *UpdateTeamTaskInput) (*TeamTaskOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	task, err := m.Service.UpdateTeamTask(ctx, in.ID, in.TaskID, in.ToCommand(), caller)
+	if err != nil {
+		return nil, mapEventError(err, "PATCH /v1/events/"+in.ID+"/tasks/"+in.TaskID, "EVENT_TASK_UPDATE_FAILED", "UpdateEventTask", http.StatusBadRequest)
+	}
+	out := &TeamTaskOutput{}
+	out.Body.Task = task
+	return out, nil
+}
+
+func (m Module) handleDeleteTeamTask(ctx context.Context, in *DeleteTeamTaskInput) (*DeleteTeamTaskOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	if err := m.Service.DeleteTeamTask(ctx, in.ID, in.TaskID, caller); err != nil {
+		return nil, mapEventError(err, "DELETE /v1/events/"+in.ID+"/tasks/"+in.TaskID, "EVENT_TASK_DELETE_FAILED", "DeleteEventTask", http.StatusBadRequest)
+	}
+	out := &DeleteTeamTaskOutput{}
+	out.Body.Deleted = true
 	return out, nil
 }

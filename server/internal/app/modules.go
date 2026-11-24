@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -156,6 +157,7 @@ func adminOnlySeedUsers(now time.Time) []seedUser {
 				Email:       "maria@rosafiesta.do",
 				Phone:       "809-555-0100",
 				BirthDate:   "12/04/1990",
+				Active:      true,
 				Role:        identitydomain.RoleAdmin,
 				Permissions: []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "finanzas", "reembolsos", "reportes", "ajustes"},
 				ActiveView:  identitydomain.ViewAdmin,
@@ -171,6 +173,7 @@ func adminOnlySeedUsers(now time.Time) []seedUser {
 				Email:       "yuli@rosafiesta.do",
 				Phone:       "809-555-0102",
 				BirthDate:   "22/09/1996",
+				Active:      true,
 				Role:        identitydomain.RoleStaff,
 				Permissions: []string{"decoracion", "tareas"},
 				ActiveView:  identitydomain.ViewAdmin,
@@ -191,6 +194,7 @@ func canonicalSeedUsers(now time.Time) []seedUser {
 				Email:      "camila@rosafiesta.do",
 				Phone:      "809-555-0142",
 				BirthDate:  "15/08/1998",
+				Active:     true,
 				Role:       identitydomain.RoleClient,
 				ActiveView: identitydomain.ViewPersonal,
 				CreatedAt:  now,
@@ -205,6 +209,7 @@ func canonicalSeedUsers(now time.Time) []seedUser {
 				Email:       "maria@rosafiesta.do",
 				Phone:       "809-555-0100",
 				BirthDate:   "12/04/1990",
+				Active:      true,
 				Role:        identitydomain.RoleAdmin,
 				Permissions: []string{"eventos", "decoracion", "tareas", "inventario", "pagos", "finanzas", "reembolsos", "reportes", "ajustes"},
 				ActiveView:  identitydomain.ViewAdmin,
@@ -220,6 +225,7 @@ func canonicalSeedUsers(now time.Time) []seedUser {
 				Email:       "yuli@rosafiesta.do",
 				Phone:       "809-555-0102",
 				BirthDate:   "22/09/1996",
+				Active:      true,
 				Role:        identitydomain.RoleStaff,
 				Permissions: []string{"decoracion", "tareas"},
 				ActiveView:  identitydomain.ViewAdmin,
@@ -310,7 +316,7 @@ func wireServices(deps Dependencies, clk clock.Clock) assembledServices {
 	paymentsSvc := buildPaymentsService(deps.Config, clk, eventsSvc, quotesSvc, broker, smtpSender)
 	operationsSvc := buildOperationsService(deps.Config, clk, paymentsSvc, stockAdapter, broker)
 
-	connectCrossModuleBridges(stockAdapter, eventsSvc, quotesSvc, paymentsSvc, operationsSvc, identitySvc, smtpSender, pushSender)
+	connectCrossModuleBridges(stockAdapter, catalogSvc, eventsSvc, quotesSvc, paymentsSvc, operationsSvc, identitySvc, smtpSender, pushSender)
 
 	svcs := assembledServices{
 		events:     eventsSvc,
@@ -327,6 +333,7 @@ func wireServices(deps Dependencies, clk clock.Clock) assembledServices {
 	}
 	attachPostgresStores(deps.Pool, clk, svcs)
 	svcs.identity.StartMaintenanceLoop(deps.Context, time.Hour)
+	NewEventReminderWorker(eventsSvc, identitySvc, operationsSvc, smtpSender, pushSender, clk).Start(deps.Context, 15*time.Minute)
 	return svcs
 }
 
@@ -354,10 +361,12 @@ func buildMediaService(deps Dependencies, clk clock.Clock) *mediaapp.Service {
 		PublicBaseURL:   deps.Config.S3PublicBaseURL,
 		Clock:           clk.Now,
 	}
-	if s3Svc, err := svc.WithS3Storage(s3Cfg); err == nil {
-		return s3Svc
+	s3Svc, err := svc.WithS3Storage(s3Cfg)
+	if err != nil {
+		slog.Error("media_s3_init_failed", slog.String("error", err.Error()), slog.String("bucket", s3Cfg.Bucket))
+		return svc
 	}
-	return svc
+	return s3Svc
 }
 
 func buildPushSender(deps Dependencies) push.Sender {
@@ -461,11 +470,13 @@ func buildOperationsService(
 		WithDamagedStockAdjuster(stockAdapter).
 		WithReplacementChargeRecorder(damageChargeAdapter{payments: paymentsSvc}).
 		WithRealtimePublisher(broker).
-		WithWhatsAppConfig(cfg.WhatsAppPhoneNumberID, cfg.WhatsAppAccessToken, cfg.WhatsAppVerifyToken)
+		WithWhatsAppConfig(cfg.WhatsAppPhoneNumberID, cfg.WhatsAppAccessToken, cfg.WhatsAppVerifyToken).
+		WithWhatsAppAppSecret(cfg.WhatsAppAppSecret)
 }
 
 func connectCrossModuleBridges(
 	stockAdapter catalogStockAdapter,
+	catalogSvc *catalogapp.Service,
 	eventsSvc *eventsapp.Service,
 	quotesSvc *quotesapp.Service,
 	paymentsSvc *paymentsapp.Service,
@@ -474,30 +485,30 @@ func connectCrossModuleBridges(
 	smtpSender *mailer.SMTPSender,
 	pushSender push.Sender,
 ) {
-	quoteAdapter := quoteLifecycleAdapter{
-		events:     eventsSvc,
-		operations: operationsSvc,
-		identity:   identitySvc,
-		pushSender: pushSender,
-	}
-	prefAdapter := userPreferencesAdapter{
-		identity:    identitySvc,
-		operations:  operationsSvc,
-		emailSender: smtpSender,
-		pushSender:  pushSender,
-	}
-	damageReader := damageExpensesAdapter{operations: operationsSvc}
+	quoteAdapter := quoteLifecycleAdapter{events: eventsSvc, operations: operationsSvc, identity: identitySvc, pushSender: pushSender}
+	prefAdapter := userPreferencesAdapter{identity: identitySvc, operations: operationsSvc, emailSender: smtpSender, pushSender: pushSender}
+	payAdapter := paymentVerifiedAdapter{events: eventsSvc, operations: operationsSvc, identity: identitySvc, pushSender: pushSender}
+	settingsAdapter := businessSettingsAdapter{operations: operationsSvc}
+	refundAdapter := refundApprovedAdapter{events: eventsSvc, catalog: catalogSvc, operations: operationsSvc, identity: identitySvc, pushSender: pushSender}
+	reportAdapter := reportSnapshotAdapter{payments: paymentsSvc, events: eventsSvc, catalog: catalogSvc, identity: identitySvc}
+
 	eventsSvc.WithStockManager(stockAdapter).WithRefundRecorder(paymentsSvc).WithPaymentReminderDispatcher(prefAdapter)
-	quotesSvc.WithEventProvisioner(quoteAdapter).WithAdminNotifier(quoteAdapter)
+	quotesSvc.
+		WithEventProvisioner(quoteAdapter).
+		WithAdminNotifier(quoteAdapter).
+		WithQuoteSentNotifier(quoteAdapter).
+		WithDepositRateProvider(settingsAdapter).
+		WithEmailPreferenceChecker(prefAdapter)
 	paymentsSvc.
-		WithVerifiedSynchronizer(paymentVerifiedAdapter{events: eventsSvc, operations: operationsSvc}).
+		WithVerifiedSynchronizer(payAdapter).
+		WithPaymentRejectedHook(payAdapter).
 		WithEmailPreferenceChecker(prefAdapter).
-		WithDamageExpensesReader(damageReader)
-	operationsSvc.WithOfflineDispatcher(offlineDispatcherAdapter{
-		events:     eventsSvc,
-		operations: operationsSvc,
-		payments:   paymentsSvc,
-	})
+		WithDamageExpensesReader(damageExpensesAdapter{operations: operationsSvc}).
+		WithTaxRateProvider(settingsAdapter).
+		WithRefundApprovedHook(refundAdapter)
+	operationsSvc.
+		WithReportSnapshotProvider(reportAdapter).
+		WithOfflineDispatcher(offlineDispatcherAdapter{events: eventsSvc, operations: operationsSvc, payments: paymentsSvc})
 }
 
 func attachPostgresStores(pool *pgxpool.Pool, clk clock.Clock, svcs assembledServices) {

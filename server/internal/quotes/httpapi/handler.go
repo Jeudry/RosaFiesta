@@ -1,10 +1,14 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
 	"github.com/Jeudry/rosafiesta/server/internal/quotes/app"
@@ -13,6 +17,11 @@ import (
 type Module struct {
 	Service *app.Service
 	Auth    platformhttp.PrincipalResolver
+}
+
+// RegisterRoutes registra la descarga binaria de contrato PDF en chi.
+func (m Module) RegisterRoutes(router chi.Router) {
+	router.Get("/v1/quotes/{id}/contract", m.handleDownloadContractPDF)
 }
 
 func (m Module) Register(api huma.API) {
@@ -234,12 +243,34 @@ func (m Module) handleRosaChat(ctx context.Context, in *RosaChatInput) (*RosaCha
 }
 
 func (m Module) handleRosaTranscribe(ctx context.Context, in *RosaTranscribeInput) (*RosaTranscribeOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
 	cmd := in.ToCommand()
-	res, err := m.Service.TranscribeAudio(ctx, cmd)
+	res, err := m.Service.TranscribeAudioForCaller(ctx, cmd, caller)
 	if err != nil {
 		return nil, mapQuoteError(err, "POST /v1/rosa/transcribe", "ROSA_AUDIO_INVALID", "ValidateBase64Audio", http.StatusBadRequest)
 	}
 	return &RosaTranscribeOutput{Body: res}, nil
+}
+
+func (m Module) handleDownloadContractPDF(w http.ResponseWriter, r *http.Request) {
+	caller, authenticated := platformhttp.AuthenticateHTTPRequest(r, m.Auth)
+	if m.Auth != nil {
+		if !authenticated {
+			http.Error(w, "missing or invalid bearer token", http.StatusUnauthorized)
+			return
+		}
+	}
+	quoteID := chi.URLParam(r, "id")
+	pdfBytes, filename, err := m.Service.BuildContractPDFForCaller(r.Context(), quoteID, caller, authenticated)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Security-Policy", "sandbox")
+	http.ServeContent(w, r, filename, time.Time{}, bytes.NewReader(pdfBytes))
 }
 
 func (m Module) handleRosaSketch(ctx context.Context, in *RosaSketchInput) (*RosaSketchOutput, error) {

@@ -206,6 +206,75 @@ func (in *UpdateGuestInput) ToCommand() app.UpdateGuestCommand {
 	}
 }
 
+type DeleteGuestInput struct {
+	ID      string `path:"id" doc:"Event identifier."`
+	GuestID string `path:"guestId" doc:"Guest identifier."`
+}
+
+type DeleteGuestOutput struct {
+	Body struct {
+		Deleted bool `json:"deleted"`
+	}
+}
+
+type TeamTasksListOutput struct {
+	Body struct {
+		Tasks []domain.EventTask `json:"tasks"`
+	}
+}
+
+type TeamTaskOutput struct {
+	Body struct {
+		Task domain.EventTask `json:"task"`
+	}
+}
+
+type AddTeamTaskInput struct {
+	ID   string `path:"id" doc:"Event identifier."`
+	Body struct {
+		Title        string `json:"title"`
+		AssigneeName string `json:"assigneeName,omitempty"`
+		Done         bool   `json:"done,omitempty"`
+	}
+}
+
+func (in *AddTeamTaskInput) ToCommand() app.AddTeamTaskCommand {
+	return app.AddTeamTaskCommand{
+		Title:        in.Body.Title,
+		AssigneeName: in.Body.AssigneeName,
+		Done:         in.Body.Done,
+	}
+}
+
+type UpdateTeamTaskInput struct {
+	ID     string `path:"id" doc:"Event identifier."`
+	TaskID string `path:"taskId" doc:"Task identifier."`
+	Body   struct {
+		Title        *string `json:"title,omitempty"`
+		AssigneeName *string `json:"assigneeName,omitempty"`
+		Done         *bool   `json:"done,omitempty"`
+	}
+}
+
+func (in *UpdateTeamTaskInput) ToCommand() app.UpdateTeamTaskCommand {
+	return app.UpdateTeamTaskCommand{
+		Title:        in.Body.Title,
+		AssigneeName: in.Body.AssigneeName,
+		Done:         in.Body.Done,
+	}
+}
+
+type DeleteTeamTaskInput struct {
+	ID     string `path:"id" doc:"Event identifier."`
+	TaskID string `path:"taskId" doc:"Task identifier."`
+}
+
+type DeleteTeamTaskOutput struct {
+	Body struct {
+		Deleted bool `json:"deleted"`
+	}
+}
+
 type ScheduleListOutput struct {
 	Body struct {
 		Blocks []domain.ScheduleBlock `json:"blocks"`
@@ -368,6 +437,16 @@ func mapEventError(err error, endpoint, defaultCode, policy string, defaultStatu
 			err.Error(),
 		)
 	}
+	if errors.Is(err, domain.ErrAlreadyCancelled) {
+		return platformhttp.NewAPIError(
+			http.StatusConflict,
+			"EVENT_ALREADY_CANCELLED",
+			err.Error(),
+			endpoint,
+			"PreventDuplicateCancellation",
+			err.Error(),
+		)
+	}
 	if isEventNotFound(err) {
 		return platformhttp.NewAPIError(
 			http.StatusNotFound,
@@ -396,6 +475,9 @@ func isEventNotFound(err error) bool {
 		return true
 	}
 	if errors.Is(err, domain.ErrScheduleBlockNotFound) {
+		return true
+	}
+	if errors.Is(err, domain.ErrTeamTaskNotFound) {
 		return true
 	}
 	return errors.Is(err, domain.ErrChatThreadNotFound)

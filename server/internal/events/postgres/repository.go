@@ -281,6 +281,62 @@ func (r *Repository) UpsertGuest(ctx context.Context, guest domain.EventGuest) e
 	})
 }
 
+func (r *Repository) DeleteGuest(ctx context.Context, eventID, guestID string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DeleteEventGuest(ctx, sqlcgen.DeleteEventGuestParams{
+		EventID: eventID,
+		ID:      guestID,
+	})
+}
+
+func (r *Repository) ListTeamTasks(ctx context.Context, eventID string) ([]domain.EventTask, error) {
+	if !r.Enabled() {
+		return nil, nil
+	}
+	rows, err := r.queries.ListEventTeamTasks(ctx, eventID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.EventTask, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.EventTask{
+			ID:           row.ID,
+			EventID:      row.EventID,
+			Title:        row.Title,
+			AssigneeName: row.AssigneeName,
+			Done:         row.Done,
+			CreatedAt:    row.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (r *Repository) UpsertTeamTask(ctx context.Context, task domain.EventTask) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.UpsertEventTeamTask(ctx, sqlcgen.UpsertEventTeamTaskParams{
+		ID:           task.ID,
+		EventID:      task.EventID,
+		Title:        task.Title,
+		AssigneeName: task.AssigneeName,
+		Done:         task.Done,
+		CreatedAt:    task.CreatedAt,
+	})
+}
+
+func (r *Repository) DeleteTeamTask(ctx context.Context, eventID, taskID string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DeleteEventTeamTask(ctx, sqlcgen.DeleteEventTeamTaskParams{
+		EventID: eventID,
+		ID:      taskID,
+	})
+}
+
 func (r *Repository) ListScheduleBlocks(ctx context.Context, eventID string) ([]domain.ScheduleBlock, error) {
 	if !r.Enabled() {
 		return nil, nil

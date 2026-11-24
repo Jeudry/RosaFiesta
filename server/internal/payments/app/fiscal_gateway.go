@@ -82,8 +82,18 @@ func (s *Service) RejectPaymentForCaller(
 	if persistErr := persistPaymentIfEnabled(ctx, store, rejected, now); persistErr != nil {
 		return domain.Payment{}, persistErr
 	}
+	s.invokeRejectedHook(ctx, rejected, cleanReason)
 	s.publishPaymentEvent(realtimedomain.EventPaymentRejected, realtimedomain.AudienceAll, rejected, cleanReason)
 	return rejected, nil
+}
+
+func (s *Service) invokeRejectedHook(ctx context.Context, payment domain.Payment, reason string) {
+	s.mu.RLock()
+	hook := s.rejectedHook
+	s.mu.RUnlock()
+	if hook != nil {
+		hook.OnPaymentRejected(ctx, payment, reason)
+	}
 }
 
 // CreateCardSession genera una sesión de checkout en Stripe o devuelve ErrCardGatewayNotConfigured.
@@ -322,6 +332,7 @@ func (s *Service) dispatchRegistrationSideEffects(ctx context.Context, payment d
 	if err := s.invokeVerifiedSynchronizer(ctx, payment); err != nil {
 		return err
 	}
+	s.sendVerificationReceiptIfConfigured(ctx, payment)
 	s.publishPaymentEvent(realtimedomain.EventPaymentVerified, realtimedomain.AudienceAll, payment, "Pago confirmado con NCF emitido")
 	return nil
 }

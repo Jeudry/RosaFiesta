@@ -32,6 +32,24 @@ type OfflineMutationDispatcher interface {
 	DispatchMutation(ctx context.Context, opType string, payloadJSON string, caller platformhttp.Principal) error
 }
 
+// ReportSnapshotProvider calcula métricas reales mensuales desde módulos vecinos para reportes.
+type ReportSnapshotProvider interface {
+	BuildReportSnapshot(ctx context.Context, months int, now time.Time) (domain.ReportSnapshot, error)
+}
+
+// DeletableStore abstrae eliminaciones persistentes de proveedores y reglas de bot.
+type DeletableStore interface {
+	DeleteSupplier(ctx context.Context, id string) error
+	DeleteBotFAQ(ctx context.Context, id string) error
+	DeleteBotKeyword(ctx context.Context, id string) error
+}
+
+// ReminderStore abstrae el registro idempotente de recordatorios enviados.
+type ReminderStore interface {
+	HasSentEventReminder(ctx context.Context, eventID, reminderKind string) (bool, error)
+	InsertSentEventReminder(ctx context.Context, eventID, reminderKind string, sentAt time.Time) error
+}
+
 // Store abstrae la persistencia PostgreSQL del módulo de operaciones.
 type Store interface {
 	Enabled() bool
@@ -97,6 +115,7 @@ type Service struct {
 	clock               clock.Clock
 	store               Store
 	octRevenueFn        func(ctx context.Context) int
+	reportSnapshotFn    ReportSnapshotProvider
 	stockAdjuster       DamagedStockAdjuster
 	chargeRecorder      ReplacementChargeRecorder
 	offlineDispatcher   OfflineMutationDispatcher
@@ -104,6 +123,7 @@ type Service struct {
 	whatsAppPhoneID     string
 	whatsAppAccessToken string
 	whatsAppVerifyToken string
+	whatsAppAppSecret   string
 	whatsAppAPIBaseURL  string
 	logistics           map[string]domain.EventLogistics
 	routeStops          []domain.RouteStop
@@ -119,6 +139,7 @@ type Service struct {
 	botFAQs             []domain.BotFAQ
 	botKeywords         []domain.BotKeyword
 	botThreads          []domain.BotThread
+	sentReminders       map[string]bool
 }
 
 // NewService inicializa el servicio operativo con los datos de demostración.
@@ -145,6 +166,14 @@ func (s *Service) WithClock(clk clock.Clock) *Service {
 func (s *Service) WithRevenueProvider(fn func(ctx context.Context) int) *Service {
 	s.mu.Lock()
 	s.octRevenueFn = fn
+	s.mu.Unlock()
+	return s
+}
+
+// WithReportSnapshotProvider conecta agregaciones mensuales reales para exportación de reportes.
+func (s *Service) WithReportSnapshotProvider(provider ReportSnapshotProvider) *Service {
+	s.mu.Lock()
+	s.reportSnapshotFn = provider
 	s.mu.Unlock()
 	return s
 }
@@ -195,6 +224,14 @@ func (s *Service) WithWhatsAppConfig(phoneNumberID, accessToken, verifyToken str
 	s.whatsAppPhoneID = strings.TrimSpace(phoneNumberID)
 	s.whatsAppAccessToken = strings.TrimSpace(accessToken)
 	s.whatsAppVerifyToken = strings.TrimSpace(verifyToken)
+	s.mu.Unlock()
+	return s
+}
+
+// WithWhatsAppAppSecret configura el secreto de aplicación de Meta para verificar HMAC en webhooks.
+func (s *Service) WithWhatsAppAppSecret(secret string) *Service {
+	s.mu.Lock()
+	s.whatsAppAppSecret = strings.TrimSpace(secret)
 	s.mu.Unlock()
 	return s
 }
@@ -256,6 +293,7 @@ func (s *Service) ResetEmpty(_ context.Context) {
 	s.botFAQs = nil
 	s.botKeywords = nil
 	s.botThreads = nil
+	s.sentReminders = make(map[string]bool)
 	s.mu.Unlock()
 }
 
@@ -374,6 +412,9 @@ func (s *Service) ToggleChecklistItem(
 	completed bool,
 	staffName string,
 ) (domain.EventLogistics, error) {
+	if _, err := s.GetEventLogistics(ctx, eventID); err != nil {
+		return domain.EventLogistics{}, err
+	}
 	completedLabel := s.clock.Now().Format("03:04 PM")
 
 	s.mu.Lock()

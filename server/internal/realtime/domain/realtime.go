@@ -11,6 +11,7 @@ type EventType string
 
 const (
 	EventQuoteCreated        EventType = "quote.created"
+	EventQuoteSent           EventType = "quote.sent"
 	EventQuoteSigned         EventType = "quote.signed"
 	EventEventUpdated        EventType = "event.updated"
 	EventPaymentPending      EventType = "payment.pending_verification"

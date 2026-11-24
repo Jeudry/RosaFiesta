@@ -4,6 +4,7 @@ package domain
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -33,7 +34,36 @@ var (
 	ErrInsufficientStock = errors.New("stock insuficiente para la fecha solicitada")
 	// ErrAlreadyClosedOut impide ejecutar dos veces el cierre de un mismo evento.
 	ErrAlreadyClosedOut = errors.New("event closeout already completed")
+	// ErrAlreadyCancelled impide cancelar dos veces un evento ya cancelado.
+	ErrAlreadyCancelled = errors.New("event is already cancelled")
+	// ErrTeamTaskNotFound indica que la tarea solicitada no existe.
+	ErrTeamTaskNotFound = errors.New("event team task not found")
 )
+
+// EventTask representa una tarea colaborativa asignada dentro de un evento.
+type EventTask struct {
+	ID           string    `json:"id"`
+	EventID      string    `json:"eventId"`
+	Title        string    `json:"title"`
+	AssigneeName string    `json:"assigneeName"`
+	Done         bool      `json:"done"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+
+// ComputeDaysUntilEvent calcula los días restantes entre la fecha actual y la fecha ISO del evento.
+func ComputeDaysUntilEvent(eventDateISO string, now time.Time, fallback int) int {
+	trimmed := strings.TrimSpace(eventDateISO)
+	if trimmed == "" {
+		return fallback
+	}
+	parsed, err := time.Parse("2006-01-02", trimmed)
+	if err != nil {
+		return fallback
+	}
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	target := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC)
+	return int(target.Sub(today).Hours() / 24)
+}
 
 type EventStatus string
 

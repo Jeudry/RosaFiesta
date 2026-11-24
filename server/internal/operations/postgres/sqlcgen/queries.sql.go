@@ -8,7 +8,29 @@ package sqlcgen
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
+
+const deleteBotFAQ = `-- name: DeleteBotFAQ :exec
+DELETE FROM bot_faqs
+WHERE id = $1
+`
+
+func (q *Queries) DeleteBotFAQ(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteBotFAQ, id)
+	return err
+}
+
+const deleteBotKeyword = `-- name: DeleteBotKeyword :exec
+DELETE FROM bot_keywords
+WHERE id = $1
+`
+
+func (q *Queries) DeleteBotKeyword(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteBotKeyword, id)
+	return err
+}
 
 const deleteDeliveryStopsByEvent = `-- name: DeleteDeliveryStopsByEvent :exec
 DELETE FROM delivery_stops
@@ -17,6 +39,16 @@ WHERE event_id = $1
 
 func (q *Queries) DeleteDeliveryStopsByEvent(ctx context.Context, eventID string) error {
 	_, err := q.db.Exec(ctx, deleteDeliveryStopsByEvent, eventID)
+	return err
+}
+
+const deleteSupplier = `-- name: DeleteSupplier :exec
+DELETE FROM suppliers
+WHERE id = $1
+`
+
+func (q *Queries) DeleteSupplier(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteSupplier, id)
 	return err
 }
 
@@ -46,6 +78,52 @@ func (q *Queries) GetBusinessSettings(ctx context.Context) (BusinessSetting, err
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const hasSentEventReminder = `-- name: HasSentEventReminder :one
+SELECT EXISTS (
+    SELECT 1
+    FROM sent_event_reminders
+    WHERE event_id = $1 AND user_id = $2 AND reminder_kind = $3
+)
+`
+
+type HasSentEventReminderParams struct {
+	EventID      string
+	UserID       uuid.UUID
+	ReminderKind string
+}
+
+func (q *Queries) HasSentEventReminder(ctx context.Context, arg HasSentEventReminderParams) (bool, error) {
+	row := q.db.QueryRow(ctx, hasSentEventReminder, arg.EventID, arg.UserID, arg.ReminderKind)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const insertSentEventReminder = `-- name: InsertSentEventReminder :exec
+INSERT INTO sent_event_reminders (id, event_id, user_id, reminder_kind, sent_at)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (event_id, user_id, reminder_kind) DO NOTHING
+`
+
+type InsertSentEventReminderParams struct {
+	ID           string
+	EventID      string
+	UserID       uuid.UUID
+	ReminderKind string
+	SentAt       time.Time
+}
+
+func (q *Queries) InsertSentEventReminder(ctx context.Context, arg InsertSentEventReminderParams) error {
+	_, err := q.db.Exec(ctx, insertSentEventReminder,
+		arg.ID,
+		arg.EventID,
+		arg.UserID,
+		arg.ReminderKind,
+		arg.SentAt,
+	)
+	return err
 }
 
 const listAllDeliveryStops = `-- name: ListAllDeliveryStops :many

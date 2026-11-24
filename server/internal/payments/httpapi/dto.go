@@ -186,8 +186,30 @@ type RefundsListOutput struct {
 type ApproveRefundInput struct {
 	ID   string `path:"id" doc:"Refund identifier."`
 	Body *struct {
-		ApprovedBy string `json:"approvedBy,omitempty"`
+		ApprovedBy       string `json:"approvedBy,omitempty"`
+		Method           string `json:"method,omitempty"`
+		ReleaseInventory *bool  `json:"releaseInventory,omitempty"`
+		NotifyWhatsApp   *bool  `json:"notifyWhatsapp,omitempty"`
+		ClientMessage    string `json:"clientMessage,omitempty"`
 	}
+}
+
+// ToOptions convierte la entrada HTTP a ApproveRefundOptions.
+func (in *ApproveRefundInput) ToOptions(defaultName string) app.ApproveRefundOptions {
+	opts := app.ApproveRefundOptions{
+		ApproverName: in.Approver(defaultName),
+	}
+	if in.Body != nil {
+		opts.Method = strings.TrimSpace(in.Body.Method)
+		opts.ClientMessage = strings.TrimSpace(in.Body.ClientMessage)
+		if in.Body.ReleaseInventory != nil {
+			opts.ReleaseInventory = *in.Body.ReleaseInventory
+		}
+		if in.Body.NotifyWhatsApp != nil {
+			opts.NotifyWhatsApp = *in.Body.NotifyWhatsApp
+		}
+	}
+	return opts
 }
 
 // Approver extrae el nombre de quien aprueba el reembolso desde el cuerpo o principal.
@@ -224,6 +246,8 @@ var paymentErrorSpecs = []paymentErrorSpec{
 	{domain.ErrInvalidWebhookSignature, http.StatusUnauthorized, "INVALID_WEBHOOK_SIGNATURE", "VerifyStripeHMACSignature"},
 	{domain.ErrCardSessionNotPaid, http.StatusConflict, "CARD_SESSION_NOT_PAID", "StripeCheckoutPaidRequired"},
 	{domain.ErrRefundNotFound, http.StatusNotFound, "REFUND_NOT_FOUND", "RefundMustExist"},
+	{domain.ErrCardCheckoutRequired, http.StatusForbidden, "CARD_CHECKOUT_REQUIRED", "RequireStripeCheckoutForClientCard"},
+	{domain.ErrClientCashRestricted, http.StatusForbidden, "CLIENT_CASH_PAYMENT_RESTRICTED", "RequireAdminForDirectCash"},
 }
 
 func mapPaymentError(err error, endpoint, defaultCode, policy string, defaultStatus int) *platformhttp.APIError {

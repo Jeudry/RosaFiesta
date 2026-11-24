@@ -169,6 +169,14 @@ func (r *Repository) ListSuppliers(ctx context.Context) ([]domain.Supplier, erro
 	return out, nil
 }
 
+// DeleteSupplier elimina un proveedor del directorio en PostgreSQL.
+func (r *Repository) DeleteSupplier(ctx context.Context, id string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DeleteSupplier(ctx, id)
+}
+
 func (r *Repository) UpsertReview(ctx context.Context, rev domain.Review, now time.Time) error {
 	if !r.Enabled() {
 		return nil
@@ -545,4 +553,43 @@ func (r *Repository) ListBotThreads(ctx context.Context) ([]domain.BotThread, er
 		})
 	}
 	return out, nil
+}
+
+// DeleteBotFAQ elimina una FAQ del bot WhatsApp en PostgreSQL.
+func (r *Repository) DeleteBotFAQ(ctx context.Context, id string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DeleteBotFAQ(ctx, id)
+}
+
+// DeleteBotKeyword elimina una palabra clave del bot WhatsApp en PostgreSQL.
+func (r *Repository) DeleteBotKeyword(ctx context.Context, id string) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.DeleteBotKeyword(ctx, id)
+}
+
+// HasSentEventReminder consulta si ya se envió un recordatorio específico para un evento.
+func (r *Repository) HasSentEventReminder(ctx context.Context, eventID, reminderKind string) (bool, error) {
+	if !r.Enabled() {
+		return false, nil
+	}
+	return r.queries.HasSentEventReminder(ctx, sqlcgen.HasSentEventReminderParams{
+		EventID:      eventID,
+		ReminderKind: reminderKind,
+	})
+}
+
+// InsertSentEventReminder registra de forma idempotente el envío de un recordatorio de evento.
+func (r *Repository) InsertSentEventReminder(ctx context.Context, eventID, reminderKind string, sentAt time.Time) error {
+	if !r.Enabled() {
+		return nil
+	}
+	return r.queries.InsertSentEventReminder(ctx, sqlcgen.InsertSentEventReminderParams{
+		EventID:      eventID,
+		ReminderKind: reminderKind,
+		SentAt:       sentAt,
+	})
 }

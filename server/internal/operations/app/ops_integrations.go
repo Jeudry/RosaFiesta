@@ -3,10 +3,14 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -455,6 +459,45 @@ func (s *Service) VerifyWhatsAppWebhook(mode, token, challenge string) (string, 
 	return challenge, nil
 }
 
+// VerifyWhatsAppSignature verifica la firma X-Hub-Signature-256 enviada por Meta Cloud API.
+func (s *Service) VerifyWhatsAppSignature(signatureHeader string, payload []byte) error {
+	s.mu.RLock()
+	secret := s.whatsAppAppSecret
+	s.mu.RUnlock()
+
+	cleanSig := strings.TrimSpace(signatureHeader)
+	if secret == "" {
+		if cleanSig != "" {
+			return domain.ErrWebhookSignatureInvalid
+		}
+		return nil
+	}
+	lowerSig := strings.ToLower(cleanSig)
+	if !strings.HasPrefix(lowerSig, "sha256=") {
+		return domain.ErrWebhookSignatureInvalid
+	}
+	providedHex := strings.TrimPrefix(lowerSig, "sha256=")
+	providedBytes, err := hex.DecodeString(providedHex)
+	if err != nil {
+		return domain.ErrWebhookSignatureInvalid
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write(payload)
+	expectedBytes := mac.Sum(nil)
+	if !hmac.Equal(providedBytes, expectedBytes) {
+		return domain.ErrWebhookSignatureInvalid
+	}
+	return nil
+}
+
+// IngestWhatsAppWebhookSigned valida la firma HMAC del webhook antes de procesar eventos entrantes.
+func (s *Service) IngestWhatsAppWebhookSigned(ctx context.Context, signatureHeader string, payload []byte) error {
+	if err := s.VerifyWhatsAppSignature(signatureHeader, payload); err != nil {
+		return err
+	}
+	return s.IngestWhatsAppWebhook(ctx, payload)
+}
+
 // IngestWhatsAppWebhook procesa mensajes entrantes de Meta WhatsApp y actualiza hilos de bot + SSE.
 func (s *Service) IngestWhatsAppWebhook(ctx context.Context, payload []byte) error {
 	events := parseWhatsAppInboundEvents(payload)
@@ -469,8 +512,80 @@ func (s *Service) IngestWhatsAppWebhook(ctx context.Context, payload []byte) err
 			"phone":    updated.Phone,
 			"message":  updated.LastMessage,
 		})
+		s.dispatchWhatsAppAutoReply(ctx, updated, inbound.Text)
 	}
 	return nil
+}
+
+func (s *Service) dispatchWhatsAppAutoReply(ctx context.Context, thread domain.BotThread, inboundText string) {
+	if thread.BotPaused {
+		return
+	}
+	replyText, handoff, matched := s.matchWhatsAppAutoReply(ctx, inboundText)
+	if !matched {
+		return
+	}
+	if handoff {
+		paused := true
+		_, _ = s.UpdateBotThread(ctx, thread.ID, UpdateBotThreadCommand{BotPaused: &paused})
+		s.CreateNotification(
+			ctx,
+			"Conversación WhatsApp requiere asesor",
+			thread.CustomerName+": "+inboundText,
+			"whatsapp",
+			"admin",
+			"",
+		)
+	}
+	phoneID, token, _ := s.whatsAppConfigSnapshot()
+	if phoneID == "" {
+		return
+	}
+	if token == "" {
+		return
+	}
+	if _, err := s.SendWhatsAppBotReply(ctx, thread.ID, thread.Phone, replyText); err != nil {
+		slog.Warn("whatsapp_autoreply_failed", slog.String("thread_id", thread.ID), slog.String("error", err.Error()))
+	}
+}
+
+func (s *Service) matchWhatsAppAutoReply(ctx context.Context, inboundText string) (string, bool, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(inboundText))
+	if normalized == "" {
+		return "", false, false
+	}
+	for _, kw := range s.ListBotKeywords(ctx) {
+		term := strings.ToLower(strings.TrimSpace(kw.Keyword))
+		if term != "" {
+			if strings.Contains(normalized, term) {
+				return kw.AutoReply, kw.HandoffToHuman, true
+			}
+		}
+	}
+	for _, faq := range s.ListBotFAQs(ctx) {
+		if !faq.Active {
+			continue
+		}
+		if faqMatchesText(faq.Question, normalized) {
+			return faq.Answer, false, true
+		}
+	}
+	return "", false, false
+}
+
+func faqMatchesText(question string, normalizedInbound string) bool {
+	words := strings.Fields(strings.ToLower(question))
+	matchedWords := 0
+	for _, word := range words {
+		cleaned := strings.Trim(word, "¿?¡!.,;:")
+		if len(cleaned) < 4 {
+			continue
+		}
+		if strings.Contains(normalizedInbound, cleaned) {
+			matchedWords++
+		}
+	}
+	return matchedWords >= 2
 }
 
 type inboundWhatsAppMsg struct {
@@ -767,10 +882,35 @@ func (s *Service) CreateNotification(
 			_ = store.UpsertNotification(ctx, ntf, now)
 		}
 	}
-	s.publishOpsEvent(realtimedomain.EventNotificationCreated, ntf.ID, ntf.Title, map[string]any{
-		"notificationId": ntf.ID,
-		"recipientRole":  ntf.RecipientRole,
-		"category":       ntf.Category,
-	})
+	s.publishNotificationEvent(ntf)
 	return ntf
+}
+
+func (s *Service) publishNotificationEvent(ntf domain.Notification) {
+	s.mu.RLock()
+	pub := s.realtimePub
+	s.mu.RUnlock()
+	if pub == nil {
+		return
+	}
+	audience := realtimedomain.AudienceAdmin
+	clientID := ""
+	if ntf.RecipientRole == "client" {
+		if strings.TrimSpace(ntf.UserID) != "" {
+			audience = realtimedomain.AudienceClient
+			clientID = strings.TrimSpace(ntf.UserID)
+		}
+	}
+	pub.Publish(realtimedomain.RealtimeEvent{
+		Type:     realtimedomain.EventNotificationCreated,
+		Audience: audience,
+		ClientID: clientID,
+		EntityID: ntf.ID,
+		Summary:  ntf.Title,
+		Payload: map[string]any{
+			"notificationId": ntf.ID,
+			"recipientRole":  ntf.RecipientRole,
+			"category":       ntf.Category,
+		},
+	})
 }

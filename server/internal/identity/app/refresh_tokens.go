@@ -39,7 +39,11 @@ func (s *Service) LoginWithSession(ctx context.Context, identifier, password str
 	defer s.mu.Unlock()
 
 	user, found := s.findUserLocked(cleanIdentifier)
-	if !found {
+	canLogin := found
+	if canLogin {
+		canLogin = user.Active
+	}
+	if !canLogin {
 		return AuthSession{}, domain.ErrInvalidCredentials
 	}
 	validPassword := domain.VerifyPassword(user.PasswordHash, cleanPass)
@@ -73,6 +77,7 @@ func (s *Service) RegisterWithSession(ctx context.Context, cmd RegisterCommand) 
 	}
 	newUser := buildRegisteredUser(normalizedEmail, fullName, username, passwordHash, cmd, s.clock.Now())
 	s.users[newUser.ID] = newUser
+	s.ensureAdminClientForUserLocked(ctx, newUser)
 	return s.issueSessionBundleLocked(ctx, newUser, uuid.Nil), nil
 }
 
@@ -176,7 +181,11 @@ func (s *Service) RefreshSession(ctx context.Context, rawRefreshToken string) (A
 		return AuthSession{}, domain.ErrInvalidCredentials
 	}
 	user, exists := s.users[record.UserID]
-	if !exists {
+	canRefresh := exists
+	if canRefresh {
+		canRefresh = user.Active
+	}
+	if !canRefresh {
 		return AuthSession{}, domain.ErrInvalidCredentials
 	}
 	s.revokeSingleRefreshTokenLocked(ctx, tokenHash, now)
@@ -324,6 +333,7 @@ func (s *Service) CleanupExpiredRefreshTokens(ctx context.Context) (int64, error
 	if err != nil {
 		return removedMemory, err
 	}
+	_, _ = store.DeleteExpiredMaintenanceRows(ctx, now)
 	if removedDB > removedMemory {
 		return removedDB, nil
 	}
@@ -396,6 +406,7 @@ func (s *Service) upsertOAuthUserWithSession(ctx context.Context, email, display
 	}
 	created := buildNewOAuthUser(email, displayName, s.clock.Now())
 	s.users[created.ID] = created
+	s.ensureAdminClientForUserLocked(ctx, created)
 	return s.issueSessionBundleLocked(ctx, created, uuid.Nil)
 }
 
@@ -432,6 +443,7 @@ func buildRegisteredUser(
 		Email:        normalizedEmail,
 		Phone:        strings.TrimSpace(cmd.Phone),
 		BirthDate:    strings.TrimSpace(cmd.BirthDate),
+		Active:       true,
 		Role:         domain.RoleClient,
 		Permissions:  []string{},
 		ActiveView:   domain.ViewPersonal,
@@ -454,6 +466,7 @@ func buildNewOAuthUser(email, displayName string, now time.Time) domain.User {
 		Username:     emailParts[0],
 		FullName:     fullName,
 		Email:        email,
+		Active:       true,
 		Role:         domain.RoleClient,
 		Permissions:  []string{},
 		ActiveView:   domain.ViewPersonal,

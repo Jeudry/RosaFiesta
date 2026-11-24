@@ -76,6 +76,16 @@ func (m Module) uploadHandler(ctx context.Context, in *uploadMediaInput) (*uploa
 	return &uploadMediaOutput{Status: http.StatusCreated, Body: asset}, nil
 }
 
+func isPrivateMediaPurpose(purpose string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(purpose))
+	switch normalized {
+	case "voucher", "chat", "damage":
+		return true
+	default:
+		return false
+	}
+}
+
 func (m Module) serveMediaHandler(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	asset, content, err := m.Service.Open(r.Context(), id)
@@ -87,9 +97,21 @@ func (m Module) serveMediaHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "archivo multimedia inválido", http.StatusUnsupportedMediaType)
 		return
 	}
+	isPrivate := isPrivateMediaPurpose(asset.Purpose)
+	if isPrivate {
+		_, authenticated := platformhttp.AuthenticateHTTPRequest(r, m.Auth)
+		if !authenticated {
+			http.Error(w, "autenticación requerida", http.StatusUnauthorized)
+			return
+		}
+	}
 	headers := w.Header()
 	headers.Set("Content-Type", asset.MimeType)
-	headers.Set("Cache-Control", "public, max-age=86400")
+	if isPrivate {
+		headers.Set("Cache-Control", "private, max-age=3600")
+	} else {
+		headers.Set("Cache-Control", "public, max-age=86400")
+	}
 	headers.Set("ETag", fmt.Sprintf(`"%s"`, asset.SHA256))
 	headers.Set("X-Content-Type-Options", "nosniff")
 	headers.Set("Content-Security-Policy", "sandbox")

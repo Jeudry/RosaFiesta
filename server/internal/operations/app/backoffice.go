@@ -259,6 +259,82 @@ func (s *Service) UpsertSupplier(ctx context.Context, cmd UpsertSupplierCommand)
 	return sup, nil
 }
 
+// PatchSupplier actualiza parcialmente un proveedor existente y registra la auditoría.
+func (s *Service) PatchSupplier(
+	ctx context.Context,
+	id string,
+	cmd UpsertSupplierCommand,
+	caller platformhttp.Principal,
+) (domain.Supplier, error) {
+	existingList := s.ListSuppliers(ctx, "")
+	targetID := strings.TrimSpace(id)
+	var current domain.Supplier
+	found := false
+	for _, item := range existingList {
+		if item.ID == targetID {
+			current = item
+			found = true
+			break
+		}
+	}
+	if !found {
+		return domain.Supplier{}, domain.ErrSupplierNotFound
+	}
+	merged := UpsertSupplierCommand{
+		ID:          targetID,
+		Name:        nonEmptyOr(cmd.Name, current.Name),
+		Category:    nonEmptyOr(cmd.Category, current.Category),
+		Specialty:   nonEmptyOr(cmd.Specialty, current.Specialty),
+		ContactName: nonEmptyOr(cmd.ContactName, current.ContactName),
+		Phone:       nonEmptyOr(cmd.Phone, current.Phone),
+		Email:       nonEmptyOr(cmd.Email, current.Email),
+		Website:     nonEmptyOr(cmd.Website, current.Website),
+		Rating:      nonEmptyOr(cmd.Rating, current.Rating),
+		Notes:       nonEmptyOr(cmd.Notes, current.Notes),
+	}
+	updated, err := s.UpsertSupplier(ctx, merged)
+	if err != nil {
+		return domain.Supplier{}, err
+	}
+	s.recordAudit(ctx, caller, "UPDATE_SUPPLIER", "supplier", updated.ID, "Actualizó proveedor "+updated.Name)
+	return updated, nil
+}
+
+// DeleteSupplier elimina un proveedor del directorio en memoria y PostgreSQL.
+func (s *Service) DeleteSupplier(ctx context.Context, id string, caller platformhttp.Principal) error {
+	_ = s.ListSuppliers(ctx, "")
+	targetID := strings.TrimSpace(id)
+	if targetID == "" {
+		return domain.ErrSupplierNotFound
+	}
+	removed := s.removeSupplierInMemory(targetID)
+	if !removed {
+		return domain.ErrSupplierNotFound
+	}
+	if store, enabled := s.storeEnabled(); enabled {
+		if delStore, ok := store.(DeletableStore); ok {
+			if err := delStore.DeleteSupplier(ctx, targetID); err != nil {
+				return err
+			}
+		}
+	}
+	s.recordAudit(ctx, caller, "DELETE_SUPPLIER", "supplier", targetID, "Eliminó proveedor "+targetID)
+	return nil
+}
+
+func (s *Service) removeSupplierInMemory(targetID string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for idx := range s.suppliers {
+		if s.suppliers[idx].ID != targetID {
+			continue
+		}
+		s.suppliers = append(s.suppliers[:idx], s.suppliers[idx+1:]...)
+		return true
+	}
+	return false
+}
+
 func (s *Service) saveSupplierInMemory(sup domain.Supplier) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -497,9 +573,13 @@ func isNotificationVisibleToCaller(ntf domain.Notification, caller platformhttp.
 	return ntf.UserID == caller.ID.String()
 }
 
-func (s *Service) MarkNotificationRead(ctx context.Context, id string) (domain.Notification, error) {
+// MarkNotificationReadForCaller verifica pertenencia antes de marcar la notificación como leída.
+func (s *Service) MarkNotificationReadForCaller(
+	ctx context.Context,
+	id string,
+	caller platformhttp.Principal,
+) (domain.Notification, error) {
 	if store, enabled := s.storeEnabled(); enabled {
-		_ = store.MarkNotificationRead(ctx, id)
 		if rows, err := store.ListNotifications(ctx); err == nil {
 			s.mu.Lock()
 			s.notifications = rows
@@ -508,14 +588,40 @@ func (s *Service) MarkNotificationRead(ctx context.Context, id string) (domain.N
 	}
 	targetID := strings.TrimSpace(id)
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	for idx := range s.notifications {
-		if s.notifications[idx].ID == targetID {
-			s.notifications[idx].IsRead = true
-			return s.notifications[idx], nil
+	idx := -1
+	for i := range s.notifications {
+		if s.notifications[i].ID == targetID {
+			idx = i
+			break
 		}
 	}
-	return domain.Notification{}, domain.ErrNotificationNotFound
+	if idx < 0 {
+		s.mu.Unlock()
+		return domain.Notification{}, domain.ErrNotificationNotFound
+	}
+	ntf := s.notifications[idx]
+	if !isNotificationVisibleToCaller(ntf, caller) {
+		s.mu.Unlock()
+		return domain.Notification{}, domain.ErrNotificationForbidden
+	}
+	s.notifications[idx].IsRead = true
+	updated := s.notifications[idx]
+	store := s.store
+	s.mu.Unlock()
+
+	if store != nil {
+		if store.Enabled() {
+			if err := store.MarkNotificationRead(ctx, targetID); err != nil {
+				return domain.Notification{}, err
+			}
+		}
+	}
+	return updated, nil
+}
+
+func (s *Service) MarkNotificationRead(ctx context.Context, id string) (domain.Notification, error) {
+	adminCaller := platformhttp.Principal{Role: "admin"}
+	return s.MarkNotificationReadForCaller(ctx, id, adminCaller)
 }
 
 func (s *Service) ListInsurancePolicies(ctx context.Context) []domain.InsurancePolicy {
@@ -552,6 +658,18 @@ func (s *Service) ListAuditLogs(ctx context.Context) []domain.AuditLog {
 	out := make([]domain.AuditLog, len(s.auditLogs))
 	copy(out, s.auditLogs)
 	return out
+}
+
+// RecordAuditLog registra explícitamente una entrada en la bitácora operativa de auditoría.
+func (s *Service) RecordAuditLog(
+	ctx context.Context,
+	caller platformhttp.Principal,
+	action string,
+	entityType string,
+	entityID string,
+	summary string,
+) {
+	s.recordAudit(ctx, caller, action, entityType, entityID, summary)
 }
 
 func (s *Service) recordAudit(
@@ -637,6 +755,40 @@ func (s *Service) UpsertBotFAQ(ctx context.Context, cmd UpsertBotFAQCommand) (do
 	return faq, nil
 }
 
+// DeleteBotFAQ elimina una pregunta frecuente del bot WhatsApp.
+func (s *Service) DeleteBotFAQ(ctx context.Context, id string, caller platformhttp.Principal) error {
+	_ = s.ListBotFAQs(ctx)
+	targetID := strings.TrimSpace(id)
+	if !s.removeBotFAQInMemory(targetID) {
+		return domain.ErrBotEntryNotFound
+	}
+	if store, enabled := s.storeEnabled(); enabled {
+		if delStore, ok := store.(DeletableStore); ok {
+			if err := delStore.DeleteBotFAQ(ctx, targetID); err != nil {
+				return err
+			}
+		}
+	}
+	s.recordAudit(ctx, caller, "DELETE_BOT_FAQ", "bot_faq", targetID, "Eliminó FAQ de bot WhatsApp")
+	return nil
+}
+
+func (s *Service) removeBotFAQInMemory(targetID string) bool {
+	if targetID == "" {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for idx := range s.botFAQs {
+		if s.botFAQs[idx].ID != targetID {
+			continue
+		}
+		s.botFAQs = append(s.botFAQs[:idx], s.botFAQs[idx+1:]...)
+		return true
+	}
+	return false
+}
+
 func (s *Service) saveBotFAQInMemory(faq domain.BotFAQ) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -693,6 +845,40 @@ func (s *Service) UpsertBotKeyword(ctx context.Context, cmd UpsertBotKeywordComm
 		}
 	}
 	return kw, nil
+}
+
+// DeleteBotKeyword elimina una palabra clave automática del bot WhatsApp.
+func (s *Service) DeleteBotKeyword(ctx context.Context, id string, caller platformhttp.Principal) error {
+	_ = s.ListBotKeywords(ctx)
+	targetID := strings.TrimSpace(id)
+	if !s.removeBotKeywordInMemory(targetID) {
+		return domain.ErrBotEntryNotFound
+	}
+	if store, enabled := s.storeEnabled(); enabled {
+		if delStore, ok := store.(DeletableStore); ok {
+			if err := delStore.DeleteBotKeyword(ctx, targetID); err != nil {
+				return err
+			}
+		}
+	}
+	s.recordAudit(ctx, caller, "DELETE_BOT_KEYWORD", "bot_keyword", targetID, "Eliminó regla de palabra clave del bot")
+	return nil
+}
+
+func (s *Service) removeBotKeywordInMemory(targetID string) bool {
+	if targetID == "" {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for idx := range s.botKeywords {
+		if s.botKeywords[idx].ID != targetID {
+			continue
+		}
+		s.botKeywords = append(s.botKeywords[:idx], s.botKeywords[idx+1:]...)
+		return true
+	}
+	return false
 }
 
 func (s *Service) saveBotKeywordInMemory(kw domain.BotKeyword) {
@@ -770,16 +956,76 @@ func applyBotThreadPatch(thread *domain.BotThread, cmd UpdateBotThreadCommand, u
 	thread.UpdatedAtLabel = updatedAtLabel
 }
 
+// ExportReport calcula el reporte real mensual usando agregaciones vivas e ITBIS configurado.
 func (s *Service) ExportReport(ctx context.Context, reportType, period string) (domain.ReportExport, error) {
+	settings, _ := s.GetSettings(ctx)
 	s.mu.RLock()
 	revFn := s.octRevenueFn
+	snapshotFn := s.reportSnapshotFn
 	now := s.clock.Now()
 	s.mu.RUnlock()
-	liveOctRevenue := 12450
-	if revFn != nil {
-		liveOctRevenue = revFn(ctx)
+
+	if snapshotFn != nil {
+		months := 6
+		if strings.EqualFold(strings.TrimSpace(period), "12m") {
+			months = 12
+		}
+		snapshot, err := snapshotFn.BuildReportSnapshot(ctx, months, now)
+		if err != nil {
+			return domain.ReportExport{}, err
+		}
+		snapshot.ItbisPercent = settings.ItbisPercent
+		return domain.BuildReportExportFromSnapshot(reportType, period, snapshot, now)
 	}
-	return domain.BuildReportExport(reportType, period, liveOctRevenue, now)
+	currentRevenue := 0
+	if revFn != nil {
+		currentRevenue = revFn(ctx)
+	}
+	snapshot := domain.ReportSnapshot{
+		ItbisPercent: settings.ItbisPercent,
+		Months: []domain.ReportMonthMetric{
+			{
+				Year:     now.Year(),
+				Month:    now.Month(),
+				IncomeRD: currentRevenue,
+			},
+		},
+	}
+	return domain.BuildReportExportFromSnapshot(reportType, period, snapshot, now)
+}
+
+// HasSentEventReminder consulta si el recordatorio especificado ya fue enviado para un evento.
+func (s *Service) HasSentEventReminder(ctx context.Context, eventID, reminderKind string) (bool, error) {
+	key := eventID + ":" + reminderKind
+	if store, enabled := s.storeEnabled(); enabled {
+		if remStore, ok := store.(ReminderStore); ok {
+			return remStore.HasSentEventReminder(ctx, eventID, reminderKind)
+		}
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.sentReminders[key], nil
+}
+
+// MarkEventReminderSent registra el envío idempotente de un recordatorio de evento.
+func (s *Service) MarkEventReminderSent(ctx context.Context, eventID, reminderKind string) error {
+	now := s.clock.Now()
+	key := eventID + ":" + reminderKind
+	s.mu.Lock()
+	if s.sentReminders == nil {
+		s.sentReminders = make(map[string]bool)
+	}
+	s.sentReminders[key] = true
+	store := s.store
+	s.mu.Unlock()
+	if store != nil {
+		if store.Enabled() {
+			if remStore, ok := store.(ReminderStore); ok {
+				return remStore.InsertSentEventReminder(ctx, eventID, reminderKind, now)
+			}
+		}
+	}
+	return nil
 }
 
 func shortMonthLabel(month int) string {

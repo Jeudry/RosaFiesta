@@ -418,7 +418,39 @@ func CanonicalBotThreads() []BotThread {
 	}
 }
 
-func BuildReportExport(reportType, period string, liveOctRevenueRD int, now time.Time) (ReportExport, error) {
+// ReportMonthMetric resume la actividad real agregada de un mes calendario.
+type ReportMonthMetric struct {
+	Year           int
+	Month          time.Month
+	IncomeRD       int
+	EventsCount    int
+	ClientsCount   int
+	InventoryCount int
+}
+
+// ReportSnapshot encapsula métricas reales de la plataforma para construir reportes.
+type ReportSnapshot struct {
+	Months       []ReportMonthMetric
+	ItbisPercent int
+}
+
+// BuildReportExport construye el reporte tabular usando la fecha actual y el ingreso del mes en curso.
+func BuildReportExport(reportType, period string, currentMonthRevenueRD int, now time.Time) (ReportExport, error) {
+	snapshot := ReportSnapshot{
+		ItbisPercent: 18,
+		Months: []ReportMonthMetric{
+			{
+				Year:     now.Year(),
+				Month:    now.Month(),
+				IncomeRD: currentMonthRevenueRD,
+			},
+		},
+	}
+	return BuildReportExportFromSnapshot(reportType, period, snapshot, now)
+}
+
+// BuildReportExportFromSnapshot construye el reporte usando métricas reales agregadas por mes.
+func BuildReportExportFromSnapshot(reportType, period string, snapshot ReportSnapshot, now time.Time) (ReportExport, error) {
 	normalizedType, okType := normalizeReportType(reportType)
 	if !okType {
 		return ReportExport{}, ErrInvalidReportRequest
@@ -427,13 +459,21 @@ func BuildReportExport(reportType, period string, liveOctRevenueRD int, now time
 	if !okPeriod {
 		return ReportExport{}, ErrInvalidReportRequest
 	}
-	series := buildReportSeries(normalizedType, normalizedPeriod, liveOctRevenueRD)
+	monthCount := 6
+	if normalizedPeriod == "12m" {
+		monthCount = 12
+	}
+	itbisRate := snapshot.ItbisPercent
+	if itbisRate <= 0 {
+		itbisRate = 18
+	}
+	series := buildReportSeriesFromSnapshot(normalizedType, monthCount, snapshot.Months, now)
 	totalRD := 0
 	for _, point := range series {
 		totalRD += point.ValueRD
 	}
-	itbisRD := (totalRD * 18) / 100
-	csvBody := formatReportCSV(series)
+	itbisRD := (totalRD * itbisRate) / 100
+	csvBody := formatReportCSVWithRate(series, itbisRate)
 	return ReportExport{
 		ReportType:  normalizedType,
 		Period:      normalizedPeriod,
@@ -473,50 +513,63 @@ func normalizeReportPeriod(raw string) (string, bool) {
 	}
 }
 
-func buildReportSeries(reportType, period string, liveOctRevenueRD int) []ReportPoint {
-	octRev := liveOctRevenueRD
-	if octRev <= 0 {
-		octRev = 12450
+func buildReportSeriesFromSnapshot(
+	reportType string,
+	monthCount int,
+	metrics []ReportMonthMetric,
+	now time.Time,
+) []ReportPoint {
+	byKey := make(map[string]ReportMonthMetric, len(metrics))
+	for _, item := range metrics {
+		key := fmt.Sprintf("%04d-%02d", item.Year, int(item.Month))
+		byKey[key] = item
 	}
-	allMonths := []ReportPoint{
-		{Label: "Nov 2025", ValueRD: 8900, Count: 3},
-		{Label: "Dic 2025", ValueRD: 15400, Count: 6},
-		{Label: "Ene 2026", ValueRD: 7600, Count: 2},
-		{Label: "Feb 2026", ValueRD: 11200, Count: 4},
-		{Label: "Mar 2026", ValueRD: 9800, Count: 3},
-		{Label: "Abr 2026", ValueRD: 10400, Count: 4},
-		{Label: "May 2026", ValueRD: 13100, Count: 5},
-		{Label: "Jun 2026", ValueRD: 11900, Count: 4},
-		{Label: "Jul 2026", ValueRD: 10850, Count: 4},
-		{Label: "Ago 2026", ValueRD: 12100, Count: 5},
-		{Label: "Sep 2026", ValueRD: 11600, Count: 4},
-		{Label: "Oct 2026", ValueRD: octRev, Count: 5},
+	points := make([]ReportPoint, 0, monthCount)
+	anchor := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	for offset := monthCount - 1; offset >= 0; offset-- {
+		monthTime := anchor.AddDate(0, -offset, 0)
+		key := fmt.Sprintf("%04d-%02d", monthTime.Year(), int(monthTime.Month()))
+		metric := byKey[key]
+		points = append(points, ReportPoint{
+			Label:   formatSpanishMonthYear(monthTime),
+			ValueRD: metric.IncomeRD,
+			Count:   resolveMetricCount(reportType, metric),
+		})
 	}
-	applyReportTypeScale(allMonths, reportType)
-	if period == "12m" {
-		return allMonths
-	}
-	return allMonths[6:]
+	return points
 }
 
-func applyReportTypeScale(points []ReportPoint, reportType string) {
-	if reportType == "inventory" {
-		for idx := range points {
-			points[idx].Count *= 42
-		}
-	}
-	if reportType == "clients" {
-		for idx := range points {
-			points[idx].Count += 2
-		}
+func resolveMetricCount(reportType string, metric ReportMonthMetric) int {
+	switch reportType {
+	case "inventory":
+		return metric.InventoryCount
+	case "clients":
+		return metric.ClientsCount
+	default:
+		return metric.EventsCount
 	}
 }
 
-func formatReportCSV(series []ReportPoint) string {
+func formatSpanishMonthYear(ts time.Time) string {
+	months := [12]string{
+		"Ene", "Feb", "Mar", "Abr", "May", "Jun",
+		"Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+	}
+	idx := int(ts.Month()) - 1
+	if idx < 0 {
+		idx = 0
+	}
+	if idx >= len(months) {
+		idx = len(months) - 1
+	}
+	return fmt.Sprintf("%s %d", months[idx], ts.Year())
+}
+
+func formatReportCSVWithRate(series []ReportPoint, itbisRate int) string {
 	var builder strings.Builder
-	builder.WriteString("Periodo,Monto_DOP,ITBIS_18_DOP,Cantidad\n")
+	fmt.Fprintf(&builder, "Periodo,Monto_DOP,ITBIS_%d_DOP,Cantidad\n", itbisRate)
 	for _, point := range series {
-		itbis := (point.ValueRD * 18) / 100
+		itbis := (point.ValueRD * itbisRate) / 100
 		line := fmt.Sprintf("%s,%d,%d,%d\n", point.Label, point.ValueRD, itbis, point.Count)
 		builder.WriteString(line)
 	}

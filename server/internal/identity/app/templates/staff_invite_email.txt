@@ -1,6 +1,10 @@
 Hola {{NAME}},
 
 Has sido invitado al equipo operativo de RosaFiesta con el rol "{{ROLE_LABEL}}".
-Puedes iniciar sesión en la plataforma con tu correo {{EMAIL}} y la contraseña temporal configurada por administración.
+Puedes iniciar sesión en la plataforma con:
+- Correo: {{EMAIL}}
+- Contraseña temporal: {{TEMP_PASSWORD}}
+
+Te recomendamos cambiar tu contraseña al ingresar en Configuración.
 
 Equipo RosaFiesta

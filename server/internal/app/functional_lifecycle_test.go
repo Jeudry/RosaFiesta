@@ -172,7 +172,11 @@ func uploadTestPNGVoucher(t *testing.T, handler http.Handler, token string) stri
 	if !strings.HasPrefix(mediaOut.URL, "/v1/media/") {
 		t.Fatalf("unexpected media url: %+v (%s)", mediaOut, mediaRec.Body.String())
 	}
-	getMediaRec := doJSONRequest(t, handler, http.MethodGet, mediaOut.URL, "", "")
+	unauthMediaRec := doJSONRequest(t, handler, http.MethodGet, mediaOut.URL, "", "")
+	if unauthMediaRec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for unauthenticated private voucher GET, got %d", unauthMediaRec.Code)
+	}
+	getMediaRec := doJSONRequest(t, handler, http.MethodGet, mediaOut.URL, token, "")
 	if getMediaRec.Code != http.StatusOK {
 		t.Fatalf("GET media failed %d", getMediaRec.Code)
 	}

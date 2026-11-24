@@ -281,3 +281,27 @@ ON CONFLICT (id) DO UPDATE SET
 SELECT id, event_id, stop_order, title, address, time_label, completed
 FROM delivery_stops
 ORDER BY event_id ASC, stop_order ASC;
+
+-- name: DeleteSupplier :exec
+DELETE FROM suppliers
+WHERE id = $1;
+
+-- name: DeleteBotFAQ :exec
+DELETE FROM bot_faqs
+WHERE id = $1;
+
+-- name: DeleteBotKeyword :exec
+DELETE FROM bot_keywords
+WHERE id = $1;
+
+-- name: HasSentEventReminder :one
+SELECT EXISTS (
+    SELECT 1
+    FROM sent_event_reminders
+    WHERE event_id = $1 AND user_id = $2 AND reminder_kind = $3
+);
+
+-- name: InsertSentEventReminder :exec
+INSERT INTO sent_event_reminders (id, event_id, user_id, reminder_kind, sent_at)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (event_id, user_id, reminder_kind) DO NOTHING;

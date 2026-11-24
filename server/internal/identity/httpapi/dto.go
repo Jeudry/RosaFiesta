@@ -161,11 +161,16 @@ func (in *UpdateProfileInput) ToCommand() identityapp.UpdateProfileCommand {
 
 type UpdatePreferencesInput struct {
 	Body struct {
-		PushNotificationsEnabled *bool `json:"pushNotificationsEnabled,omitempty"`
-		WhatsAppAlertsEnabled    *bool `json:"whatsappAlertsEnabled,omitempty"`
-		EmailReceiptsEnabled     *bool `json:"emailReceiptsEnabled,omitempty"`
-		BiometricLockEnabled     *bool `json:"biometricLockEnabled,omitempty"`
-		AutoSyncWifiOnly         *bool `json:"autoSyncWifiOnly,omitempty"`
+		PushNotificationsEnabled *bool   `json:"pushNotificationsEnabled,omitempty"`
+		WhatsAppAlertsEnabled    *bool   `json:"whatsappAlertsEnabled,omitempty"`
+		EmailReceiptsEnabled     *bool   `json:"emailReceiptsEnabled,omitempty"`
+		BiometricLockEnabled     *bool   `json:"biometricLockEnabled,omitempty"`
+		AutoSyncWifiOnly         *bool   `json:"autoSyncWifiOnly,omitempty"`
+		EventRemindersEnabled    *bool   `json:"eventRemindersEnabled,omitempty"`
+		PreferredLanguage        *string `json:"preferredLanguage,omitempty"`
+		DarkThemeEnabled         *bool   `json:"darkThemeEnabled,omitempty"`
+		SavedPaymentMethod       *string `json:"savedPaymentMethod,omitempty"`
+		ProfileZone              *string `json:"profileZone,omitempty"`
 	}
 }
 
@@ -176,6 +181,31 @@ func (in *UpdatePreferencesInput) ToCommand() identityapp.UpdatePreferencesComma
 		EmailReceiptsEnabled:     in.Body.EmailReceiptsEnabled,
 		BiometricLockEnabled:     in.Body.BiometricLockEnabled,
 		AutoSyncWifiOnly:         in.Body.AutoSyncWifiOnly,
+		EventRemindersEnabled:    in.Body.EventRemindersEnabled,
+		PreferredLanguage:        in.Body.PreferredLanguage,
+		DarkThemeEnabled:         in.Body.DarkThemeEnabled,
+		SavedPaymentMethod:       in.Body.SavedPaymentMethod,
+		ProfileZone:              in.Body.ProfileZone,
+	}
+}
+
+type FavoriteArticleInput struct {
+	ArticleID string `path:"articleId" doc:"Catalog article identifier."`
+}
+
+type FavoritesOutput struct {
+	Body struct {
+		Favorites []string `json:"favorites"`
+	}
+}
+
+type DeleteStaffInput struct {
+	ID string `path:"id" doc:"Staff member identifier."`
+}
+
+type DeleteStaffOutput struct {
+	Body struct {
+		Deleted bool `json:"deleted"`
 	}
 }
 

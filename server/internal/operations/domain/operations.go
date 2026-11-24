@@ -18,6 +18,14 @@ var (
 	ErrLeadNotFound = errors.New("crm lead not found")
 	// ErrNotificationNotFound indica que la notificación no existe.
 	ErrNotificationNotFound = errors.New("notification not found")
+	// ErrNotificationForbidden indica que la notificación pertenece a otro destinatario.
+	ErrNotificationForbidden = errors.New("notification belongs to another recipient")
+	// ErrSupplierNotFound indica que el proveedor solicitado no existe.
+	ErrSupplierNotFound = errors.New("supplier not found")
+	// ErrBotEntryNotFound indica que la regla o FAQ del bot no existe.
+	ErrBotEntryNotFound = errors.New("bot faq or keyword not found")
+	// ErrWebhookSignatureInvalid indica que la firma HMAC del webhook de WhatsApp no es válida.
+	ErrWebhookSignatureInvalid = errors.New("invalid whatsapp webhook signature")
 	// ErrBotThreadNotFound indica que el hilo de conversación WhatsApp no existe.
 	ErrBotThreadNotFound = errors.New("whatsapp bot thread not found")
 	// ErrWhatsAppNotConfigured indica que WhatsApp Cloud API no está configurado.

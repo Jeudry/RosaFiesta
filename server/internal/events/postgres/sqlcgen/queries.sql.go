@@ -12,6 +12,21 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteEventGuest = `-- name: DeleteEventGuest :exec
+DELETE FROM event_guests
+WHERE event_id = $1 AND id = $2
+`
+
+type DeleteEventGuestParams struct {
+	EventID string
+	ID      string
+}
+
+func (q *Queries) DeleteEventGuest(ctx context.Context, arg DeleteEventGuestParams) error {
+	_, err := q.db.Exec(ctx, deleteEventGuest, arg.EventID, arg.ID)
+	return err
+}
+
 const deleteEventItems = `-- name: DeleteEventItems :exec
 DELETE FROM event_items
 WHERE event_id = $1
@@ -19,6 +34,21 @@ WHERE event_id = $1
 
 func (q *Queries) DeleteEventItems(ctx context.Context, eventID string) error {
 	_, err := q.db.Exec(ctx, deleteEventItems, eventID)
+	return err
+}
+
+const deleteEventTeamTask = `-- name: DeleteEventTeamTask :exec
+DELETE FROM event_team_tasks
+WHERE event_id = $1 AND id = $2
+`
+
+type DeleteEventTeamTaskParams struct {
+	EventID string
+	ID      string
+}
+
+func (q *Queries) DeleteEventTeamTask(ctx context.Context, arg DeleteEventTeamTaskParams) error {
+	_, err := q.db.Exec(ctx, deleteEventTeamTask, arg.EventID, arg.ID)
 	return err
 }
 
@@ -296,6 +326,40 @@ func (q *Queries) ListEventGuests(ctx context.Context, eventID string) ([]EventG
 			&i.RsvpStatus,
 			&i.TableLabel,
 			&i.DietaryNotes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEventTeamTasks = `-- name: ListEventTeamTasks :many
+SELECT id, event_id, title, assignee_name, done, created_at
+FROM event_team_tasks
+WHERE event_id = $1
+ORDER BY created_at ASC, id ASC
+`
+
+func (q *Queries) ListEventTeamTasks(ctx context.Context, eventID string) ([]EventTeamTask, error) {
+	rows, err := q.db.Query(ctx, listEventTeamTasks, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventTeamTask
+	for rows.Next() {
+		var i EventTeamTask
+		if err := rows.Scan(
+			&i.ID,
+			&i.EventID,
+			&i.Title,
+			&i.AssigneeName,
+			&i.Done,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -735,6 +799,36 @@ func (q *Queries) UpsertEventItem(ctx context.Context, arg UpsertEventItemParams
 		arg.Name,
 		arg.Quantity,
 		arg.UnitPriceDop,
+	)
+	return err
+}
+
+const upsertEventTeamTask = `-- name: UpsertEventTeamTask :exec
+INSERT INTO event_team_tasks (id, event_id, title, assignee_name, done, created_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (id) DO UPDATE SET
+    title = EXCLUDED.title,
+    assignee_name = EXCLUDED.assignee_name,
+    done = EXCLUDED.done
+`
+
+type UpsertEventTeamTaskParams struct {
+	ID           string
+	EventID      string
+	Title        string
+	AssigneeName string
+	Done         bool
+	CreatedAt    time.Time
+}
+
+func (q *Queries) UpsertEventTeamTask(ctx context.Context, arg UpsertEventTeamTaskParams) error {
+	_, err := q.db.Exec(ctx, upsertEventTeamTask,
+		arg.ID,
+		arg.EventID,
+		arg.Title,
+		arg.AssigneeName,
+		arg.Done,
+		arg.CreatedAt,
 	)
 	return err
 }

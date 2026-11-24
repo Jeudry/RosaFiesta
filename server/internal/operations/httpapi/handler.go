@@ -173,8 +173,12 @@ func (m Module) registerReviewsRoutes(api huma.API) {
 }
 
 func (m Module) registerSuppliersAndLeadsRoutes(api huma.API) {
+	m.registerSupplierRoutes(api)
+	m.registerLeadRoutes(api)
+}
+
+func (m Module) registerSupplierRoutes(api huma.API) {
 	supMW := m.anyPermMiddlewares(api, "inventario", "eventos", "ajustes")
-	leadMW := m.anyPermMiddlewares(api, "eventos", "ajustes")
 
 	huma.Register(api, huma.Operation{
 		OperationID: "operations-list-suppliers",
@@ -195,6 +199,30 @@ func (m Module) registerSuppliersAndLeadsRoutes(api huma.API) {
 		Security:    platformhttp.Secured(),
 		Middlewares: supMW,
 	}, m.handleUpsertSupplier)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "operations-patch-supplier",
+		Method:      http.MethodPatch,
+		Path:        "/v1/operations/suppliers/{id}",
+		Summary:     "Partially update a supplier directory entry",
+		Tags:        []string{"Operations"},
+		Security:    platformhttp.Secured(),
+		Middlewares: supMW,
+	}, m.handlePatchSupplier)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "operations-delete-supplier",
+		Method:      http.MethodDelete,
+		Path:        "/v1/operations/suppliers/{id}",
+		Summary:     "Delete a supplier directory entry",
+		Tags:        []string{"Operations"},
+		Security:    platformhttp.Secured(),
+		Middlewares: supMW,
+	}, m.handleDeleteSupplier)
+}
+
+func (m Module) registerLeadRoutes(api huma.API) {
+	leadMW := m.anyPermMiddlewares(api, "eventos", "ajustes")
 
 	huma.Register(api, huma.Operation{
 		OperationID: "operations-list-leads",
@@ -318,7 +346,11 @@ func (m Module) registerGovernanceAndReportsRoutes(api huma.API) {
 
 func (m Module) registerBotFAQAndKeywordRoutes(api huma.API) {
 	botMW := m.anyPermMiddlewares(api, "eventos", "ajustes")
+	m.registerBotFAQRoutes(api, botMW)
+	m.registerBotKeywordRoutes(api, botMW)
+}
 
+func (m Module) registerBotFAQRoutes(api huma.API, botMW huma.Middlewares) {
 	huma.Register(api, huma.Operation{
 		OperationID: "operations-list-bot-faqs",
 		Method:      http.MethodGet,
@@ -340,6 +372,18 @@ func (m Module) registerBotFAQAndKeywordRoutes(api huma.API) {
 	}, m.handleUpsertBotFAQ)
 
 	huma.Register(api, huma.Operation{
+		OperationID: "operations-delete-bot-faq",
+		Method:      http.MethodDelete,
+		Path:        "/v1/operations/bot/faqs/{id}",
+		Summary:     "Delete a WhatsApp bot FAQ entry",
+		Tags:        []string{"Operations"},
+		Security:    platformhttp.Secured(),
+		Middlewares: botMW,
+	}, m.handleDeleteBotFAQ)
+}
+
+func (m Module) registerBotKeywordRoutes(api huma.API, botMW huma.Middlewares) {
+	huma.Register(api, huma.Operation{
 		OperationID: "operations-list-bot-keywords",
 		Method:      http.MethodGet,
 		Path:        "/v1/operations/bot/keywords",
@@ -358,6 +402,16 @@ func (m Module) registerBotFAQAndKeywordRoutes(api huma.API) {
 		Security:    platformhttp.Secured(),
 		Middlewares: botMW,
 	}, m.handleUpsertBotKeyword)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "operations-delete-bot-keyword",
+		Method:      http.MethodDelete,
+		Path:        "/v1/operations/bot/keywords/{id}",
+		Summary:     "Delete a WhatsApp bot keyword trigger",
+		Tags:        []string{"Operations"},
+		Security:    platformhttp.Secured(),
+		Middlewares: botMW,
+	}, m.handleDeleteBotKeyword)
 }
 
 func (m Module) registerBotThreadRoutes(api huma.API) {
@@ -513,13 +567,37 @@ func (m Module) handleListSuppliers(ctx context.Context, in *SuppliersListInput)
 }
 
 func (m Module) handleUpsertSupplier(ctx context.Context, in *UpsertSupplierInput) (*SupplierOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
 	cmd := in.ToCommand()
 	sup, err := m.Service.UpsertSupplier(ctx, cmd)
 	if err != nil {
 		return nil, mapOperationsError(err, "POST /v1/operations/suppliers", "SUPPLIER_INVALID", "UpsertSupplierValidation", http.StatusBadRequest)
 	}
+	m.Service.RecordAuditLog(ctx, caller, "UPSERT_SUPPLIER", "supplier", sup.ID, "Guardó proveedor "+sup.Name)
 	out := &SupplierOutput{}
 	out.Body.Supplier = sup
+	return out, nil
+}
+
+func (m Module) handlePatchSupplier(ctx context.Context, in *PatchSupplierInput) (*SupplierOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	sup, err := m.Service.PatchSupplier(ctx, in.ID, in.ToCommand(), caller)
+	if err != nil {
+		return nil, mapOperationsError(err, "PATCH /v1/operations/suppliers/"+in.ID, "SUPPLIER_NOT_FOUND", "PatchSupplierValidation", http.StatusBadRequest)
+	}
+	out := &SupplierOutput{}
+	out.Body.Supplier = sup
+	return out, nil
+}
+
+func (m Module) handleDeleteSupplier(ctx context.Context, in *OperationsEntityByIDInput) (*DeleteEntityOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	if err := m.Service.DeleteSupplier(ctx, in.ID, caller); err != nil {
+		return nil, mapOperationsError(err, "DELETE /v1/operations/suppliers/"+in.ID, "SUPPLIER_NOT_FOUND", "DeleteSupplierValidation", http.StatusNotFound)
+	}
+	out := &DeleteEntityOutput{}
+	out.Body.Deleted = true
+	out.Body.ID = in.ID
 	return out, nil
 }
 
@@ -530,22 +608,26 @@ func (m Module) handleListLeads(ctx context.Context, in *LeadsListInput) (*Leads
 }
 
 func (m Module) handleCreateLead(ctx context.Context, in *CreateLeadInput) (*LeadOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
 	cmd := in.ToCommand()
 	lead, err := m.Service.CreateLead(ctx, cmd)
 	if err != nil {
 		return nil, mapOperationsError(err, "POST /v1/operations/leads", "LEAD_INVALID", "CreateLeadValidation", http.StatusBadRequest)
 	}
+	m.Service.RecordAuditLog(ctx, caller, "CREATE_LEAD", "lead", lead.ID, "Creó prospecto CRM "+lead.FullName)
 	out := &LeadOutput{}
 	out.Body.Lead = lead
 	return out, nil
 }
 
 func (m Module) handleUpdateLead(ctx context.Context, in *UpdateLeadInput) (*LeadOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
 	cmd := in.ToCommand()
 	lead, err := m.Service.UpdateLead(ctx, in.ID, cmd)
 	if err != nil {
 		return nil, mapOperationsError(err, "PATCH /v1/operations/leads/"+in.ID, "LEAD_NOT_FOUND", "UpdateLeadValidation", http.StatusBadRequest)
 	}
+	m.Service.RecordAuditLog(ctx, caller, "UPDATE_LEAD", "lead", lead.ID, "Actualizó etapa CRM de "+lead.FullName)
 	out := &LeadOutput{}
 	out.Body.Lead = lead
 	return out, nil
@@ -586,7 +668,8 @@ func (m Module) handleListNotifications(ctx context.Context, _ *struct{}) (*Noti
 }
 
 func (m Module) handleMarkNotificationRead(ctx context.Context, in *NotificationByIDInput) (*NotificationOutput, error) {
-	ntf, err := m.Service.MarkNotificationRead(ctx, in.ID)
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	ntf, err := m.Service.MarkNotificationReadForCaller(ctx, in.ID, caller)
 	if err != nil {
 		return nil, mapOperationsError(err, "PATCH /v1/notifications/"+in.ID+"/read", "NOTIFICATION_NOT_FOUND", "NotificationMustExist", http.StatusNotFound)
 	}
@@ -624,13 +707,26 @@ func (m Module) handleListBotFAQs(ctx context.Context, _ *struct{}) (*BotFAQsOut
 }
 
 func (m Module) handleUpsertBotFAQ(ctx context.Context, in *UpsertBotFAQInput) (*BotFAQOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
 	cmd := in.ToCommand()
 	faq, err := m.Service.UpsertBotFAQ(ctx, cmd)
 	if err != nil {
 		return nil, mapOperationsError(err, "POST /v1/operations/bot/faqs", "BOT_FAQ_INVALID", "UpsertBotFAQValidation", http.StatusBadRequest)
 	}
+	m.Service.RecordAuditLog(ctx, caller, "UPSERT_BOT_FAQ", "bot_faq", faq.ID, "Guardó FAQ del bot WhatsApp")
 	out := &BotFAQOutput{}
 	out.Body.FAQ = faq
+	return out, nil
+}
+
+func (m Module) handleDeleteBotFAQ(ctx context.Context, in *OperationsEntityByIDInput) (*DeleteEntityOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	if err := m.Service.DeleteBotFAQ(ctx, in.ID, caller); err != nil {
+		return nil, mapOperationsError(err, "DELETE /v1/operations/bot/faqs/"+in.ID, "BOT_FAQ_NOT_FOUND", "DeleteBotFAQValidation", http.StatusNotFound)
+	}
+	out := &DeleteEntityOutput{}
+	out.Body.Deleted = true
+	out.Body.ID = in.ID
 	return out, nil
 }
 
@@ -641,13 +737,26 @@ func (m Module) handleListBotKeywords(ctx context.Context, _ *struct{}) (*BotKey
 }
 
 func (m Module) handleUpsertBotKeyword(ctx context.Context, in *UpsertBotKeywordInput) (*BotKeywordOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
 	cmd := in.ToCommand()
 	kw, err := m.Service.UpsertBotKeyword(ctx, cmd)
 	if err != nil {
 		return nil, mapOperationsError(err, "POST /v1/operations/bot/keywords", "BOT_KEYWORD_INVALID", "UpsertBotKeywordValidation", http.StatusBadRequest)
 	}
+	m.Service.RecordAuditLog(ctx, caller, "UPSERT_BOT_KEYWORD", "bot_keyword", kw.ID, "Guardó regla de palabra clave "+kw.Keyword)
 	out := &BotKeywordOutput{}
 	out.Body.Keyword = kw
+	return out, nil
+}
+
+func (m Module) handleDeleteBotKeyword(ctx context.Context, in *OperationsEntityByIDInput) (*DeleteEntityOutput, error) {
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	if err := m.Service.DeleteBotKeyword(ctx, in.ID, caller); err != nil {
+		return nil, mapOperationsError(err, "DELETE /v1/operations/bot/keywords/"+in.ID, "BOT_KEYWORD_NOT_FOUND", "DeleteBotKeywordValidation", http.StatusNotFound)
+	}
+	out := &DeleteEntityOutput{}
+	out.Body.Deleted = true
+	out.Body.ID = in.ID
 	return out, nil
 }
 
@@ -687,7 +796,7 @@ func (m Module) handleVerifyWhatsAppWebhook(_ context.Context, in *VerifyWhatsAp
 }
 
 func (m Module) handleIngestWhatsAppWebhook(ctx context.Context, in *IngestWhatsAppWebhookInput) (*WhatsAppWebhookAckOutput, error) {
-	if err := m.Service.IngestWhatsAppWebhook(ctx, in.RawBody); err != nil {
+	if err := m.Service.IngestWhatsAppWebhookSigned(ctx, in.Signature256, in.RawBody); err != nil {
 		return nil, mapOperationsError(err, "POST /v1/webhooks/whatsapp", "WHATSAPP_WEBHOOK_INGEST_FAILED", "IngestWhatsAppWebhook", http.StatusBadRequest)
 	}
 	out := &WhatsAppWebhookAckOutput{}

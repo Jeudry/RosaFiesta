@@ -159,3 +159,25 @@ SELECT id, thread_id, event_id, event_title, sender_id, sender_name,
 FROM chat_messages
 WHERE thread_id = $1
 ORDER BY created_at ASC, id ASC;
+
+-- name: DeleteEventGuest :exec
+DELETE FROM event_guests
+WHERE event_id = $1 AND id = $2;
+
+-- name: ListEventTeamTasks :many
+SELECT id, event_id, title, assignee_name, done, created_at
+FROM event_team_tasks
+WHERE event_id = $1
+ORDER BY created_at ASC, id ASC;
+
+-- name: UpsertEventTeamTask :exec
+INSERT INTO event_team_tasks (id, event_id, title, assignee_name, done, created_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (id) DO UPDATE SET
+    title = EXCLUDED.title,
+    assignee_name = EXCLUDED.assignee_name,
+    done = EXCLUDED.done;
+
+-- name: DeleteEventTeamTask :exec
+DELETE FROM event_team_tasks
+WHERE event_id = $1 AND id = $2;

@@ -39,6 +39,21 @@ type CatalogReader interface {
 	Articles(ctx context.Context, query string) []catalogdomain.Article
 }
 
+// DepositRateProvider provee el porcentaje de anticipo vigente configurado en ajustes.
+type DepositRateProvider interface {
+	CurrentDepositPercent(ctx context.Context) int
+}
+
+// QuoteSentNotifier notifica al cliente cuando una cotización es enviada por administración.
+type QuoteSentNotifier interface {
+	NotifyQuoteSent(ctx context.Context, quote domain.Quote)
+}
+
+// EmailPreferenceChecker verifica si el cliente permite correos de confirmación.
+type EmailPreferenceChecker interface {
+	AllowsEmailReceipts(ctx context.Context, clientID string, email string) bool
+}
+
 type Store interface {
 	Enabled() bool
 	ListQuotes(ctx context.Context) ([]domain.Quote, error)
@@ -89,6 +104,9 @@ type Service struct {
 	stockChecker     StockChecker
 	eventProvisioner EventProvisioner
 	adminNotifier    AdminNotifier
+	quoteSentNotif   QuoteSentNotifier
+	depositProvider  DepositRateProvider
+	emailPrefChecker EmailPreferenceChecker
 	emailSender      mailer.Sender
 	realtimePub      realtimedomain.Publisher
 	aiConfig         AIProviderConfig
@@ -164,6 +182,30 @@ func (s *Service) WithEventProvisioner(provisioner EventProvisioner) *Service {
 func (s *Service) WithAdminNotifier(notifier AdminNotifier) *Service {
 	s.mu.Lock()
 	s.adminNotifier = notifier
+	s.mu.Unlock()
+	return s
+}
+
+// WithDepositRateProvider configura el proveedor dinámico de porcentaje de anticipo.
+func (s *Service) WithDepositRateProvider(provider DepositRateProvider) *Service {
+	s.mu.Lock()
+	s.depositProvider = provider
+	s.mu.Unlock()
+	return s
+}
+
+// WithQuoteSentNotifier configura el notificador al cliente cuando se envía una cotización.
+func (s *Service) WithQuoteSentNotifier(notifier QuoteSentNotifier) *Service {
+	s.mu.Lock()
+	s.quoteSentNotif = notifier
+	s.mu.Unlock()
+	return s
+}
+
+// WithEmailPreferenceChecker configura la verificación de preferencia de recibos por correo.
+func (s *Service) WithEmailPreferenceChecker(checker EmailPreferenceChecker) *Service {
+	s.mu.Lock()
+	s.emailPrefChecker = checker
 	s.mu.Unlock()
 	return s
 }
@@ -306,7 +348,8 @@ func (s *Service) CreateQuoteForCaller(
 	cmd CreateQuoteCommand,
 	caller platformhttp.Principal,
 ) (domain.Quote, error) {
-	total, deposit, balance, err := domain.CalculateQuoteTotals(cmd.Lines, cmd.DeliveryFeeRD, cmd.DiscountRD)
+	depositPct := s.resolveDepositPercent(ctx)
+	total, deposit, balance, err := domain.CalculateQuoteTotalsWithDeposit(cmd.Lines, cmd.DeliveryFeeRD, cmd.DiscountRD, depositPct)
 	if err != nil {
 		return domain.Quote{}, err
 	}
@@ -314,7 +357,7 @@ func (s *Service) CreateQuoteForCaller(
 		return domain.Quote{}, err
 	}
 	now := s.clock.Now()
-	quote := s.buildAndStoreCreatedQuote(ctx, cmd, caller, total, deposit, balance, now)
+	quote := s.buildAndStoreCreatedQuote(ctx, cmd, caller, total, depositPct, deposit, balance, now)
 	store := s.currentStore()
 	if store != nil {
 		if store.Enabled() {
@@ -326,11 +369,28 @@ func (s *Service) CreateQuoteForCaller(
 	return quote, nil
 }
 
+func (s *Service) resolveDepositPercent(ctx context.Context) int {
+	s.mu.RLock()
+	provider := s.depositProvider
+	s.mu.RUnlock()
+	if provider == nil {
+		return 30
+	}
+	pct := provider.CurrentDepositPercent(ctx)
+	if pct <= 0 {
+		return 30
+	}
+	if pct > 100 {
+		return 30
+	}
+	return pct
+}
+
 func (s *Service) buildAndStoreCreatedQuote(
 	ctx context.Context,
 	cmd CreateQuoteCommand,
 	caller platformhttp.Principal,
-	total, deposit, balance int,
+	total, depositPercent, deposit, balance int,
 	now time.Time,
 ) domain.Quote {
 	s.mu.Lock()
@@ -361,7 +421,7 @@ func (s *Service) buildAndStoreCreatedQuote(
 		DeliveryFeeRD:  cmd.DeliveryFeeRD,
 		DiscountRD:     cmd.DiscountRD,
 		TotalRD:        total,
-		DepositPercent: 30,
+		DepositPercent: depositPercent,
 		DepositRD:      deposit,
 		BalanceRD:      balance,
 		Status:         initialStatus,
@@ -470,6 +530,9 @@ func (s *Service) DeclineQuoteForCaller(
 	if err != nil {
 		return domain.Quote{}, err
 	}
+	if quote.Status == domain.QuoteStatusSigned {
+		return domain.Quote{}, domain.ErrQuoteAlreadyDecided
+	}
 	now := s.clock.Now()
 	quote.Status = domain.QuoteStatusDeclined
 	quote.RejectionReason = strings.TrimSpace(reason)
@@ -504,7 +567,8 @@ func (s *Service) SendQuoteForAdmin(
 		return domain.Quote{}, domain.ErrQuoteAlreadyDecided
 	}
 	enriched := applyQuoteEnrichment(quote, cmd)
-	total, deposit, balance, err := domain.CalculateQuoteTotals(enriched.Lines, enriched.DeliveryFeeRD, enriched.DiscountRD)
+	depositPct := s.resolveDepositPercent(ctx)
+	total, deposit, balance, err := domain.CalculateQuoteTotalsWithDeposit(enriched.Lines, enriched.DeliveryFeeRD, enriched.DiscountRD, depositPct)
 	if err != nil {
 		return domain.Quote{}, err
 	}
@@ -512,7 +576,7 @@ func (s *Service) SendQuoteForAdmin(
 		return domain.Quote{}, err
 	}
 	enriched.TotalRD = total
-	enriched.DepositPercent = 30
+	enriched.DepositPercent = depositPct
 	enriched.DepositRD = deposit
 	enriched.BalanceRD = balance
 	enriched.Status = domain.QuoteStatusSent
@@ -522,6 +586,8 @@ func (s *Service) SendQuoteForAdmin(
 	s.mu.Lock()
 	s.quotes[id] = enriched
 	store := s.store
+	sentNotif := s.quoteSentNotif
+	pub := s.realtimePub
 	s.mu.Unlock()
 	if store != nil {
 		if store.Enabled() {
@@ -530,6 +596,10 @@ func (s *Service) SendQuoteForAdmin(
 			}
 		}
 	}
+	if sentNotif != nil {
+		sentNotif.NotifyQuoteSent(ctx, enriched)
+	}
+	publishQuoteSentEvent(pub, enriched)
 	return enriched, nil
 }
 
@@ -634,7 +704,29 @@ func (s *Service) GenerateRosaSketch(
 	return callAISketchProvider(ctx, client, cfg, prompt, eventType, guests)
 }
 
+// TranscribeAudio analiza y transcribe una nota de voz sin contexto de llamador explícito.
 func (s *Service) TranscribeAudio(ctx context.Context, cmd TranscribeCommand) (domain.TranscriptionResult, error) {
+	return s.TranscribeAudioForCaller(ctx, cmd, platformhttp.Principal{})
+}
+
+// TranscribeAudioForCaller aplica rate limiting y transcribe una nota de voz con el proveedor STT configurado.
+func (s *Service) TranscribeAudioForCaller(
+	ctx context.Context,
+	cmd TranscribeCommand,
+	caller platformhttp.Principal,
+) (domain.TranscriptionResult, error) {
+	s.mu.RLock()
+	cfg := s.aiConfig
+	client := s.httpClient
+	limiter := s.rateLimiter
+	s.mu.RUnlock()
+
+	if limiter != nil {
+		allowed := limiter.allow(callerRateLimitKey(caller), s.clock.Now(), cfg.RateLimitMax, cfg.RateLimitWindow)
+		if !allowed {
+			return domain.TranscriptionResult{}, domain.ErrAIRateLimited
+		}
+	}
 	analysis, err := domain.AnalyzeBase64Audio(cmd.AudioBase64)
 	if err != nil {
 		return domain.TranscriptionResult{}, err
@@ -646,10 +738,6 @@ func (s *Service) TranscribeAudio(ctx context.Context, cmd TranscribeCommand) (d
 	if locale == "" {
 		locale = "es-DO"
 	}
-	s.mu.RLock()
-	cfg := s.aiConfig
-	client := s.httpClient
-	s.mu.RUnlock()
 
 	transcript, provider, err := callSTTProvider(ctx, client, cfg, cmd, analysis, locale)
 	if err != nil {
@@ -664,6 +752,25 @@ func (s *Service) TranscribeAudio(ctx context.Context, cmd TranscribeCommand) (d
 		VoiceDetected: analysis.VoiceDetected,
 		Provider:      provider,
 	}, nil
+}
+
+// BuildContractPDFForCaller genera el contrato PDF de la cotización si el llamador tiene acceso.
+func (s *Service) BuildContractPDFForCaller(
+	ctx context.Context,
+	id string,
+	caller platformhttp.Principal,
+	authenticated bool,
+) ([]byte, string, error) {
+	quote, err := s.GetQuoteForCaller(ctx, id, caller, authenticated)
+	if err != nil {
+		return nil, "", err
+	}
+	pdfBytes := domain.BuildQuoteContractPDF(quote)
+	filename := fmt.Sprintf("contrato-%s.pdf", strings.ToLower(strings.TrimSpace(quote.Code)))
+	if filename == "contrato-.pdf" {
+		filename = "contrato-" + quote.ID + ".pdf"
+	}
+	return pdfBytes, filename, nil
 }
 
 func (s *Service) loadLiveCatalogSKUs(ctx context.Context) []domain.CatalogSKU {
@@ -873,13 +980,20 @@ func (s *Service) dispatchSignedQuoteNotifications(ctx context.Context, quote do
 	s.mu.RLock()
 	notifier := s.adminNotifier
 	sender := s.emailSender
+	prefChecker := s.emailPrefChecker
 	pub := s.realtimePub
 	s.mu.RUnlock()
 
 	if notifier != nil {
 		_ = notifier.NotifyQuoteSigned(ctx, quote)
 	}
-	sendQuoteSignedEmail(ctx, sender, quote)
+	allowEmail := true
+	if prefChecker != nil {
+		allowEmail = prefChecker.AllowsEmailReceipts(ctx, quote.ClientID, quote.ClientEmail)
+	}
+	if allowEmail {
+		sendQuoteSignedEmail(ctx, sender, quote)
+	}
 	publishQuoteSignedEvent(pub, quote)
 }
 
@@ -894,10 +1008,36 @@ func sendQuoteSignedEmail(ctx context.Context, sender mailer.Sender, quote domai
 	if targetEmail == "" {
 		return
 	}
+	depositPct := quote.DepositPercent
+	if depositPct <= 0 {
+		depositPct = 30
+	}
 	subject := fmt.Sprintf("Contrato firmado - %s (%s)", quote.EventTitle, quote.Code)
-	body := fmt.Sprintf("Hola %s,\n\nTu contrato (%s) para \"%s\" ha sido firmado correctamente.\nTotal: RD$%d · Anticipo requerido (30%%): RD$%d.\n",
-		quote.ClientName, quote.Code, quote.EventTitle, quote.TotalRD, quote.DepositRD)
+	body := fmt.Sprintf("Hola %s,\n\nTu contrato (%s) para \"%s\" ha sido firmado correctamente.\nTotal: RD$%d · Anticipo requerido (%d%%): RD$%d.\n",
+		quote.ClientName, quote.Code, quote.EventTitle, quote.TotalRD, depositPct, quote.DepositRD)
 	_ = sender.SendEmail(ctx, targetEmail, subject, body)
+}
+
+func publishQuoteSentEvent(pub realtimedomain.Publisher, quote domain.Quote) {
+	if pub == nil {
+		return
+	}
+	audience := realtimedomain.AudienceAdmin
+	if quote.ClientID != "" {
+		audience = realtimedomain.AudienceClient
+	}
+	pub.Publish(realtimedomain.RealtimeEvent{
+		Type:     realtimedomain.EventQuoteSent,
+		Audience: audience,
+		ClientID: quote.ClientID,
+		EntityID: quote.ID,
+		Summary:  "Cotización lista para firma: " + quote.EventTitle,
+		Payload: map[string]any{
+			"quoteId": quote.ID,
+			"eventId": quote.EventID,
+			"totalRD": quote.TotalRD,
+		},
+	})
 }
 
 func publishQuoteSignedEvent(pub realtimedomain.Publisher, quote domain.Quote) {

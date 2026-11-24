@@ -246,6 +246,36 @@ func BearerToken(header string) (string, bool) {
 	return bearerToken(header)
 }
 
+// AuthenticateHTTPRequest extrae y verifica el Bearer token de una petición chi estándar.
+func AuthenticateHTTPRequest(r *http.Request, auth Authenticator) (Principal, bool) {
+	if auth == nil {
+		return Principal{}, false
+	}
+	if r == nil {
+		return Principal{}, false
+	}
+	token, ok := bearerToken(r.Header.Get("Authorization"))
+	if !ok {
+		token = strings.TrimSpace(r.URL.Query().Get("access_token"))
+	}
+	if token == "" {
+		return Principal{}, false
+	}
+	userID, err := auth.Authenticate(r.Context(), token)
+	if err != nil {
+		return Principal{}, false
+	}
+	resolver, ok := auth.(PrincipalResolver)
+	if !ok {
+		return Principal{ID: userID}, true
+	}
+	principal, err := resolver.ResolvePrincipal(r.Context(), userID)
+	if err != nil {
+		return Principal{ID: userID}, true
+	}
+	return principal, true
+}
+
 func bearerToken(header string) (string, bool) {
 	const prefix = "Bearer "
 	if len(header) <= len(prefix) {

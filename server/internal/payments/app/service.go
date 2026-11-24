@@ -54,6 +54,30 @@ type DamageExpensesReader interface {
 	TotalDamageExpensesRD(ctx context.Context) int
 }
 
+// TaxRateProvider provee el porcentaje vigente de ITBIS configurado en ajustes del negocio.
+type TaxRateProvider interface {
+	CurrentITBISPercent(ctx context.Context) int
+}
+
+// ApproveRefundOptions encapsula los parámetros adicionales al aprobar un reembolso.
+type ApproveRefundOptions struct {
+	ApproverName     string
+	Method           string
+	ReleaseInventory bool
+	NotifyWhatsApp   bool
+	ClientMessage    string
+}
+
+// RefundApprovedHook ejecuta efectos posteriores (liberar inventario y notificar al cliente) al aprobar un reembolso.
+type RefundApprovedHook interface {
+	OnRefundApproved(ctx context.Context, refund domain.Refund, opts ApproveRefundOptions)
+}
+
+// PaymentRejectedHook ejecuta notificaciones al cliente cuando finanzas rechaza un pago pendiente.
+type PaymentRejectedHook interface {
+	OnPaymentRejected(ctx context.Context, payment domain.Payment, reason string)
+}
+
 type ncfSequenceAllocator interface {
 	AllocateNextNCF(ctx context.Context, ncfType string) (string, error)
 }
@@ -103,6 +127,9 @@ type Service struct {
 	eventsReader        EventMetricsReader
 	quotesReader        QuoteMetricsReader
 	damageReader        DamageExpensesReader
+	taxRateProvider     TaxRateProvider
+	refundHook          RefundApprovedHook
+	rejectedHook        PaymentRejectedHook
 	verifiedSync        VerifiedPaymentSynchronizer
 	emailPrefChecker    EmailPreferenceChecker
 	emailSender         mailer.Sender
@@ -163,6 +190,30 @@ func (s *Service) WithStore(store Store) *Service {
 func (s *Service) WithVerifiedSynchronizer(syncer VerifiedPaymentSynchronizer) *Service {
 	s.mu.Lock()
 	s.verifiedSync = syncer
+	s.mu.Unlock()
+	return s
+}
+
+// WithTaxRateProvider registra el proveedor dinámico del porcentaje de ITBIS.
+func (s *Service) WithTaxRateProvider(provider TaxRateProvider) *Service {
+	s.mu.Lock()
+	s.taxRateProvider = provider
+	s.mu.Unlock()
+	return s
+}
+
+// WithRefundApprovedHook registra el hook posterior a la aprobación de reembolsos.
+func (s *Service) WithRefundApprovedHook(hook RefundApprovedHook) *Service {
+	s.mu.Lock()
+	s.refundHook = hook
+	s.mu.Unlock()
+	return s
+}
+
+// WithPaymentRejectedHook registra el hook posterior al rechazo de comprobantes bancarios.
+func (s *Service) WithPaymentRejectedHook(hook PaymentRejectedHook) *Service {
+	s.mu.Lock()
+	s.rejectedHook = hook
 	s.mu.Unlock()
 	return s
 }
@@ -530,9 +581,13 @@ func (s *Service) RegisterPaymentForCaller(
 	cmd RegisterPaymentCommand,
 	caller platformhttp.Principal,
 ) (domain.Payment, error) {
-	prepared, err := validatePaymentRegistration(cmd)
+	itbisRate := s.resolveITBISPercent(ctx)
+	prepared, err := validatePaymentRegistrationWithRate(cmd, itbisRate)
 	if err != nil {
 		return domain.Payment{}, err
+	}
+	if authErr := validateCallerPaymentMethod(prepared.method, caller); authErr != nil {
+		return domain.Payment{}, authErr
 	}
 	now := s.clock.Now()
 	effectiveRef := resolveEffectiveReference(cmd.ReferenceCode, cmd.ReferenceNumber)
@@ -563,6 +618,33 @@ func (s *Service) RegisterPaymentForCaller(
 	return payment, nil
 }
 
+func validateCallerPaymentMethod(method domain.PaymentMethod, caller platformhttp.Principal) error {
+	if !caller.IsClient() {
+		return nil
+	}
+	if method == domain.MethodCard {
+		return domain.ErrCardCheckoutRequired
+	}
+	if method == domain.MethodCash {
+		return domain.ErrClientCashRestricted
+	}
+	return nil
+}
+
+func (s *Service) resolveITBISPercent(ctx context.Context) int {
+	s.mu.RLock()
+	provider := s.taxRateProvider
+	s.mu.RUnlock()
+	if provider == nil {
+		return 18
+	}
+	rate := provider.CurrentITBISPercent(ctx)
+	if rate <= 0 {
+		return 18
+	}
+	return rate
+}
+
 type preparedPaymentData struct {
 	method     domain.PaymentMethod
 	bankName   string
@@ -574,7 +656,7 @@ type preparedPaymentData struct {
 	depositDOP int
 }
 
-func validatePaymentRegistration(cmd RegisterPaymentCommand) (preparedPaymentData, error) {
+func validatePaymentRegistrationWithRate(cmd RegisterPaymentCommand, itbisPercent int) (preparedPaymentData, error) {
 	if cmd.AmountRD <= 0 {
 		return preparedPaymentData{}, domain.ErrInvalidPaymentAmount
 	}
@@ -587,7 +669,7 @@ func validatePaymentRegistration(cmd RegisterPaymentCommand) (preparedPaymentDat
 		return preparedPaymentData{}, ncfErr
 	}
 	deposit := clampSecurityDeposit(cmd.SecurityDepositDOP, cmd.AmountRD)
-	subtotal, itbis := domain.ComputeDominicanTaxBreakdown(cmd.AmountRD, deposit)
+	subtotal, itbis := domain.ComputeDominicanTaxBreakdownWithRate(cmd.AmountRD, deposit, itbisPercent)
 	return preparedPaymentData{
 		method:     normalizedMethod,
 		bankName:   bankName,
@@ -786,9 +868,18 @@ func (s *Service) ApproveRefund(
 	refundID string,
 	approverName string,
 ) (domain.Refund, error) {
+	return s.ApproveRefundWithOptions(ctx, refundID, ApproveRefundOptions{ApproverName: approverName})
+}
+
+// ApproveRefundWithOptions autoriza un reembolso, ejecuta devolución Stripe y dispara liberación/notificación.
+func (s *Service) ApproveRefundWithOptions(
+	ctx context.Context,
+	refundID string,
+	opts ApproveRefundOptions,
+) (domain.Refund, error) {
 	targetID := strings.TrimSpace(refundID)
 	now := s.clock.Now()
-	approver := strings.TrimSpace(approverName)
+	approver := strings.TrimSpace(opts.ApproverName)
 	if approver == "" {
 		approver = "Administración"
 	}
@@ -802,6 +893,7 @@ func (s *Service) ApproveRefund(
 	}
 	linkedPayment, hasLinkedCardPayment := s.findConfirmedStripePaymentLocked(refund.EventID)
 	store := s.store
+	refundHook := s.refundHook
 	s.mu.Unlock()
 
 	gatewayRefundID, gatewayStatus, stripeErr := s.dispatchStripeRefundIfApplicable(ctx, refund, linkedPayment, hasLinkedCardPayment, now)
@@ -823,6 +915,9 @@ func (s *Service) ApproveRefund(
 
 	if err := persistRefundIfEnabled(ctx, store, refund, now); err != nil {
 		return domain.Refund{}, err
+	}
+	if refundHook != nil {
+		refundHook.OnRefundApproved(ctx, refund, opts)
 	}
 	return refund, nil
 }
@@ -872,7 +967,7 @@ func (s *Service) dispatchStripeRefundIfApplicable(
 	}
 	secretKey, _, apiBase := s.stripeSettingsSnapshot()
 	if secretKey == "" {
-		return "", "", nil
+		return "", "", domain.ErrCardGatewayNotConfigured
 	}
 	paymentIntentID, resolveErr := s.resolveStripePaymentIntent(ctx, apiBase, secretKey, linkedPayment, now)
 	if resolveErr != nil {

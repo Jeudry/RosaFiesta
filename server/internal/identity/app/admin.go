@@ -111,7 +111,7 @@ func (s *Service) InviteStaff(ctx context.Context, cmd InviteStaffCommand) (doma
 	if err != nil {
 		return domain.StaffRecord{}, err
 	}
-	s.sendStaffInviteEmailIfConfigured(ctx, staffRec)
+	s.sendStaffInviteEmailIfConfigured(ctx, staffRec, rawPass)
 	return staffRec, nil
 }
 
@@ -126,12 +126,13 @@ func resolveInviteInitialPassword(cmd InviteStaffCommand) string {
 	return generatedPass
 }
 
-func (s *Service) sendStaffInviteEmailIfConfigured(ctx context.Context, staffRec domain.StaffRecord) {
+func (s *Service) sendStaffInviteEmailIfConfigured(ctx context.Context, staffRec domain.StaffRecord, tempPassword string) {
 	sender := s.opts.EmailSender
-	if sender == nil {
-		return
+	hasSender := sender != nil
+	if hasSender {
+		hasSender = sender.IsConfigured()
 	}
-	if !sender.IsConfigured() {
+	if !hasSender {
 		return
 	}
 	rawTemplate, err := emailTemplates.ReadFile("templates/staff_invite_email.txt")
@@ -141,6 +142,7 @@ func (s *Service) sendStaffInviteEmailIfConfigured(ctx context.Context, staffRec
 	body := strings.ReplaceAll(string(rawTemplate), "{{NAME}}", staffRec.FullName)
 	body = strings.ReplaceAll(body, "{{ROLE_LABEL}}", staffRec.RoleLabel)
 	body = strings.ReplaceAll(body, "{{EMAIL}}", staffRec.Email)
+	body = strings.ReplaceAll(body, "{{TEMP_PASSWORD}}", tempPassword)
 	if mailErr := sender.SendEmail(ctx, staffRec.Email, "Bienvenido al equipo RosaFiesta", body); mailErr != nil {
 		slog.WarnContext(ctx, "staff invite welcome email failed", slog.String("staff_id", staffRec.ID), slog.Any("error", mailErr))
 	}
@@ -172,6 +174,7 @@ func (s *Service) persistInvitedStaff(
 		FullName:     fullName,
 		Email:        normalizedEmail,
 		Phone:        strings.TrimSpace(cmd.Phone),
+		Active:       true,
 		Role:         domain.Role(resolvedRole),
 		Permissions:  normalizedPerms,
 		ActiveView:   domain.ViewAdmin,
@@ -255,12 +258,84 @@ func (s *Service) syncStaffToLinkedUserLocked(ctx context.Context, rec domain.St
 		}
 		user.FullName = rec.FullName
 		user.Role = domain.Role(rec.Role)
+		user.Active = rec.Active
 		permsCopy := make([]string, len(rec.Permissions))
 		copy(permsCopy, rec.Permissions)
 		user.Permissions = permsCopy
 		s.users[id] = user
 		s.persistUserOnlyLocked(ctx, user)
+		if !rec.Active {
+			s.revokeUserAccessLocked(ctx, id)
+		}
 		return
+	}
+}
+
+func (s *Service) revokeUserAccessLocked(ctx context.Context, userID uuid.UUID) {
+	s.revokeUserRefreshTokensLocked(ctx, userID, s.clock.Now())
+	for hash, entry := range s.sessionHashes {
+		if entry.UserID == userID {
+			delete(s.sessionHashes, hash)
+			s.revokedHashes[hash] = struct{}{}
+		}
+	}
+	if s.store != nil {
+		if s.store.Enabled() {
+			_ = s.store.DeleteSessionsByUser(ctx, userID)
+		}
+	}
+}
+
+// DeleteStaff desactiva la cuenta vinculada, revoca sesiones y elimina el registro operativo.
+func (s *Service) DeleteStaff(ctx context.Context, staffID string) error {
+	s.syncUsersFromStore(ctx)
+	s.syncAdminRecordsFromStore(ctx)
+	trimmedID := strings.TrimSpace(staffID)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	idx := -1
+	for i, existing := range s.staff {
+		if existing.ID == trimmedID {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return domain.ErrUserNotFound
+	}
+	removed := s.staff[idx]
+	removed.Active = false
+	s.syncStaffToLinkedUserLocked(ctx, removed)
+	s.staff = append(s.staff[:idx], s.staff[idx+1:]...)
+	if s.store != nil {
+		if s.store.Enabled() {
+			_ = s.store.DeleteStaffMember(ctx, removed.ID)
+		}
+	}
+	return nil
+}
+
+func (s *Service) ensureAdminClientForUserLocked(ctx context.Context, user domain.User) {
+	if user.Role != domain.RoleClient {
+		return
+	}
+	for _, existing := range s.clients {
+		if strings.EqualFold(existing.Email, user.Email) {
+			return
+		}
+	}
+	cli := domain.AdminClient{
+		ID:        "cli-" + user.ID.String()[:8],
+		FullName:  user.FullName,
+		Email:     user.Email,
+		Phone:     user.Phone,
+		UpdatedAt: s.clock.Now(),
+	}
+	s.clients = append(s.clients, cli)
+	if s.store != nil {
+		if s.store.Enabled() {
+			_ = s.store.UpsertAdminClient(ctx, cli)
+		}
 	}
 }
 
