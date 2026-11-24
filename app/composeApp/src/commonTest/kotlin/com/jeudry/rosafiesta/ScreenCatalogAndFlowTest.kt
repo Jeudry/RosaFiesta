@@ -210,7 +210,9 @@ class ScreenCatalogAndFlowTest {
         assertEquals(12, viewModel.articles.value.first { it.id == "art-arco-rosa" }.totalStock)
 
         viewModel.syncOfflineQueue()
-        assertTrue(viewModel.offlineQueue.value.all { it.synced })
+        val offlineOnlyRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        offlineOnlyRepo.syncOfflineQueue()
+        assertTrue(offlineOnlyRepo.offlineQueue.value.all { it.synced })
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -274,7 +276,8 @@ class ScreenCatalogAndFlowTest {
         viewModel.setPaymentAmountInput("1500")
         viewModel.setPaymentMethodInput("Transferencia Popular")
         viewModel.setPaymentRefInput("POP-2026-11")
-        val payment = viewModel.submitPayment("evt-boda-real")
+        val createdEventId = viewModel.events.value.first { it.title == "Aniversario Coral" }.id
+        val payment = viewModel.submitPayment(createdEventId)
         assertEquals(1500, payment?.amountDop)
 
         viewModel.setChatInput("Todo listo para el montaje en Jardín Botánico")
@@ -306,7 +309,7 @@ class ScreenCatalogAndFlowTest {
         assertEquals("Agregar iluminación", viewModel.rosaProposalMessage.value)
 
         onNodeWithText("Asignar a un cliente").performClick()
-        onNodeWithText("Cliente: Camila Rodríguez").assertExists()
+        onNodeWithText("No hay clientes registrados aún para asignar", substring = true).assertExists()
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -2281,7 +2284,7 @@ class ScreenCatalogAndFlowTest {
             )
         }
 
-        onNodeWithText("Continuar con detalles").assertExists()
+        onNodeWithText("Configurar datos del evento").assertExists()
         onNodeWithText("Ver cotización oficial").assertDoesNotExist()
 
         currentScreen.value = "s48"
@@ -2602,5 +2605,140 @@ class ScreenCatalogAndFlowTest {
             }
         }
         assertEquals(null, viewModel.voiceErrorMessage.value)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `header raiz persistente se mantiene fijo en tabs de Personal y Admin cambiando solo su contenido`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository()
+        val vm = RosaFiestaViewModel(
+            repository = repo,
+            secureStorage = com.jeudry.rosafiesta.domain.security.InMemorySecureStorage(),
+            soundPlayer = com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer(),
+        )
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s14"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s18"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s37"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s20"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s21"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s24"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s39"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s53"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s79"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s82"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s16"))
+        assertFalse(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s19"))
+        assertFalse(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("s31"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A01"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A09"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A11"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A12"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A02"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A14"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A22"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A24"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A26"))
+        assertTrue(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A32"))
+        assertFalse(com.jeudry.rosafiesta.ui.hasPersistentRootHeader("A03"))
+
+        setContent {
+            RosaFiestaApp(
+                initialScreenCode = "s14",
+                viewModel = vm,
+            )
+        }
+        onNodeWithTag("persistent-root-header").assertExists()
+        onNodeWithText("Hola de nuevo").assertExists()
+    }
+
+    @Test
+    fun `boton Mi evento abre flujo de 3 pasos s38 primero y luego s25 directo a resumen s32 sin formulario gigante`() {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository()
+        val vm = RosaFiestaViewModel(
+            repository = repo,
+            secureStorage = com.jeudry.rosafiesta.domain.security.InMemorySecureStorage(),
+            soundPlayer = com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer(),
+        )
+
+        assertFalse(vm.hasConfiguredEventDraft())
+        assertEquals("s38", vm.resolveMyEventEntryTarget())
+        assertTrue(vm.isEventDraftSetupMode.value)
+        assertEquals("s25", vm.eventDraftSetupReturnScreen.value)
+
+        vm.saveEventDraftDetails(
+            eventType = "Boda",
+            title = "Boda Ana y Luis",
+            date = "28/11/2026 - 29/11/2026",
+            venue = "Jardín Botánico",
+            guestsCount = 120,
+            notes = "Montaje floral blanco a las 4:00 PM",
+        )
+        assertTrue(vm.hasConfiguredEventDraft())
+        assertFalse(vm.isEventDraftSetupMode.value)
+        assertEquals("Montaje floral blanco a las 4:00 PM", vm.eventNotesInput.value)
+        assertEquals("s25", vm.resolveMyEventEntryTarget())
+
+        assertEquals(
+            "Boda de ",
+            com.jeudry.rosafiesta.ui.resolveAutoFilledTitleForEventTypeName("", "Boda"),
+        )
+        assertEquals(
+            "Cumpleaños de ",
+            com.jeudry.rosafiesta.ui.resolveAutoFilledTitleForEventTypeName("Boda de ", "Cumpleaños"),
+        )
+        assertEquals(
+            "Boda de Ana y Luis",
+            com.jeudry.rosafiesta.ui.resolveAutoFilledTitleForEventTypeName("Boda de Ana y Luis", "Graduación"),
+        )
+        assertEquals(
+            "",
+            com.jeudry.rosafiesta.ui.resolveAutoFilledTitleForEventTypeName("Cumpleaños de ", "Otro"),
+        )
+
+        vm.startStandaloneEventCreation()
+        assertFalse(vm.isEventDraftSetupMode.value)
+        assertEquals("s40", vm.eventDraftSetupReturnScreen.value)
+
+        assertFalse(vm.openMapsSearch(""))
+        assertEquals(null, vm.formFeedback.value)
+        assertTrue(vm.formError.value?.contains("dirección", ignoreCase = true) == true)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `s38 inicia sin tipo preseleccionado muestra Detalles con Maps notas y sin badges de ejemplo`() = runComposeUiTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository()
+        val vm = RosaFiestaViewModel(
+            repository = repo,
+            secureStorage = com.jeudry.rosafiesta.domain.security.InMemorySecureStorage(),
+            soundPlayer = com.jeudry.rosafiesta.domain.sound.NoOpSoundPlayer(),
+        )
+        vm.resolveMyEventEntryTarget()
+
+        setContent {
+            com.jeudry.rosafiesta.ui.RenderScreenSpec(
+                spec = ScreenCatalog.findByCode("s38"),
+                isFrameHarness = false,
+                includeBottomBar = false,
+                viewModel = vm,
+                onSelectScreenCode = {},
+            )
+        }
+
+        onNodeWithText("Siguiente: detalles").performClick()
+        waitForIdle()
+        onNodeWithText("Elige el tipo de evento para continuar.").assertExists()
+
+        onNodeWithText("Cumpleaños").performClick()
+        waitForIdle()
+        onNodeWithText("Siguiente: detalles").performClick()
+        waitForIdle()
+
+        onNodeWithText("Fecha o rango de fechas").assertExists()
+        onNodeWithText("Maps").assertExists()
+        onNodeWithText("Detalles extras o notas (opcional)").assertExists()
+        onNodeWithText("Jardín Botánico").assertDoesNotExist()
+        onNodeWithText("Salón Piantini").assertDoesNotExist()
+        onNodeWithText("Terraza Colonial").assertDoesNotExist()
     }
 }

@@ -56,6 +56,7 @@ public data class UserDto(
     public val role: String,
     public val permissions: List<String>? = null,
     public val activeView: String = "personal",
+    public val active: Boolean = true,
     public val createdAt: String = "",
     public val avatarKey: String? = null,
     public val preferences: UserPreferencesDto? = null,
@@ -904,11 +905,11 @@ public class RosaFiestaApiClient(
     }
 
     public suspend fun fetchHealth(): HealthOutputDto = withContext(ioDispatcher) {
-        httpClient.get("$baseUrl/healthz").body()
+        httpClient.get("$baseUrl/healthz").decodeBodyOrThrow()
     }
 
     public suspend fun fetchReady(): HealthOutputDto = withContext(ioDispatcher) {
-        httpClient.get("$baseUrl/readyz").body()
+        httpClient.get("$baseUrl/readyz").decodeBodyOrThrow()
     }
 
     internal fun internalHttpClient(): HttpClient = httpClient
@@ -1068,7 +1069,7 @@ public class RosaFiestaApiClient(
     public suspend fun fetchCurrentUser(bearerToken: String = ""): SwitchViewOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/auth/me") {
             applyBearerAuth(bearerToken)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateMyProfile(input: UpdateProfileInputDto): SwitchViewOutputDto = withContext(ioDispatcher) {
@@ -1076,7 +1077,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun changePassword(input: ChangePasswordInputDto): PasswordChangedOutputDto = withContext(ioDispatcher) {
@@ -1084,13 +1085,13 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listRegisteredUsers(): RegisteredUsersOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/auth/users") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun switchView(bearerToken: String, targetView: String): SwitchViewOutputDto = withContext(ioDispatcher) {
@@ -1098,7 +1099,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth(bearerToken)
             contentType(ContentType.Application.Json)
             setBody(SwitchViewInputDto(view = targetView))
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun switchView(targetView: String): SwitchViewOutputDto = switchView(bearerToken = "", targetView = targetView)
@@ -1106,13 +1107,13 @@ public class RosaFiestaApiClient(
     public suspend fun deleteAccount(bearerToken: String = ""): DeleteAccountOutputDto = withContext(ioDispatcher) {
         httpClient.delete("$baseUrl/v1/account") {
             applyBearerAuth(bearerToken)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listClients(): ClientsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/admin/clients") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateClient(clientId: String, input: UpdateClientInputDto): ClientOutputDto = withContext(ioDispatcher) {
@@ -1120,13 +1121,13 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listStaff(): StaffOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/admin/staff") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun inviteStaff(input: InviteStaffInputDto): StaffMemberOutputDto = withContext(ioDispatcher) {
@@ -1161,11 +1162,11 @@ public class RosaFiestaApiClient(
             if (includeHidden != null) {
                 parameter("includeHidden", includeHidden)
             }
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listBalloonProducts(): ArticlesOutputDto = withContext(ioDispatcher) {
-        httpClient.get("$baseUrl/v1/catalog/balloons").body()
+        httpClient.get("$baseUrl/v1/catalog/balloons").decodeBodyOrThrow()
     }
 
     public suspend fun createCatalogArticle(input: CreateArticleInputDto): ArticleOutputDto = withContext(ioDispatcher) {
@@ -1264,7 +1265,7 @@ public class RosaFiestaApiClient(
     }
 
     public suspend fun listCategories(): CategoriesOutputDto = withContext(ioDispatcher) {
-        httpClient.get("$baseUrl/v1/catalog/categories").body()
+        httpClient.get("$baseUrl/v1/catalog/categories").decodeBodyOrThrow()
     }
 
     public suspend fun createCatalogCategory(input: SaveCategoryInputDto): CategoryOutputDto = withContext(ioDispatcher) {
@@ -1292,7 +1293,7 @@ public class RosaFiestaApiClient(
     public suspend fun listCatalogTrends(includeInactive: Boolean = true): TrendsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/catalog/trends") {
             parameter("includeInactive", includeInactive)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun createCatalogTrend(input: SaveTrendInputDto): TrendOutputDto = withContext(ioDispatcher) {
@@ -1318,7 +1319,7 @@ public class RosaFiestaApiClient(
     }
 
     public suspend fun getSeasonBanner(): SeasonBannerOutputDto = withContext(ioDispatcher) {
-        httpClient.get("$baseUrl/v1/catalog/season-banner").body()
+        httpClient.get("$baseUrl/v1/catalog/season-banner").decodeBodyOrThrow()
     }
 
     public suspend fun saveSeasonBanner(input: SaveSeasonBannerInputDto): SeasonBannerOutputDto = withContext(ioDispatcher) {
@@ -1329,10 +1330,19 @@ public class RosaFiestaApiClient(
         }.decodeBodyOrThrow()
     }
 
-    public suspend fun listPackages(): PackagesOutputDto = withContext(ioDispatcher) {
+    public suspend fun listPackages(includeHidden: Boolean = false): PackagesOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/catalog/packages") {
             applyBearerAuth()
-        }.body()
+            if (includeHidden) {
+                parameter("includeHidden", true)
+            }
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteCatalogPackage(packageId: String): DeletePackageOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/catalog/packages/${packageId.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun createCatalogPackage(input: SavePackageInputDto): PackageOutputDto = withContext(ioDispatcher) {
@@ -1357,7 +1367,7 @@ public class RosaFiestaApiClient(
             if (!status.isNullOrBlank()) {
                 parameter("status", status.trim())
             }
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun createRemoteEvent(input: CreateEventInputDto): EventDetailOutputDto = withContext(ioDispatcher) {
@@ -1369,7 +1379,7 @@ public class RosaFiestaApiClient(
     }
 
     public suspend fun listEventTemplates(): TemplatesOutputDto = withContext(ioDispatcher) {
-        httpClient.get("$baseUrl/v1/events/templates").body()
+        httpClient.get("$baseUrl/v1/events/templates").decodeBodyOrThrow()
     }
 
     public suspend fun getEventById(id: String): EventDetailOutputDto = withContext(ioDispatcher) {
@@ -1386,9 +1396,13 @@ public class RosaFiestaApiClient(
         }.decodeBodyOrThrow()
     }
 
-    public suspend fun cancelEvent(id: String): CancelEventOutputDto = withContext(ioDispatcher) {
+    public suspend fun cancelEvent(id: String, reason: String = ""): CancelEventOutputDto = withContext(ioDispatcher) {
         httpClient.post("$baseUrl/v1/events/${id.trim()}/cancel") {
             applyBearerAuth()
+            if (reason.isNotBlank()) {
+                contentType(ContentType.Application.Json)
+                setBody(CancelEventInputDto(reason = reason.trim()))
+            }
         }.decodeBodyOrThrow()
     }
 
@@ -1411,13 +1425,13 @@ public class RosaFiestaApiClient(
     public suspend fun duplicateRemoteEvent(eventId: String): EventDetailOutputDto = withContext(ioDispatcher) {
         httpClient.post("$baseUrl/v1/events/${eventId.trim()}/duplicate") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listEventGuests(eventId: String): GuestsListOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/events/${eventId.trim()}/guests") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun addEventGuest(eventId: String, input: AddGuestInputDto): GuestOutputDto = withContext(ioDispatcher) {
@@ -1425,7 +1439,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateEventGuest(
@@ -1437,13 +1451,13 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listEventSchedule(eventId: String): ScheduleListOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/events/${eventId.trim()}/schedule") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun addEventScheduleBlock(
@@ -1454,7 +1468,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun deleteEventScheduleBlock(
@@ -1463,19 +1477,19 @@ public class RosaFiestaApiClient(
     ): DeleteScheduleBlockOutputDto = withContext(ioDispatcher) {
         httpClient.delete("$baseUrl/v1/events/${eventId.trim()}/schedule/${blockId.trim()}") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listChatThreads(): ChatThreadsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/chats") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listThreadMessages(threadId: String): ChatMessagesOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/chats/${threadId.trim()}/messages") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun sendThreadMessage(
@@ -1486,13 +1500,13 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun getEventLogistics(eventId: String): EventLogisticsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/events/${eventId.trim()}") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun toggleChecklistItem(
@@ -1504,7 +1518,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun reportDamage(
@@ -1535,13 +1549,13 @@ public class RosaFiestaApiClient(
             if (!eventId.isNullOrBlank()) {
                 parameter("eventId", eventId.trim())
             }
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listOfflineQueue(): OfflineQueueOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/offline-queue") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun syncOfflineQueue(): OfflineQueueOutputDto = withContext(ioDispatcher) {
@@ -1563,7 +1577,7 @@ public class RosaFiestaApiClient(
     public suspend fun listTodayRoutes(): RouteStopsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/routes/today") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listPayments(eventId: String? = null): PaymentsListOutputDto = withContext(ioDispatcher) {
@@ -1572,7 +1586,7 @@ public class RosaFiestaApiClient(
             if (!eventId.isNullOrBlank()) {
                 parameter("eventId", eventId.trim())
             }
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun registerPayment(input: RegisterPaymentInputDto): PaymentOutputDto = withContext(ioDispatcher) {
@@ -1631,12 +1645,19 @@ public class RosaFiestaApiClient(
     public suspend fun listRefunds(): RefundsListOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/refunds") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
-    public suspend fun approveRefund(refundId: String): RefundOutputDto = withContext(ioDispatcher) {
+    public suspend fun approveRefund(
+        refundId: String,
+        input: ApproveRefundInputDto? = null,
+    ): RefundOutputDto = withContext(ioDispatcher) {
         httpClient.post("$baseUrl/v1/refunds/${refundId.trim()}/approve") {
             applyBearerAuth()
+            if (input != null) {
+                contentType(ContentType.Application.Json)
+                setBody(input)
+            }
         }.decodeBodyOrThrow()
     }
 
@@ -1646,7 +1667,7 @@ public class RosaFiestaApiClient(
             if (!status.isNullOrBlank()) {
                 parameter("status", status.trim())
             }
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun createQuote(input: CreateQuoteInputDto): QuoteOutputDto = withContext(ioDispatcher) {
@@ -1734,7 +1755,7 @@ public class RosaFiestaApiClient(
             if (!eventId.isNullOrBlank()) {
                 parameter("eventId", eventId.trim())
             }
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun createReview(input: CreateReviewInputDto): ReviewOutputDto = withContext(ioDispatcher) {
@@ -1742,7 +1763,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun replyToReview(reviewId: String, input: ReplyReviewInputDto): ReviewOutputDto = withContext(ioDispatcher) {
@@ -1750,7 +1771,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun replyToReview(reviewId: String, adminReply: String): ReviewOutputDto = replyToReview(reviewId = reviewId, input = ReplyReviewInputDto(adminReply = adminReply))
@@ -1761,7 +1782,7 @@ public class RosaFiestaApiClient(
             if (!category.isNullOrBlank()) {
                 parameter("category", category.trim())
             }
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun createSupplier(input: UpsertSupplierInputDto): SupplierOutputDto = withContext(ioDispatcher) {
@@ -1769,7 +1790,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listLeads(stage: String? = null): LeadsListOutputDto = withContext(ioDispatcher) {
@@ -1778,7 +1799,7 @@ public class RosaFiestaApiClient(
             if (!stage.isNullOrBlank()) {
                 parameter("stage", stage.trim())
             }
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun createLead(input: CreateLeadInputDto): LeadOutputDto = withContext(ioDispatcher) {
@@ -1786,7 +1807,7 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateLead(leadId: String, input: UpdateLeadInputDto): LeadOutputDto = withContext(ioDispatcher) {
@@ -1794,17 +1815,17 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun getPublicSettings(): PublicSettingsOutputDto = withContext(ioDispatcher) {
-        httpClient.get("$baseUrl/v1/operations/settings/public").body()
+        httpClient.get("$baseUrl/v1/operations/settings/public").decodeBodyOrThrow()
     }
 
     public suspend fun getAdminSettings(): SettingsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/settings") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateAdminSettings(input: UpdateSettingsInputDto): SettingsOutputDto = withContext(ioDispatcher) {
@@ -1812,37 +1833,37 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listNotifications(): NotificationsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/notifications") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun markNotificationRead(id: String): NotificationOutputDto = withContext(ioDispatcher) {
         httpClient.patch("$baseUrl/v1/notifications/${id.trim()}/read") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listInsurancePolicies(): InsuranceOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/insurance") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listAuditLogs(): AuditLogsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/audit-logs") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listBotFaqs(): BotFaqsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/bot/faqs") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun createBotFaq(input: UpsertBotFaqInputDto): BotFaqOutputDto = withContext(ioDispatcher) {
@@ -1850,13 +1871,13 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listBotKeywords(): BotKeywordsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/bot/keywords") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun createBotKeyword(input: UpsertBotKeywordInputDto): BotKeywordOutputDto = withContext(ioDispatcher) {
@@ -1864,13 +1885,13 @@ public class RosaFiestaApiClient(
             applyBearerAuth()
             contentType(ContentType.Application.Json)
             setBody(input)
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun listBotThreads(): BotThreadsOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/bot/threads") {
             applyBearerAuth()
-        }.body()
+        }.decodeBodyOrThrow()
     }
 
     public suspend fun updateBotThread(id: String, input: UpdateBotThreadInputDto): BotThreadOutputDto = withContext(ioDispatcher) {
@@ -1949,5 +1970,108 @@ public class RosaFiestaApiClient(
             contentType(ContentType.Application.Json)
             setBody(input)
         }.decodeBodyOrThrow()
+    }
+
+    public suspend fun listFavorites(): FavoritesOutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/auth/me/favorites") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun addFavorite(articleId: String): FavoritesOutputDto = withContext(ioDispatcher) {
+        httpClient.put("$baseUrl/v1/auth/me/favorites/${articleId.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun removeFavorite(articleId: String): FavoritesOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/auth/me/favorites/${articleId.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteStaffMember(staffId: String): DeleteEntityOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/admin/staff/${staffId.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteEventGuest(eventId: String, guestId: String): DeleteEntityOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/events/${eventId.trim()}/guests/${guestId.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun listEventTasks(eventId: String): EventTasksListOutputDto = withContext(ioDispatcher) {
+        httpClient.get("$baseUrl/v1/events/${eventId.trim()}/tasks") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun createEventTask(eventId: String, input: CreateEventTaskInputDto): EventTaskOutputDto = withContext(ioDispatcher) {
+        httpClient.post("$baseUrl/v1/events/${eventId.trim()}/tasks") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun updateEventTask(
+        eventId: String,
+        taskId: String,
+        input: UpdateEventTaskInputDto,
+    ): EventTaskOutputDto = withContext(ioDispatcher) {
+        httpClient.patch("$baseUrl/v1/events/${eventId.trim()}/tasks/${taskId.trim()}") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteEventTask(eventId: String, taskId: String): DeleteEntityOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/events/${eventId.trim()}/tasks/${taskId.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun patchSupplier(id: String, input: PatchSupplierInputDto): SupplierOutputDto = withContext(ioDispatcher) {
+        httpClient.patch("$baseUrl/v1/operations/suppliers/${id.trim()}") {
+            applyBearerAuth()
+            contentType(ContentType.Application.Json)
+            setBody(input)
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteSupplier(id: String): DeleteEntityOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/operations/suppliers/${id.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteBotFaq(id: String): DeleteEntityOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/operations/bot/faqs/${id.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun deleteBotKeyword(id: String): DeleteEntityOutputDto = withContext(ioDispatcher) {
+        httpClient.delete("$baseUrl/v1/operations/bot/keywords/${id.trim()}") {
+            applyBearerAuth()
+        }.decodeBodyOrThrow()
+    }
+
+    public suspend fun downloadQuoteContractPdf(quoteId: String): ByteArray = withContext(ioDispatcher) {
+        val response = httpClient.get("$baseUrl/v1/quotes/${quoteId.trim()}/contract") {
+            applyBearerAuth()
+        }
+        if (response.status.isSuccess()) {
+            response.readRawBytes()
+        } else {
+            throw RosaFiestaApiException(
+                statusCode = response.status.value,
+                errorCode = "CONTRACT_PDF_FAILED",
+                message = "No se pudo descargar el contrato PDF.",
+            )
+        }
     }
 }

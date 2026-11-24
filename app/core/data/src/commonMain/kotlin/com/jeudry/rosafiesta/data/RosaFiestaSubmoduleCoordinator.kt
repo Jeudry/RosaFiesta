@@ -32,6 +32,7 @@ import com.jeudry.rosafiesta.domain.EventLineItem
 import com.jeudry.rosafiesta.domain.EventPackage
 import com.jeudry.rosafiesta.domain.EventScheduleBlock
 import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.EventTaskRecord
 import com.jeudry.rosafiesta.domain.EventTypeCount
 import com.jeudry.rosafiesta.domain.EventTypeTemplate
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
@@ -48,6 +49,7 @@ import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
+import com.jeudry.rosafiesta.domain.RefundApprovalOptions
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReportExportResult
 import com.jeudry.rosafiesta.domain.ReportSeriesPoint
@@ -97,6 +99,7 @@ internal class RosaFiestaSubmoduleCoordinator(
     private val onPersistAccountAndSession: suspend (RegisteredUserAccount, String) -> Unit = { _, _ -> },
     private val onPersistCoreSync: suspend () -> Unit = {},
     private val seedDemoData: Boolean = true,
+    private val favoritesFlow: MutableStateFlow<Set<String>>? = null,
 ) {
     private val _catalogCategories = MutableStateFlow(
         if (seedDemoData) {
@@ -198,6 +201,11 @@ internal class RosaFiestaSubmoduleCoordinator(
     private val _botThreads = MutableStateFlow(if (seedDemoData) CanonicalSampleData.botThreads else emptyList())
     val botThreads: StateFlow<List<BotThreadRecord>> = _botThreads.asStateFlow()
 
+    private val _eventTasks = MutableStateFlow<List<EventTaskRecord>>(emptyList())
+    val eventTasks: StateFlow<List<EventTaskRecord>> = _eventTasks.asStateFlow()
+
+    private val fallbackRealtimeConnected = MutableStateFlow(false)
+
     private val realtimeClient: RosaFiestaRealtimeClient? by lazy {
         apiClient?.let { client ->
             RosaFiestaRealtimeClient(
@@ -206,6 +214,9 @@ internal class RosaFiestaSubmoduleCoordinator(
             )
         }
     }
+
+    val isRealtimeConnected: StateFlow<Boolean>
+        get() = realtimeClient?.isConnected ?: fallbackRealtimeConnected.asStateFlow()
 
     fun propagateSessionTokenToApi(token: String?) {
         val client = apiClient ?: return
@@ -286,7 +297,9 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
 
         runCatching {
-            val response = client.listPackages()
+            val roleLower = activeRoleFlow.value.trim().lowercase()
+            val includeHiddenPackages = if (roleLower == "admin") true else roleLower.startsWith("staff")
+            val response = client.listPackages(includeHidden = includeHiddenPackages)
             val remotePackages = response.packages
             if (remotePackages != null) {
                 val fallbackById = _packages.value.associateBy { bundle -> bundle.id }
@@ -348,6 +361,17 @@ internal class RosaFiestaSubmoduleCoordinator(
                     activeRoleFlow.value = refreshed.role
                     currentUserEmailFlow.value = refreshed.email
                     anySucceeded = true
+                }
+            }
+
+            if (favoritesFlow != null) {
+                runCatching {
+                    val favResponse = client.listFavorites()
+                    val remoteFavs = favResponse.favorites
+                    if (remoteFavs != null) {
+                        favoritesFlow.value = remoteFavs.toSet()
+                        anySucceeded = true
+                    }
                 }
             }
 
@@ -935,8 +959,12 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (passwordError != null) {
             return@withContext AuthOutcome.failure("AUTH_WEAK_PASSWORD", passwordError)
         }
-        val remote = runCatching {
-            apiClient?.resetPassword(
+        val client = apiClient
+        if (client == null) {
+            return@withContext localResetFallback(cleanEmail, cleanPassword)
+        }
+        val remoteResult = executeRemoteCall(missingApiCode = "OTP_RESET_UNAVAILABLE") { activeClient ->
+            activeClient.resetPassword(
                 ResetPasswordInputDto(
                     email = cleanEmail,
                     identifier = cleanEmail,
@@ -945,33 +973,37 @@ internal class RosaFiestaSubmoduleCoordinator(
                     otpCode = otpCode.ifBlank { null },
                 ),
             )
-        }.getOrNull()
-        if (remote != null) {
-            val user = remote.user
-            val salt = JwtAuthManager.generateDeterministicSalt("${user.email}:reset")
-            val nextHash = JwtAuthManager.hashPassword(cleanPassword, salt)
-            val updated = RegisteredUserAccount(
-                id = user.id,
-                username = user.username.ifBlank { user.email.substringBefore("@") },
-                email = user.email.trim().lowercase(),
-                fullName = user.fullName,
-                passwordHash = nextHash,
-                salt = salt,
-                birthDate = user.birthDate,
-                phone = user.phone,
-                role = user.role.ifBlank { "client" },
-                preferences = RosaFiestaBackendMappers.toUserPreferences(user.preferences),
-            )
-            upsertAccountInMemory(updated)
-            applyAuthenticatedSession(updated, remote.accessToken)
-            onPersistAccountAndSession(updated, remote.accessToken)
-            return@withContext AuthOutcome.authenticated(
-                accessToken = remote.accessToken,
-                account = updated,
-                refreshToken = remote.refreshToken,
+        }
+        val remote = remoteResult.getOrElse { error ->
+            val apiError = error as? RosaFiestaApiException
+            return@withContext AuthOutcome.failure(
+                errorCode = apiError?.errorCode ?: "OTP_RESET_FAILED",
+                errorMessage = apiError?.message ?: error.message ?: "No se pudo restablecer la contraseña.",
             )
         }
-        localResetFallback(cleanEmail, cleanPassword)
+        val user = remote.user
+        val salt = JwtAuthManager.generateDeterministicSalt("${user.email}:reset")
+        val nextHash = JwtAuthManager.hashPassword(cleanPassword, salt)
+        val updated = RegisteredUserAccount(
+            id = user.id,
+            username = user.username.ifBlank { user.email.substringBefore("@") },
+            email = user.email.trim().lowercase(),
+            fullName = user.fullName,
+            passwordHash = nextHash,
+            salt = salt,
+            birthDate = user.birthDate,
+            phone = user.phone,
+            role = user.role.ifBlank { "client" },
+            preferences = RosaFiestaBackendMappers.toUserPreferences(user.preferences),
+        )
+        upsertAccountInMemory(updated)
+        applyAuthenticatedSession(updated, remote.accessToken)
+        onPersistAccountAndSession(updated, remote.accessToken)
+        AuthOutcome.authenticated(
+            accessToken = remote.accessToken,
+            account = updated,
+            refreshToken = remote.refreshToken,
+        )
     }
 
     suspend fun loginWithOAuth(provider: String, idToken: String): AuthOutcome = withContext(ioDispatcher) {
@@ -1174,6 +1206,45 @@ internal class RosaFiestaSubmoduleCoordinator(
             val response = client.unregisterDevicePushToken(token)
             response.disabled
         }
+    }
+
+    suspend fun changeUserPasswordOnline(
+        currentPassword: String,
+        newPassword: String,
+    ): AuthOutcome = withContext(ioDispatcher) {
+        val cleanCurrent = currentPassword.trim()
+        val cleanNew = newPassword.trim()
+        val passwordError = InputValidator.validatePassword(cleanNew)
+        if (passwordError != null) {
+            return@withContext AuthOutcome.failure("AUTH_WEAK_PASSWORD", passwordError)
+        }
+        val currentAccount = currentAuthenticatedUserFlow.value ?: return@withContext AuthOutcome.failure(
+            errorCode = "AUTH_UNAUTHORIZED",
+            errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_INVALID_CREDENTIALS", null),
+        )
+        val client = apiClient
+        val shouldCallServer = if (client != null) hasRealServerToken(client) else false
+        if (shouldCallServer) {
+            if (client != null) {
+                val remoteResult = executeRemoteCall(missingApiCode = "PASSWORD_CHANGE_UNAVAILABLE") { activeClient ->
+                    activeClient.changePassword(
+                        ChangePasswordInputDto(
+                            currentPassword = cleanCurrent,
+                            newPassword = cleanNew,
+                        ),
+                    )
+                }
+                if (remoteResult.isFailure) {
+                    val err = remoteResult.exceptionOrNull()
+                    val apiErr = err as? RosaFiestaApiException
+                    return@withContext AuthOutcome.failure(
+                        errorCode = apiErr?.errorCode ?: "PASSWORD_CHANGE_FAILED",
+                        errorMessage = apiErr?.message ?: err?.message ?: "No se pudo actualizar la contraseña.",
+                    )
+                }
+            }
+        }
+        changeUserPassword(cleanCurrent, cleanNew)
     }
 
     fun changeUserPassword(
@@ -1608,7 +1679,10 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
     }
 
-    fun approveRefund(refundId: String): RefundRequest? {
+    fun approveRefundWithOptions(
+        refundId: String,
+        options: RefundApprovalOptions,
+    ): RefundRequest? {
         val targetId = refundId.trim()
         val approver = currentAuthenticatedUserFlow.value?.fullName?.ifBlank { "María" } ?: "María"
         val nowLabel = DomainClockFormatter.currentFullDateLabel()
@@ -1631,12 +1705,33 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (approvedItem != null) {
             scope.launch {
                 runCatching {
-                    apiClient?.approveRefund(targetId)
+                    val response = apiClient?.approveRefund(
+                        refundId = targetId,
+                        input = ApproveRefundInputDto(
+                            approvedBy = approver,
+                            method = options.method,
+                            releaseInventory = options.releaseInventory,
+                            notifyWhatsapp = options.notifyWhatsApp,
+                            clientMessage = options.clientMessage,
+                        ),
+                    )
+                    if (response != null) {
+                        val fallbackMap = _refundRequests.value.associateBy { req -> req.id }
+                        val mapped = RosaFiestaBackendMappers.toRefundRequest(
+                            dto = response.refund,
+                            fallbackById = fallbackMap,
+                        )
+                        _refundRequests.update { current ->
+                            current.map { candidate -> if (candidate.id == targetId) mapped else candidate }
+                        }
+                    }
                 }
             }
         }
         return approvedItem
     }
+
+    fun approveRefund(refundId: String): RefundRequest? = approveRefundWithOptions(refundId = refundId, options = RefundApprovalOptions())
 
     fun createReview(
         eventId: String,
@@ -1720,7 +1815,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         _suppliers.update { list -> list + created }
         scope.launch {
             runCatching {
-                apiClient?.createSupplier(
+                val response = apiClient?.createSupplier(
                     UpsertSupplierInputDto(
                         name = created.name,
                         category = created.category,
@@ -1732,9 +1827,87 @@ internal class RosaFiestaSubmoduleCoordinator(
                         notes = created.notes.ifBlank { null },
                     ),
                 )
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toSupplierRecord(response.supplier)
+                    _suppliers.update { list ->
+                        list.map { candidate -> if (candidate.id == created.id) mapped else candidate }
+                    }
+                }
             }
         }
         return created
+    }
+
+    fun updateSupplier(
+        supplierId: String,
+        name: String,
+        category: String,
+        contactName: String,
+        phone: String,
+        email: String,
+        website: String,
+        notes: String,
+    ): SupplierRecord? {
+        val targetId = supplierId.trim()
+        var updatedSupplier: SupplierRecord? = null
+        _suppliers.update { list ->
+            list.map { sup ->
+                if (sup.id == targetId) {
+                    val next = sup.copy(
+                        name = name.trim().ifBlank { sup.name },
+                        category = category.trim().ifBlank { sup.category },
+                        contactName = contactName.trim(),
+                        phone = phone.trim().ifBlank { sup.phone },
+                        email = email.trim(),
+                        website = website.trim(),
+                        notes = notes.trim(),
+                    )
+                    updatedSupplier = next
+                    next
+                } else {
+                    sup
+                }
+            }
+        }
+        val persisted = updatedSupplier ?: return null
+        scope.launch {
+            runCatching {
+                val response = apiClient?.patchSupplier(
+                    id = targetId,
+                    input = PatchSupplierInputDto(
+                        name = persisted.name,
+                        category = persisted.category,
+                        specialty = persisted.specialty,
+                        contactName = persisted.contactName,
+                        phone = persisted.phone,
+                        email = persisted.email,
+                        website = persisted.website,
+                        rating = persisted.rating,
+                        notes = persisted.notes,
+                    ),
+                )
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toSupplierRecord(response.supplier)
+                    _suppliers.update { list ->
+                        list.map { item -> if (item.id == targetId) mapped else item }
+                    }
+                }
+            }
+        }
+        return persisted
+    }
+
+    fun deleteSupplier(supplierId: String): Boolean {
+        val targetId = supplierId.trim()
+        val existed = _suppliers.value.any { item -> item.id == targetId }
+        if (!existed) return false
+        _suppliers.update { list -> list.filterNot { item -> item.id == targetId } }
+        scope.launch {
+            runCatching {
+                apiClient?.deleteSupplier(targetId)
+            }
+        }
+        return true
     }
 
     fun createLead(
@@ -1765,7 +1938,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         _leads.update { list -> listOf(created) + list }
         scope.launch {
             runCatching {
-                apiClient?.createLead(
+                val response = apiClient?.createLead(
                     CreateLeadInputDto(
                         fullName = created.clientName,
                         phone = created.phone,
@@ -1778,6 +1951,12 @@ internal class RosaFiestaSubmoduleCoordinator(
                         notes = created.followUpNote.ifBlank { null },
                     ),
                 )
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toLeadRecord(response.lead)
+                    _leads.update { list ->
+                        list.map { item -> if (item.id == created.id) mapped else item }
+                    }
+                }
             }
         }
         return created
@@ -1920,7 +2099,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         _eventGuests.update { list -> list + created }
         scope.launch {
             runCatching {
-                apiClient?.addEventGuest(
+                val response = apiClient?.addEventGuest(
                     eventId = cleanEventId,
                     input = AddGuestInputDto(
                         fullName = created.fullName,
@@ -1929,9 +2108,127 @@ internal class RosaFiestaSubmoduleCoordinator(
                         dietaryNotes = created.notes.ifBlank { null },
                     ),
                 )
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toEventGuest(response.guest)
+                    _eventGuests.update { list ->
+                        list.map { item -> if (item.id == created.id) mapped else item }
+                    }
+                }
             }
         }
         return created
+    }
+
+    fun deleteEventGuest(eventId: String, guestId: String): Boolean {
+        val cleanEventId = eventId.trim()
+        val cleanGuestId = guestId.trim()
+        val existed = _eventGuests.value.any { guest -> guest.id == cleanGuestId }
+        if (!existed) return false
+        _eventGuests.update { list -> list.filterNot { guest -> guest.id == cleanGuestId } }
+        scope.launch {
+            runCatching {
+                apiClient?.deleteEventGuest(cleanEventId, cleanGuestId)
+            }
+        }
+        return true
+    }
+
+    suspend fun loadEventTasks(eventId: String): List<EventTaskRecord> = withContext(ioDispatcher) {
+        val cleanEventId = eventId.trim()
+        val client = apiClient ?: return@withContext _eventTasks.value.filter { task -> task.eventId == cleanEventId }
+        val loaded = runCatching {
+            val response = client.listEventTasks(cleanEventId)
+            response.tasks.orEmpty().map { dto -> RosaFiestaBackendMappers.toEventTaskRecord(dto) }
+        }.getOrNull()
+        if (loaded != null) {
+            _eventTasks.update { existing ->
+                existing.filterNot { task -> task.eventId == cleanEventId } + loaded
+            }
+            return@withContext loaded
+        }
+        _eventTasks.value.filter { task -> task.eventId == cleanEventId }
+    }
+
+    fun createEventTask(eventId: String, title: String, assigneeName: String): EventTaskRecord? {
+        val cleanEventId = eventId.trim()
+        val cleanTitle = title.trim()
+        if (cleanEventId.isEmpty()) return null
+        if (cleanTitle.isEmpty()) return null
+        val created = EventTaskRecord(
+            id = "task-${_eventTasks.value.size + 1}-${cleanTitle.hashCode()}",
+            eventId = cleanEventId,
+            title = cleanTitle,
+            assigneeName = assigneeName.trim(),
+            done = false,
+        )
+        _eventTasks.update { list -> list + created }
+        scope.launch {
+            runCatching {
+                val response = apiClient?.createEventTask(
+                    eventId = cleanEventId,
+                    input = CreateEventTaskInputDto(
+                        title = cleanTitle,
+                        assigneeName = created.assigneeName,
+                        done = false,
+                    ),
+                )
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toEventTaskRecord(response.task)
+                    _eventTasks.update { list ->
+                        list.map { item -> if (item.id == created.id) mapped else item }
+                    }
+                }
+            }
+        }
+        return created
+    }
+
+    fun toggleEventTask(eventId: String, taskId: String, done: Boolean): EventTaskRecord? {
+        val cleanEventId = eventId.trim()
+        val cleanTaskId = taskId.trim()
+        var updatedTask: EventTaskRecord? = null
+        _eventTasks.update { list ->
+            list.map { item ->
+                if (item.id == cleanTaskId) {
+                    val next = item.copy(done = done)
+                    updatedTask = next
+                    next
+                } else {
+                    item
+                }
+            }
+        }
+        val persisted = updatedTask ?: return null
+        scope.launch {
+            runCatching {
+                val response = apiClient?.updateEventTask(
+                    eventId = cleanEventId,
+                    taskId = cleanTaskId,
+                    input = UpdateEventTaskInputDto(done = done),
+                )
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toEventTaskRecord(response.task)
+                    _eventTasks.update { list ->
+                        list.map { item -> if (item.id == cleanTaskId) mapped else item }
+                    }
+                }
+            }
+        }
+        return persisted
+    }
+
+    fun deleteEventTask(eventId: String, taskId: String): Boolean {
+        val cleanEventId = eventId.trim()
+        val cleanTaskId = taskId.trim()
+        val existed = _eventTasks.value.any { item -> item.id == cleanTaskId }
+        if (!existed) return false
+        _eventTasks.update { list -> list.filterNot { item -> item.id == cleanTaskId } }
+        scope.launch {
+            runCatching {
+                apiClient?.deleteEventTask(cleanEventId, cleanTaskId)
+            }
+        }
+        return true
     }
 
     fun updateEventGuest(
@@ -2296,7 +2593,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         _packages.update { list -> list + created }
         scope.launch {
             runCatching {
-                apiClient?.createCatalogPackage(
+                val response = apiClient?.createCatalogPackage(
                     SavePackageInputDto(
                         id = created.id,
                         name = created.name,
@@ -2308,9 +2605,77 @@ internal class RosaFiestaSubmoduleCoordinator(
                         visible = visibleInCatalog,
                     ),
                 )
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toEventPackage(
+                        dto = response.packageBundle,
+                        fallbackById = mapOf(response.packageBundle.id to created),
+                    )
+                    _packages.update { list ->
+                        list.map { item -> if (item.id == created.id) mapped else item }
+                    }
+                }
             }
         }
         return created
+    }
+
+    fun deletePackage(packageId: String): Boolean {
+        val targetId = packageId.trim()
+        val existed = _packages.value.any { pkg -> pkg.id == targetId }
+        if (!existed) return false
+        _packages.update { list -> list.filterNot { pkg -> pkg.id == targetId } }
+        scope.launch {
+            runCatching {
+                apiClient?.deleteCatalogPackage(targetId)
+            }
+        }
+        return true
+    }
+
+    fun deleteStaffMember(staffId: String): Boolean {
+        val targetId = staffId.trim()
+        val existed = staffFlow.value.any { member -> member.id == targetId }
+        if (!existed) return false
+        staffFlow.update { list -> list.filterNot { member -> member.id == targetId } }
+        scope.launch {
+            onPersistCoreSync()
+            runCatching {
+                apiClient?.deleteStaffMember(targetId)
+            }
+        }
+        return true
+    }
+
+    fun deleteBotFaq(faqId: String): Boolean {
+        val targetId = faqId.trim()
+        val existed = _botFaqs.value.any { item -> item.id == targetId }
+        if (!existed) return false
+        _botFaqs.update { list -> list.filterNot { item -> item.id == targetId } }
+        scope.launch {
+            runCatching {
+                apiClient?.deleteBotFaq(targetId)
+            }
+        }
+        return true
+    }
+
+    fun deleteBotKeyword(keywordId: String): Boolean {
+        val targetId = keywordId.trim()
+        val existed = _botKeywords.value.any { item -> item.id == targetId }
+        if (!existed) return false
+        _botKeywords.update { list -> list.filterNot { item -> item.id == targetId } }
+        scope.launch {
+            runCatching {
+                apiClient?.deleteBotKeyword(targetId)
+            }
+        }
+        return true
+    }
+
+    suspend fun downloadQuoteContractPdf(quoteId: String): Result<ByteArray> = withContext(ioDispatcher) {
+        executeRemoteCall(missingApiCode = "CONTRACT_PDF_UNAVAILABLE") { client ->
+            client.downloadQuoteContractPdf(quoteId)
+        }
     }
 
     fun updatePackage(
@@ -3543,6 +3908,11 @@ internal class RosaFiestaSubmoduleCoordinator(
         emailReceiptsEnabled: Boolean? = null,
         biometricLockEnabled: Boolean? = null,
         autoSyncWifiOnly: Boolean? = null,
+        eventRemindersEnabled: Boolean? = null,
+        preferredLanguage: String? = null,
+        darkThemeEnabled: Boolean? = null,
+        savedPaymentMethod: String? = null,
+        profileZone: String? = null,
     ): Result<RegisteredUserAccount> = withContext(ioDispatcher) {
         val current = currentAuthenticatedUserFlow.value
             ?: return@withContext Result.failure(IllegalStateException("AUTH_UNAUTHORIZED"))
@@ -3552,6 +3922,11 @@ internal class RosaFiestaSubmoduleCoordinator(
             emailReceiptsEnabled = emailReceiptsEnabled ?: current.preferences.emailReceiptsEnabled,
             biometricLockEnabled = biometricLockEnabled ?: current.preferences.biometricLockEnabled,
             autoSyncWifiOnly = autoSyncWifiOnly ?: current.preferences.autoSyncWifiOnly,
+            eventRemindersEnabled = eventRemindersEnabled ?: current.preferences.eventRemindersEnabled,
+            preferredLanguage = preferredLanguage ?: current.preferences.preferredLanguage,
+            darkThemeEnabled = darkThemeEnabled ?: current.preferences.darkThemeEnabled,
+            savedPaymentMethod = savedPaymentMethod ?: current.preferences.savedPaymentMethod,
+            profileZone = profileZone ?: current.preferences.profileZone,
         )
         val optimistic = current.copy(preferences = updatedPrefs)
         upsertAccountInMemory(optimistic)
@@ -3572,6 +3947,11 @@ internal class RosaFiestaSubmoduleCoordinator(
                     emailReceiptsEnabled = emailReceiptsEnabled,
                     biometricLockEnabled = biometricLockEnabled,
                     autoSyncWifiOnly = autoSyncWifiOnly,
+                    eventRemindersEnabled = eventRemindersEnabled,
+                    preferredLanguage = preferredLanguage,
+                    darkThemeEnabled = darkThemeEnabled,
+                    savedPaymentMethod = savedPaymentMethod,
+                    profileZone = profileZone,
                 ),
             )
             optimistic.copy(preferences = RosaFiestaBackendMappers.toUserPreferences(output.user.preferences))
@@ -3706,7 +4086,16 @@ internal class RosaFiestaSubmoduleCoordinator(
             )
             RosaFiestaBackendMappers.toClientEvent(output.event, fallbackById)
         }
-        val synced = remote.getOrNull() ?: return@withContext Result.success(updatedLocal)
+        val synced = remote.getOrNull()
+        if (synced == null) {
+            eventsFlow.update { existing ->
+                existing.map { item -> if (item.id == cleanEventId) existingEvent else item }
+            }
+            onPersistCoreSync()
+            return@withContext Result.failure(
+                remote.exceptionOrNull() ?: IllegalStateException("EVENT_UPDATE_FAILED"),
+            )
+        }
         eventsFlow.update { existing ->
             existing.map { item -> if (item.id == synced.id) synced else item }
         }

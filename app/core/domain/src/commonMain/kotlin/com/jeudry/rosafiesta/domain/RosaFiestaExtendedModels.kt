@@ -757,3 +757,24 @@ public data class RosaSketchProposal(
     public val provider: String = "",
     public val model: String = "",
 )
+
+/**
+ * Tarea colaborativa asignada al cliente o equipo dentro de un evento.
+ */
+public data class EventTaskRecord(
+    public val id: String,
+    public val eventId: String,
+    public val title: String,
+    public val assigneeName: String = "",
+    public val done: Boolean = false,
+)
+
+/**
+ * Opciones administrativas enviadas al aprobar una solicitud de reembolso.
+ */
+public data class RefundApprovalOptions(
+    public val method: String = "Transferencia",
+    public val releaseInventory: Boolean = true,
+    public val notifyWhatsApp: Boolean = false,
+    public val clientMessage: String = "",
+)

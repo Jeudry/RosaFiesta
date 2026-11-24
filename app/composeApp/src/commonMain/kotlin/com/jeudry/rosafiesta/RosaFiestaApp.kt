@@ -8,8 +8,10 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -73,6 +75,7 @@ import com.jeudry.rosafiesta.designsystem.RfChip
 import com.jeudry.rosafiesta.designsystem.RfColors
 import com.jeudry.rosafiesta.designsystem.RfIcon
 import com.jeudry.rosafiesta.designsystem.RfIconKind
+import com.jeudry.rosafiesta.designsystem.RfRadialBackgroundBox
 import com.jeudry.rosafiesta.designsystem.RfTag
 import com.jeudry.rosafiesta.designsystem.RfTagTone
 import com.jeudry.rosafiesta.designsystem.RfTheme
@@ -81,6 +84,7 @@ import com.jeudry.rosafiesta.dev.DevPanelScreen
 import com.jeudry.rosafiesta.di.appModule
 import com.jeudry.rosafiesta.ui.NavigationTransitionKind
 import com.jeudry.rosafiesta.ui.Navigator
+import com.jeudry.rosafiesta.ui.PersistentRootTabHeader
 import com.jeudry.rosafiesta.ui.RenderAppBottomBar
 import com.jeudry.rosafiesta.ui.RenderFloatingModalOverlay
 import com.jeudry.rosafiesta.ui.RenderPersonalMoreOptionsPanel
@@ -88,6 +92,7 @@ import com.jeudry.rosafiesta.ui.RenderScreenSpec
 import com.jeudry.rosafiesta.ui.RfSavedCartPreviewToast
 import com.jeudry.rosafiesta.ui.RosaFiestaViewModel
 import com.jeudry.rosafiesta.ui.ScreenCatalog
+import com.jeudry.rosafiesta.ui.hasPersistentRootHeader
 import com.jeudry.rosafiesta.ui.isFloatingOverlayModalCode
 import com.jeudry.rosafiesta.ui.resolvePersonalTabTarget
 import com.jeudry.rosafiesta.ui.shouldShowBottomBar
@@ -348,6 +353,20 @@ public fun RosaFiestaApp(
                 val isMobileScreen = !baseSpec.isDesktopWeb
                 val isBottomBarScreen = shouldShowBottomBar(baseSpec.code)
                 val hasBottomBar = if (isMobileScreen) isBottomBarScreen else false
+                val activeRoleState = viewModel.activeRole.collectAsState().value
+                val staffMembersState = viewModel.staffMembers.collectAsState().value
+                val isBaseRestrictedForStaff = remember(baseSpec.code, activeRoleState, staffMembersState) {
+                    viewModel.isScreenRestrictedForActiveStaff(baseSpec.code)
+                }
+                val isPersistentRootHeaderActive = listOf(
+                    isMobileScreen,
+                    hasPersistentRootHeader(baseSpec.code),
+                    !isBaseRestrictedForStaff,
+                ).all { allowed -> allowed }
+                var lastPersistentHeaderCode by remember { mutableStateOf(baseSpec.code) }
+                if (isPersistentRootHeaderActive) {
+                    lastPersistentHeaderCode = baseSpec.code
+                }
 
                 BoxWithConstraints(
                     contentAlignment = Alignment.Center,
@@ -401,57 +420,88 @@ public fun RosaFiestaApp(
                                 viewModel.refreshSharedStateFromDisk()
                             }
                             val transitionKind = navigator.lastTransition
-                            AnimatedContent(
-                                targetState = baseSpec,
-                                transitionSpec = {
-                                    val isEnteringModal = ScreenCatalog.isBottomSheet(targetState.code)
-                                    val isLeavingModal = ScreenCatalog.isBottomSheet(initialState.code)
-                                    buildScreenTransition(
-                                        kind = transitionKind,
-                                        isEnteringModal = isEnteringModal,
-                                        isLeavingModal = isLeavingModal,
-                                    ).using(SizeTransform(clip = false))
-                                },
-                                contentKey = { screenItem -> screenAnimationGroupKey(screenItem.code) },
-                                label = "rf-screen-transition",
-                            ) { targetSpec ->
-                                val targetGroupKey = screenAnimationGroupKey(targetSpec.code)
-                                val currentGroupKey = screenAnimationGroupKey(baseSpec.code)
-                                val isSameScreenGroup = targetGroupKey == currentGroupKey
-                                val activeSpec = if (isSameScreenGroup) baseSpec else targetSpec
-                                RenderScreenSpec(
-                                    spec = activeSpec,
-                                    viewModel = viewModel,
-                                    isFrameHarness = false,
-                                    includeBottomBar = false,
-                                    underlyingScreenCode = navigator.previousCode,
-                                    themeVariantOverride = themeVariant,
-                                    onSelectScreenCode = navigateToCode,
-                                    onSwitchAppMode = {
-                                        showPersonalMoreMenu = false
-                                        viewModel.soundPlayer.playTap()
-                                        if (navigator.activeView == AppView.ADMIN) {
-                                            navigator.switchToPersonal("s14", fromAdminPreview = true)
-                                        } else {
-                                            navigator.switchToAdmin("A01")
+                            RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    AnimatedVisibility(
+                                        visible = isPersistentRootHeaderActive,
+                                        enter = fadeIn(tween(150, easing = FastOutSlowInEasing)) +
+                                            expandVertically(tween(170, easing = FastOutSlowInEasing)),
+                                        exit = fadeOut(tween(120, easing = FastOutSlowInEasing)) +
+                                            shrinkVertically(tween(150, easing = FastOutSlowInEasing)),
+                                    ) {
+                                        PersistentRootTabHeader(
+                                            screenCode = lastPersistentHeaderCode,
+                                            viewModel = viewModel,
+                                            onSelectScreenCode = navigateToCode,
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxWidth(),
+                                    ) {
+                                        AnimatedContent(
+                                            targetState = baseSpec,
+                                            transitionSpec = {
+                                                val isEnteringModal = ScreenCatalog.isBottomSheet(targetState.code)
+                                                val isLeavingModal = ScreenCatalog.isBottomSheet(initialState.code)
+                                                buildScreenTransition(
+                                                    kind = transitionKind,
+                                                    isEnteringModal = isEnteringModal,
+                                                    isLeavingModal = isLeavingModal,
+                                                ).using(SizeTransform(clip = false))
+                                            },
+                                            contentKey = { screenItem -> screenAnimationGroupKey(screenItem.code) },
+                                            label = "rf-screen-transition",
+                                        ) { targetSpec ->
+                                            val targetGroupKey = screenAnimationGroupKey(targetSpec.code)
+                                            val currentGroupKey = screenAnimationGroupKey(baseSpec.code)
+                                            val isSameScreenGroup = targetGroupKey == currentGroupKey
+                                            val activeSpec = if (isSameScreenGroup) baseSpec else targetSpec
+                                            val targetUsesPersistentHeader = listOf(
+                                                !activeSpec.isDesktopWeb,
+                                                hasPersistentRootHeader(activeSpec.code),
+                                                !viewModel.isScreenRestrictedForActiveStaff(activeSpec.code),
+                                            ).all { allowed -> allowed }
+                                            RenderScreenSpec(
+                                                spec = activeSpec,
+                                                viewModel = viewModel,
+                                                isFrameHarness = false,
+                                                includeBottomBar = false,
+                                                includeRootHeader = !targetUsesPersistentHeader,
+                                                useTransparentCanvas = targetUsesPersistentHeader,
+                                                underlyingScreenCode = navigator.previousCode,
+                                                themeVariantOverride = themeVariant,
+                                                onSelectScreenCode = navigateToCode,
+                                                onSwitchAppMode = {
+                                                    showPersonalMoreMenu = false
+                                                    viewModel.soundPlayer.playTap()
+                                                    if (navigator.activeView == AppView.ADMIN) {
+                                                        navigator.switchToPersonal("s14", fromAdminPreview = true)
+                                                    } else {
+                                                        navigator.switchToAdmin("A01")
+                                                    }
+                                                },
+                                                onPrimaryAction = {
+                                                    showPersonalMoreMenu = false
+                                                    viewModel.soundPlayer.playTap()
+                                                    val currentUser = viewModel.currentAuthenticatedUser.value
+                                                    val isSplashScreen = navigator.currentCode == "p00"
+                                                    val hasCustomUser = currentUser != null
+                                                    val isNotDefaultSeed = currentUser?.id != "usr-camila"
+                                                    val isCustomSession = if (hasCustomUser) isNotDefaultSeed else false
+                                                    val shouldSkipOnboarding = if (isSplashScreen) isCustomSession else false
+                                                    if (shouldSkipOnboarding) {
+                                                        navigator.navigateTo("s14")
+                                                    } else {
+                                                        navigator.advanceFlow()
+                                                    }
+                                                },
+                                            )
                                         }
-                                    },
-                                    onPrimaryAction = {
-                                        showPersonalMoreMenu = false
-                                        viewModel.soundPlayer.playTap()
-                                        val currentUser = viewModel.currentAuthenticatedUser.value
-                                        val isSplashScreen = navigator.currentCode == "p00"
-                                        val hasCustomUser = currentUser != null
-                                        val isNotDefaultSeed = currentUser?.id != "usr-camila"
-                                        val isCustomSession = if (hasCustomUser) isNotDefaultSeed else false
-                                        val shouldSkipOnboarding = if (isSplashScreen) isCustomSession else false
-                                        if (shouldSkipOnboarding) {
-                                            navigator.navigateTo("s14")
-                                        } else {
-                                            navigator.advanceFlow()
-                                        }
-                                    },
-                                )
+                                    }
+                                }
                             }
 
                             val showBottomNav = if (hasBottomBar) !usePersonalDesktopWorkspace else false
@@ -484,7 +534,7 @@ public fun RosaFiestaApp(
                                         viewModel = viewModel,
                                         onOpenCart = {
                                             viewModel.clearSavedItemPreview()
-                                            navigateToCode("s25")
+                                            navigateToCode(viewModel.resolveMyEventEntryTarget())
                                         },
                                         onDismiss = { viewModel.clearSavedItemPreview() },
                                     )
@@ -507,7 +557,7 @@ public fun RosaFiestaApp(
                                     .padding(
                                         start = 20.dp,
                                         end = 20.dp,
-                                        bottom = if (showBottomNav) 86.dp else 82.dp,
+                                        bottom = if (showBottomNav) 84.dp else 82.dp,
                                     ),
                             ) {
                                 Row(
@@ -553,18 +603,11 @@ public fun RosaFiestaApp(
 
                             androidx.compose.animation.AnimatedVisibility(
                                 visible = showPersonalMoreMenu,
-                                enter = fadeIn(animationSpec = tween(durationMillis = 150)) +
-                                    androidx.compose.animation.scaleIn(
-                                        initialScale = 0.92f,
-                                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.9f, 1f),
-                                        animationSpec = tween(durationMillis = 170, easing = FastOutSlowInEasing),
-                                    ),
-                                exit = fadeOut(animationSpec = tween(durationMillis = 110)) +
-                                    androidx.compose.animation.scaleOut(
-                                        targetScale = 0.94f,
-                                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.9f, 1f),
-                                        animationSpec = tween(durationMillis = 110),
-                                    ),
+                                enter = fadeIn(animationSpec = tween(durationMillis = 150)),
+                                exit = fadeOut(animationSpec = tween(durationMillis = 110)),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .zIndex(18f),
                             ) {
                                 RenderPersonalMoreOptionsPanel(
                                     currentScreenCode = baseSpec.code,
@@ -573,6 +616,18 @@ public fun RosaFiestaApp(
                                         showPersonalMoreMenu = false
                                         navigateToCode(targetCode)
                                     },
+                                    panelModifier = Modifier.animateEnterExit(
+                                        enter = androidx.compose.animation.scaleIn(
+                                            initialScale = 0.94f,
+                                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.92f, 1f),
+                                            animationSpec = tween(durationMillis = 160, easing = FastOutSlowInEasing),
+                                        ),
+                                        exit = androidx.compose.animation.scaleOut(
+                                            targetScale = 0.96f,
+                                            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.92f, 1f),
+                                            animationSpec = tween(durationMillis = 110),
+                                        ),
+                                    ),
                                 )
                             }
 

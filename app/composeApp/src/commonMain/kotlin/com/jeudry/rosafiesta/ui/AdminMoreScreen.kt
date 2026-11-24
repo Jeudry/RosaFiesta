@@ -368,6 +368,7 @@ internal fun RenderAdminMoreA12(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
     onSwitchAppMode: () -> Unit = {},
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val rawProfileName = viewModel?.profileName?.collectAsState()?.value ?: "María"
@@ -421,28 +422,31 @@ internal fun RenderAdminMoreA12(
             }
     }
 
+    val adminMoreTopPadding = if (includeHeader) 16.dp else 6.dp
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(
-                    top = 16.dp,
+                    top = adminMoreTopPadding,
                     start = 20.dp,
                     end = 20.dp,
                     bottom = RfDimens.BottomBarContentClearance + 24.dp,
                 ),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                BasicText(
-                    text = "Más",
-                    style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
-                )
-                BasicText(
-                    text = "Módulos, operación y ajustes del negocio",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
-                )
+            if (includeHeader) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    BasicText(
+                        text = "Más",
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+                    )
+                    BasicText(
+                        text = "Módulos, operación y ajustes del negocio",
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                    )
+                }
             }
 
             AdminMoreProfileCard(

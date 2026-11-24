@@ -271,6 +271,7 @@ internal fun RenderPersonalHomeScreen(
     spec: ScreenSpec,
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
+    includeHeader: Boolean = true,
 ) {
     val palette = LocalRfPalette.current
     val isDark = if (palette.isDark) true else spec.variant == RfThemeVariant.PERSONAL_DARK
@@ -343,235 +344,237 @@ internal fun RenderPersonalHomeScreen(
         }
     }
 
+    val contentTopPadding = if (includeHeader) 16.dp else 6.dp
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 16.dp, bottom = 112.dp),
+            .padding(top = contentTopPadding, bottom = 112.dp),
     ) {
-        // Header
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-        ) {
-            // Profile Button
-            Box(
-                contentAlignment = Alignment.Center,
+        if (includeHeader) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
-                    .padding(2.dp)
-                    .clickable { onSelectScreenCode("s54") },
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
             ) {
+                // Profile Button
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .fillMaxSize()
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(cardBg),
+                        .background(Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC))))
+                        .padding(2.dp)
+                        .clickable { onSelectScreenCode("s54") },
                 ) {
-                    val matchedPhoto = remember(avatarKey) {
-                        if (avatarKey.isNullOrBlank()) {
-                            null
-                        } else {
-                            RfPhotoKey.entries.firstOrNull { entry -> entry.name == avatarKey }
-                        }
-                    }
-                    val isCustomAvatar = avatarKey?.startsWith("CUSTOM:") == true
-                    val customAvatarBitmap = rememberDecodedImageBitmap(
-                        bytes = if (isCustomAvatar) avatarBytes else null,
-                    )
-                    if (matchedPhoto != null) {
-                        RfPhoto(
-                            photoKey = matchedPhoto,
-                            contentDescription = fullName,
-                            cornerRadius = 999.dp,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } else if (customAvatarBitmap != null) {
-                        RfBitmapPhoto(
-                            bitmap = customAvatarBitmap,
-                            contentDescription = fullName,
-                            cornerRadius = 999.dp,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                    } else if (isCustomAvatar) {
-                        RfIcon(kind = RfIconKind.CAMERA, tint = Color(0xFFC84FB8), size = 20.dp)
-                    } else {
-                        BasicText(
-                            text = avatarInitial,
-                            style = typo.rootTabTitle.copy(
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFFC84FB8),
-                            ),
-                        )
-                    }
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onSelectScreenCode("s54") },
-            ) {
-                BasicText(
-                    text = "Hola de nuevo",
-                    style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
-                )
-                BasicText(
-                    text = firstName,
-                    style = typo.rootTabTitle.copy(
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor,
-                    ),
-                    maxLines = 1,
-                )
-            }
-
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape)
-                    .clip(CircleShape)
-                    .background(cardBg)
-                    .border(1.dp, cardBorder, CircleShape)
-                    .clickable { onSelectScreenCode("s79") },
-            ) {
-                RfIcon(kind = RfIconKind.BELL, tint = textColor, size = 22.dp)
-                if (hasUnreadNotifications) {
                     Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 9.dp, end = 10.dp)
-                            .size(9.dp)
+                            .fillMaxSize()
                             .clip(CircleShape)
-                            .background(Color(0xFFE53958))
-                            .border(2.dp, cardBg, CircleShape),
-                    )
-                }
-            }
-
-            RfDraftCartPillButton(
-                count = totalDraftCartCount,
-                onClick = { onSelectScreenCode("s25") },
-            )
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier
-                .padding(horizontal = 20.dp)
-                .fillMaxWidth()
-                .height(52.dp)
-                .rfInputShadow(RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp))
-                .background(cardBg)
-                .border(1.dp, cardBorder, RoundedCornerShape(16.dp))
-                .padding(start = 16.dp, end = 6.dp),
-        ) {
-            RfIcon(
-                kind = RfIconKind.SEARCH,
-                tint = mutedColor,
-                size = 20.dp,
-                modifier = Modifier.clickable { onSelectScreenCode("s80") },
-            )
-            BasicTextField(
-                value = homeQuery,
-                onValueChange = { updatedText ->
-                    homeQuery = updatedText
-                    viewModel?.setSearchQuery(updatedText)
-                },
-                singleLine = true,
-                textStyle = typo.body.copy(fontSize = 15.sp, color = textColor),
-                cursorBrush = SolidColor(Color(0xFFC2338F)),
-                modifier = Modifier.weight(1f),
-                decorationBox = { innerField ->
-                    Box(contentAlignment = Alignment.CenterStart) {
-                        if (homeQuery.isEmpty()) {
+                            .background(cardBg),
+                    ) {
+                        val matchedPhoto = remember(avatarKey) {
+                            if (avatarKey.isNullOrBlank()) {
+                                null
+                            } else {
+                                RfPhotoKey.entries.firstOrNull { entry -> entry.name == avatarKey }
+                            }
+                        }
+                        val isCustomAvatar = avatarKey?.startsWith("CUSTOM:") == true
+                        val customAvatarBitmap = rememberDecodedImageBitmap(
+                            bytes = if (isCustomAvatar) avatarBytes else null,
+                        )
+                        if (matchedPhoto != null) {
+                            RfPhoto(
+                                photoKey = matchedPhoto,
+                                contentDescription = fullName,
+                                cornerRadius = 999.dp,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else if (customAvatarBitmap != null) {
+                            RfBitmapPhoto(
+                                bitmap = customAvatarBitmap,
+                                contentDescription = fullName,
+                                cornerRadius = 999.dp,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        } else if (isCustomAvatar) {
+                            RfIcon(kind = RfIconKind.CAMERA, tint = Color(0xFFC84FB8), size = 20.dp)
+                        } else {
                             BasicText(
-                                text = "¿Qué celebramos hoy? (sillas, arcos, mesas...)",
-                                style = typo.body.copy(fontSize = 14.sp, color = mutedColor),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                text = avatarInitial,
+                                style = typo.rootTabTitle.copy(
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFC84FB8),
+                                ),
                             )
                         }
-                        innerField()
                     }
-                },
-            )
-            if (homeQuery.isNotEmpty()) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(chipBg)
-                        .clickable {
-                            homeQuery = ""
-                            viewModel?.setSearchQuery("")
-                        },
-                ) {
-                    RfIcon(kind = RfIconKind.CLOSE, tint = chipText, size = 14.dp)
                 }
-            }
-            val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
-            val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
-            val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
-            if (homeQuery.isBlank()) {
-                Box(
-                    contentAlignment = Alignment.Center,
+
+                Column(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(chipBg)
-                        .clickable { onSelectScreenCode("s81") },
+                        .weight(1f)
+                        .clickable { onSelectScreenCode("s54") },
                 ) {
-                    RfIcon(kind = RfIconKind.FILTER, tint = chipText, size = 18.dp)
-                }
-            }
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isSearchMicActive) {
-                            Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                        } else {
-                            SolidColor(chipBg)
-                        },
+                    BasicText(
+                        text = "Hola de nuevo",
+                        style = typo.caption.copy(fontSize = 13.sp, color = mutedColor),
                     )
-                    .clickable {
-                        if (homeQuery.isNotBlank()) {
-                            onSelectScreenCode("s81")
-                        } else {
-                            viewModel?.toggleInlineVoiceSearch()
+                    BasicText(
+                        text = firstName,
+                        style = typo.rootTabTitle.copy(
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textColor,
+                        ),
+                        maxLines = 1,
+                    )
+                }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape)
+                        .clip(CircleShape)
+                        .background(cardBg)
+                        .border(1.dp, cardBorder, CircleShape)
+                        .clickable { onSelectScreenCode("s79") },
+                ) {
+                    RfIcon(kind = RfIconKind.BELL, tint = textColor, size = 22.dp)
+                    if (hasUnreadNotifications) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 9.dp, end = 10.dp)
+                                .size(9.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFE53958))
+                                .border(2.dp, cardBg, CircleShape),
+                        )
+                    }
+                }
+
+                RfDraftCartPillButton(
+                    count = totalDraftCartCount,
+                    onClick = { onSelectScreenCode("s25") },
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(cardBg)
+                    .border(1.dp, cardBorder, RoundedCornerShape(16.dp))
+                    .padding(start = 16.dp, end = 6.dp),
+            ) {
+                RfIcon(
+                    kind = RfIconKind.SEARCH,
+                    tint = mutedColor,
+                    size = 20.dp,
+                    modifier = Modifier.clickable { onSelectScreenCode("s80") },
+                )
+                BasicTextField(
+                    value = homeQuery,
+                    onValueChange = { updatedText ->
+                        homeQuery = updatedText
+                        viewModel?.setSearchQuery(updatedText)
+                    },
+                    singleLine = true,
+                    textStyle = typo.body.copy(fontSize = 15.sp, color = textColor),
+                    cursorBrush = SolidColor(Color(0xFFC2338F)),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { innerField ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (homeQuery.isEmpty()) {
+                                BasicText(
+                                    text = "¿Qué celebramos hoy? (sillas, arcos, mesas...)",
+                                    style = typo.body.copy(fontSize = 14.sp, color = mutedColor),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            innerField()
                         }
                     },
-            ) {
-                val trailingIcon = if (homeQuery.isNotBlank()) RfIconKind.FILTER else RfIconKind.MIC
-                val trailingIconTint = if (isSearchMicActive) Color.White else chipText
-                RfIcon(kind = trailingIcon, tint = trailingIconTint, size = 20.dp)
+                )
+                if (homeQuery.isNotEmpty()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(chipBg)
+                            .clickable {
+                                homeQuery = ""
+                                viewModel?.setSearchQuery("")
+                            },
+                    ) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = chipText, size = 14.dp)
+                    }
+                }
+                val isInlineVoiceListening = viewModel?.isVoiceListening?.collectAsState()?.value ?: false
+                val voiceOrigin = viewModel?.voiceInputOrigin?.collectAsState()?.value ?: VoiceInputOrigin.NONE
+                val isSearchMicActive = if (isInlineVoiceListening) voiceOrigin == VoiceInputOrigin.SEARCH else false
+                if (homeQuery.isBlank()) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(chipBg)
+                            .clickable { onSelectScreenCode("s81") },
+                    ) {
+                        RfIcon(kind = RfIconKind.FILTER, tint = chipText, size = 18.dp)
+                    }
+                }
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (isSearchMicActive) {
+                                Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                            } else {
+                                SolidColor(chipBg)
+                            },
+                        )
+                        .clickable {
+                            if (homeQuery.isNotBlank()) {
+                                onSelectScreenCode("s81")
+                            } else {
+                                viewModel?.toggleInlineVoiceSearch()
+                            }
+                        },
+                ) {
+                    val trailingIcon = if (homeQuery.isNotBlank()) RfIconKind.FILTER else RfIconKind.MIC
+                    val trailingIconTint = if (isSearchMicActive) Color.White else chipText
+                    RfIcon(kind = trailingIcon, tint = trailingIconTint, size = 20.dp)
+                }
             }
-        }
 
-        InlineVoiceSearchBanner(
-            viewModel = viewModel,
-            onApplyVoiceQuery = { spokenQuery ->
-                homeQuery = spokenQuery
-                viewModel?.setSearchQuery(spokenQuery)
-            },
-            modifier = Modifier.padding(horizontal = 20.dp),
-        )
+            InlineVoiceSearchBanner(
+                viewModel = viewModel,
+                onApplyVoiceQuery = { spokenQuery ->
+                    homeQuery = spokenQuery
+                    viewModel?.setSearchQuery(spokenQuery)
+                },
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
+        }
 
         if (homeQuery.isNotBlank()) {
             Column(

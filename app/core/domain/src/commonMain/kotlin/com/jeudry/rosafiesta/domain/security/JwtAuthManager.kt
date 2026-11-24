@@ -11,6 +11,11 @@ public data class UserPreferences(
     public val emailReceiptsEnabled: Boolean = true,
     public val biometricLockEnabled: Boolean = false,
     public val autoSyncWifiOnly: Boolean = false,
+    public val eventRemindersEnabled: Boolean = true,
+    public val preferredLanguage: String = "es",
+    public val darkThemeEnabled: Boolean = false,
+    public val savedPaymentMethod: String = "Transferencia",
+    public val profileZone: String = "Distrito Nacional",
 )
 
 /**

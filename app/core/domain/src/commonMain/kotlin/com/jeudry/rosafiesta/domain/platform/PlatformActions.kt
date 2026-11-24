@@ -530,3 +530,45 @@ public object ExternalPaymentCallbackBridge {
         return map
     }
 }
+
+/**
+ * Multiplatform event bridge relaying OS background transitions (`Activity.onStop`, etc.)
+ * to active ViewModels so biometric session locks engage immediately.
+ */
+public object AppLifecycleBridge {
+    private val _backgroundEvents: MutableSharedFlow<Unit> =
+        MutableSharedFlow(extraBufferCapacity = 4)
+
+    /**
+     * Stream emitting whenever the host application enters background state.
+     */
+    public val backgroundEvents: SharedFlow<Unit> = _backgroundEvents.asSharedFlow()
+
+    /**
+     * Notifies active ViewModels that the app moved to the background.
+     */
+    public fun dispatchAppBackgrounded() {
+        _backgroundEvents.tryEmit(Unit)
+    }
+}
+
+/**
+ * Multiplatform event bridge relaying full-page OAuth browser redirects (such as web reloads
+ * reading `sessionStorage`) to active ViewModels.
+ */
+public object ExternalOAuthCallbackBridge {
+    private val _oauthReturns: MutableSharedFlow<OAuthBrowserOutcome> =
+        MutableSharedFlow(extraBufferCapacity = 4)
+
+    /**
+     * Stream emitting recovered OAuth authorization callback payloads.
+     */
+    public val oauthReturns: SharedFlow<OAuthBrowserOutcome> = _oauthReturns.asSharedFlow()
+
+    /**
+     * Broadcasts an [OAuthBrowserOutcome] payload to active ViewModels.
+     */
+    public fun dispatchOAuthReturn(outcome: OAuthBrowserOutcome) {
+        _oauthReturns.tryEmit(outcome)
+    }
+}

@@ -23,6 +23,12 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>RosaFiesta necesita acceso al micrófono para dictar consultas al asistente Rosa.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>RosaFiesta utiliza reconocimiento de voz para transcribir tus solicitudes en español.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Usa Face ID para desbloquear tu cuenta de RosaFiesta de forma segura.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

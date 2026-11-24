@@ -192,9 +192,22 @@ internal class DesktopSecureStorage(
     }
 
     private fun loadOrGenerateKeyMaterial(keyFile: File): KeyDerivationMaterial {
+        val osName = System.getProperty("os.name").orEmpty().lowercase()
+        val useMacKeychain = if (osName.contains("mac")) !isRunningInAutomatedTest() else false
+        if (useMacKeychain) {
+            val keychainLoaded = readMacOsKeychainKeyMaterial()?.let { raw ->
+                runCatching { parseStoredKeyMaterial(raw) }.getOrNull()
+            }
+            if (keychainLoaded != null) {
+                return keychainLoaded
+            }
+        }
         if (keyFile.exists()) {
             val loaded = runCatching { parseStoredKeyMaterial(keyFile.readText(Charsets.UTF_8)) }.getOrNull()
             if (loaded != null) {
+                if (useMacKeychain) {
+                    writeMacOsKeychainKeyMaterial(keyFile.readText(Charsets.UTF_8))
+                }
                 return loaded
             }
         }
@@ -205,13 +218,61 @@ internal class DesktopSecureStorage(
         secureRandom.nextBytes(saltBytes)
         val encodedSecret = Base64.getEncoder().withoutPadding().encodeToString(randomSecretBytes)
         val encodedSalt = Base64.getEncoder().withoutPadding().encodeToString(saltBytes)
-        keyFile.writeText("$encodedSecret:$encodedSalt", Charsets.UTF_8)
-        applyOwnerOnlyFilePermissions(keyFile)
+        val combinedMaterial = "$encodedSecret:$encodedSalt"
+        if (useMacKeychain) {
+            val savedToKeychain = writeMacOsKeychainKeyMaterial(combinedMaterial)
+            if (!savedToKeychain) {
+                keyFile.writeText(combinedMaterial, Charsets.UTF_8)
+                applyOwnerOnlyFilePermissions(keyFile)
+            }
+        } else {
+            keyFile.writeText(combinedMaterial, Charsets.UTF_8)
+            applyOwnerOnlyFilePermissions(keyFile)
+        }
         return KeyDerivationMaterial(
             passphraseChars = encodedSecret.toCharArray(),
             saltBytes = saltBytes,
         )
     }
+
+    private fun readMacOsKeychainKeyMaterial(): String? = runCatching {
+        val process = ProcessBuilder(
+            "/usr/bin/security",
+            "find-generic-password",
+            "-a",
+            MAC_KEYCHAIN_ACCOUNT,
+            "-s",
+            MAC_KEYCHAIN_SERVICE,
+            "-w",
+        ).redirectErrorStream(false).start()
+        val finished = process.waitFor(3, TimeUnit.SECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            return@runCatching null
+        }
+        if (process.exitValue() != 0) return@runCatching null
+        process.inputStream.readBytes().toString(StandardCharsets.UTF_8).trim().ifEmpty { null }
+    }.getOrNull()
+
+    private fun writeMacOsKeychainKeyMaterial(encodedMaterial: String): Boolean = runCatching {
+        val process = ProcessBuilder(
+            "/usr/bin/security",
+            "add-generic-password",
+            "-U",
+            "-a",
+            MAC_KEYCHAIN_ACCOUNT,
+            "-s",
+            MAC_KEYCHAIN_SERVICE,
+            "-w",
+            encodedMaterial,
+        ).redirectErrorStream(true).start()
+        val finished = process.waitFor(3, TimeUnit.SECONDS)
+        if (!finished) {
+            process.destroyForcibly()
+            return@runCatching false
+        }
+        process.exitValue() == 0
+    }.getOrDefault(false)
 
     private fun parseStoredKeyMaterial(rawContent: String): KeyDerivationMaterial? {
         val parts = rawContent.trim().split(":")
@@ -291,6 +352,8 @@ internal class DesktopSecureStorage(
 
     private companion object {
         const val KEYSTORE_MATERIAL_FILE = ".keystore.key"
+        const val MAC_KEYCHAIN_ACCOUNT = "rosafiesta-master"
+        const val MAC_KEYCHAIN_SERVICE = "com.jeudry.rosafiesta.secure"
         const val AES_GCM_TRANSFORMATION = "AES/GCM/NoPadding"
         const val PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256"
         const val PBKDF2_ITERATIONS = 120_000
@@ -587,8 +650,20 @@ internal class DesktopPlatformActions : PlatformActions {
                 if (!iface.isUp) continue
                 if (iface.isLoopback) continue
                 if (iface.isVirtual) continue
-                val hasAddresses = iface.inetAddresses.hasMoreElements()
-                if (hasAddresses) return@runCatching true
+                val addresses = iface.inetAddresses
+                var hasRoutableAddress = false
+                while (addresses.hasMoreElements()) {
+                    val addr = addresses.nextElement()
+                    val isLoopbackAddr = addr.isLoopbackAddress
+                    val isLinkLocalAddr = addr.isLinkLocalAddress
+                    if (!isLoopbackAddr) {
+                        if (!isLinkLocalAddr) {
+                            hasRoutableAddress = true
+                            break
+                        }
+                    }
+                }
+                if (hasRoutableAddress) return@runCatching true
             }
             false
         }.getOrDefault(false)

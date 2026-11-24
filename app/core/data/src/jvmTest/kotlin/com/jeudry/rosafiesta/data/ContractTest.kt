@@ -232,6 +232,17 @@ class ContractTest {
             "CardSessionOutputBody" to CardSessionOutputDto.serializer().descriptor,
             "DGII607OutputBody" to DGII607OutputDto.serializer().descriptor,
             "SendWhatsAppReplyInputBody" to SendWhatsAppReplyInputDto.serializer().descriptor,
+            "EventTask" to EventTaskDto.serializer().descriptor,
+            "TeamTasksListOutputBody" to EventTasksListOutputDto.serializer().descriptor,
+            "TeamTaskOutputBody" to EventTaskOutputDto.serializer().descriptor,
+            "AddTeamTaskInputBody" to CreateEventTaskInputDto.serializer().descriptor,
+            "UpdateTeamTaskInputBody" to UpdateEventTaskInputDto.serializer().descriptor,
+            "ApproveRefundInputBody" to ApproveRefundInputDto.serializer().descriptor,
+            "CancelEventInputBody" to CancelEventInputDto.serializer().descriptor,
+            "PatchSupplierInputBody" to PatchSupplierInputDto.serializer().descriptor,
+            "FavoritesOutputBody" to FavoritesOutputDto.serializer().descriptor,
+            "DeleteEntityOutputBody" to DeleteEntityOutputDto.serializer().descriptor,
+            "DeletePackageOutputBody" to DeletePackageOutputDto.serializer().descriptor,
         )
 
         mappings.forEach { (schemaName, descriptor) ->

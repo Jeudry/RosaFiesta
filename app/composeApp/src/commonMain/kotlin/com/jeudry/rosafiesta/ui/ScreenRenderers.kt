@@ -139,7 +139,8 @@ internal fun RenderPersonalMoreOptionsPanel(
     currentScreenCode: String,
     onDismiss: () -> Unit,
     onSelectOption: (String) -> Unit,
-    bottomClearance: Dp = RfDimens.BottomBarHeight + 10.dp,
+    bottomClearance: Dp = RfDimens.BottomBarHeight + 14.dp,
+    panelModifier: Modifier = Modifier,
 ) {
     val palette = LocalRfPalette.current
     val typo = LocalRfTypography.current
@@ -188,7 +189,7 @@ internal fun RenderPersonalMoreOptionsPanel(
         contentAlignment = Alignment.BottomEnd,
     ) {
         Column(
-            modifier = Modifier
+            modifier = panelModifier
                 .padding(end = 14.dp, bottom = bottomClearance)
                 .widthIn(min = 236.dp, max = 264.dp)
                 .shadow(18.dp, RoundedCornerShape(20.dp), ambientColor = Color(0x381A1A2E), spotColor = Color(0x381A1A2E))
@@ -345,6 +346,8 @@ public fun RenderScreenSpec(
     onSwitchAppMode: () -> Unit = { onSelectScreenCode("s14") },
     isFrameHarness: Boolean = true,
     includeBottomBar: Boolean = true,
+    includeRootHeader: Boolean = true,
+    useTransparentCanvas: Boolean = false,
     underlyingScreenCode: String? = null,
     themeVariantOverride: RfThemeVariant? = null,
     modifier: Modifier = Modifier,
@@ -384,12 +387,22 @@ public fun RenderScreenSpec(
         showMockStatusBar = false,
         wrapInPhoneBorder = false,
         fillAvailable = !isFrameHarness,
+        useTransparentBackground = useTransparentCanvas,
         bottomBar = null,
         modifier = modifier.testTag("screen-${spec.code}"),
     ) {
         if (isRestrictedForActiveStaff) {
+            val staffKey = activeRoleValue.orEmpty().trim().lowercase().removePrefix("staff_")
+            val matchedMember = staffMembersValue.orEmpty().firstOrNull { member ->
+                member.name.equals(staffKey, ignoreCase = true)
+            }
+            val staffDisplayName = matchedMember?.name?.takeIf { text -> text.isNotBlank() }
+                ?: staffKey.replaceFirstChar { ch -> ch.uppercaseChar() }.ifBlank { "Equipo" }
+            val staffRoleTitle = matchedMember?.roleLabel?.takeIf { text -> text.isNotBlank() } ?: "Rol operativo"
             RenderYuliPaymentRestrictedScreen(
                 spec = spec,
+                staffDisplayName = staffDisplayName,
+                staffRoleTitle = staffRoleTitle,
                 onSelectScreenCode = onSelectScreenCode,
             )
             return@RfPhoneFrame
@@ -429,21 +442,42 @@ public fun RenderScreenSpec(
 
                 "s09", "s10", "s11", "s12", "s13" -> RenderRecoveryAndConfirmationScreens(spec = spec, viewModel = viewModel, onPrimaryAction = onPrimaryAction, onSelectScreenCode = onSelectScreenCode)
 
-                "s14", "s15" -> RenderPersonalHomeScreen(spec = spec, viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s14", "s15" -> RenderPersonalHomeScreen(
+                    spec = spec,
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
-                "s18" -> RenderPersonalCatalogS18(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s18" -> RenderPersonalCatalogS18(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "s19" -> RenderProductDetailS19(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s20" -> RenderCategoriesScreenS20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s20" -> RenderCategoriesScreenS20(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
-                "s21" -> RenderPackagesScreenS21(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s21" -> RenderPackagesScreenS21(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "s22" -> RenderPackageDetailScreenS22(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
                 "s23" -> RenderShopScreenS23(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s24" -> RenderClientFavoritesScreenS24(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s24" -> RenderClientFavoritesScreenS24(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "s25" -> RenderMyEventDraftS25(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -477,11 +511,19 @@ public fun RenderScreenSpec(
 
                 "A08" -> RenderAdminRosaA08(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s37" -> RenderMyEventsScreenS37(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s37" -> RenderMyEventsScreenS37(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "s38" -> RenderNewEventScreenS38(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s39" -> RenderCalendarScreenS39(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s39" -> RenderCalendarScreenS39(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "s40" -> RenderEventDetailScreenS40(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -505,7 +547,11 @@ public fun RenderScreenSpec(
 
                 "s52" -> RenderPostEventReviewScreenS52(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s53" -> RenderMyReservationsScreenS53(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s53" -> RenderMyReservationsScreenS53(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "s54" -> RenderUserProfileScreenS54(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -519,17 +565,38 @@ public fun RenderScreenSpec(
 
                 "s83" -> RenderOfficialReceiptScreenS83(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "A01" -> RenderAdminHomeA01(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A01" -> RenderAdminHomeA01(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
-                "A02" -> RenderAdminRequestsA02(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A02" -> RenderAdminRequestsA02(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "A03" -> RenderAdminQuoteBuilderA03(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "A09" -> RenderAdminInventoryA09(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A09" -> RenderAdminInventoryA09(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
-                "A11" -> RenderAdminEventsA11(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A11" -> RenderAdminEventsA11(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
-                "A12" -> RenderAdminMoreA12(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode, onSwitchAppMode = onSwitchAppMode)
+                "A12" -> RenderAdminMoreA12(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    onSwitchAppMode = onSwitchAppMode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "A20" -> RenderAdminPaymentsA20(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -553,11 +620,19 @@ public fun RenderScreenSpec(
 
                 "A23" -> RenderAdminArticleDetailA23(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "A24" -> RenderAdminPackagesA24(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A24" -> RenderAdminPackagesA24(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "A25" -> RenderAdminPackageEditA25(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "A26" -> RenderAdminClientsA26(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A26" -> RenderAdminClientsA26(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "A27" -> RenderAdminClientProfileA27(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -575,11 +650,19 @@ public fun RenderScreenSpec(
 
                 "A07" -> RenderAdminEventSummaryA07(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "A14" -> RenderAdminChatsA14(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A14" -> RenderAdminChatsA14(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "A15" -> RenderAdminChatConversationA15(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "A22" -> RenderAdminQuotesA22(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A22" -> RenderAdminQuotesA22(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "A29" -> RenderAdminNotificationsA29(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -587,7 +670,11 @@ public fun RenderScreenSpec(
 
                 "A31" -> RenderAdminSettingsA31(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "A32" -> RenderAdminCancellationsA32(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "A32" -> RenderAdminCancellationsA32(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "A33" -> RenderAdminRefundA33(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -605,7 +692,11 @@ public fun RenderScreenSpec(
 
                 "A41" -> RenderAdminTrendsA41(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
-                "s16" -> RenderAboutScreenS16(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s16" -> RenderAboutScreenS16(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "s17" -> RenderCompanyReviewsS17(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -663,7 +754,11 @@ public fun RenderScreenSpec(
                     underlyingScreenCode = underlyingScreenCode,
                 )
 
-                "s79" -> RenderPersonalNotificationsS79(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s79" -> RenderPersonalNotificationsS79(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "s80" -> RenderPersonalSearchS80(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
 
@@ -673,7 +768,11 @@ public fun RenderScreenSpec(
                     underlyingScreenCode = underlyingScreenCode,
                 )
 
-                "s82" -> RenderPersonalPaymentsS82(viewModel = viewModel, onSelectScreenCode = onSelectScreenCode)
+                "s82" -> RenderPersonalPaymentsS82(
+                    viewModel = viewModel,
+                    onSelectScreenCode = onSelectScreenCode,
+                    includeHeader = includeRootHeader,
+                )
 
                 "s84" -> RenderChangeDateModalS84(
                     viewModel = viewModel,
@@ -737,6 +836,8 @@ public fun RenderScreenSpec(
 @Composable
 internal fun RenderYuliPaymentRestrictedScreen(
     spec: ScreenSpec,
+    staffDisplayName: String = "Equipo",
+    staffRoleTitle: String = "Rol operativo",
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
@@ -756,11 +857,11 @@ internal fun RenderYuliPaymentRestrictedScreen(
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    RfTag(text = "Acceso restringido · Rol Yuli", tone = RfTagTone.SOL)
+                    RfTag(text = "Acceso restringido · $staffDisplayName", tone = RfTagTone.SOL)
                     Spacer(Modifier.height(4.dp))
                     BasicText("Sin permiso de pagos ni reembolsos (${spec.code})", style = typo.cardTitle)
                     BasicText(
-                        "«Tu rol de Decoración y tareas no incluye acceso a pagos». María puede habilitar el permiso en A28.",
+                        "Tu rol ($staffRoleTitle) no incluye acceso a esta sección. La administración puede habilitar el permiso en A28.",
                         style = typo.secondary,
                     )
                 }

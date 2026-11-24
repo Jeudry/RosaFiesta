@@ -34,6 +34,7 @@ import com.jeudry.rosafiesta.domain.EventLineItem
 import com.jeudry.rosafiesta.domain.EventPackage
 import com.jeudry.rosafiesta.domain.EventScheduleBlock
 import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.EventTaskRecord
 import com.jeudry.rosafiesta.domain.EventTypeTemplate
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
 import com.jeudry.rosafiesta.domain.LeadRecord
@@ -48,6 +49,7 @@ import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
+import com.jeudry.rosafiesta.domain.RefundApprovalOptions
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReportExportResult
 import com.jeudry.rosafiesta.domain.ReviewRecord
@@ -181,6 +183,7 @@ public class SqlRosaFiestaRepository(
         onPersistAccountAndSession = ::persistAccountAndSessionInSql,
         onPersistCoreSync = ::persistInMemoryCoreFlowsToSql,
         seedDemoData = seedDemoData,
+        favoritesFlow = _favorites,
     )
 
     override val catalogCategories: StateFlow<List<CatalogCategory>>
@@ -233,6 +236,10 @@ public class SqlRosaFiestaRepository(
         get() = submodules.botKeywords
     override val botThreads: StateFlow<List<BotThreadRecord>>
         get() = submodules.botThreads
+    override val eventTasks: StateFlow<List<EventTaskRecord>>
+        get() = submodules.eventTasks
+    override val isRealtimeConnected: StateFlow<Boolean>
+        get() = submodules.isRealtimeConnected
 
     init {
         seedInitialDataSynchronouslyIfEmpty()
@@ -264,6 +271,11 @@ public class SqlRosaFiestaRepository(
             emailReceiptsEnabled = if (account.preferences.emailReceiptsEnabled) 1L else 0L,
             biometricLockEnabled = if (account.preferences.biometricLockEnabled) 1L else 0L,
             autoSyncWifiOnly = if (account.preferences.autoSyncWifiOnly) 1L else 0L,
+            eventRemindersEnabled = if (account.preferences.eventRemindersEnabled) 1L else 0L,
+            preferredLanguage = account.preferences.preferredLanguage.ifBlank { "es" },
+            darkThemeEnabled = if (account.preferences.darkThemeEnabled) 1L else 0L,
+            savedPaymentMethod = account.preferences.savedPaymentMethod.ifBlank { "Transferencia" },
+            profileZone = account.preferences.profileZone.ifBlank { "Distrito Nacional" },
         )
     }
 
@@ -703,6 +715,11 @@ public class SqlRosaFiestaRepository(
                     emailReceiptsEnabled = row.emailReceiptsEnabled != 0L,
                     biometricLockEnabled = row.biometricLockEnabled != 0L,
                     autoSyncWifiOnly = row.autoSyncWifiOnly != 0L,
+                    eventRemindersEnabled = row.eventRemindersEnabled != 0L,
+                    preferredLanguage = row.preferredLanguage.ifBlank { "es" },
+                    darkThemeEnabled = row.darkThemeEnabled != 0L,
+                    savedPaymentMethod = row.savedPaymentMethod.ifBlank { "Transferencia" },
+                    profileZone = row.profileZone.ifBlank { "Distrito Nacional" },
                 ),
             )
         }
@@ -764,6 +781,11 @@ public class SqlRosaFiestaRepository(
                                 emailReceiptsEnabled = existing.emailReceiptsEnabled != 0L,
                                 biometricLockEnabled = existing.biometricLockEnabled != 0L,
                                 autoSyncWifiOnly = existing.autoSyncWifiOnly != 0L,
+                                eventRemindersEnabled = existing.eventRemindersEnabled != 0L,
+                                preferredLanguage = existing.preferredLanguage.ifBlank { "es" },
+                                darkThemeEnabled = existing.darkThemeEnabled != 0L,
+                                savedPaymentMethod = existing.savedPaymentMethod.ifBlank { "Transferencia" },
+                                profileZone = existing.profileZone.ifBlank { "Distrito Nacional" },
                             )
                         } else {
                             UserPreferences()
@@ -1122,14 +1144,36 @@ public class SqlRosaFiestaRepository(
     public suspend fun toggleFavoriteAsync(articleId: String): Unit = withContext(ioDispatcher) {
         val cleanId = articleId.trim()
         if (cleanId.isEmpty()) return@withContext
+        var willAdd = true
         sqlMutex.withLock {
             val currentFavs = queries.selectAllFavorites().executeAsList()
             if (cleanId in currentFavs) {
+                willAdd = false
                 queries.deleteFavorite(cleanId)
             } else {
                 queries.insertFavorite(cleanId)
             }
             reloadFavoritesFromSql()
+        }
+        val client = apiClient
+        if (client != null) {
+            if (submodules.hasRealServerToken()) {
+                runCatching {
+                    val response = if (willAdd) client.addFavorite(cleanId) else client.removeFavorite(cleanId)
+                    val remoteFavs = response.favorites
+                    if (remoteFavs != null) {
+                        sqlMutex.withLock {
+                            queries.selectAllFavorites().executeAsList().forEach { existingId ->
+                                if (existingId !in remoteFavs) queries.deleteFavorite(existingId)
+                            }
+                            remoteFavs.forEach { favId ->
+                                queries.insertFavorite(favId)
+                            }
+                            reloadFavoritesFromSql()
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1332,7 +1376,7 @@ public class SqlRosaFiestaRepository(
             reloadEventsFromSql()
         }
 
-        runCatching {
+        val remoteEventResult = runCatching {
             val eventItems = proposal.lines.map { line ->
                 EventItemDto(
                     articleCode = line.code,
@@ -1355,6 +1399,29 @@ public class SqlRosaFiestaRepository(
                     items = eventItems,
                 ),
             )
+        }.getOrNull()
+        val serverEventDto = remoteEventResult?.event
+        val serverEventId = serverEventDto?.id?.trim().orEmpty()
+        val needsIdReconcile = serverEventId.isNotEmpty()
+        if (needsIdReconcile) {
+            if (serverEventId != resolvedEventId) {
+                sqlMutex.withLock {
+                    val oldRows = queries.selectAllEvents().executeAsList()
+                    val oldIdx = oldRows.indexOfFirst { row -> row.id == resolvedEventId }
+                    if (oldIdx >= 0) {
+                        val prevEvent = _events.value.firstOrNull { evt -> evt.id == resolvedEventId }
+                        val existingMap = if (prevEvent != null) mapOf(serverEventId to prevEvent) else emptyMap()
+                        val mapped = RosaFiestaBackendMappers.toClientEvent(
+                            dto = serverEventDto!!,
+                            fallbackById = existingMap,
+                        )
+                        queries.deleteEventById(resolvedEventId)
+                        upsertEventRow(mapped, oldIdx)
+                        reloadEventsFromSql()
+                    }
+                }
+                resolvedEventId = serverEventId
+            }
         }
         runCatching {
             val dtoLines = proposal.lines.map { line ->
@@ -1388,7 +1455,8 @@ public class SqlRosaFiestaRepository(
         val cleanDate = newDateLabel.trim()
         val evalResult = sqlMutex.withLock {
             val rows = queries.selectAllEvents().executeAsList()
-            val target = rows.firstOrNull { row -> row.id == eventId.trim() } ?: rows.first()
+            val target = rows.firstOrNull { row -> row.id == eventId.trim() }
+                ?: return@withLock RosaFiestaEngine.evaluateDateChange(0, 2)
             val eval = RosaFiestaEngine.evaluateDateChange(
                 daysUntilEvent = target.daysUntilEvent.toInt(),
                 priorChangesCount = target.priorChangesCount.toInt(),
@@ -1424,10 +1492,11 @@ public class SqlRosaFiestaRepository(
     /**
      * Cancels an event in SQLite off the main thread and returns its refund breakdown.
      */
-    public suspend fun cancelEventAsync(eventId: String): CancellationRefund = withContext(ioDispatcher) {
+    public suspend fun cancelEventAsync(eventId: String, reason: String = ""): CancellationRefund = withContext(ioDispatcher) {
         val refundResult = sqlMutex.withLock {
             val rows = queries.selectAllEvents().executeAsList()
-            val target = rows.firstOrNull { row -> row.id == eventId.trim() } ?: rows.first()
+            val target = rows.firstOrNull { row -> row.id == eventId.trim() }
+                ?: return@withLock RosaFiestaEngine.calculateCancellationRefund(0, 0)
             val refund = RosaFiestaEngine.calculateCancellationRefund(
                 paidDepositDop = target.paidDepositDop.toInt(),
                 daysUntilEvent = target.daysUntilEvent.toInt(),
@@ -1440,7 +1509,7 @@ public class SqlRosaFiestaRepository(
             refund
         }
         runCatching {
-            apiClient?.cancelEvent(eventId)
+            apiClient?.cancelEvent(eventId, reason)
         }
         refundResult
     }
@@ -1640,8 +1709,8 @@ public class SqlRosaFiestaRepository(
     }
 
     override fun syncOfflineQueue() {
-        _offlineQueue.update { list ->
-            list.map { item -> item.copy(synced = true) }
+        if (apiClient == null) {
+            _offlineQueue.update { list -> list.map { item -> item.copy(synced = true) } }
         }
         scope.launch {
             syncOfflineQueueAsync()
@@ -2199,6 +2268,27 @@ public class SqlRosaFiestaRepository(
         }
     }
 
+    override suspend fun deleteCurrentAccountOnline(): Result<Unit> {
+        val currentToken = _currentSessionJwt.value
+        val client = apiClient
+        if (client != null) {
+            if (!currentToken.isNullOrBlank()) {
+                val result = runCatching { client.deleteAccount(currentToken) }
+                if (result.isFailure) {
+                    return Result.failure(result.exceptionOrNull() ?: IllegalStateException("ACCOUNT_DELETE_FAILED"))
+                }
+            }
+        }
+        _currentSessionJwt.value = null
+        _currentAuthenticatedUser.value = null
+        _activeRole.value = "guest"
+        client?.setAccessToken(null)
+        sqlMutex.withLock {
+            queries.clearActiveSession()
+        }
+        return Result.success(Unit)
+    }
+
     override fun deleteCurrentAccount(): Boolean {
         val currentToken = _currentSessionJwt.value
         _currentSessionJwt.value = null
@@ -2486,7 +2576,6 @@ public class SqlRosaFiestaRepository(
     override fun changeEventDate(eventId: String, newDateLabel: String): DateChangeResult {
         val cleanDate = newDateLabel.trim()
         val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() }
-            ?: _events.value.firstOrNull()
             ?: return RosaFiestaEngine.evaluateDateChange(0, 2)
         val eval = RosaFiestaEngine.evaluateDateChange(currentEvent.daysUntilEvent, currentEvent.priorChangesCount)
         if (!eval.allowed) return eval
@@ -2512,9 +2601,10 @@ public class SqlRosaFiestaRepository(
         return eval
     }
 
-    override fun cancelEvent(eventId: String): CancellationRefund {
+    override fun cancelEvent(eventId: String): CancellationRefund = cancelEvent(eventId, "")
+
+    override fun cancelEvent(eventId: String, reason: String): CancellationRefund {
         val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() }
-            ?: _events.value.firstOrNull()
             ?: return RosaFiestaEngine.calculateCancellationRefund(0, 0)
         val refund = RosaFiestaEngine.calculateCancellationRefund(currentEvent.paidDepositDop, currentEvent.daysUntilEvent)
         _events.update { list ->
@@ -2528,7 +2618,7 @@ public class SqlRosaFiestaRepository(
         }
         recalculateMetricsFromState()
         scope.launch {
-            cancelEventAsync(currentEvent.id)
+            cancelEventAsync(currentEvent.id, reason)
         }
         return refund
     }
@@ -2565,7 +2655,6 @@ public class SqlRosaFiestaRepository(
         if (cleanMethod.isEmpty()) return null
 
         val targetEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() }
-            ?: _events.value.firstOrNull()
             ?: return null
         val nextNumber = 185 + _payments.value.size
         val receipt = "REC-2026-${nextNumber.toString().padStart(4, '0')}"
@@ -3102,12 +3191,22 @@ public class SqlRosaFiestaRepository(
         emailReceiptsEnabled: Boolean?,
         biometricLockEnabled: Boolean?,
         autoSyncWifiOnly: Boolean?,
+        eventRemindersEnabled: Boolean?,
+        preferredLanguage: String?,
+        darkThemeEnabled: Boolean?,
+        savedPaymentMethod: String?,
+        profileZone: String?,
     ): Result<RegisteredUserAccount> = submodules.updateUserPreferences(
         pushNotificationsEnabled = pushNotificationsEnabled,
         whatsappAlertsEnabled = whatsappAlertsEnabled,
         emailReceiptsEnabled = emailReceiptsEnabled,
         biometricLockEnabled = biometricLockEnabled,
         autoSyncWifiOnly = autoSyncWifiOnly,
+        eventRemindersEnabled = eventRemindersEnabled,
+        preferredLanguage = preferredLanguage,
+        darkThemeEnabled = darkThemeEnabled,
+        savedPaymentMethod = savedPaymentMethod,
+        profileZone = profileZone,
     )
 
     override suspend fun sendEventPaymentReminder(
@@ -3140,4 +3239,50 @@ public class SqlRosaFiestaRepository(
     ): Result<ClientEvent> = submodules.updateEventItems(eventId = eventId, items = items)
 
     override suspend fun verifyAccountPassword(password: String): Result<Boolean> = submodules.verifyAccountPassword(password)
+
+    override suspend fun changeUserPasswordOnline(currentPassword: String, newPassword: String): AuthOutcome = submodules.changeUserPasswordOnline(currentPassword, newPassword)
+
+    override fun approveRefundWithOptions(refundId: String, options: RefundApprovalOptions): RefundRequest? = submodules.approveRefundWithOptions(refundId, options)
+
+    override fun deleteEventGuest(eventId: String, guestId: String): Boolean = submodules.deleteEventGuest(eventId, guestId)
+
+    override suspend fun loadEventTasks(eventId: String): List<EventTaskRecord> = submodules.loadEventTasks(eventId)
+
+    override fun createEventTask(eventId: String, title: String, assigneeName: String): EventTaskRecord? = submodules.createEventTask(eventId, title, assigneeName)
+
+    override fun toggleEventTask(eventId: String, taskId: String, done: Boolean): EventTaskRecord? = submodules.toggleEventTask(eventId, taskId, done)
+
+    override fun deleteEventTask(eventId: String, taskId: String): Boolean = submodules.deleteEventTask(eventId, taskId)
+
+    override fun updateSupplier(
+        supplierId: String,
+        name: String,
+        category: String,
+        contactName: String,
+        phone: String,
+        email: String,
+        website: String,
+        notes: String,
+    ): SupplierRecord? = submodules.updateSupplier(
+        supplierId = supplierId,
+        name = name,
+        category = category,
+        contactName = contactName,
+        phone = phone,
+        email = email,
+        website = website,
+        notes = notes,
+    )
+
+    override fun deleteSupplier(supplierId: String): Boolean = submodules.deleteSupplier(supplierId)
+
+    override fun deleteBotFaq(faqId: String): Boolean = submodules.deleteBotFaq(faqId)
+
+    override fun deleteBotKeyword(keywordId: String): Boolean = submodules.deleteBotKeyword(keywordId)
+
+    override fun deleteStaffMember(staffId: String): Boolean = submodules.deleteStaffMember(staffId)
+
+    override fun deletePackage(packageId: String): Boolean = submodules.deletePackage(packageId)
+
+    override suspend fun downloadQuoteContractPdf(quoteId: String): Result<ByteArray> = submodules.downloadQuoteContractPdf(quoteId)
 }

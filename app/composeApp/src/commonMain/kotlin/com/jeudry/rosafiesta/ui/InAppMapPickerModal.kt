@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -163,6 +164,13 @@ internal fun RfInAppMapPickerModal(
 
     val loadedTiles = remember { mutableStateMapOf<String, ImageBitmap?>() }
     val requestedTileKeys = remember { mutableStateMapOf<String, Boolean>() }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            loadedTiles.clear()
+            requestedTileKeys.clear()
+        }
+    }
 
     LaunchedEffect(initialQuery) {
         val trimmedInitial = initialQuery.trim()

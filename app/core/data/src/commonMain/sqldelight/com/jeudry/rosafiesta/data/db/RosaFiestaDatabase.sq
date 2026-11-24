@@ -186,7 +186,12 @@ CREATE TABLE IF NOT EXISTS userAccountEntity (
     whatsappAlertsEnabled INTEGER NOT NULL DEFAULT 1,
     emailReceiptsEnabled INTEGER NOT NULL DEFAULT 1,
     biometricLockEnabled INTEGER NOT NULL DEFAULT 0,
-    autoSyncWifiOnly INTEGER NOT NULL DEFAULT 0
+    autoSyncWifiOnly INTEGER NOT NULL DEFAULT 0,
+    eventRemindersEnabled INTEGER NOT NULL DEFAULT 1,
+    preferredLanguage TEXT NOT NULL DEFAULT 'es',
+    darkThemeEnabled INTEGER NOT NULL DEFAULT 0,
+    savedPaymentMethod TEXT NOT NULL DEFAULT 'Transferencia',
+    profileZone TEXT NOT NULL DEFAULT 'Distrito Nacional'
 );
 
 CREATE TABLE IF NOT EXISTS activeSessionEntity (
@@ -272,6 +277,10 @@ WHERE id = ?;
 updateEventPaidDeposit:
 UPDATE eventEntity
 SET paidDepositDop = ?, depositMethodLabel = ?
+WHERE id = ?;
+
+deleteEventById:
+DELETE FROM eventEntity
 WHERE id = ?;
 
 selectAllPayments:
@@ -363,9 +372,10 @@ SELECT * FROM userAccountEntity ORDER BY id ASC;
 upsertUserAccount:
 INSERT OR REPLACE INTO userAccountEntity(
     id, username, email, fullName, passwordHash, salt, birthDate, phone, role,
-    pushNotificationsEnabled, whatsappAlertsEnabled, emailReceiptsEnabled, biometricLockEnabled, autoSyncWifiOnly
+    pushNotificationsEnabled, whatsappAlertsEnabled, emailReceiptsEnabled, biometricLockEnabled, autoSyncWifiOnly,
+    eventRemindersEnabled, preferredLanguage, darkThemeEnabled, savedPaymentMethod, profileZone
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateUserAccountPassword:
 UPDATE userAccountEntity

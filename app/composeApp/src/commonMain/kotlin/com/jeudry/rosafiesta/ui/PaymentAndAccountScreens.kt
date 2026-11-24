@@ -520,18 +520,8 @@ private class CardNumberVisualTransformation : VisualTransformation {
 private fun validateCheckoutPaymentInputs(
     selectedMethod: String,
     transferRefInput: String,
-    cardHolderName: String,
-    cardNumberDigits: String,
-    cardExpiryMmYy: String,
-    cardCvvDigits: String,
 ): String? = when (selectedMethod) {
     "Transferencia" -> InputValidator.validateBankReference(transferRefInput)
-
-    "Tarjeta" -> InputValidator.validateCardholderName(cardHolderName)
-        ?: InputValidator.validateCardNumber(cardNumberDigits)
-        ?: InputValidator.validateCardExpiry(cardExpiryMmYy)
-        ?: InputValidator.validateCardCvv(cardCvvDigits)
-
     else -> null
 }
 
@@ -580,13 +570,11 @@ internal fun RenderPaymentCheckoutScreenS50(
     val uploadedVoucherUrl = viewModel?.paymentVoucherUrl?.collectAsState()?.value.orEmpty()
     val pickedVoucherFile = viewModel?.pickedAttachmentFile?.collectAsState()?.value
 
-    val netSubtotalDop = (amountToPayDop * 100) / 118
+    val itbisRate = businessSettings.itbisPercent.coerceAtLeast(0)
+    val itbisDivisor = 100 + itbisRate
+    val netSubtotalDop = (amountToPayDop * 100) / itbisDivisor
     val calculatedItbisDop = (amountToPayDop - netSubtotalDop).coerceAtLeast(0)
 
-    var cardHolderName by remember { mutableStateOf("") }
-    var cardNumberDigits by remember { mutableStateOf("") }
-    var cardExpiryMmYy by remember { mutableStateOf("") }
-    var cardCvvDigits by remember { mutableStateOf("") }
     var contactPhoneText by remember(profilePhone) { mutableStateOf(InputValidator.formatPhoneDisplay(profilePhone)) }
 
     val fallbackAddress = "${activeEvent.venue} · ${activeEvent.zone}"
@@ -598,19 +586,11 @@ internal fun RenderPaymentCheckoutScreenS50(
     var hasInteractedDeliveryAddress by remember { mutableStateOf(false) }
     var forceShowAddressError by remember { mutableStateOf(false) }
     var hasInteractedTransferRef by remember { mutableStateOf(false) }
-    var hasInteractedCardHolder by remember { mutableStateOf(false) }
-    var hasInteractedCardNumber by remember { mutableStateOf(false) }
-    var hasInteractedCardExpiry by remember { mutableStateOf(false) }
-    var hasInteractedCardCvv by remember { mutableStateOf(false) }
     var hasInteractedContactPhone by remember { mutableStateOf(false) }
     var forceShowCheckoutErrors by remember { mutableStateOf(false) }
 
     val deliveryAddressBlur = rememberFieldBlurState()
     val transferRefBlur = rememberFieldBlurState()
-    val cardHolderBlur = rememberFieldBlurState()
-    val cardNumberBlur = rememberFieldBlurState()
-    val cardExpiryBlur = rememberFieldBlurState()
-    val cardCvvBlur = rememberFieldBlurState()
     val contactPhoneBlur = rememberFieldBlurState()
 
     val debouncedAddressError = rememberDebouncedValidationError(
@@ -635,54 +615,6 @@ internal fun RenderPaymentCheckoutScreenS50(
             null
         } else {
             InputValidator.validateBankReference(candidate)
-        }
-    }
-    val debouncedCardHolderError = rememberDebouncedValidationError(
-        value = cardHolderName,
-        hasInteracted = hasInteractedCardHolder,
-        forceShowError = forceShowCheckoutErrors,
-        hasBlurred = cardHolderBlur.hasBlurred,
-    ) { candidate ->
-        if (selectedMethod != "Tarjeta") {
-            null
-        } else {
-            InputValidator.validateCardholderName(candidate)
-        }
-    }
-    val debouncedCardNumberError = rememberDebouncedValidationError(
-        value = cardNumberDigits,
-        hasInteracted = hasInteractedCardNumber,
-        forceShowError = forceShowCheckoutErrors,
-        hasBlurred = cardNumberBlur.hasBlurred,
-    ) { candidate ->
-        if (selectedMethod != "Tarjeta") {
-            null
-        } else {
-            InputValidator.validateCardNumber(candidate)
-        }
-    }
-    val debouncedCardExpiryError = rememberDebouncedValidationError(
-        value = cardExpiryMmYy,
-        hasInteracted = hasInteractedCardExpiry,
-        forceShowError = forceShowCheckoutErrors,
-        hasBlurred = cardExpiryBlur.hasBlurred,
-    ) { candidate ->
-        if (selectedMethod != "Tarjeta") {
-            null
-        } else {
-            InputValidator.validateCardExpiry(candidate)
-        }
-    }
-    val debouncedCardCvvError = rememberDebouncedValidationError(
-        value = cardCvvDigits,
-        hasInteracted = hasInteractedCardCvv,
-        forceShowError = forceShowCheckoutErrors,
-        hasBlurred = cardCvvBlur.hasBlurred,
-    ) { candidate ->
-        if (selectedMethod != "Tarjeta") {
-            null
-        } else {
-            InputValidator.validateCardCvv(candidate)
         }
     }
     val debouncedContactPhoneError = rememberDebouncedValidationError(
@@ -1175,81 +1107,26 @@ internal fun RenderPaymentCheckoutScreenS50(
 
                 else -> {
                     BasicText(
-                        text = "Datos de la tarjeta",
+                        text = "Pago seguro con tarjeta vía Stripe",
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
                     )
-                    CheckoutInputBox50(
-                        value = cardHolderName,
-                        placeholder = "Nombre del titular en la tarjeta",
-                        leadingIcon = RfIconKind.USER,
-                        isError = debouncedCardHolderError != null,
-                        errorMessage = debouncedCardHolderError,
-                        onFocusChanged = cardHolderBlur::onFocusStateChanged,
-                        onValueChange = { updatedName ->
-                            cardHolderName = InputValidator.filterPersonNameInput(
-                                rawValue = updatedName,
-                                maxLength = InputValidator.MAX_FULL_NAME_LENGTH,
-                            )
-                            hasInteractedCardHolder = true
-                            localCheckoutError = null
-                        },
-                    )
-                    CheckoutInputBox50(
-                        value = cardNumberDigits,
-                        placeholder = "0000 0000 0000 0000",
-                        leadingIcon = RfIconKind.WALLET,
-                        isError = debouncedCardNumberError != null,
-                        errorMessage = debouncedCardNumberError,
-                        visualTransformation = remember { CardNumberVisualTransformation() },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        cursorMask = { prev, next, sel ->
-                            InputValidator.filterDigitsOnlyWithCursor(prev, next, sel, InputValidator.MAX_CARD_DIGITS)
-                        },
-                        onFocusChanged = cardNumberBlur::onFocusStateChanged,
-                        onValueChange = { updatedCard ->
-                            cardNumberDigits = updatedCard
-                            hasInteractedCardNumber = true
-                            localCheckoutError = null
-                        },
-                    )
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            CheckoutInputBox50(
-                                value = cardExpiryMmYy,
-                                placeholder = "MM/AA",
-                                leadingIcon = null,
-                                isError = debouncedCardExpiryError != null,
-                                errorMessage = debouncedCardExpiryError,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                cursorMask = InputValidator::filterCardExpiryInputWithCursor,
-                                onFocusChanged = cardExpiryBlur::onFocusStateChanged,
-                                onValueChange = { updatedExpiry ->
-                                    cardExpiryMmYy = updatedExpiry
-                                    hasInteractedCardExpiry = true
-                                    localCheckoutError = null
-                                },
-                            )
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
-                            CheckoutInputBox50(
-                                value = cardCvvDigits,
-                                placeholder = "CVV (3–4 díg.)",
-                                leadingIcon = null,
-                                isError = debouncedCardCvvError != null,
-                                errorMessage = debouncedCardCvvError,
-                                visualTransformation = remember { PasswordVisualTransformation() },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                cursorMask = { prev, next, sel ->
-                                    InputValidator.filterDigitsOnlyWithCursor(prev, next, sel, InputValidator.MAX_CVV_DIGITS)
-                                },
-                                onFocusChanged = cardCvvBlur::onFocusStateChanged,
-                                onValueChange = { updatedCvv ->
-                                    cardCvvDigits = updatedCvv
-                                    hasInteractedCardCvv = true
-                                    localCheckoutError = null
-                                },
-                            )
-                        }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFF3ECFE))
+                            .border(1.dp, Color(0xFFD7C8FA), RoundedCornerShape(16.dp))
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        BasicText(
+                            text = "Al continuar abriremos la pasarela cifrada de Stripe en tu navegador para completar el pago con tarjeta de forma segura.",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, lineHeight = 18.sp, color = Color(0xFF3E3B63)),
+                        )
+                        BasicText(
+                            text = "No almacenamos números ni códigos CVV de tu tarjeta en el dispositivo.",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF5D3FD3)),
+                        )
                     }
                 }
             }
@@ -1341,7 +1218,7 @@ internal fun RenderPaymentCheckoutScreenS50(
                     BasicText(RosaFiestaEngine.formatDop(netSubtotalDop), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = palette.ink))
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    BasicText("ITBIS (18%)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted))
+                    BasicText("ITBIS ($itbisRate%)", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted))
                     BasicText(RosaFiestaEngine.formatDop(calculatedItbisDop), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = palette.ink))
                 }
                 val estimatedDepositGuaranteeDop = ((activeEvent.totalDop * 10) / 100).coerceAtLeast(0)
@@ -1441,10 +1318,6 @@ internal fun RenderPaymentCheckoutScreenS50(
                         val methodValidationError = validateCheckoutPaymentInputs(
                             selectedMethod = selectedMethod,
                             transferRefInput = transferRefInput,
-                            cardHolderName = cardHolderName,
-                            cardNumberDigits = cardNumberDigits,
-                            cardExpiryMmYy = cardExpiryMmYy,
-                            cardCvvDigits = cardCvvDigits,
                         )
                         val phoneError = InputValidator.validateDominicanPhone(
                             rawValue = contactPhoneText,
@@ -1463,12 +1336,12 @@ internal fun RenderPaymentCheckoutScreenS50(
                         val resolvedMethodLabel = when (selectedMethod) {
                             "Transferencia" -> "Transferencia · $selectedBank"
                             "Efectivo en tienda" -> "Efectivo en tienda"
-                            else -> "Tarjeta · •••• ${cardNumberDigits.takeLast(4)}"
+                            else -> "Tarjeta (Stripe)"
                         }
                         val resolvedReference = when (selectedMethod) {
                             "Transferencia" -> transferRefInput.trim()
                             "Efectivo en tienda" -> cashReferenceCode
-                            else -> "CARD-${cardNumberDigits.takeLast(4)}"
+                            else -> "STRIPE-CHECKOUT"
                         }
 
                         val activeViewModel = viewModel
@@ -1483,7 +1356,6 @@ internal fun RenderPaymentCheckoutScreenS50(
                                 clientRnc = clientRncInput,
                                 onSessionReady = {
                                     localCheckoutError = null
-                                    onSelectScreenCode("s51")
                                 },
                                 onUnavailableOrError = { gatewayError ->
                                     localCheckoutError = gatewayError
@@ -2029,12 +1901,15 @@ internal fun RenderPaymentSuccessScreenS51(
                         .background(RfThemeState.currentPalette.surface)
                         .border(1.dp, Color(0xFFECE6F0), RoundedCornerShape(16.dp))
                         .clickable {
-                            viewModel?.exportReceiptDocument(
+                            val exported = viewModel?.exportReceiptDocument(
                                 event = event,
                                 payment = latestPayment,
                                 shareInsteadOfSave = true,
                             )
-                            shareConfirmed = true
+                            val canConfirm = if (viewModel == null) true else !exported.isNullOrBlank()
+                            if (canConfirm) {
+                                shareConfirmed = true
+                            }
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2225,13 +2100,18 @@ internal fun RenderPostEventReviewScreenS52(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         BasicText("Liquidación final", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink))
+                        val maxBarDop = maxOf(estimatedBudgetDop, realBudgetDop, 1)
+                        val contractedFraction = (estimatedBudgetDop.toFloat() / maxBarDop.toFloat()).coerceIn(0.08f, 1f)
+                        val realFraction = (realBudgetDop.toFloat() / maxBarDop.toFloat()).coerceIn(0.08f, 1f)
 
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 BasicText("Contratado", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
                                 BasicText(RosaFiestaEngine.formatDop(estimatedBudgetDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
                             }
-                            Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFE6DEEA)))
+                            Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFF3EFF6))) {
+                                Box(modifier = Modifier.fillMaxWidth(contractedFraction).height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFBFB0D8)))
+                            }
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -2239,7 +2119,9 @@ internal fun RenderPostEventReviewScreenS52(
                                 BasicText("Total cierre", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
                                 BasicText(RosaFiestaEngine.formatDop(realBudgetDop), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
                             }
-                            Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF8DB52C)))
+                            Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFF3EFF6))) {
+                                Box(modifier = Modifier.fillMaxWidth(realFraction).height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF8DB52C)))
+                            }
                         }
 
                         val hasDamageCharges = damageChargeDop > 0
@@ -2470,6 +2352,7 @@ private fun isPastReservationStatus(status: EventStatus): Boolean = when (status
 internal fun RenderMyReservationsScreenS53(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
@@ -2487,32 +2370,36 @@ internal fun RenderMyReservationsScreenS53(
         else -> userEvents
     }
 
-    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(palette.surface)
-                        .clickable { onSelectScreenCode("BACK:s54") },
-                    contentAlignment = Alignment.Center,
+            if (includeHeader) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(palette.surface)
+                            .clickable { onSelectScreenCode("BACK:s54") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                    }
+                    BasicText(
+                        text = "Mis reservas",
+                        modifier = Modifier.weight(1f),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = palette.ink),
+                    )
                 }
-                BasicText(
-                    text = "Mis reservas",
-                    modifier = Modifier.weight(1f),
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = palette.ink),
-                )
+                Spacer(modifier = Modifier.height(14.dp))
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
             }
-            Spacer(modifier = Modifier.height(14.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3330,8 +3217,8 @@ internal fun RenderUserProfileScreenS54(
 
         AnimatedVisibility(
             visible = showLogoutConfirmModal,
-            enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.94f),
-            exit = fadeOut(tween(140)) + scaleOut(tween(140), targetScale = 0.94f),
+            enter = fadeIn(tween(160)),
+            exit = fadeOut(tween(120)),
             modifier = Modifier
                 .fillMaxSize()
                 .zIndex(10f),
@@ -3781,10 +3668,14 @@ internal fun RenderSuppliersScreenS55(
     val typo = LocalRfTypography.current
     var searchQuery by remember { mutableStateOf("") }
     val domainSuppliers = viewModel?.suppliers?.collectAsState()?.value ?: emptyList()
-    val fallbackUiSuppliers = listOf(
-        SupplierUiModel("sup-1", "Flores del Jarabacoa Premium", "Flores y follaje · Doña Carmen Polanco", "+1 809 555 2201", "5.0"),
-        SupplierUiModel("sup-2", "Cristalería & Eventos Caribe", "Cristalería · Ing. Marcos Tavares", "+1 809 555 2202", "4.9"),
-    )
+    val fallbackUiSuppliers = if (viewModel == null) {
+        listOf(
+            SupplierUiModel("sup-1", "Flores del Jarabacoa Premium", "Flores y follaje · Doña Carmen Polanco", "+1 809 555 2201", "5.0"),
+            SupplierUiModel("sup-2", "Cristalería & Eventos Caribe", "Cristalería · Ing. Marcos Tavares", "+1 809 555 2202", "4.9"),
+        )
+    } else {
+        emptyList()
+    }
     val uiSuppliers = viewModel?.suppliersList?.collectAsState()?.value ?: fallbackUiSuppliers
     val suppliers = buildSuppliersDisplayList(domainSuppliers, uiSuppliers)
     val feedbackBanner = viewModel?.formFeedback?.collectAsState()?.value
@@ -3913,7 +3804,15 @@ internal fun RenderSuppliersScreenS55(
                         name = supplier.name,
                         contact = supplier.subtitle,
                         phone = InputValidator.formatPhoneDisplay(supplier.phone),
-                        onEditClick = { onSelectScreenCode("s56") },
+                        onEditClick = {
+                            viewModel?.selectSupplierForEdit(supplier.id)
+                            onSelectScreenCode("s56")
+                        },
+                        onDeleteClick = if (viewModel != null) {
+                            { viewModel.removeSupplier(supplier.id) }
+                        } else {
+                            null
+                        },
                         onPhoneClick = { viewModel?.dialPhoneNumber(supplier.phone) },
                         onWhatsAppClick = { viewModel?.openWhatsAppChat(supplier.phone, whatsAppGreeting) },
                     )
@@ -3933,6 +3832,7 @@ private fun SupplierCard55(
     contact: String,
     phone: String,
     onEditClick: () -> Unit = {},
+    onDeleteClick: (() -> Unit)? = null,
     onPhoneClick: () -> Unit = {},
     onWhatsAppClick: () -> Unit = {},
 ) {
@@ -3968,11 +3868,21 @@ private fun SupplierCard55(
                     style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)),
                 )
             }
-            Box(
-                modifier = Modifier.size(36.dp).clip(CircleShape).clickable(onClick = onEditClick),
-                contentAlignment = Alignment.Center,
-            ) {
-                RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFF5F6377), size = 20.dp)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier.size(34.dp).clip(CircleShape).background(Color(0xFFF3F3FA)).clickable(onClick = onEditClick),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFF4B47D6), size = 18.dp)
+                }
+                if (onDeleteClick != null) {
+                    Box(
+                        modifier = Modifier.size(34.dp).clip(CircleShape).background(Color(0xFFFFEEF1)).clickable(onClick = onDeleteClick),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 16.dp)
+                    }
+                }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -4040,13 +3950,18 @@ internal fun RenderNewSupplierScreenS56(
     onSelectScreenCode: (String) -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
-    var companyName by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("Flores y follaje") }
-    var contactPerson by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
-    var emailAddress by remember { mutableStateOf("") }
-    var websiteUrl by remember { mutableStateOf("") }
-    var supplierNotes by remember { mutableStateOf("") }
+    val editingId = viewModel?.editingSupplierId?.collectAsState()?.value
+    val domainSuppliers = viewModel?.suppliers?.collectAsState()?.value.orEmpty()
+    val editingSupplier = remember(editingId, domainSuppliers) {
+        if (editingId == null) null else domainSuppliers.firstOrNull { sup -> sup.id == editingId }
+    }
+    var companyName by remember(editingSupplier) { mutableStateOf(editingSupplier?.name.orEmpty()) }
+    var selectedCategory by remember(editingSupplier) { mutableStateOf(editingSupplier?.category?.ifBlank { "Flores y follaje" } ?: "Flores y follaje") }
+    var contactPerson by remember(editingSupplier) { mutableStateOf(editingSupplier?.specialty.orEmpty()) }
+    var phoneNumber by remember(editingSupplier) { mutableStateOf(editingSupplier?.phone.orEmpty()) }
+    var emailAddress by remember(editingSupplier) { mutableStateOf(editingSupplier?.email.orEmpty()) }
+    var websiteUrl by remember(editingSupplier) { mutableStateOf(editingSupplier?.website.orEmpty()) }
+    var supplierNotes by remember(editingSupplier) { mutableStateOf(editingSupplier?.notes.orEmpty()) }
     var localSupplierError by remember { mutableStateOf<String?>(null) }
 
     var hasInteractedCompany by remember { mutableStateOf(false) }
@@ -4139,9 +4054,12 @@ internal fun RenderNewSupplierScreenS56(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        AdminPanelIconButton(RfIconKind.CLOSE) { onSelectScreenCode("BACK:s55") }
+                        AdminPanelIconButton(RfIconKind.CLOSE) {
+                            viewModel?.selectSupplierForEdit(null)
+                            onSelectScreenCode("BACK:s55")
+                        }
                         BasicText(
-                            "Nuevo proveedor",
+                            if (editingSupplier != null) "Editar proveedor" else "Nuevo proveedor",
                             modifier = Modifier.weight(1f),
                             style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
                         )
@@ -4350,8 +4268,11 @@ internal fun RenderNewSupplierScreenS56(
                             }
 
                             val activeViewModel = viewModel
-                            val saved = if (activeViewModel != null) {
-                                activeViewModel.addSupplier(
+                            val saved = if (activeViewModel == null) {
+                                true
+                            } else if (editingSupplier != null) {
+                                activeViewModel.editSupplier(
+                                    supplierId = editingSupplier.id,
                                     name = companyName.trim(),
                                     category = selectedCategory,
                                     phone = phoneNumber.trim(),
@@ -4361,10 +4282,19 @@ internal fun RenderNewSupplierScreenS56(
                                     notes = supplierNotes.trim(),
                                 )
                             } else {
-                                true
+                                activeViewModel.addSupplier(
+                                    name = companyName.trim(),
+                                    category = selectedCategory,
+                                    phone = phoneNumber.trim(),
+                                    contactName = contactPerson.trim(),
+                                    email = emailAddress.trim(),
+                                    website = websiteUrl.trim(),
+                                    notes = supplierNotes.trim(),
+                                )
                             }
                             if (saved) {
                                 localSupplierError = null
+                                activeViewModel?.selectSupplierForEdit(null)
                                 onSelectScreenCode("BACK:s55")
                             } else {
                                 localSupplierError = activeViewModel?.formError?.value
@@ -4511,22 +4441,21 @@ internal fun RenderSpendingAnalyticsScreenS57(
     val paymentsState = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments
     val damageIncidentsState = viewModel?.damageIncidents?.collectAsState()?.value ?: CanonicalSampleData.damageIncidents
 
-    val periodOptions = listOf("Octubre 2026", "Trimestre Q4", "Anual 2026")
-    var selectedPeriod by remember { mutableStateOf(periodOptions.first()) }
-    val periodMultiplier = when (selectedPeriod) {
-        "Trimestre Q4" -> 3
-        "Anual 2026" -> 12
-        else -> 1
+    val periodOptions = listOf("Mes actual", "Trimestre", "Histórico")
+    var selectedPeriod by remember { mutableStateOf(periodOptions.last()) }
+    val filteredPaymentsForPeriod = when (selectedPeriod) {
+        "Mes actual" -> paymentsState.take(3)
+        "Trimestre" -> paymentsState.take(6)
+        else -> paymentsState
     }
-
-    val baseIncomeDop = paymentsState.sumOf { paymentItem -> paymentItem.amountDop }
-    val totalIncomeDop = baseIncomeDop * periodMultiplier
+    val totalIncomeDop = filteredPaymentsForPeriod.sumOf { paymentItem -> paymentItem.amountDop }
     val activeEventsForCost = eventsState.filter { eventItem -> eventItem.status != EventStatus.CANCELLED }
     val totalContractedDop = activeEventsForCost.sumOf { eventItem -> eventItem.totalDop }
-    val baseFloralDop = (totalContractedDop * 16 / 100) * periodMultiplier
-    val baseLogisticsDop = (activeEventsForCost.size * 350) * periodMultiplier
-    val baseCrewDop = (activeEventsForCost.size * 420) * periodMultiplier
-    val baseMaintenanceDop = (damageIncidentsState.sumOf { incident -> incident.replacementDop } + activeEventsForCost.size * 180) * periodMultiplier
+    val baseFloralDop = totalContractedDop * 16 / 100
+    val baseLogisticsDop = activeEventsForCost.size * 350
+    val baseCrewDop = activeEventsForCost.size * 420
+    val baseMaintenanceDop = damageIncidentsState.sumOf { incident -> incident.replacementDop } + activeEventsForCost.size * 180
+    val periodMultiplier = 1
     val categoryStats = listOf(
         ExpenseCategoryStat57("Flores y decoración", baseFloralDop, Color(0xFFD63F98)),
         ExpenseCategoryStat57("Logística y transporte", baseLogisticsDop, Color(0xFF5B6CF0)),
@@ -5192,12 +5121,15 @@ internal fun RenderOfficialReceiptScreenS83(
                             .clip(CircleShape)
                             .background(palette.surface)
                             .clickable {
-                                receiptShared = true
-                                viewModel?.exportReceiptDocument(
+                                val exported = viewModel?.exportReceiptDocument(
                                     event = event,
                                     payment = latestPayment,
                                     shareInsteadOfSave = true,
                                 )
+                                val canConfirm = if (viewModel == null) true else !exported.isNullOrBlank()
+                                if (canConfirm) {
+                                    receiptShared = true
+                                }
                             },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -5491,12 +5423,15 @@ internal fun RenderOfficialReceiptScreenS83(
                             .background(palette.surface)
                             .border(1.dp, palette.line, RoundedCornerShape(16.dp))
                             .clickable {
-                                receiptShared = true
-                                viewModel?.exportReceiptDocument(
+                                val exported = viewModel?.exportReceiptDocument(
                                     event = event,
                                     payment = latestPayment,
                                     shareInsteadOfSave = true,
                                 )
+                                val canConfirm = if (viewModel == null) true else !exported.isNullOrBlank()
+                                if (canConfirm) {
+                                    receiptShared = true
+                                }
                             },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -5516,12 +5451,15 @@ internal fun RenderOfficialReceiptScreenS83(
                             .clip(RoundedCornerShape(16.dp))
                             .background(RosaButtonGradient)
                             .clickable {
-                                pdfDownloaded = true
-                                viewModel?.exportReceiptDocument(
+                                val exported = viewModel?.exportReceiptDocument(
                                     event = event,
                                     payment = latestPayment,
                                     shareInsteadOfSave = false,
                                 )
+                                val canConfirm = if (viewModel == null) true else !exported.isNullOrBlank()
+                                if (canConfirm) {
+                                    pdfDownloaded = true
+                                }
                             },
                         contentAlignment = Alignment.Center,
                     ) {

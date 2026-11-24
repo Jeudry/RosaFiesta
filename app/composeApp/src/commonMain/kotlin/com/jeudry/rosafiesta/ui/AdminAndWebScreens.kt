@@ -9,6 +9,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -87,6 +88,7 @@ import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.ChatThread
 import com.jeudry.rosafiesta.domain.ClientEvent
 import com.jeudry.rosafiesta.domain.ClientProfile
+import com.jeudry.rosafiesta.domain.DomainClockFormatter
 import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.LeadRecord
 import com.jeudry.rosafiesta.domain.NotificationRecord
@@ -280,7 +282,10 @@ public fun RenderAdminWebDesktopA39(
                             onOpenNewEvent = { activeModal = A39DesktopModal.NEW_EVENT },
                             onExportActiveReport = {
                                 if (viewModel != null) {
-                                    viewModel.exportReportCsv(reportType = "income", period = "2026-10")
+                                    viewModel.exportReportCsv(
+                                        reportType = "income",
+                                        period = DomainClockFormatter.currentYearMonthIso(),
+                                    )
                                 } else {
                                     localStatusMessage = "Reporte mensual generado."
                                     onPrimaryAction()
@@ -319,7 +324,7 @@ public fun RenderAdminWebDesktopA39(
                                     },
                                     onOpenLeadInQuotes = { leadId ->
                                         viewModel?.selectLead(leadId)
-                                        activeSection = A39DesktopSection.COTIZACIONES
+                                        onSelectScreenCode("A03")
                                     },
                                     onSelectScreenCode = onSelectScreenCode,
                                     modifier = Modifier.weight(1f),
@@ -340,7 +345,7 @@ public fun RenderAdminWebDesktopA39(
                                     },
                                     onOpenQuoteBuilder = { leadId ->
                                         viewModel?.selectLead(leadId)
-                                        activeSection = A39DesktopSection.COTIZACIONES
+                                        onSelectScreenCode("A03")
                                     },
                                     onOpenMobileRequests = { onSelectScreenCode("A02") },
                                     modifier = Modifier.weight(1f),
@@ -379,6 +384,10 @@ public fun RenderAdminWebDesktopA39(
                                         }
                                     },
                                     onOpenMobileInventory = { onSelectScreenCode("A09") },
+                                    onOpenArticleEditor = { articleId ->
+                                        viewModel?.startEditingArticle(articleId)
+                                        onSelectScreenCode("A10")
+                                    },
                                     onOpenCategories = { onSelectScreenCode("A40") },
                                     onOpenTrends = { onSelectScreenCode("A41") },
                                     viewModel = viewModel,
@@ -429,6 +438,16 @@ public fun RenderAdminWebDesktopA39(
                                             viewModel.submitPayment(targetEventId)
                                         }
                                     },
+                                    onVerifyPayment = { paymentId ->
+                                        viewModel?.verifyPendingPayment(paymentId)
+                                    },
+                                    onRejectPayment = { paymentId ->
+                                        viewModel?.rejectPendingPayment(
+                                            paymentId = paymentId,
+                                            reason = "Rechazado desde panel administrativo",
+                                        )
+                                    },
+                                    onOpenTeamManagement = { onSelectScreenCode("A28") },
                                     onOpenMobilePayments = { onSelectScreenCode("A20") },
                                     modifier = Modifier.weight(1f),
                                 )
@@ -470,14 +489,20 @@ public fun RenderAdminWebDesktopA39(
                                     canViewPayments = canViewPayments,
                                     onExportIncomeCsv = {
                                         if (viewModel != null) {
-                                            viewModel.exportReportCsv(reportType = "income", period = "2026-10")
+                                            viewModel.exportReportCsv(
+                                                reportType = "income",
+                                                period = DomainClockFormatter.currentYearMonthIso(),
+                                            )
                                         } else {
                                             localStatusMessage = "CSV de ingresos generado."
                                         }
                                     },
                                     onExportDgii607 = {
                                         if (viewModel != null) {
-                                            viewModel.exportReportCsv(reportType = "dgii607", period = "2026-10")
+                                            viewModel.exportReportCsv(
+                                                reportType = "dgii607",
+                                                period = DomainClockFormatter.currentYearMonthIso(),
+                                            )
                                         } else {
                                             localStatusMessage = "Archivo DGII 607 generado."
                                         }
@@ -820,7 +845,7 @@ private fun AdminDesktopTopBar(
         activeSection.title
     }
     val subtitleText = if (activeSection == A39DesktopSection.INICIO) {
-        "Martes 20 de octubre"
+        formatReadableSpanishDateText(DomainClockFormatter.currentFullDateLabel())
     } else {
         "Panel administrativo web · RosaFiesta"
     }
@@ -1137,6 +1162,19 @@ private fun AdminDesktopInicioContent(
         else -> "Próximo: vie, 23 de octubre"
     }
 
+    val analyticsSummary = viewModel?.analyticsSummary?.collectAsState()?.value
+    val revenueMarginPct = analyticsSummary?.netMarginPercent
+    val revenueSubtext = when {
+        revenueMarginPct != null -> {
+            val trendArrow = if (revenueMarginPct >= 0) "▲" else "▼"
+            "$trendArrow $revenueMarginPct% margen neto"
+        }
+
+        viewModel != null -> "Resumen del periodo actual"
+
+        else -> "▲ 22% vs. septiembre"
+    }
+
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp),
         modifier = modifier.fillMaxWidth(),
@@ -1148,7 +1186,7 @@ private fun AdminDesktopInicioContent(
             AdminStatCard(
                 label = "Ingresos de ${metrics.monthLabel.lowercase()}",
                 value = formatDesktopDop(metrics.octoberRevenueDop),
-                subtext = "▲ 22% vs. septiembre",
+                subtext = revenueSubtext,
                 subtextColor = Color(0xFF4E6A10),
                 iconKind = RfIconKind.ORDERS,
                 tileBg = Color(0xFFEEF6D6),
@@ -1211,10 +1249,10 @@ private fun AdminDesktopInicioContent(
                     modifier = Modifier.weight(1.3f),
                 )
 
-                val analyticsSummary = viewModel?.analyticsSummary?.collectAsState()?.value
+                val analyticsSummaryRef = analyticsSummary
                 AdminMonthlyRevenueChart(
                     currentMonthRevenueDop = metrics.octoberRevenueDop,
-                    analyticsSummary = analyticsSummary,
+                    analyticsSummary = analyticsSummaryRef,
                     paymentsList = viewModel?.payments?.collectAsState()?.value ?: CanonicalSampleData.payments,
                     onRequestMonthsRange = { monthsCount ->
                         val rangeKey = if (monthsCount == 12) "365d" else "180d"
@@ -1253,6 +1291,7 @@ private fun AdminDesktopInicioContent(
 
                 AdminNewRequestsCard(
                     leadsList = leadsList,
+                    hasLiveViewModel = viewModel != null,
                     onQuoteLead = { leadId ->
                         onOpenLeadInQuotes(leadId)
                     },
@@ -1720,10 +1759,12 @@ private fun buildMonthlyRevenueBars(
             )
         }
     }
-    val monthPairs = if (selectedMonths == 12) {
-        listOf("nov", "dic", "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct")
-    } else {
-        listOf("may", "jun", "jul", "ago", "sep", "oct")
+    val allSpanishMonths = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+    val currentMonthIdx = (DomainClockFormatter.currentCivilDateTriple().second - 1).coerceIn(0, 11)
+    val monthCount = if (selectedMonths == 12) 12 else 6
+    val monthPairs = ((monthCount - 1) downTo 0).map { offset ->
+        val wrappedIdx = (currentMonthIdx - offset + 12) % 12
+        allSpanishMonths[wrappedIdx]
     }
     val totals = monthPairs.mapIndexed { index, monthToken ->
         val summed = paymentsList
@@ -1829,6 +1870,7 @@ private fun AdminHeroEventBanner(
 @Composable
 private fun AdminNewRequestsCard(
     leadsList: List<LeadRecord>,
+    hasLiveViewModel: Boolean = false,
     onQuoteLead: (String) -> Unit,
     onOpenFallbackBuilder: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1837,7 +1879,13 @@ private fun AdminNewRequestsCard(
     val displayLeads = remember(leadsList) {
         leadsList.filter { lead -> !lead.stage.equals("Cerrada", ignoreCase = true) }.take(2)
     }
-    val badgeCountText = if (leadsList.isNotEmpty()) displayLeads.size.toString() else "2"
+    val badgeCountText = if (hasLiveViewModel) {
+        displayLeads.size.toString()
+    } else if (leadsList.isNotEmpty()) {
+        displayLeads.size.toString()
+    } else {
+        "2"
+    }
 
     Column(
         modifier = modifier
@@ -1882,6 +1930,13 @@ private fun AdminNewRequestsCard(
                     onQuoteClick = { onQuoteLead(leadItem.id) },
                 )
             }
+        } else if (hasLiveViewModel) {
+            AdminNewRequestRow(
+                photoKey = RfPhotoKey.BODA,
+                title = "Sin solicitudes nuevas",
+                subtitle = "Usa el constructor para cotizar directamente",
+                onQuoteClick = onOpenFallbackBuilder,
+            )
         } else {
             AdminNewRequestRow(
                 photoKey = RfPhotoKey.CUMPLE_INFANTIL,
@@ -2235,6 +2290,7 @@ private fun AdminDesktopInventorySection(
     onAdjustStock: (String, Int) -> Unit,
     onDeleteArticle: (String, (Result<Unit>) -> Unit) -> Unit = { _, onDone -> onDone(Result.success(Unit)) },
     onOpenMobileInventory: () -> Unit,
+    onOpenArticleEditor: (String?) -> Unit = {},
     onOpenCategories: () -> Unit,
     onOpenTrends: () -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
@@ -2268,6 +2324,18 @@ private fun AdminDesktopInventorySection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0))))
+                            .clickable { onOpenArticleEditor(null) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        BasicText(
+                            text = "+ Nuevo artículo",
+                            style = typo.bodyStrong.copy(fontSize = 12.5.sp, color = Color.White),
+                        )
+                    }
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
@@ -2317,11 +2385,12 @@ private fun AdminDesktopInventorySection(
                         Column(modifier = Modifier.weight(1f)) {
                             BasicText(text = article.name, style = typo.bodyStrong.copy(fontSize = 14.5.sp))
                             BasicText(
-                                text = "${article.category} · ${formatDesktopDop(article.pricePerDayDop)}/día · Disp. Oct 23: ${article.availableOct23}/${article.totalStock}",
+                                text = "${article.category} · ${formatDesktopDop(article.pricePerDayDop)}/día · Disp.: ${article.availableOct23}/${article.totalStock}",
                                 style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
                             )
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            DesktopSmallPillButton(label = "Editar", onClick = { onOpenArticleEditor(article.id) })
                             DesktopSmallPillButton(label = "-1", onClick = { onAdjustStock(article.id, -1) })
                             BasicText(
                                 text = article.totalStock.toString(),
@@ -2452,6 +2521,9 @@ private fun AdminDesktopPaymentsSection(
     searchQuery: String,
     onExportReceipt: (ClientEvent, PaymentRecord) -> Unit,
     onRegisterQuickPayment: (String, String, String, String) -> Unit,
+    onVerifyPayment: (String) -> Unit = {},
+    onRejectPayment: (String) -> Unit = {},
+    onOpenTeamManagement: () -> Unit = {},
     onOpenMobilePayments: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -2460,7 +2532,7 @@ private fun AdminDesktopPaymentsSection(
         DesktopSectionCardContainer(
             title = "Acceso restringido",
             actionLabel = "Gestionar equipo",
-            onAction = onOpenMobilePayments,
+            onAction = onOpenTeamManagement,
             modifier = modifier,
         ) {
             BasicText(
@@ -2471,6 +2543,15 @@ private fun AdminDesktopPaymentsSection(
         return
     }
 
+    val defaultEventId = remember(eventsList) {
+        val candidate = eventsList.firstOrNull { ev -> ev.balanceDop > 0 }
+        if (candidate != null) {
+            candidate.id
+        } else {
+            eventsList.firstOrNull()?.id.orEmpty()
+        }
+    }
+    var selectedQuickEventId by remember(defaultEventId) { mutableStateOf(defaultEventId) }
     var amountInput by remember { mutableStateOf("") }
     var referenceInput by remember { mutableStateOf("") }
     var amountTouched by remember { mutableStateOf(false) }
@@ -2517,13 +2598,42 @@ private fun AdminDesktopPaymentsSection(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFFF3F2FE))
                     .padding(12.dp),
             ) {
+                if (eventsList.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    ) {
+                        BasicText("Evento:", style = typo.caption.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4B47D6)))
+                        eventsList.take(8).forEach { ev ->
+                            val isSelectedEvent = ev.id == selectedQuickEventId
+                            Box(
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(if (isSelectedEvent) Color(0xFF4B47D6) else Color.White)
+                                    .border(1.dp, if (isSelectedEvent) Color(0xFF4B47D6) else Color(0xFFDCDDEA), CircleShape)
+                                    .clickable { selectedQuickEventId = ev.id }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                            ) {
+                                BasicText(
+                                    text = ev.title.take(24),
+                                    style = typo.caption.copy(
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelectedEvent) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelectedEvent) Color.White else Color(0xFF2E324A),
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -2553,7 +2663,9 @@ private fun AdminDesktopPaymentsSection(
                         },
                         modifier = Modifier.width(180.dp),
                     )
-                    val targetEvent = eventsList.firstOrNull { ev -> ev.balanceDop > 0 } ?: eventsList.firstOrNull()
+                    val targetEvent = eventsList.firstOrNull { ev -> ev.id == selectedQuickEventId }
+                        ?: eventsList.firstOrNull { ev -> ev.balanceDop > 0 }
+                        ?: eventsList.firstOrNull()
                     DesktopGradientPillButton(
                         label = "Registrar pago",
                         onClick = {
@@ -2598,9 +2710,19 @@ private fun AdminDesktopPaymentsSection(
                             style = typo.secondary.copy(fontSize = 12.5.sp, color = Color(0xFF5F6377)),
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         BasicText(text = formatDesktopDop(payment.amountDop), style = typo.cardTitle.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold))
                         RfTag(text = if (payment.verified) "Verificado" else "En revisión", tone = if (payment.verified) RfTagTone.LIMA else RfTagTone.SOL)
+                        if (!payment.verified) {
+                            DesktopGradientPillButton(
+                                label = "Verificar",
+                                onClick = { onVerifyPayment(payment.id) },
+                            )
+                            DesktopSmallPillButton(
+                                label = "Rechazar",
+                                onClick = { onRejectPayment(payment.id) },
+                            )
+                        }
                         if (matchingEvent != null) {
                             DesktopSmallPillButton(
                                 label = "PDF",

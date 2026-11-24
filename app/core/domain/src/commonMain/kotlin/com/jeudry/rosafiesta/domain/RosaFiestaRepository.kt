@@ -40,6 +40,8 @@ private object RepositoryFallbackFlows {
     val botFaqs: StateFlow<List<BotFaqRecord>> = MutableStateFlow(CanonicalSampleData.botFaqs)
     val botKeywords: StateFlow<List<BotKeywordRecord>> = MutableStateFlow(CanonicalSampleData.botKeywords)
     val botThreads: StateFlow<List<BotThreadRecord>> = MutableStateFlow(CanonicalSampleData.botThreads)
+    val eventTasks: StateFlow<List<EventTaskRecord>> = MutableStateFlow(emptyList())
+    val isRealtimeConnected: StateFlow<Boolean> = MutableStateFlow(false)
 }
 
 /**
@@ -111,6 +113,10 @@ public interface RosaFiestaRepository {
         get() = RepositoryFallbackFlows.botKeywords
     public val botThreads: StateFlow<List<BotThreadRecord>>
         get() = RepositoryFallbackFlows.botThreads
+    public val eventTasks: StateFlow<List<EventTaskRecord>>
+        get() = RepositoryFallbackFlows.eventTasks
+    public val isRealtimeConnected: StateFlow<Boolean>
+        get() = RepositoryFallbackFlows.isRealtimeConnected
 
     public fun toggleChecklistStep(stepId: String)
     public fun syncOfflineQueue()
@@ -159,6 +165,11 @@ public interface RosaFiestaRepository {
     )
     public fun changeEventDate(eventId: String, newDateLabel: String): DateChangeResult
     public fun cancelEvent(eventId: String): CancellationRefund
+
+    /**
+     * Cancela el evento indicando el motivo ingresado por el usuario.
+     */
+    public fun cancelEvent(eventId: String, reason: String): CancellationRefund = cancelEvent(eventId)
     public fun registerPayment(
         eventId: String,
         amountDop: Int,
@@ -1074,6 +1085,11 @@ public interface RosaFiestaRepository {
         emailReceiptsEnabled: Boolean? = null,
         biometricLockEnabled: Boolean? = null,
         autoSyncWifiOnly: Boolean? = null,
+        eventRemindersEnabled: Boolean? = null,
+        preferredLanguage: String? = null,
+        darkThemeEnabled: Boolean? = null,
+        savedPaymentMethod: String? = null,
+        profileZone: String? = null,
     ): Result<RegisteredUserAccount> {
         val current = currentAuthenticatedUser.value
             ?: return Result.failure(IllegalStateException("AUTH_UNAUTHORIZED"))
@@ -1083,6 +1099,11 @@ public interface RosaFiestaRepository {
             emailReceiptsEnabled = emailReceiptsEnabled ?: current.preferences.emailReceiptsEnabled,
             biometricLockEnabled = biometricLockEnabled ?: current.preferences.biometricLockEnabled,
             autoSyncWifiOnly = autoSyncWifiOnly ?: current.preferences.autoSyncWifiOnly,
+            eventRemindersEnabled = eventRemindersEnabled ?: current.preferences.eventRemindersEnabled,
+            preferredLanguage = preferredLanguage ?: current.preferences.preferredLanguage,
+            darkThemeEnabled = darkThemeEnabled ?: current.preferences.darkThemeEnabled,
+            savedPaymentMethod = savedPaymentMethod ?: current.preferences.savedPaymentMethod,
+            profileZone = profileZone ?: current.preferences.profileZone,
         )
         return Result.success(current.copy(preferences = updatedPrefs))
     }
@@ -1127,6 +1148,90 @@ public interface RosaFiestaRepository {
      * Verifies the currently signed-in account's [password] to unlock the App Lock screen when biometrics are unavailable.
      */
     public suspend fun verifyAccountPassword(password: String): Result<Boolean> = Result.success(false)
+
+    /**
+     * Cambia la contraseña validando en el servidor cuando hay sesión activa en línea.
+     */
+    public suspend fun changeUserPasswordOnline(currentPassword: String, newPassword: String): AuthOutcome = changeUserPassword(currentPassword, newPassword)
+
+    /**
+     * Elimina la cuenta autenticada esperando confirmación del servidor antes de cerrar sesión.
+     */
+    public suspend fun deleteCurrentAccountOnline(): Result<Unit> = if (deleteCurrentAccount()) Result.success(Unit) else Result.failure(IllegalStateException("ACCOUNT_DELETE_FAILED"))
+
+    /**
+     * Aprueba una solicitud de reembolso pasando opciones de inventario, método y notificación WhatsApp.
+     */
+    public fun approveRefundWithOptions(refundId: String, options: RefundApprovalOptions): RefundRequest? = approveRefund(refundId)
+
+    /**
+     * Elimina un invitado de la lista del evento [eventId].
+     */
+    public fun deleteEventGuest(eventId: String, guestId: String): Boolean = false
+
+    /**
+     * Carga las tareas colaborativas del evento [eventId] desde el backend.
+     */
+    public suspend fun loadEventTasks(eventId: String): List<EventTaskRecord> = emptyList()
+
+    /**
+     * Crea una nueva tarea colaborativa asociada al evento [eventId].
+     */
+    public fun createEventTask(eventId: String, title: String, assigneeName: String): EventTaskRecord? = null
+
+    /**
+     * Marca o desmarca como completada la tarea [taskId] del evento [eventId].
+     */
+    public fun toggleEventTask(eventId: String, taskId: String, done: Boolean): EventTaskRecord? = null
+
+    /**
+     * Elimina una tarea colaborativa [taskId] del evento [eventId].
+     */
+    public fun deleteEventTask(eventId: String, taskId: String): Boolean = false
+
+    /**
+     * Actualiza un proveedor existente en el directorio operativo.
+     */
+    public fun updateSupplier(
+        supplierId: String,
+        name: String,
+        category: String,
+        contactName: String,
+        phone: String,
+        email: String,
+        website: String = "",
+        notes: String = "",
+    ): SupplierRecord? = null
+
+    /**
+     * Elimina un proveedor del directorio operativo.
+     */
+    public fun deleteSupplier(supplierId: String): Boolean = false
+
+    /**
+     * Elimina una pregunta frecuente del bot de WhatsApp.
+     */
+    public fun deleteBotFaq(faqId: String): Boolean = false
+
+    /**
+     * Elimina una regla de palabra clave del bot de WhatsApp.
+     */
+    public fun deleteBotKeyword(keywordId: String): Boolean = false
+
+    /**
+     * Elimina un miembro del equipo operativo.
+     */
+    public fun deleteStaffMember(staffId: String): Boolean = false
+
+    /**
+     * Elimina un paquete preconfigurado del catálogo.
+     */
+    public fun deletePackage(packageId: String): Boolean = false
+
+    /**
+     * Descarga el contrato PDF real firmado para [quoteId].
+     */
+    public suspend fun downloadQuoteContractPdf(quoteId: String): Result<ByteArray> = Result.failure(IllegalStateException("CONTRACT_PDF_UNAVAILABLE"))
 }
 
 internal object RepositoryAvailabilityFallback {

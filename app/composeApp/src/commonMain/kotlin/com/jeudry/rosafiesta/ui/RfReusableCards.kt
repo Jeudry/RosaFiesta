@@ -266,23 +266,26 @@ internal fun RfDraftCartPillButton(
     count: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    buttonHeight: Dp = RfDimens.IconButtonSize,
 ) {
     val typo = LocalRfTypography.current
-    val horizontalEndPadding = if (count > 0) 6.dp else 11.dp
+    val horizontalStartPadding = if (count > 0) 11.dp else 0.dp
+    val horizontalEndPadding = if (count > 0) 6.dp else 0.dp
     val gradient = Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = if (count > 0) Arrangement.spacedBy(6.dp) else Arrangement.Center,
         modifier = modifier
-            .height(RfDimens.IconButtonSize)
+            .widthIn(min = buttonHeight)
+            .height(buttonHeight)
             .rfPrimaryButtonShadow(CircleShape, isAdmin = false)
             .clip(CircleShape)
             .background(gradient)
             .semantics { contentDescription = "Borrador de evento" }
             .clickable(onClick = onClick)
-            .padding(start = 11.dp, end = horizontalEndPadding),
+            .padding(start = horizontalStartPadding, end = horizontalEndPadding),
     ) {
-        RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 18.dp)
+        RfIcon(kind = RfIconKind.PARTY, tint = Color.White, size = 19.dp)
         if (count > 0) {
             Box(
                 contentAlignment = Alignment.Center,

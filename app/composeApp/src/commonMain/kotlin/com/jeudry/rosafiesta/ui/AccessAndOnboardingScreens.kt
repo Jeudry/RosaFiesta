@@ -2128,12 +2128,18 @@ internal fun RenderLoginScreenS07(
                     BasicText(
                         text = "Recuperar usuario",
                         style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = RfColors.IndigoSecondary, textDecoration = TextDecoration.Underline),
-                        modifier = Modifier.clickable { onSelectScreenCode("s09") },
+                        modifier = Modifier.clickable {
+                            viewModel?.setRecoveryInitialMode("user")
+                            onSelectScreenCode("s09")
+                        },
                     )
                     BasicText(
                         text = "¿La olvidaste?",
                         style = typo.body.copy(fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = authColors.primaryLinkColor, textDecoration = TextDecoration.Underline),
-                        modifier = Modifier.clickable { onSelectScreenCode("s09") },
+                        modifier = Modifier.clickable {
+                            viewModel?.setRecoveryInitialMode("password")
+                            onSelectScreenCode("s09")
+                        },
                     )
                 }
             }
@@ -2292,54 +2298,13 @@ internal fun RenderLoginScreenS07(
 
             Spacer(Modifier.height(16.dp))
 
-            val oauthConfig = viewModel?.oauthConfig?.collectAsState()?.value
-            LaunchedEffect(viewModel) {
-                viewModel?.loadOAuthConfig()
-            }
-            val handleSocialLogin: (String) -> Unit = { providerName ->
-                val isGoogle = providerName == "Google"
-                val isApple = providerName == "Apple"
-                val providerEnabled = when {
-                    isGoogle -> oauthConfig?.googleEnabled == true
-                    isApple -> oauthConfig?.appleEnabled == true
-                    else -> false
-                }
-                if (!providerEnabled) {
-                    viewModel?.soundPlayer?.playAlertError()
-                    viewModel?.postError(
-                        "$providerName OAuth no está habilitado en el servidor. Ingresa con tu correo y contraseña.",
-                    )
-                } else {
-                    viewModel?.soundPlayer?.playTap()
-                    viewModel?.signInWithBrowserOAuth(providerName.lowercase())
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                listOf("Google", "Apple").forEach { providerName ->
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(RfThemeState.currentPalette.surface)
-                            .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                            .clickable(enabled = !isSubmitting) {
-                                handleSocialLogin(providerName)
-                            },
-                    ) {
-                        BasicText(
-                            providerName,
-                            style = typo.body.copy(
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = RfThemeState.currentPalette.ink,
-                            ),
-                        )
-                    }
-                }
-            }
+            OAuthProvidersActionRow(
+                viewModel = viewModel,
+                isSubmitting = isSubmitting,
+                authColors = authColors,
+                buttonHeight = 56.dp,
+                onSocialFallbackSuccess = { onPrimaryAction() },
+            )
 
             Spacer(Modifier.weight(1f).heightIn(min = 20.dp))
 
@@ -2352,6 +2317,82 @@ internal fun RenderLoginScreenS07(
                     text = "Regístrate",
                     style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = authColors.primaryLinkColor, textDecoration = TextDecoration.Underline),
                     modifier = Modifier.clickable { onSelectScreenCode("s08") },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OAuthProvidersActionRow(
+    viewModel: RosaFiestaViewModel?,
+    isSubmitting: Boolean,
+    authColors: AuthScreenColors,
+    buttonHeight: Dp,
+    onSocialFallbackSuccess: () -> Unit,
+) {
+    val typo = LocalRfTypography.current
+    val oauthConfig = viewModel?.oauthConfig?.collectAsState()?.value
+    LaunchedEffect(viewModel) {
+        viewModel?.loadOAuthConfig()
+    }
+    val handleSocialLogin: (String) -> Unit = { providerName ->
+        val isGoogle = providerName == "Google"
+        val isApple = providerName == "Apple"
+        val providerEnabled = when {
+            isGoogle -> oauthConfig?.googleEnabled == true
+            isApple -> oauthConfig?.appleEnabled == true
+            else -> false
+        }
+        if (!providerEnabled) {
+            viewModel?.soundPlayer?.playAlertError()
+            viewModel?.postError(
+                "$providerName OAuth no está habilitado en el servidor. Ingresa con tu correo y contraseña.",
+            )
+        } else {
+            viewModel?.soundPlayer?.playTap()
+            viewModel?.signInWithBrowserOAuth(providerName.lowercase())
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+        listOf("Google", "Apple").forEach { providerName ->
+            val providerConfigured = when (providerName) {
+                "Google" -> oauthConfig?.googleEnabled == true
+                "Apple" -> oauthConfig?.appleEnabled == true
+                else -> false
+            }
+            val showAsEnabled = if (oauthConfig == null) true else providerConfigured
+            val labelText = if (showAsEnabled) {
+                providerName
+            } else {
+                "$providerName · no config."
+            }
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(buttonHeight)
+                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
+                    .clickable(enabled = !isSubmitting) {
+                        handleSocialLogin(providerName)
+                    },
+            ) {
+                BasicText(
+                    labelText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = typo.body.copy(
+                        fontSize = if (labelText == providerName) 16.sp else 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (showAsEnabled) {
+                            RfThemeState.currentPalette.ink
+                        } else {
+                            RfThemeState.currentPalette.muted
+                        },
+                    ),
                 )
             }
         }
@@ -3312,44 +3353,13 @@ internal fun RenderRegisterScreenS08(
 
             Spacer(Modifier.height(16.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clickable(enabled = !isSubmitting) {
-                            val socialSuccess = viewModel?.authenticateSocialAccount("Google", "") == true
-                            if (socialSuccess) {
-                                onPrimaryAction()
-                            }
-                        },
-                ) {
-                    BasicText("Google", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
-                }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = authColors.isAdmin)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(16.dp))
-                        .clickable(enabled = !isSubmitting) {
-                            val socialSuccess = viewModel?.authenticateSocialAccount("Apple", "") == true
-                            if (socialSuccess) {
-                                onPrimaryAction()
-                            }
-                        },
-                ) {
-                    BasicText("Apple", style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
-                }
-            }
+            OAuthProvidersActionRow(
+                viewModel = viewModel,
+                isSubmitting = isSubmitting,
+                authColors = authColors,
+                buttonHeight = 48.dp,
+                onSocialFallbackSuccess = { onPrimaryAction() },
+            )
 
             Spacer(Modifier.weight(1f).heightIn(min = 18.dp))
 
@@ -3368,8 +3378,8 @@ internal fun RenderRegisterScreenS08(
 
         AnimatedVisibility(
             visible = showBirthDatePicker,
-            enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.94f),
-            exit = fadeOut(tween(140)) + scaleOut(tween(140), targetScale = 0.94f),
+            enter = fadeIn(tween(160)),
+            exit = fadeOut(tween(120)),
             modifier = Modifier
                 .fillMaxSize()
                 .zIndex(10f),
@@ -3955,7 +3965,8 @@ internal fun RenderRecoveryAndConfirmationScreens(
                         .verticalScroll(rememberScrollState())
                         .padding(top = 104.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                 ) {
-                    var recoverMode by remember { mutableStateOf("password") }
+                    val requestedMode = viewModel?.recoveryInitialMode?.collectAsState()?.value ?: "password"
+                    var recoverMode by remember(requestedMode) { mutableStateOf(requestedMode) }
                     var userLookupInput by remember { mutableStateOf("") }
                     var hasInteractedUserLookup by remember { mutableStateOf(false) }
                     var forceShowUserLookupError by remember { mutableStateOf(false) }

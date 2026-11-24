@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.jeudry.rosafiesta.core.engine.CancellationRefund
 import com.jeudry.rosafiesta.core.engine.DateChangeResult
 import com.jeudry.rosafiesta.core.engine.RosaFiestaEngine
+import com.jeudry.rosafiesta.core.engine.StaffPermission
 import com.jeudry.rosafiesta.domain.ArticleAvailabilityCalendar
 import com.jeudry.rosafiesta.domain.AuditLogRecord
 import com.jeudry.rosafiesta.domain.AvailabilityRangeCheck
@@ -30,6 +31,7 @@ import com.jeudry.rosafiesta.domain.EventLineItem
 import com.jeudry.rosafiesta.domain.EventPackage
 import com.jeudry.rosafiesta.domain.EventScheduleBlock
 import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.EventTaskRecord
 import com.jeudry.rosafiesta.domain.EventTypeTemplate
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
 import com.jeudry.rosafiesta.domain.LeadRecord
@@ -43,6 +45,7 @@ import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
+import com.jeudry.rosafiesta.domain.RefundApprovalOptions
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReviewRecord
 import com.jeudry.rosafiesta.domain.RosaChatReply
@@ -51,12 +54,15 @@ import com.jeudry.rosafiesta.domain.RosaSketchProposal
 import com.jeudry.rosafiesta.domain.SeasonBanner
 import com.jeudry.rosafiesta.domain.StaffMember
 import com.jeudry.rosafiesta.domain.SupplierRecord
+import com.jeudry.rosafiesta.domain.platform.AppLifecycleBridge
 import com.jeudry.rosafiesta.domain.platform.Dgii607SaleRecord
 import com.jeudry.rosafiesta.domain.platform.DgiiIdentificationType
+import com.jeudry.rosafiesta.domain.platform.ExternalOAuthCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalPaymentReturn
 import com.jeudry.rosafiesta.domain.platform.FinancialReportCsvRow
 import com.jeudry.rosafiesta.domain.platform.NoOpPlatformActions
+import com.jeudry.rosafiesta.domain.platform.OAuthBrowserOutcome
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
 import com.jeudry.rosafiesta.domain.platform.PlatformActions
 import com.jeudry.rosafiesta.domain.platform.ReceiptPdfBuilder
@@ -348,6 +354,12 @@ public class RosaFiestaViewModel(
     private val _guestsWizardMode = MutableStateFlow(false)
     public val guestsWizardMode: StateFlow<Boolean> = _guestsWizardMode.asStateFlow()
 
+    private val _isEventDraftSetupMode = MutableStateFlow(false)
+    public val isEventDraftSetupMode: StateFlow<Boolean> = _isEventDraftSetupMode.asStateFlow()
+
+    private val _eventDraftSetupReturnScreen = MutableStateFlow("s25")
+    public val eventDraftSetupReturnScreen: StateFlow<String> = _eventDraftSetupReturnScreen.asStateFlow()
+
     private val _voiceAppendToIdea = MutableStateFlow(false)
     public val voiceAppendToIdea: StateFlow<Boolean> = _voiceAppendToIdea.asStateFlow()
 
@@ -395,6 +407,9 @@ public class RosaFiestaViewModel(
 
     private val _loginPassword = MutableStateFlow("")
     public val loginPassword: StateFlow<String> = _loginPassword.asStateFlow()
+
+    private val _recoveryInitialMode = MutableStateFlow("password")
+    public val recoveryInitialMode: StateFlow<String> = _recoveryInitialMode.asStateFlow()
 
     private val _registerName = MutableStateFlow("")
     public val registerName: StateFlow<String> = _registerName.asStateFlow()
@@ -512,44 +527,16 @@ public class RosaFiestaViewModel(
     private val _eventGuestsList = MutableStateFlow<List<EventGuestUiModel>>(emptyList())
     public val eventGuestsList: StateFlow<List<EventGuestUiModel>> = _eventGuestsList.asStateFlow()
 
+    private val _editingSupplierId = MutableStateFlow<String?>(null)
+    public val editingSupplierId: StateFlow<String?> = _editingSupplierId.asStateFlow()
+
     private val _companyReviews = MutableStateFlow<List<CompanyReviewUiModel>>(emptyList())
     public val companyReviews: StateFlow<List<CompanyReviewUiModel>> = _companyReviews.asStateFlow()
 
-    private val _suppliersList = MutableStateFlow(
-        listOf(
-            SupplierUiModel("sup-1", "Flores del Caribe", "Floristería", "809-555-0191", "4.9", "Confirmado"),
-            SupplierUiModel("sup-2", "Sonido & Luces Pro", "Audio e iluminación", "809-555-0244", "4.8", "Confirmado"),
-            SupplierUiModel("sup-3", "Dulce Fantasía", "Repostería", "809-555-0318", "5.0", "Cotizando"),
-            SupplierUiModel("sup-4", "Transporte Veloz", "Logística", "809-555-0412", "4.7", "Confirmado"),
-        ),
-    )
+    private val _suppliersList = MutableStateFlow<List<SupplierUiModel>>(emptyList())
     public val suppliersList: StateFlow<List<SupplierUiModel>> = _suppliersList.asStateFlow()
 
-    private val _directChatMessages = MutableStateFlow(
-        listOf(
-            DirectChatMessageUiModel(
-                id = "msg-1",
-                senderName = "María · Rosa Fiesta",
-                text = "¡Hola! Soy María, directora de Rosa Fiesta 🌸 Estoy en línea para ayudarte con tu cotización, fechas o detalles de montaje.",
-                timeLabel = "10:14",
-                isFromClient = false,
-            ),
-            DirectChatMessageUiModel(
-                id = "msg-2",
-                senderName = "Cliente",
-                text = "¡Hola equipo Rosa Fiesta! ¿Podemos incluir 20 sillas Tiffany doradas adicionales para el área del brindis?",
-                timeLabel = "10:16",
-                isFromClient = true,
-            ),
-            DirectChatMessageUiModel(
-                id = "msg-3",
-                senderName = "María · Rosa Fiesta",
-                text = "¡Claro que sí! Tenemos disponibilidad inmediata de sillas Tiffany doradas (RD$ 4/día). Dime qué más deseas ajustar y te actualizo el expediente al instante.",
-                timeLabel = "10:17",
-                isFromClient = false,
-            ),
-        ),
-    )
+    private val _directChatMessages = MutableStateFlow<List<DirectChatMessageUiModel>>(emptyList())
     public val directChatMessages: StateFlow<List<DirectChatMessageUiModel>> = _directChatMessages.asStateFlow()
 
     private val _supportSubject = MutableStateFlow("")
@@ -739,10 +726,98 @@ public class RosaFiestaViewModel(
     init {
         registerRepositorySessionCallbacks()
         observeExternalPaymentReturns()
+        observeLifecycleBackgroundEvents()
+        observeExternalOAuthReturns()
         observeCapturedVoiceAudio()
         restorePersistedAccountOnStartup()
+        observeRepositoryBridges()
         observeRealtimeUpdates()
         loadOAuthConfig()
+    }
+
+    private fun observeRepositoryBridges() {
+        securityScope.launch {
+            repository.isRealtimeConnected.collect { connected ->
+                _isRealtimeConnected.value = connected
+            }
+        }
+        securityScope.launch {
+            repository.suppliers.collect { domainSuppliers ->
+                if (domainSuppliers.isNotEmpty()) {
+                    _suppliersList.value = domainSuppliers.map { sup ->
+                        SupplierUiModel(
+                            id = sup.id,
+                            name = sup.name,
+                            category = sup.category,
+                            phone = sup.phone,
+                            ratingLabel = sup.rating.ifBlank { "5.0" },
+                            statusLabel = if (sup.notes.isNotBlank()) sup.notes else "Confirmado",
+                        )
+                    }
+                }
+            }
+        }
+        securityScope.launch {
+            repository.reviews.collect { domainReviews ->
+                if (domainReviews.isNotEmpty()) {
+                    _companyReviews.value = domainReviews.map { rev ->
+                        val initialChar = rev.authorName.trim().firstOrNull()?.uppercase() ?: "R"
+                        CompanyReviewUiModel(
+                            id = rev.id,
+                            author = rev.authorName,
+                            initial = initialChar,
+                            rating = rev.rating,
+                            comment = rev.comment,
+                            dateLabel = rev.dateLabel,
+                        )
+                    }
+                }
+            }
+        }
+        securityScope.launch {
+            repository.threadMessages.collect { domainMessages ->
+                if (domainMessages.isNotEmpty()) {
+                    val activeThreadId = _selectedChatThreadId.value
+                    val relevant = if (activeThreadId.isBlank()) {
+                        domainMessages
+                    } else {
+                        domainMessages.filter { msg -> msg.threadId == activeThreadId }
+                    }
+                    val source = relevant.ifEmpty { domainMessages }
+                    _directChatMessages.value = source.map { msg ->
+                        val isClientSender = msg.senderRole.equals("client", ignoreCase = true) ||
+                            msg.senderRole.equals("cliente", ignoreCase = true)
+                        DirectChatMessageUiModel(
+                            id = msg.id,
+                            senderName = msg.senderName,
+                            text = msg.body,
+                            timeLabel = msg.timestampLabel,
+                            isFromClient = isClientSender,
+                            attachmentName = msg.attachmentName,
+                        )
+                    }
+                }
+            }
+        }
+        securityScope.launch {
+            repository.eventTasks.collect { backendTasks ->
+                val activeId = activeClientEventOrNull()?.id.orEmpty().ifBlank { _selectedEventId.value }
+                if (activeId.isNotBlank()) {
+                    val eventSpecific = backendTasks.filter { task -> task.eventId == activeId }
+                    if (eventSpecific.isNotEmpty()) {
+                        _eventTasksList.value = eventSpecific.map { task ->
+                            EventTaskUiModel(
+                                id = task.id,
+                                title = task.title,
+                                badgeText = if (task.done) "Completado" else task.assigneeName.ifBlank { "Pendiente" },
+                                isUrgent = false,
+                                completed = task.done,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -786,6 +861,65 @@ public class RosaFiestaViewModel(
         }
     }
 
+    private fun observeLifecycleBackgroundEvents() {
+        securityScope.launch {
+            AppLifecycleBridge.backgroundEvents.collect {
+                onAppBackgrounded()
+            }
+        }
+    }
+
+    private fun observeExternalOAuthReturns() {
+        securityScope.launch {
+            ExternalOAuthCallbackBridge.oauthReturns.collect { outcome ->
+                handleRecoveredOAuthCallback(outcome)
+            }
+        }
+    }
+
+    private suspend fun handleRecoveredOAuthCallback(outcome: OAuthBrowserOutcome) {
+        val rawPending = secureStorage.get(SecureStorage.KEY_PENDING_OAUTH_PKCE)?.trim().orEmpty()
+        if (rawPending.isEmpty()) return
+        secureStorage.remove(SecureStorage.KEY_PENDING_OAUTH_PKCE)
+        val parts = rawPending.split("|")
+        if (parts.size < 4) return
+        val provider = parts[0]
+        val codeVerifier = parts[1]
+        val expectedState = parts[2]
+        val redirectUri = parts[3]
+        val code = outcome.code?.trim().orEmpty()
+        if (code.isEmpty()) {
+            val errorText = translateBrowserOAuthError(provider.replaceFirstChar { ch -> ch.uppercase() }, outcome.errorCode)
+            _formError.value = errorText
+            return
+        }
+        val returnedState = outcome.state?.trim().orEmpty()
+        if (returnedState.isNotEmpty()) {
+            if (returnedState != expectedState) {
+                _formError.value = "Validación de estado OAuth inválida."
+                return
+            }
+        }
+        val exchangeOutcome = repository.exchangeOAuthCode(
+            provider = provider,
+            code = code,
+            codeVerifier = codeVerifier,
+            redirectUri = outcome.redirectUri.ifBlank { redirectUri },
+        )
+        val account = exchangeOutcome.account
+        val isVerified = if (exchangeOutcome.success) account != null else false
+        if (isVerified) {
+            val authenticatedAccount = account ?: return
+            applyAuthenticatedAccount(authenticatedAccount, exchangeOutcome.accessToken, exchangeOutcome.refreshToken)
+            soundPlayer.playPaymentSuccess()
+            _formError.value = null
+            _formFeedback.value = "Sesión iniciada con ${provider.replaceFirstChar { ch -> ch.uppercase() }}."
+        } else {
+            soundPlayer.playAlertError()
+            _formError.value = exchangeOutcome.errorMessage ?: "No se pudo verificar tu cuenta OAuth."
+        }
+    }
+
     override fun onCleared() {
         securityScope.cancel()
         super.onCleared()
@@ -799,8 +933,12 @@ public class RosaFiestaViewModel(
                     if (token.isNullOrBlank()) {
                         _isRealtimeConnected.value = false
                         emptyFlow()
+                    } else if (!isWifiSyncPermitted()) {
+                        _wifiSyncBlockedNotice.value = "Sincronización en vivo pausada: solo por Wi‑Fi activado."
+                        _isRealtimeConnected.value = false
+                        emptyFlow()
                     } else {
-                        _isRealtimeConnected.value = true
+                        _wifiSyncBlockedNotice.value = null
                         repository.observeRealtimeEvents()
                     }
                 }
@@ -1016,7 +1154,12 @@ public class RosaFiestaViewModel(
     }
 
     public fun refreshSharedStateFromDisk() {
-        repository.refreshSharedState()
+        if (isWifiSyncPermitted()) {
+            _wifiSyncBlockedNotice.value = null
+            repository.refreshSharedState()
+        } else {
+            _wifiSyncBlockedNotice.value = "Sincronización pausada: solo por Wi‑Fi activado."
+        }
         securityScope.launch {
             val savedReviewsRaw = secureStorage.get(SecureStorage.KEY_COMPANY_REVIEWS)
             if (!savedReviewsRaw.isNullOrBlank()) {
@@ -1412,13 +1555,40 @@ public class RosaFiestaViewModel(
         if ("rf_pref_auto_sync_wifi" !in mutatedPreferenceKeys) {
             _autoSyncWifiOnly.value = prefs.autoSyncWifiOnly
         }
+        if (SecureStorage.KEY_REMINDERS !in mutatedPreferenceKeys) {
+            _remindersEnabled.value = prefs.eventRemindersEnabled
+        }
+        if (SecureStorage.KEY_LANGUAGE !in mutatedPreferenceKeys) {
+            val displayLang = if (prefs.preferredLanguage.equals("en", ignoreCase = true)) "English" else "Español"
+            _preferredLanguage.value = displayLang
+        }
+        if (SecureStorage.KEY_DARK_THEME !in mutatedPreferenceKeys) {
+            _isDarkTheme.value = prefs.darkThemeEnabled
+            com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = prefs.darkThemeEnabled
+        }
+        if (SecureStorage.KEY_PAYMENT_METHOD !in mutatedPreferenceKeys) {
+            if (prefs.savedPaymentMethod.isNotBlank()) {
+                _savedPaymentMethod.value = prefs.savedPaymentMethod
+            }
+        }
+        if ("rf_pref_zone" !in mutatedPreferenceKeys) {
+            if (prefs.profileZone.isNotBlank()) {
+                _profileZone.value = prefs.profileZone
+            }
+        }
         if (persistToStorage) {
             securityScope.launch {
+                val displayLang = if (prefs.preferredLanguage.equals("en", ignoreCase = true)) "English" else "Español"
                 secureStorage.put("rf_pref_push", prefs.pushNotificationsEnabled.toString())
                 secureStorage.put("rf_pref_whatsapp", prefs.whatsappAlertsEnabled.toString())
                 secureStorage.put("rf_pref_email_receipts", prefs.emailReceiptsEnabled.toString())
                 secureStorage.put("rf_pref_biometric_lock", prefs.biometricLockEnabled.toString())
                 secureStorage.put("rf_pref_auto_sync_wifi", prefs.autoSyncWifiOnly.toString())
+                secureStorage.put(SecureStorage.KEY_REMINDERS, prefs.eventRemindersEnabled.toString())
+                secureStorage.put(SecureStorage.KEY_LANGUAGE, displayLang)
+                secureStorage.put(SecureStorage.KEY_DARK_THEME, prefs.darkThemeEnabled.toString())
+                secureStorage.put(SecureStorage.KEY_PAYMENT_METHOD, prefs.savedPaymentMethod)
+                secureStorage.put("rf_pref_zone", prefs.profileZone)
             }
         }
     }
@@ -1821,18 +1991,7 @@ public class RosaFiestaViewModel(
         val resolvedMap = mutableMapOf<String, Int>()
         for (lineDescription in packageItem.includedItems) {
             val quantityPrefix = lineDescription.trim().takeWhile { character -> character.isDigit() }.toIntOrNull() ?: 1
-            val lowerLine = lineDescription.lowercase()
-            val matchedArticle = articles.value.firstOrNull { candidate ->
-                when {
-                    lowerLine.contains("silla") -> candidate.id == "art-silla-tiffany"
-                    lowerLine.contains("redonda") -> candidate.id == "art-mesa-redonda"
-                    lowerLine.contains("rectangular") || lowerLine.contains("plegable") -> candidate.id == "art-mesa-plegable"
-                    lowerLine.contains("centro") || lowerLine.contains("floral") -> candidate.id == "art-centro-floral"
-                    lowerLine.contains("arco") || lowerLine.contains("globo") -> candidate.id == "art-arco-rosa"
-                    lowerLine.contains("dulce") || lowerLine.contains("helado") || lowerLine.contains("postre") -> candidate.id == "art-mesa-helados"
-                    else -> false
-                }
-            }
+            val matchedArticle = findBestArticleMatch(articles.value, lineDescription)
             if (matchedArticle != null) {
                 resolvedMap[matchedArticle.id] = quantityPrefix
             }
@@ -1869,9 +2028,11 @@ public class RosaFiestaViewModel(
             if (qty <= 0) continue
             val catalogItem = articles.value.firstOrNull { article -> article.id == itemId }
             if (catalogItem != null) {
+                val chosenColor = _selectedArticleVariantColors.value[itemId]?.trim().orEmpty()
+                val formattedName = if (chosenColor.isNotEmpty()) "${catalogItem.name} ($chosenColor)" else catalogItem.name
                 result += EventLineItem(
                     articleCode = catalogItem.code,
-                    name = catalogItem.name,
+                    name = formattedName,
                     quantity = qty,
                     unitPriceDop = catalogItem.pricePerDayDop,
                     photo = catalogItem.photo,
@@ -2161,6 +2322,10 @@ public class RosaFiestaViewModel(
         _formError.value = null
     }
 
+    public fun setRecoveryInitialMode(mode: String) {
+        _recoveryInitialMode.value = if (mode == "user") "user" else "password"
+    }
+
     public fun setRegisterName(value: String) {
         _registerName.value = value
         _formError.value = null
@@ -2193,6 +2358,60 @@ public class RosaFiestaViewModel(
 
     public fun setGuestsWizardMode(enabled: Boolean) {
         _guestsWizardMode.value = enabled
+    }
+
+    public fun hasConfiguredEventDraft(): Boolean {
+        val hasTitle = _clientEventTitleInput.value.trim().isNotEmpty()
+        val hasType = _eventTypeInput.value.trim().isNotEmpty()
+        val hasIdentity = listOf(hasTitle, hasType).any { present -> present }
+        val hasDate = _eventDateInput.value.trim().isNotEmpty()
+        val hasVenue = _eventVenueInput.value.trim().isNotEmpty()
+        return listOf(hasIdentity, hasDate, hasVenue).all { ready -> ready }
+    }
+
+    public fun startEventDraftSetup(returnScreenCode: String = "s25") {
+        _isEventDraftSetupMode.value = true
+        _eventDraftSetupReturnScreen.value = returnScreenCode
+    }
+
+    public fun startStandaloneEventCreation() {
+        _isEventDraftSetupMode.value = false
+        _eventDraftSetupReturnScreen.value = "s40"
+    }
+
+    public fun resolveMyEventEntryTarget(): String {
+        if (hasConfiguredEventDraft()) {
+            return "s25"
+        }
+        startEventDraftSetup(returnScreenCode = "s25")
+        return "s38"
+    }
+
+    public fun saveEventDraftDetails(
+        eventType: String,
+        title: String,
+        date: String,
+        venue: String,
+        guestsCount: Int,
+        notes: String = "",
+    ) {
+        val cleanType = eventType.trim().ifEmpty { "Evento" }
+        val cleanTitle = title.trim().ifEmpty { cleanType }
+        val cleanDate = date.trim()
+        val cleanVenue = venue.trim()
+        val cleanNotes = notes.trim().take(InputValidator.MAX_NOTES_LENGTH)
+        val safeGuests = guestsCount.coerceAtLeast(0)
+        _rosaEventType.value = cleanType
+        _eventTypeInput.value = cleanType
+        _clientEventTitleInput.value = cleanTitle
+        _eventDateInput.value = cleanDate
+        _eventVenueInput.value = cleanVenue
+        _eventNotesInput.value = cleanNotes
+        _eventGuestsInput.value = if (safeGuests > 0) safeGuests.toString() else ""
+        _rosaGuestsCount.value = safeGuests
+        _isEventDraftSetupMode.value = false
+        _formError.value = null
+        persistWizardDraftToStorage()
     }
 
     public fun setVoiceAppendToIdea(enabled: Boolean) {
@@ -2326,9 +2545,14 @@ public class RosaFiestaViewModel(
     }
 
     public fun setProfileZone(value: String) {
+        val cleanZone = value.trim()
         _profileZone.value = value
+        mutatedPreferenceKeys = mutatedPreferenceKeys + "rf_pref_zone"
         securityScope.launch {
-            secureStorage.put("rf_pref_zone", value.trim())
+            secureStorage.put("rf_pref_zone", cleanZone)
+            if (hasValidAuthenticatedSession()) {
+                repository.updateUserPreferences(profileZone = cleanZone)
+            }
         }
     }
 
@@ -2515,6 +2739,13 @@ public class RosaFiestaViewModel(
     }
 
     /**
+     * Activa el bloqueo biométrico al pasar la aplicación a segundo plano.
+     */
+    public fun onAppBackgrounded() {
+        lockAppIfProtected()
+    }
+
+    /**
      * Engages the app lock screen when biometric protection is enabled for a signed-in account.
      */
     public fun lockAppIfProtected() {
@@ -2543,10 +2774,18 @@ public class RosaFiestaViewModel(
                 onUnlocked()
             } else {
                 soundPlayer.playAlertError()
-                val readableError = if (errorMessage == "DEVICE_AUTH_UNAVAILABLE") {
-                    "La autenticación biométrica no está disponible en este dispositivo. Ingresa tu contraseña para desbloquear."
-                } else {
-                    errorMessage ?: "No se pudo verificar tu identidad. Ingresa tu contraseña para desbloquear."
+                val readableError = when (errorMessage?.trim()) {
+                    "DEVICE_AUTH_UNAVAILABLE", "BIOMETRIC_UNAVAILABLE", "BIOMETRIC_NOT_ENROLLED" ->
+                        "La autenticación biométrica no está disponible en este dispositivo. Ingresa tu contraseña para desbloquear."
+
+                    "BIOMETRIC_CANCELLED" ->
+                        "Autenticación biométrica cancelada. Inténtalo de nuevo o usa tu contraseña."
+
+                    "BIOMETRIC_FAILED" ->
+                        "No coincidió la verificación biométrica. Intenta nuevamente."
+
+                    else ->
+                        errorMessage ?: "No se pudo verificar tu identidad. Ingresa tu contraseña para desbloquear."
                 }
                 _appLockError.value = readableError
             }
@@ -2745,9 +2984,40 @@ public class RosaFiestaViewModel(
         "A32",
         "A33",
         "s57",
-        "s58",
         "s59",
+    )
+
+    private val eventsRestrictedScreenCodes: Set<String> = setOf(
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A11",
+        "A13",
+        "A19",
+    )
+
+    private val inventoryRestrictedScreenCodes: Set<String> = setOf(
+        "A09",
+        "A10",
+        "A23",
+        "A24",
+        "A25",
+        "s63",
+    )
+
+    private val decorationRestrictedScreenCodes: Set<String> = setOf(
+        "A16",
+        "A17",
+        "A18",
+    )
+
+    private val reportsRestrictedScreenCodes: Set<String> = setOf(
+        "s58",
         "s67",
+        "s68",
+        "s69",
+        "s70",
     )
 
     public fun switchRole(role: String) {
@@ -2774,10 +3044,6 @@ public class RosaFiestaViewModel(
     }
 
     public fun isScreenRestrictedForActiveStaff(screenCode: String): Boolean {
-        val isFinanceScreen = screenCode in financeRestrictedScreenCodes
-        if (!isFinanceScreen) {
-            return false
-        }
         val normalizedRole = activeRole.value.trim().lowercase()
         val isStaffRole = normalizedRole.startsWith("staff_")
         if (!isStaffRole) {
@@ -2786,9 +3052,24 @@ public class RosaFiestaViewModel(
         val staffNameKey = normalizedRole.removePrefix("staff_")
         val matchedStaffMember = staffMembers.value.firstOrNull { member ->
             member.name.equals(staffNameKey, ignoreCase = true)
+        } ?: return false
+        val perms = matchedStaffMember.permissions
+        return when (screenCode) {
+            in financeRestrictedScreenCodes -> {
+                val hasPerms = StaffPermission.PAYMENTS in perms
+                if (matchedStaffMember.canViewPayments) false else !hasPerms
+            }
+
+            in eventsRestrictedScreenCodes -> StaffPermission.EVENTS !in perms
+
+            in inventoryRestrictedScreenCodes -> StaffPermission.INVENTORY !in perms
+
+            in decorationRestrictedScreenCodes -> StaffPermission.DECORATION !in perms
+
+            in reportsRestrictedScreenCodes -> StaffPermission.REPORTS !in perms
+
+            else -> false
         }
-        val hasPaymentPermission = matchedStaffMember?.canViewPayments ?: false
-        return !hasPaymentPermission
     }
 
     private fun validateLoginInputs(): Boolean {
@@ -3092,6 +3373,12 @@ public class RosaFiestaViewModel(
         soundPlayer.playPaymentSuccess()
         _formError.value = null
         _formFeedback.value = "Contraseña actualizada correctamente."
+        securityScope.launch {
+            val remoteOutcome = repository.changeUserPasswordOnline(cleanCurrent, cleanNew)
+            if (!remoteOutcome.success) {
+                postError(remoteOutcome.errorMessage ?: "No se pudo actualizar la contraseña en el servidor.")
+            }
+        }
         return true
     }
 
@@ -3483,8 +3770,8 @@ public class RosaFiestaViewModel(
         reason: String = "",
     ): CancellationRefund {
         soundPlayer.playAlertError()
-        val refund = repository.cancelEvent(eventId)
         val cleanReason = reason.trim()
+        val refund = repository.cancelEvent(eventId, cleanReason)
         val reasonSuffix = if (cleanReason.isNotEmpty()) " ($cleanReason)" else ""
         _formFeedback.value =
             "Evento cancelado$reasonSuffix · Reembolso ${refund.refundPercent}% (${RosaFiestaEngine.formatDop(refund.refundDop)})"
@@ -3664,8 +3951,12 @@ public class RosaFiestaViewModel(
         soundPlayer.playTap()
         _isDarkTheme.value = enabled
         com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = enabled
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_DARK_THEME
         securityScope.launch {
             secureStorage.put(SecureStorage.KEY_DARK_THEME, enabled.toString())
+            if (hasValidAuthenticatedSession()) {
+                repository.updateUserPreferences(darkThemeEnabled = enabled)
+            }
         }
     }
 
@@ -3677,8 +3968,13 @@ public class RosaFiestaViewModel(
         soundPlayer.playTap()
         val cleanLang = language.trim().ifBlank { "Español" }
         _preferredLanguage.value = cleanLang
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_LANGUAGE
+        val canonicalLangCode = if (cleanLang.startsWith("En", ignoreCase = true)) "en" else "es"
         securityScope.launch {
             secureStorage.put(SecureStorage.KEY_LANGUAGE, cleanLang)
+            if (hasValidAuthenticatedSession()) {
+                repository.updateUserPreferences(preferredLanguage = canonicalLangCode)
+            }
         }
     }
 
@@ -3690,8 +3986,12 @@ public class RosaFiestaViewModel(
     public fun setRemindersEnabled(enabled: Boolean) {
         soundPlayer.playTap()
         _remindersEnabled.value = enabled
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_REMINDERS
         securityScope.launch {
             secureStorage.put(SecureStorage.KEY_REMINDERS, enabled.toString())
+            if (hasValidAuthenticatedSession()) {
+                repository.updateUserPreferences(eventRemindersEnabled = enabled)
+            }
         }
     }
 
@@ -3703,8 +4003,12 @@ public class RosaFiestaViewModel(
         soundPlayer.playTap()
         val cleanMethod = methodLabel.trim().ifBlank { "Transferencia Banreservas" }
         _savedPaymentMethod.value = cleanMethod
+        mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_PAYMENT_METHOD
         securityScope.launch {
             secureStorage.put(SecureStorage.KEY_PAYMENT_METHOD, cleanMethod)
+            if (hasValidAuthenticatedSession()) {
+                repository.updateUserPreferences(savedPaymentMethod = cleanMethod)
+            }
         }
     }
 
@@ -3860,15 +4164,28 @@ public class RosaFiestaViewModel(
         repository.deleteEventScheduleBlock(eventId = _selectedEventId.value, blockId = itemId)
     }
 
+    public fun loadTasksForActiveEvent() {
+        val activeId = activeClientEventOrNull()?.id.orEmpty().ifBlank { _selectedEventId.value }
+        if (activeId.isBlank()) return
+        securityScope.launch {
+            repository.loadEventTasks(activeId)
+        }
+    }
+
     public fun toggleEventTask(taskId: String) {
         soundPlayer.playChecklistTick()
+        val target = _eventTasksList.value.firstOrNull { item -> item.id == taskId }
+        val nextDone = !(target?.completed ?: false)
         val updated = _eventTasksList.value.map { taskItem ->
-            if (taskItem.id == taskId) taskItem.copy(completed = !taskItem.completed) else taskItem
+            if (taskItem.id == taskId) taskItem.copy(completed = nextDone) else taskItem
         }
         _eventTasksList.value = updated
         val activeId = activeClientEventOrNull()?.id.orEmpty().ifBlank { _selectedEventId.value }
         tasksByEventId[activeId] = updated
         persistEventTasksToStorage()
+        if (activeId.isNotBlank()) {
+            repository.toggleEventTask(activeId, taskId, nextDone)
+        }
     }
 
     public fun addEventTask(customTitle: String = "", badgeLabel: String = "Pendiente") {
@@ -3876,8 +4193,14 @@ public class RosaFiestaViewModel(
         val nextNum = _eventTasksList.value.size + 1
         val activeEvt = activeClientEvent()
         val resolvedTitle = customTitle.trim().ifBlank { "Coordinación #$nextNum · ${activeEvt.title}" }
+        val activeId = activeEvt.id.ifBlank { _selectedEventId.value }
+        val backendTask = if (activeId.isNotBlank()) {
+            repository.createEventTask(activeId, resolvedTitle, badgeLabel.trim())
+        } else {
+            null
+        }
         val newTask = EventTaskUiModel(
-            id = "tsk-$nextNum",
+            id = backendTask?.id ?: "tsk-$nextNum",
             title = resolvedTitle,
             badgeText = badgeLabel.trim().ifBlank { "Pendiente" },
             isUrgent = false,
@@ -3885,9 +4208,27 @@ public class RosaFiestaViewModel(
         )
         val updated = listOf(newTask) + _eventTasksList.value
         _eventTasksList.value = updated
-        val activeId = activeEvt.id.ifBlank { _selectedEventId.value }
         tasksByEventId[activeId] = updated
         persistEventTasksToStorage()
+    }
+
+    public fun deleteEventTask(taskId: String) {
+        soundPlayer.playTap()
+        val activeId = activeClientEventOrNull()?.id.orEmpty().ifBlank { _selectedEventId.value }
+        val updated = _eventTasksList.value.filterNot { item -> item.id == taskId }
+        _eventTasksList.value = updated
+        tasksByEventId[activeId] = updated
+        persistEventTasksToStorage()
+        if (activeId.isNotBlank()) {
+            repository.deleteEventTask(activeId, taskId)
+        }
+    }
+
+    public fun deleteEventGuest(guestId: String) {
+        val activeId = activeClientEventOrNull()?.id.orEmpty().ifBlank { _selectedEventId.value }
+        if (activeId.isBlank()) return
+        soundPlayer.playTap()
+        repository.deleteEventGuest(activeId, guestId)
     }
 
     public fun guestsForActiveEvent(): List<EventGuestUiModel> {
@@ -4079,13 +4420,19 @@ public class RosaFiestaViewModel(
         securityScope.launch {
             try {
                 val browserOutcome = platformActions.launchOAuthBrowserFlow { redirectUri ->
-                    repository.startOAuthAuthorization(
+                    val resolvedUrl = repository.startOAuthAuthorization(
                         provider = normalizedProvider,
                         redirectUri = redirectUri,
                         codeChallenge = codeChallenge,
                         state = state,
                     ).getOrNull()
+                    if (resolvedUrl != null) {
+                        val packedPkce = "$normalizedProvider|$codeVerifier|$state|$redirectUri"
+                        secureStorage.put(SecureStorage.KEY_PENDING_OAUTH_PKCE, packedPkce)
+                    }
+                    resolvedUrl
                 }
+                secureStorage.remove(SecureStorage.KEY_PENDING_OAUTH_PKCE)
                 val code = browserOutcome.code?.trim().orEmpty()
                 if (code.isEmpty()) {
                     soundPlayer.playAlertError()
@@ -4220,25 +4567,57 @@ public class RosaFiestaViewModel(
     public fun openExternalUrl(url: String): Boolean = platformActions.openExternalUrl(url)
 
     public fun dialPhoneNumber(rawPhone: String): Boolean {
-        val launched = platformActions.dialPhoneNumber(rawPhone)
+        val cleanPhone = rawPhone.trim()
+        if (cleanPhone.isEmpty()) {
+            _formFeedback.value = null
+            _formError.value = "El teléfono de contacto aún no está configurado."
+            soundPlayer.playAlertError()
+            return false
+        }
+        val launched = platformActions.dialPhoneNumber(cleanPhone)
         if (!launched) {
-            _formFeedback.value = "Teléfono de contacto: $rawPhone"
+            _formError.value = null
+            _formFeedback.value = "Teléfono de contacto: $cleanPhone"
+        } else {
+            _formError.value = null
         }
         return launched
     }
 
     public fun openWhatsAppChat(rawPhone: String = businessSettings.value.whatsapp, message: String = ""): Boolean {
-        val launched = platformActions.openWhatsAppChat(rawPhone, message)
+        val cleanPhone = rawPhone.trim()
+        if (cleanPhone.isEmpty()) {
+            _formFeedback.value = null
+            _formError.value = "El número de WhatsApp aún no está configurado."
+            soundPlayer.playAlertError()
+            return false
+        }
+        val launched = platformActions.openWhatsAppChat(cleanPhone, message)
         if (!launched) {
-            _formFeedback.value = "WhatsApp RosaFiesta: $rawPhone"
+            _formError.value = null
+            _formFeedback.value = "WhatsApp RosaFiesta: $cleanPhone"
+        } else {
+            _formError.value = null
         }
         return launched
     }
 
     public fun openMapsSearch(query: String): Boolean {
-        val launched = platformActions.openMapsSearch(query)
+        val cleanQuery = query.trim()
+        if (cleanQuery.isEmpty()) {
+            _formFeedback.value = null
+            _formError.value = "La dirección aún no está configurada en los ajustes del negocio."
+            soundPlayer.playAlertError()
+            return false
+        }
+        val launched = platformActions.openMapsSearch(cleanQuery)
         if (!launched) {
-            _formFeedback.value = "Ubicación: $query"
+            _formFeedback.value = null
+            _formError.value = "No se pudo abrir Mapas para: $cleanQuery"
+            soundPlayer.playAlertError()
+        } else {
+            _formError.value = null
+            _formFeedback.value = null
         }
         return launched
     }
@@ -4268,10 +4647,12 @@ public class RosaFiestaViewModel(
                 unitPriceDop = item.unitPriceDop.toLong(),
             )
         }
+        val itbisRate = settings.itbisPercent.coerceAtLeast(0).toLong()
+        val itbisDivisor = 100L + itbisRate
         val netSubtotalDop = if (payment != null) {
-            if (payment.subtotalDop > 0) payment.subtotalDop.toLong() else ((paidAmount * 100L) / 118L)
+            if (payment.subtotalDop > 0) payment.subtotalDop.toLong() else ((paidAmount * 100L) / itbisDivisor)
         } else {
-            ((event.totalDop * 100L) / 118L)
+            ((event.totalDop * 100L) / itbisDivisor)
         }
         val computedItbisDop = if (payment != null) {
             if (payment.itbisDop > 0) payment.itbisDop.toLong() else (paidAmount.toLong() - netSubtotalDop).coerceAtLeast(0L)
@@ -4309,21 +4690,25 @@ public class RosaFiestaViewModel(
         val pdfBytes = ReceiptPdfBuilder.buildPdfBytes(pdfDoc)
         val fileName = "$receiptNo.pdf"
         if (shareInsteadOfSave) {
-            platformActions.shareContent(
+            val sharedOk = platformActions.shareContent(
                 title = "Comprobante $receiptNo · RosaFiesta",
                 text = "Recibo $receiptNo · ${event.title} · RD$ $paidAmount",
                 fileName = fileName,
                 fileBytes = pdfBytes,
                 mimeType = "application/pdf",
             )
+            if (!sharedOk) {
+                _formError.value = "No se pudo abrir la hoja de compartir en este dispositivo."
+                return ""
+            }
             _formFeedback.value = "Comprobante $receiptNo compartido en PDF."
         } else {
             val savedPath = platformActions.saveDocument(fileName, "application/pdf", pdfBytes)
-            _formFeedback.value = if (savedPath != null) {
-                "PDF descargado: $fileName"
-            } else {
-                "Comprobante $receiptNo generado."
+            if (savedPath == null) {
+                _formError.value = "No se pudo guardar el recibo PDF en el dispositivo."
+                return ""
             }
+            _formFeedback.value = "PDF descargado: $fileName"
         }
         return "Recibo $receiptNo · ${event.title} (${event.dateLabel}) · Pagado: RD$ $paidAmount de RD$ ${event.totalDop}"
     }
@@ -4342,6 +4727,12 @@ public class RosaFiestaViewModel(
                     val utf8Remote = remoteCsv.encodeToByteArray()
                     byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) + utf8Remote
                 } else {
+                    val (curYear, curMonth, curDay) = DomainClockFormatter.currentCivilDateTriple()
+                    val todayYyyymmdd = buildString {
+                        append(curYear.toString())
+                        append(curMonth.toString().padStart(2, '0'))
+                        append(curDay.toString().padStart(2, '0'))
+                    }
                     val records = payments.value.mapIndexed { index, payment ->
                         val netAmount = ((payment.amountDop * 100) / 118).toLong()
                         val taxAmount = payment.amountDop.toLong() - netAmount
@@ -4352,7 +4743,7 @@ public class RosaFiestaViewModel(
                             customerTaxId = resolvedTaxId,
                             identificationType = DgiiIdentificationType.RNC,
                             ncfNumber = resolvedNcf,
-                            invoiceDateYyyymmdd = "20261020",
+                            invoiceDateYyyymmdd = todayYyyymmdd,
                             invoicedSubtotalDop = netAmount,
                             invoicedItbisDop = taxAmount,
                             transferOrCheckAmountDop = payment.amountDop.toLong(),
@@ -4911,22 +5302,22 @@ public class RosaFiestaViewModel(
             return false
         }
         soundPlayer.playAlertError()
-        val deleted = repository.deleteCurrentAccount()
-        if (!deleted) {
-            postError("No se pudo eliminar la cuenta en este momento.")
-            return false
-        }
-        _isExplicitGuestSession.value = true
-        repository.setRefreshToken(null)
         securityScope.launch {
+            val result = repository.deleteCurrentAccountOnline()
+            if (result.isFailure) {
+                postError(result.exceptionOrNull()?.message ?: "No se pudo eliminar la cuenta en este momento.")
+                return@launch
+            }
+            _isExplicitGuestSession.value = true
+            repository.setRefreshToken(null)
             secureStorage.remove(SecureStorage.KEY_ACCESS_TOKEN)
             secureStorage.remove(SecureStorage.KEY_REFRESH_TOKEN)
             secureStorage.remove(SecureStorage.KEY_USER_ROLE)
+            _profileName.value = "Invitado"
+            _profileEmail.value = ""
+            _profileUsername.value = "invitado"
+            _formFeedback.value = "Tu cuenta y sesión activa han sido eliminadas."
         }
-        _profileName.value = "Invitado"
-        _profileEmail.value = ""
-        _profileUsername.value = "invitado"
-        _formFeedback.value = "Tu cuenta y sesión activa han sido eliminadas."
         return true
     }
 
@@ -5925,26 +6316,40 @@ public class RosaFiestaViewModel(
             return
         }
         val activeLines = draftLineItems()
-        val targetArticleId = activeLines.firstOrNull()?.articleCode
-            ?.let { code -> articles.value.firstOrNull { item -> item.code == code }?.id }
-            ?: articles.value.firstOrNull()?.id
-            ?: return
-        val requestedQty = activeLines.firstOrNull()?.quantity ?: 1
+        val checkTargets: List<Pair<String, Int>> = if (activeLines.isNotEmpty()) {
+            activeLines.mapNotNull { line ->
+                val resolvedId = articles.value.firstOrNull { item -> item.code == line.articleCode }?.id
+                    ?: return@mapNotNull null
+                resolvedId to line.quantity.coerceAtLeast(1)
+            }
+        } else {
+            val fallbackId = articles.value.firstOrNull()?.id ?: return
+            listOf(fallbackId to 1)
+        }
+        if (checkTargets.isEmpty()) {
+            _dateAvailabilityWarning.value = null
+            return
+        }
         securityScope.launch {
-            val result = repository.checkRangeAvailability(
-                date = cleanDate,
-                articleId = targetArticleId,
-                quantity = requestedQty.coerceAtLeast(1),
-                excludeEventId = excludeEventId,
-            )
-            result.onSuccess { check ->
-                val hasConflict = if (!check.available) check.conflicts.isNotEmpty() else false
-                if (hasConflict) {
-                    val conflictSummary = check.conflicts.joinToString("; ")
-                    _dateAvailabilityWarning.value = "Conflicto de agenda (+/- 1 día montaje/retorno): $conflictSummary"
-                } else {
-                    _dateAvailabilityWarning.value = null
+            val conflictMessages = mutableListOf<String>()
+            for ((targetArticleId, requestedQty) in checkTargets) {
+                val result = repository.checkRangeAvailability(
+                    date = cleanDate,
+                    articleId = targetArticleId,
+                    quantity = requestedQty,
+                    excludeEventId = excludeEventId,
+                )
+                result.onSuccess { check ->
+                    val hasConflict = if (!check.available) check.conflicts.isNotEmpty() else false
+                    if (hasConflict) {
+                        conflictMessages.add(check.conflicts.joinToString("; "))
+                    }
                 }
+            }
+            if (conflictMessages.isNotEmpty()) {
+                _dateAvailabilityWarning.value = "Conflicto de agenda (+/- 1 día montaje/retorno): ${conflictMessages.joinToString("; ")}"
+            } else {
+                _dateAvailabilityWarning.value = null
             }
         }
     }
@@ -5994,8 +6399,8 @@ public class RosaFiestaViewModel(
                 soundPlayer.playPaymentSuccess()
                 _formError.value = null
                 _formFeedback.value = "Cierre completado para ${closedEvent.title} · Stock liberado."
-            }.onFailure {
-                completeEventInspection(eventId)
+            }.onFailure { error ->
+                postError(error.message ?: "No se pudo completar el cierre del evento en el servidor.")
             }
         }
     }
@@ -6251,10 +6656,10 @@ public class RosaFiestaViewModel(
 
     public fun syncDraftQuantitiesToSketch(eventId: String = _selectedEventId.value) {
         val currentMap = _draftQuantities.value
-        val roundTables = findArticleIdByCodeOrId("RF-002", "art-mesa-redonda")?.let { articleId -> currentMap[articleId] ?: 0 } ?: 0
-        val rectTables = findArticleIdByCodeOrId("RF-003", "art-mesa-plegable")?.let { articleId -> currentMap[articleId] ?: 0 } ?: 0
-        val chairs = findArticleIdByCodeOrId("RF-001", "art-silla-tiffany")?.let { articleId -> currentMap[articleId] ?: 0 } ?: 0
-        val arch = findArticleIdByCodeOrId("RF-005", "art-arco-rosa")?.let { articleId -> currentMap[articleId] ?: 0 } ?: 0
+        val roundTables = sumDraftQtyMatching(currentMap, articles.value, "redonda", "RF-002", "art-mesa-redonda")
+        val rectTables = sumDraftQtyMatching(currentMap, articles.value, "rectangular", "RF-003", "art-mesa-plegable")
+        val chairs = sumDraftQtyMatching(currentMap, articles.value, "silla", "RF-001", "art-silla-tiffany")
+        val arch = sumDraftQtyMatching(currentMap, articles.value, "arco", "RF-005", "art-arco-rosa")
         val elements = mutableListOf<String>()
         var serial = 1
         repeat(roundTables.coerceAtMost(12)) { index ->
@@ -6291,6 +6696,189 @@ public class RosaFiestaViewModel(
     public fun isValidDominicanTaxId(cleanDigits: String): Boolean = when (cleanDigits.length) {
         9, 11 -> true
         else -> false
+    }
+
+    public fun approveSelectedRefundWithOptions(options: RefundApprovalOptions): RefundRequest? {
+        val target = selectedRefund() ?: return null
+        val approved = repository.approveRefundWithOptions(target.id, options)
+        if (approved != null) {
+            soundPlayer.playPaymentSuccess()
+            _formFeedback.value = "Reembolso de ${RosaFiestaEngine.formatDop(approved.refundAmountDop)} aprobado para ${approved.clientName}."
+        }
+        return approved
+    }
+
+    public fun selectSupplierForEdit(supplierId: String?) {
+        _editingSupplierId.value = supplierId?.trim()?.takeIf { id -> id.isNotEmpty() }
+    }
+
+    public fun editSupplier(
+        supplierId: String,
+        name: String,
+        category: String,
+        phone: String,
+        contactName: String = "",
+        email: String = "",
+        website: String = "",
+        notes: String = "",
+    ): Boolean {
+        val updated = repository.updateSupplier(
+            supplierId = supplierId,
+            name = name,
+            category = category,
+            contactName = contactName,
+            phone = phone,
+            email = email,
+            website = website,
+            notes = notes,
+        ) ?: return false
+        _suppliersList.update { list ->
+            list.map { sup ->
+                if (sup.id == supplierId) {
+                    sup.copy(
+                        name = updated.name,
+                        category = updated.category,
+                        phone = updated.phone,
+                        statusLabel = notes.ifBlank { sup.statusLabel },
+                    )
+                } else {
+                    sup
+                }
+            }
+        }
+        val snapshot = _suppliersList.value
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_SUPPLIERS, serializeSuppliersForStorage(snapshot))
+        }
+        soundPlayer.playPaymentSuccess()
+        _formFeedback.value = "Proveedor '${updated.name}' actualizado."
+        return true
+    }
+
+    public fun removeSupplier(supplierId: String): Boolean {
+        val deleted = repository.deleteSupplier(supplierId)
+        if (!deleted) return false
+        _suppliersList.update { list -> list.filterNot { item -> item.id == supplierId } }
+        val snapshot = _suppliersList.value
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_SUPPLIERS, serializeSuppliersForStorage(snapshot))
+        }
+        soundPlayer.playTap()
+        _formFeedback.value = "Proveedor eliminado del directorio."
+        return true
+    }
+
+    public fun deleteBotFaq(faqId: String): Boolean {
+        val removed = repository.deleteBotFaq(faqId)
+        if (removed) {
+            soundPlayer.playTap()
+            _formFeedback.value = "Pregunta frecuente eliminada."
+        }
+        return removed
+    }
+
+    public fun deleteBotKeyword(keywordId: String): Boolean {
+        val removed = repository.deleteBotKeyword(keywordId)
+        if (removed) {
+            soundPlayer.playTap()
+            _formFeedback.value = "Palabra clave eliminada."
+        }
+        return removed
+    }
+
+    public fun deleteStaffMemberById(staffId: String): Boolean {
+        val removed = repository.deleteStaffMember(staffId)
+        if (removed) {
+            soundPlayer.playTap()
+            _formFeedback.value = "Integrante eliminado del equipo."
+        }
+        return removed
+    }
+
+    public fun deletePackageById(packageId: String): Boolean {
+        val removed = repository.deletePackage(packageId)
+        if (removed) {
+            soundPlayer.playTap()
+            _formFeedback.value = "Paquete eliminado del catálogo."
+        }
+        return removed
+    }
+
+    public fun downloadContractPdf(quoteId: String) {
+        securityScope.launch {
+            val result = repository.downloadQuoteContractPdf(quoteId)
+            result.onSuccess { pdfBytes ->
+                val filename = "contrato-${quoteId.trim()}.pdf"
+                val savedPath = platformActions.saveDocument(filename, "application/pdf", pdfBytes)
+                val shared = platformActions.shareContent(
+                    title = "Contrato RosaFiesta",
+                    text = "Contrato de cotización $quoteId",
+                    fileName = filename,
+                    fileBytes = pdfBytes,
+                    mimeType = "application/pdf",
+                )
+                if (savedPath != null) {
+                    _formFeedback.value = "Contrato PDF descargado: $filename"
+                } else if (shared) {
+                    _formFeedback.value = "Contrato PDF compartido: $filename"
+                } else {
+                    _formFeedback.value = "Contrato PDF listo ($filename)."
+                }
+                soundPlayer.playPaymentSuccess()
+            }.onFailure { error ->
+                postError(error.message ?: "No se pudo descargar el contrato PDF.")
+            }
+        }
+    }
+
+    private fun findBestArticleMatch(
+        catalog: List<CatalogArticle>,
+        description: String,
+    ): CatalogArticle? {
+        val cleanDesc = description.trim().lowercase()
+        val tokens = cleanDesc.split(" ", "-", "/").filter { tok -> tok.length >= 4 && !tok.all { ch -> ch.isDigit() } }
+        val byExactNameOrToken = catalog.firstOrNull { candidate ->
+            val nameLower = candidate.name.lowercase()
+            val codeLower = candidate.code.lowercase()
+            val matchesCode = codeLower.length >= 3 && cleanDesc.contains(codeLower)
+            if (matchesCode) {
+                true
+            } else {
+                tokens.any { token -> nameLower.contains(token) }
+            }
+        }
+        if (byExactNameOrToken != null) return byExactNameOrToken
+        return catalog.firstOrNull { candidate ->
+            when {
+                cleanDesc.contains("silla") -> candidate.name.contains("silla", ignoreCase = true) || candidate.id == "art-silla-tiffany"
+                cleanDesc.contains("redonda") -> candidate.name.contains("redonda", ignoreCase = true) || candidate.id == "art-mesa-redonda"
+                cleanDesc.contains("rectangular") -> candidate.name.contains("rectangular", ignoreCase = true) || candidate.id == "art-mesa-plegable"
+                cleanDesc.contains("centro") -> candidate.name.contains("centro", ignoreCase = true) || candidate.id == "art-centro-floral"
+                cleanDesc.contains("arco") -> candidate.name.contains("arco", ignoreCase = true) || candidate.id == "art-arco-rosa"
+                else -> false
+            }
+        }
+    }
+
+    private fun sumDraftQtyMatching(
+        quantities: Map<String, Int>,
+        catalog: List<CatalogArticle>,
+        nameKeyword: String,
+        fallbackCode: String,
+        fallbackId: String,
+    ): Int {
+        var sum = 0
+        for (article in catalog) {
+            val qty = quantities[article.id] ?: 0
+            if (qty <= 0) continue
+            val isMatch = article.name.contains(nameKeyword, ignoreCase = true) ||
+                article.code.equals(fallbackCode, ignoreCase = true) ||
+                article.id == fallbackId
+            if (isMatch) {
+                sum += qty
+            }
+        }
+        return sum
     }
 
     private companion object {

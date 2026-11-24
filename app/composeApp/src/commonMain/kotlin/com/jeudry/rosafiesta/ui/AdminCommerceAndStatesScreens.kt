@@ -114,6 +114,7 @@ import com.jeudry.rosafiesta.domain.NotificationRecord
 import com.jeudry.rosafiesta.domain.OfflineQueueItem
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
+import com.jeudry.rosafiesta.domain.RefundApprovalOptions
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReviewRecord
 import com.jeudry.rosafiesta.domain.validation.InputValidator
@@ -992,6 +993,17 @@ internal fun RenderAdminManualEventA05(
         if (firstError == null) {
             localValidationError = null
             viewModel?.clearFormError()
+            viewModel?.setEventTypeInput(selectedType)
+            val combinedNotes = buildString {
+                if (timeText.isNotBlank()) {
+                    append("Hora: ${timeText.trim()}")
+                }
+                if (notesText.isNotBlank()) {
+                    if (isNotEmpty()) append(" · ")
+                    append(notesText.trim())
+                }
+            }
+            viewModel?.setEventNotesInput(combinedNotes)
             onSelectScreenCode(targetCode)
         } else {
             localValidationError = firstError
@@ -2359,6 +2371,17 @@ internal fun RenderAdminEventSummaryA07(
                                         discountDop = 0,
                                     )
                                 }
+                                if (notifyWhatsApp) {
+                                    val matchedPhone = clientsList.firstOrNull { clientItem ->
+                                        clientItem.fullName.equals(rawClient.trim(), ignoreCase = true)
+                                    }?.phone.orEmpty()
+                                    if (matchedPhone.isNotBlank()) {
+                                        viewModel?.openWhatsAppChat(
+                                            rawPhone = matchedPhone,
+                                            message = "Hola ${rawClient.ifBlank { clientName }}, tu cotización de '${rawTitle.ifBlank { draftTitle }}' está lista en RosaFiesta.",
+                                        )
+                                    }
+                                }
                                 onSelectScreenCode("A11")
                             } else {
                                 localSubmitError = viewModel.formError.value ?: "Completa todos los datos obligatorios del evento en el Paso 1."
@@ -2458,6 +2481,7 @@ private fun avatarPaletteForName(contactName: String): Pair<Color, Color> {
 internal fun RenderAdminChatsA14(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     var searchQuery by remember { mutableStateOf("") }
@@ -2505,41 +2529,44 @@ internal fun RenderAdminChatsA14(
         "CLIENTS" to "Clientes · $clientThreadsCount",
     )
 
+    val adminChatsTopPadding = if (includeHeader) 16.dp else 6.dp
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
+                .padding(top = adminChatsTopPadding, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = true)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("BACK:A01") },
-                    contentAlignment = Alignment.Center,
+            if (includeHeader) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
-                }
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = true)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFECECF5), CircleShape)
+                            .clickable { onSelectScreenCode("BACK:A01") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
+                    }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = "Chats",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
-                    )
-                    BasicText(
-                        text = "$totalUnreadMessages sin leer",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            text = "Chats",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+                        )
+                        BasicText(
+                            text = "$totalUnreadMessages sin leer",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                        )
+                    }
                 }
             }
 
@@ -3311,6 +3338,9 @@ internal fun RenderAdminChatConversationA15(
                             .clickable {
                                 viewModel?.pickMediaAttachment(listOf("jpg", "jpeg", "png", "pdf")) { pickedFile ->
                                     pendingAttachmentName = pickedFile.fileName
+                                    viewModel.uploadAndAttachMedia("chat", pickedFile) { uploadedUrl ->
+                                        pendingAttachmentName = "${pickedFile.fileName} · $uploadedUrl"
+                                    }
                                 }
                             },
                         contentAlignment = Alignment.Center,
@@ -3446,6 +3476,7 @@ private fun quoteBadgeAppearance(status: String): Triple<String, Color, Color> =
 internal fun RenderAdminQuotesA22(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     var selectedFilterKey by remember { mutableStateOf("ALL") }
@@ -3473,41 +3504,44 @@ internal fun RenderAdminQuotesA22(
         "EXPIRED" to "Vencidas · $expiredQuotesCount",
     )
 
+    val adminQuotesTopPadding = if (includeHeader) 16.dp else 6.dp
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
+                .padding(top = adminQuotesTopPadding, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = true)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("BACK:A12") },
-                    contentAlignment = Alignment.Center,
+            if (includeHeader) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
-                }
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = true)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFECECF5), CircleShape)
+                            .clickable { onSelectScreenCode("BACK:A12") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
+                    }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = "Cotizaciones",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
-                    )
-                    BasicText(
-                        text = "$totalQuotesCount registradas",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            text = "Cotizaciones",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+                        )
+                        BasicText(
+                            text = "$totalQuotesCount registradas",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                        )
+                    }
                 }
             }
 
@@ -4166,6 +4200,9 @@ internal fun RenderAdminEntryChoiceA30(
                             val isAdminOrStaff = viewModel.isCurrentSessionAdminOrStaff()
                             val canEnterImmediately = bothTrue(hasSession, isAdminOrStaff)
                             if (canEnterImmediately) {
+                                if (rememberChoice) {
+                                    viewModel.switchRole(viewModel.activeRole.value)
+                                }
                                 onSelectScreenCode("A01")
                             } else {
                                 viewModel.clearFormError()
@@ -5336,6 +5373,7 @@ internal fun RenderAdminSettingsA31(
     var addressValue by remember(settings.address) { mutableStateOf(settings.address) }
     var businessHoursValue by remember(settings.businessHours) { mutableStateOf(settings.businessHours) }
     var depositPercent by remember(settings.depositPercent) { mutableStateOf(settings.depositPercent.coerceIn(10, 90)) }
+    var itbisPercent by remember(settings.itbisPercent) { mutableStateOf(settings.itbisPercent.coerceIn(0, 30)) }
     var draftZones by remember(settings.zones) {
         mutableStateOf(settings.zones.ifEmpty { defaultDeliveryZones() })
     }
@@ -5529,7 +5567,7 @@ internal fun RenderAdminSettingsA31(
                                     val sectionSubtitle = when (section) {
                                         AdminSettingsSection.BUSINESS_DATA -> businessName.ifBlank { section.fallbackSubtitle }
                                         AdminSettingsSection.DELIVERY_ZONES -> "$activeZonesCount zonas activas"
-                                        AdminSettingsSection.RESERVATIONS_DEPOSIT -> "Anticipo actual: $depositPercent%"
+                                        AdminSettingsSection.RESERVATIONS_DEPOSIT -> "Anticipo $depositPercent% · ITBIS $itbisPercent%"
                                         AdminSettingsSection.AUDIO -> section.fallbackSubtitle
                                         AdminSettingsSection.SECURITY_PREFS -> section.fallbackSubtitle
                                     }
@@ -5896,6 +5934,53 @@ internal fun RenderAdminSettingsA31(
                                     }
                                 }
                             }
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F0F6)))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                BasicText(
+                                    text = "Tasa ITBIS aplicable",
+                                    modifier = Modifier.weight(1f),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF151729)),
+                                )
+                                Row(
+                                    modifier = Modifier
+                                        .height(34.dp)
+                                        .clip(AdminPillShape)
+                                        .background(Color(0xFFF2F2F8))
+                                        .padding(horizontal = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .clickable { itbisPercent = (itbisPercent - 1).coerceAtLeast(0) },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        RfIcon(kind = RfIconKind.MINUS, tint = Color(0xFF5B6CF0), size = 14.dp)
+                                    }
+                                    BasicText(
+                                        text = "$itbisPercent%",
+                                        modifier = Modifier.widthIn(min = 38.dp),
+                                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, color = Color(0xFF151729)),
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .clickable { itbisPercent = (itbisPercent + 1).coerceAtMost(30) },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        RfIcon(kind = RfIconKind.PLUS, tint = Color(0xFF5B6CF0), size = 14.dp)
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -5949,6 +6034,23 @@ internal fun RenderAdminSettingsA31(
                                 checked = adminWifiOnlySync,
                                 onToggle = { viewModel?.toggleAutoSyncWifiOnly() },
                             )
+                            if (adminBiometricEnabled) {
+                                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFF0F0F6)))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { viewModel.onAppBackgrounded() }
+                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    BasicText(
+                                        text = "Bloquear sesión ahora",
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5B6CF0)),
+                                    )
+                                    RfIcon(kind = RfIconKind.SHIELD, tint = Color(0xFF5B6CF0), size = 18.dp)
+                                }
+                            }
                         }
                     }
                 }
@@ -6007,6 +6109,7 @@ internal fun RenderAdminSettingsA31(
                                     email = emailValue.trim(),
                                     businessHours = businessHoursValue.trim(),
                                     depositPercent = depositPercent.coerceIn(10, 90),
+                                    itbisPercent = itbisPercent.coerceIn(0, 30),
                                     zones = draftZones,
                                 )
                                 val savedOk = viewModel?.saveBusinessConfig(updatedSettings) ?: true
@@ -6313,6 +6416,7 @@ private fun isRefundProcessed(status: String): Boolean {
 internal fun RenderAdminCancellationsA32(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     var selectedFilterKey by remember { mutableStateOf("ALL") }
@@ -6337,41 +6441,44 @@ internal fun RenderAdminCancellationsA32(
         "REFUNDED" to "Reembolsadas · $reimbursedCount",
     )
 
+    val adminCancellationsTopPadding = if (includeHeader) 16.dp else 6.dp
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = RfDimens.BottomBarContentClearance),
+                .padding(top = adminCancellationsTopPadding, start = 20.dp, end = 20.dp, bottom = RfDimens.BottomBarContentClearance),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = true)
-                        .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, Color(0xFFECECF5), CircleShape)
-                        .clickable { onSelectScreenCode("BACK:A12") },
-                    contentAlignment = Alignment.Center,
+            if (includeHeader) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
-                }
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = true)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, Color(0xFFECECF5), CircleShape)
+                            .clickable { onSelectScreenCode("BACK:A12") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF151729), size = 22.dp)
+                    }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = "Cancelaciones",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
-                    )
-                    BasicText(
-                        text = "$pendingCount solicitudes por aprobar",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            text = "Cancelaciones",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)),
+                        )
+                        BasicText(
+                            text = "$pendingCount solicitudes por aprobar",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                        )
+                    }
                 }
             }
 
@@ -6936,7 +7043,14 @@ internal fun RenderAdminRefundA33(
                                     isRequired = notifyClientWhatsApp,
                                 )
                                 if (messageValidation == null) {
-                                    viewModel?.approveSelectedRefund()
+                                    viewModel?.approveSelectedRefundWithOptions(
+                                        RefundApprovalOptions(
+                                            method = refundMethod,
+                                            releaseInventory = releaseArticles,
+                                            notifyWhatsApp = notifyClientWhatsApp,
+                                            clientMessage = clientMessage.trim(),
+                                        ),
+                                    )
                                     onSelectScreenCode("A32")
                                 }
                             } else {
@@ -7325,6 +7439,8 @@ internal fun RenderAdminReplyReviewA34(
                             if (replyValidation != null) {
                                 localReplyError = replyValidation
                                 viewModel?.postError(replyValidation)
+                            } else if (!publishAndVerify) {
+                                localReplyError = "Activa «Publicar y verificar la reseña» para enviar la respuesta."
                             } else {
                                 val trimmedReply = replyText.trim()
                                 val publishedOk = viewModel?.replyToSelectedReview(trimmedReply) ?: true

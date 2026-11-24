@@ -99,6 +99,7 @@ import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.CatalogArticle
 import com.jeudry.rosafiesta.domain.ClientEvent
 import com.jeudry.rosafiesta.domain.ClientProfile
+import com.jeudry.rosafiesta.domain.DomainClockFormatter
 import com.jeudry.rosafiesta.domain.EventStatus
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
 import com.jeudry.rosafiesta.domain.LeadRecord
@@ -119,8 +120,8 @@ private fun AnimatedCenteredDialogHost(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = 0.94f),
-        exit = fadeOut(tween(140)) + scaleOut(tween(140), targetScale = 0.94f),
+        enter = fadeIn(tween(160)),
+        exit = fadeOut(tween(120)),
         modifier = Modifier
             .fillMaxSize()
             .zIndex(10f),
@@ -231,6 +232,7 @@ private fun photoAssetToRfPhotoKey(photoAsset: PhotoAsset): RfPhotoKey = when (p
 internal fun RenderAboutScreenS16(
     onSelectScreenCode: (String) -> Unit = {},
     viewModel: RosaFiestaViewModel? = null,
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
@@ -239,6 +241,7 @@ internal fun RenderAboutScreenS16(
     val uiReviews = viewModel?.companyReviews?.collectAsState()?.value.orEmpty()
     val eventsList = viewModel?.events?.collectAsState()?.value ?: CanonicalSampleData.events
     val feedbackText = viewModel?.formFeedback?.collectAsState()?.value
+    val errorText = viewModel?.formError?.collectAsState()?.value
 
     val mergedReviews = remember(domainReviews, uiReviews) {
         mergeCompanyAndDomainReviews(domainReviews, uiReviews)
@@ -258,8 +261,8 @@ internal fun RenderAboutScreenS16(
             .ifBlank { "rosafiesta.do" }
     }
 
-    Box(
-        modifier = Modifier
+    val aboutBackdropModifier = if (includeHeader) {
+        Modifier
             .fillMaxSize()
             .background(palette.bg)
             .drawBehind {
@@ -279,7 +282,12 @@ internal fun RenderAboutScreenS16(
                         ),
                     )
                 }
-            },
+            }
+    } else {
+        Modifier.fillMaxSize()
+    }
+    Box(
+        modifier = aboutBackdropModifier,
     ) {
         Column(
             modifier = Modifier
@@ -288,36 +296,40 @@ internal fun RenderAboutScreenS16(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Spacer(modifier = Modifier.height(36.dp))
+            if (includeHeader) {
+                Spacer(modifier = Modifier.height(36.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape)
-                        .clip(CircleShape)
-                        .background(palette.surface)
-                        .border(1.dp, palette.line, CircleShape)
-                        .clickable { onSelectScreenCode("BACK:s14") },
-                    contentAlignment = Alignment.Center,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
-                }
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape)
+                            .clip(CircleShape)
+                            .background(palette.surface)
+                            .border(1.dp, palette.line, CircleShape)
+                            .clickable { onSelectScreenCode("BACK:s14") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                    }
 
-                BasicText(
-                    text = "Acerca de",
-                    style = TextStyle(
-                        fontFamily = typo.displayFamily,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp,
-                        letterSpacing = (-0.4).sp,
-                        color = palette.ink,
-                    ),
-                )
+                    BasicText(
+                        text = "Acerca de",
+                        style = TextStyle(
+                            fontFamily = typo.displayFamily,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 20.sp,
+                            letterSpacing = (-0.4).sp,
+                            color = palette.ink,
+                        ),
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(6.dp))
             }
 
             if (!feedbackText.isNullOrBlank()) {
@@ -339,6 +351,29 @@ internal fun RenderAboutScreenS16(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF3F560C)),
+                    )
+                }
+            }
+
+            if (!errorText.isNullOrBlank()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFFFFF4E5))
+                        .border(1.dp, Color(0xFFF5C98B), RoundedCornerShape(14.dp))
+                        .clickable { viewModel.clearFormError() }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    RfIcon(kind = RfIconKind.INFO, tint = Color(0xFF9A5B00), size = 16.dp)
+                    BasicText(
+                        text = errorText,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        style = typo.body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF7A4700)),
                     )
                 }
             }
@@ -506,10 +541,12 @@ internal fun RenderAboutScreenS16(
                         modifier = Modifier.padding(start = 18.dp, top = 12.dp, bottom = 4.dp),
                     )
 
+                    val cleanPhone = settings.phone.trim()
+                    val hasPhone = cleanPhone.isNotEmpty()
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel?.dialPhoneNumber(settings.phone) }
+                            .clickable(enabled = hasPhone) { viewModel?.dialPhoneNumber(cleanPhone) }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -530,34 +567,43 @@ internal fun RenderAboutScreenS16(
                         Column(modifier = Modifier.weight(1f)) {
                             BasicText("Teléfono", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.ink))
                             BasicText(
-                                text = settings.phone,
+                                text = cleanPhone.ifEmpty { "Por configurar" },
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
                             )
                         }
-                        Box(
-                            modifier = Modifier
-                                .height(38.dp)
-                                .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66865DEC), ambientColor = Color.Transparent)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                                .clickable { viewModel?.dialPhoneNumber(settings.phone) }
-                                .padding(horizontal = 14.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText("Llamar", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                        if (hasPhone) {
+                            Box(
+                                modifier = Modifier
+                                    .height(38.dp)
+                                    .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x66865DEC), ambientColor = Color.Transparent)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
+                                    .clickable { viewModel?.dialPhoneNumber(cleanPhone) }
+                                    .padding(horizontal = 14.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText("Llamar", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White))
+                            }
                         }
                     }
 
                     Box(Modifier.fillMaxWidth().height(1.dp).background(palette.lineSoft))
 
+                    val cleanWhatsapp = settings.whatsapp.trim()
+                    val hasWhatsapp = cleanWhatsapp.isNotEmpty()
+                    val whatsappSubtitle = if (hasWhatsapp) {
+                        "Escríbele a María · $cleanWhatsapp"
+                    } else {
+                        "Por configurar"
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .clickable(enabled = hasWhatsapp) {
                                 viewModel?.openWhatsAppChat(
-                                    rawPhone = settings.whatsapp,
+                                    rawPhone = cleanWhatsapp,
                                     message = "Hola RosaFiesta, quisiera cotizar un evento",
                                 )
                             }
@@ -581,21 +627,29 @@ internal fun RenderAboutScreenS16(
                         Column(modifier = Modifier.weight(1f)) {
                             BasicText("WhatsApp", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.ink))
                             BasicText(
-                                text = "Escríbele a María · ${settings.whatsapp}",
+                                text = whatsappSubtitle,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
                             )
                         }
-                        CustomSvgIcon(
-                            pathData = "M9 18l6-6-6-6",
-                            size = 20.dp,
-                            tint = palette.muted,
-                        )
+                        if (hasWhatsapp) {
+                            CustomSvgIcon(
+                                pathData = "M9 18l6-6-6-6",
+                                size = 20.dp,
+                                tint = palette.muted,
+                            )
+                        }
                     }
 
                     Box(Modifier.fillMaxWidth().height(1.dp).background(palette.lineSoft))
 
+                    val cleanEmail = settings.email.trim()
+                    val instagramSubtitle = if (cleanEmail.isNotEmpty()) {
+                        "@$instagramHandle · $cleanEmail"
+                    } else {
+                        "@$instagramHandle"
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -622,7 +676,7 @@ internal fun RenderAboutScreenS16(
                         Column(modifier = Modifier.weight(1f)) {
                             BasicText("Instagram", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.ink))
                             BasicText(
-                                text = "@$instagramHandle · ${settings.email}",
+                                text = instagramSubtitle,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
@@ -673,6 +727,9 @@ internal fun RenderAboutScreenS16(
                 }
             }
 
+            val cleanAddress = settings.address.trim()
+            val cleanRnc = settings.rnc.trim()
+            val hasBusinessAddress = cleanAddress.isNotEmpty()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -686,7 +743,7 @@ internal fun RenderAboutScreenS16(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(96.dp)
-                            .clickable { viewModel?.openMapsSearch(settings.address) },
+                            .clickable(enabled = hasBusinessAddress) { viewModel?.openMapsSearch(cleanAddress) },
                     )
 
                     Row(
@@ -701,29 +758,48 @@ internal fun RenderAboutScreenS16(
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             BasicText(
-                                text = settings.address,
+                                text = cleanAddress.ifEmpty { "Dirección física por configurar" },
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
-                                style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.ink),
+                                style = typo.body.copy(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (hasBusinessAddress) palette.ink else palette.muted,
+                                ),
                             )
-                            BasicText(
-                                text = "RNC ${settings.rnc}",
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = typo.body.copy(fontSize = 12.5.sp, color = palette.muted),
-                            )
+                            if (cleanRnc.isNotEmpty()) {
+                                BasicText(
+                                    text = "RNC $cleanRnc",
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = typo.body.copy(fontSize = 12.5.sp, color = palette.muted),
+                                )
+                            }
                         }
-                        Box(
-                            modifier = Modifier
-                                .height(38.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(palette.surface)
-                                .border(1.dp, palette.line, RoundedCornerShape(999.dp))
-                                .clickable { viewModel?.openMapsSearch(settings.address) }
-                                .padding(horizontal = 14.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            BasicText("Cómo llegar", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.ink))
+                        if (hasBusinessAddress) {
+                            Box(
+                                modifier = Modifier
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(palette.surface)
+                                    .border(1.dp, palette.line, RoundedCornerShape(999.dp))
+                                    .clickable { viewModel?.openMapsSearch(cleanAddress) }
+                                    .padding(horizontal = 14.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText("Cómo llegar", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = palette.ink))
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .height(34.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(palette.chipBg)
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                BasicText("Pendiente", style = typo.body.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = palette.muted))
+                            }
                         }
                     }
                 }
@@ -3124,9 +3200,10 @@ internal fun RenderInventoryCalendarS63(
         articlesList.firstOrNull { articleItem -> articleItem.id == resolvedArticleId } ?: articlesList.first()
     }
 
-    var calendarYear by remember { mutableStateOf(2026) }
-    var calendarMonthOneBased by remember { mutableStateOf(10) }
-    var selectedDay63 by remember { mutableStateOf(20) }
+    val (initialCalYear, initialCalMonth, initialCalDay) = remember { DomainClockFormatter.currentCivilDateTriple() }
+    var calendarYear by remember { mutableStateOf(initialCalYear) }
+    var calendarMonthOneBased by remember { mutableStateOf(initialCalMonth) }
+    var selectedDay63 by remember { mutableStateOf(initialCalDay) }
 
     val daysInMonth = remember(calendarYear, calendarMonthOneBased) {
         computeDaysInGregorianMonth(calendarYear, calendarMonthOneBased)
@@ -4455,23 +4532,23 @@ internal fun RenderReportsIncomeS67(
     val rawCategorizedSum = realRentalShareDop + realDecorShareDop + realExtraServicesDop
     val hasCategorizedLines = rawCategorizedSum > 0
     val totalCategorizedDop = rawCategorizedSum.coerceAtLeast(1)
-    val rentalShareDop = if (hasCategorizedLines) realRentalShareDop else (periodRevenueDop * 63) / 100
-    val decorShareDop = if (hasCategorizedLines) realDecorShareDop else (periodRevenueDop * 27) / 100
-    val extraServicesDop = if (hasCategorizedLines) realExtraServicesDop else (periodRevenueDop - rentalShareDop - decorShareDop).coerceAtLeast(0)
+    val rentalShareDop = if (hasCategorizedLines) realRentalShareDop else 0
+    val decorShareDop = if (hasCategorizedLines) realDecorShareDop else 0
+    val extraServicesDop = if (hasCategorizedLines) realExtraServicesDop else 0
     val rentalFraction = if (hasCategorizedLines) {
         (realRentalShareDop.toFloat() / totalCategorizedDop.toFloat()).coerceIn(0f, 1f)
     } else {
-        0.63f
+        0f
     }
     val decorFraction = if (hasCategorizedLines) {
         (realDecorShareDop.toFloat() / totalCategorizedDop.toFloat()).coerceIn(0f, 1f)
     } else {
-        0.27f
+        0f
     }
     val extraFraction = if (hasCategorizedLines) {
         (realExtraServicesDop.toFloat() / totalCategorizedDop.toFloat()).coerceIn(0f, 1f)
     } else {
-        0.10f
+        0f
     }
 
     val monthLabelsForPeriod = when (periodIndex) {
@@ -5163,36 +5240,32 @@ internal fun RenderReportsInventoryS70(
     val baseReservedUnits = remember(articlesList) {
         articlesList.sumOf { articleItem -> (articleItem.totalStock - articleItem.availableOct23).coerceAtLeast(0) }
     }
-    val activeReservedUnits = when (periodIndex) {
-        0 -> ((baseReservedUnits * 75) / 100).coerceIn(0, totalUnitsInWarehouse)
-        1 -> baseReservedUnits.coerceIn(0, totalUnitsInWarehouse)
-        else -> ((baseReservedUnits * 115) / 100).coerceIn(0, totalUnitsInWarehouse)
+    val activeReservedUnits = remember(articlesList, totalUnitsInWarehouse) {
+        articlesList.sumOf { articleItem -> (articleItem.totalStock - articleItem.availableOct23).coerceAtLeast(0) }
+            .coerceIn(0, totalUnitsInWarehouse)
     }
-    val rawUtilizationRatio = (activeReservedUnits.toFloat() / totalUnitsInWarehouse.toFloat()).coerceIn(0f, 1f)
-    val metricsBaselineRatio = (metricsSnapshot.occupancyRatePercent.toFloat() / 200f).coerceIn(0f, 0.5f)
-    val utilizationRatio = rawUtilizationRatio.coerceAtLeast(metricsBaselineRatio)
+    val utilizationRatio = if (articlesList.isEmpty()) {
+        0f
+    } else {
+        (activeReservedUnits.toFloat() / totalUnitsInWarehouse.toFloat()).coerceIn(0f, 1f)
+    }
     val utilizationPercent = (utilizationRatio * 100f).roundToInt()
 
     val lowStockSkusCount = articlesList.count { articleItem ->
         articleItem.availableOct23 <= (articleItem.totalStock / 2)
     }
-    val maintenanceSkusCount = articlesList.count { articleItem -> !articleItem.visibleInCatalog } + 1
+    val maintenanceSkusCount = articlesList.count { articleItem -> !articleItem.visibleInCatalog }
 
-    val categoryBreakdown = remember(articlesList, periodIndex) {
+    val categoryBreakdown = remember(articlesList) {
         articlesList
             .groupBy { articleItem -> articleItem.category }
             .entries
             .mapIndexed { categoryIndex, groupEntry ->
                 val catTotal = groupEntry.value.sumOf { articleItem -> articleItem.totalStock }.coerceAtLeast(1)
                 val catReserved = groupEntry.value.sumOf { articleItem -> (articleItem.totalStock - articleItem.availableOct23).coerceAtLeast(0) }
-                val rawRatio = (catReserved.toFloat() / catTotal.toFloat()).coerceIn(0.15f, 1f)
-                val adjustedRatio = when (periodIndex) {
-                    0 -> (rawRatio * 0.85f).coerceIn(0.1f, 1f)
-                    2 -> (rawRatio * 1.1f).coerceIn(0.15f, 1f)
-                    else -> rawRatio
-                }
+                val rawRatio = (catReserved.toFloat() / catTotal.toFloat()).coerceIn(0f, 1f)
                 val alphaStep = (1f - (categoryIndex * 0.14f)).coerceIn(0.42f, 1f)
-                Triple(groupEntry.key, adjustedRatio, alphaStep)
+                Triple(groupEntry.key, rawRatio, alphaStep)
             }
     }
 
@@ -5912,6 +5985,11 @@ internal fun RenderBotQuestionsS72(
                         editingFaq = faqItem
                         showFaqModal = true
                     },
+                    onDeleteFaq = if (viewModel != null) {
+                        { viewModel.deleteBotFaq(faqItem.id) }
+                    } else {
+                        null
+                    },
                 )
             }
         }
@@ -6243,6 +6321,7 @@ private fun BotQuestionCard72(
     answer: String,
     enabled: Boolean,
     onEditFaq: () -> Unit,
+    onDeleteFaq: (() -> Unit)? = null,
 ) {
     val typo = LocalRfTypography.current
 
@@ -6261,14 +6340,28 @@ private fun BotQuestionCard72(
             BasicText(question, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
             BasicText(answer, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF5F6377)))
         }
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onEditFaq),
-            contentAlignment = Alignment.Center,
-        ) {
-            RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFF5F6377), size = 18.dp)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onEditFaq),
+                contentAlignment = Alignment.Center,
+            ) {
+                RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFF5F6377), size = 18.dp)
+            }
+            if (onDeleteFaq != null) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFFEEF1))
+                        .clickable(onClick = onDeleteFaq),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 15.dp)
+                }
+            }
         }
     }
 }
@@ -6356,17 +6449,31 @@ internal fun RenderBotKeywordsS73(
                                 style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, color = Color(0xFF5F6377)),
                             )
                         }
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .clickable {
-                                    editingRule = ruleItem
-                                    showRuleModal = true
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFF5F6377), size = 16.dp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        editingRule = ruleItem
+                                        showRuleModal = true
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                RfIcon(kind = RfIconKind.MORE_VERT, tint = Color(0xFF5F6377), size = 16.dp)
+                            }
+                            if (viewModel != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFFFEEF1))
+                                        .clickable { viewModel.deleteBotKeyword(ruleItem.id) },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB42345), size = 14.dp)
+                                }
+                            }
                         }
                     }
                 }
@@ -7493,7 +7600,20 @@ internal fun RenderClientsAnalyticsS62(
 
     val activeClient = remember(clientsList, selectedClientIdValue) {
         val matchedById = clientsList.firstOrNull { clientOption -> clientOption.id == selectedClientIdValue }
-        matchedById ?: viewModel?.selectedClient() ?: clientsList.firstOrNull() ?: CanonicalSampleData.clients.first()
+        matchedById ?: viewModel?.selectedClient() ?: clientsList.firstOrNull()
+    }
+    if (activeClient == null) {
+        RenderAdminEmptyFeatureState(
+            headerTitle = "Análisis de cliente",
+            emptyTitle = "Sin clientes registrados",
+            emptyMessage = "Cuando registres clientes o recibas reservas, aquí verás su historial y valor de vida.",
+            backTargetCode = "BACK:A26",
+            iconKind = RfIconKind.GUESTS,
+            onSelectScreenCode = onSelectScreenCode,
+            ctaLabel = "Ver clientes",
+            ctaTargetCode = "A26",
+        )
+        return
     }
 
     val clientEvents = remember(allEvents, activeClient) {

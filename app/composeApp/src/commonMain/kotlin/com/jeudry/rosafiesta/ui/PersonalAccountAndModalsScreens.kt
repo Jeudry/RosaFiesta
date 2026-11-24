@@ -109,6 +109,7 @@ private val RosaButtonGradient = Brush.horizontalGradient(
 internal fun RenderPersonalNotificationsS79(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val rawNotificationsList = viewModel?.notifications?.collectAsState()?.value
@@ -133,55 +134,74 @@ internal fun RenderPersonalNotificationsS79(
         matchesNotificationFilter79(notification, isRead, selectedFilterLabel)
     }
 
-    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+    val notificationsTopPadding = if (includeHeader) 16.dp else 6.dp
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 16.dp),
+                .padding(start = 20.dp, end = 20.dp, top = notificationsTopPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK:s14") },
-                    contentAlignment = Alignment.Center,
+            if (includeHeader) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
-                }
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.surface)
+                            .clickable { onSelectScreenCode("BACK:s14") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                    }
 
-                Column(modifier = Modifier.weight(1f)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            text = "Notificaciones",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = RfThemeState.currentPalette.ink),
+                        )
+                        BasicText(
+                            text = if (allMarkedRead) "Al día · 0 sin leer" else "$unreadCount sin leer",
+                            maxLines = 1,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                        )
+                    }
+
                     BasicText(
-                        text = "Notificaciones",
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = RfThemeState.currentPalette.ink),
-                    )
-                    BasicText(
-                        text = if (allMarkedRead) "Al día · 0 sin leer" else "$unreadCount sin leer",
-                        maxLines = 1,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = RfThemeState.currentPalette.muted),
+                        text = if (allMarkedRead) "Leídas" else "Marcar leídas",
+                        modifier = Modifier.clickable {
+                            locallyReadIds = notificationsList.map { notification -> notification.id }.toSet()
+                            notificationsList.forEach { notification ->
+                                viewModel?.markNotificationAsRead(notification.id)
+                            }
+                        },
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
                     )
                 }
-
-                BasicText(
-                    text = if (allMarkedRead) "Leídas" else "Marcar leídas",
-                    modifier = Modifier.clickable {
-                        locallyReadIds = notificationsList.map { notification -> notification.id }.toSet()
-                        notificationsList.forEach { notification ->
-                            viewModel?.markNotificationAsRead(notification.id)
-                        }
-                    },
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFC2338F)),
-                )
+            } else if (!allMarkedRead) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    BasicText(
+                        text = "Marcar todas como leídas",
+                        modifier = Modifier.clickable {
+                            locallyReadIds = notificationsList.map { notification -> notification.id }.toSet()
+                            notificationsList.forEach { notification ->
+                                viewModel?.markNotificationAsRead(notification.id)
+                            }
+                        },
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFFC2338F)),
+                    )
+                }
             }
 
             Row(
@@ -1001,6 +1021,7 @@ private fun SearchResultCard80(
 internal fun RenderPersonalPaymentsS82(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit = {},
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
@@ -1037,53 +1058,56 @@ internal fun RenderPersonalPaymentsS82(
     }
     val pendingEvents = userEvents.filter { eventItem -> eventItem.totalDop > eventItem.paidDepositDop }
 
-    RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
+    val paymentsTopPadding = if (includeHeader) 16.dp else 6.dp
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 16.dp),
+                .padding(start = 20.dp, end = 20.dp, top = paymentsTopPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(palette.surface)
-                        .clickable { onSelectScreenCode("BACK:s14") },
-                    contentAlignment = Alignment.Center,
+            if (includeHeader) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicText(
-                        text = "Mis pagos",
-                        style = TextStyle(
-                            fontFamily = typo.displayFamily,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 20.sp,
-                            lineHeight = 22.sp,
-                            letterSpacing = (-0.4).sp,
-                            color = palette.ink,
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    BasicText(
-                        text = "Pagos y recibos de tus eventos (${userEvents.size})",
-                        style = TextStyle(
-                            fontFamily = typo.bodyFamily,
-                            fontSize = 13.sp,
-                            color = palette.muted,
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(palette.surface)
+                            .clickable { onSelectScreenCode("BACK:s14") },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        BasicText(
+                            text = "Mis pagos",
+                            style = TextStyle(
+                                fontFamily = typo.displayFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 20.sp,
+                                lineHeight = 22.sp,
+                                letterSpacing = (-0.4).sp,
+                                color = palette.ink,
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        BasicText(
+                            text = "Pagos y recibos de tus eventos (${userEvents.size})",
+                            style = TextStyle(
+                                fontFamily = typo.bodyFamily,
+                                fontSize = 13.sp,
+                                color = palette.muted,
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
 
@@ -2777,6 +2801,9 @@ internal fun RenderTermsS87(
     val legalEntityName = "RosaFiesta SRL ($commercialBrand)"
     val rncNumber = businessSettings?.rnc ?: "1-31-84920-2"
     val companyAddress = businessSettings?.address ?: "Av. Winston Churchill 1099, Piantini, Santo Domingo"
+    val depositPercent = (businessSettings?.depositPercent ?: 30).coerceIn(10, 90)
+    val itbisPercent = (businessSettings?.itbisPercent ?: 18).coerceAtLeast(0)
+    val freeChangeHours = 48
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -2863,11 +2890,11 @@ internal fun RenderTermsS87(
                         )
                         TermsSection87(
                             title = "2. Anticipos, impuestos y liquidación de saldo",
-                            body = "Para formalizar la reserva se requiere un anticipo del 30 % del monto cotizado (ITBIS del 18 % incluido según normativa de la DGII). El saldo restante debe liquidarse al menos 24 horas antes del inicio del montaje.",
+                            body = "Para formalizar la reserva se requiere un anticipo del $depositPercent % del monto cotizado (ITBIS del $itbisPercent % incluido según normativa de la DGII). El saldo restante debe liquidarse al menos 24 horas antes del inicio del montaje.",
                         )
                         TermsSection87(
                             title = "3. Reprogramación y reembolsos escalonados",
-                            body = "El primer cambio de fecha solicitado con más de 48 horas de antelación no genera recargo, sujeto a disponibilidad. En caso de cancelación, el reembolso sobre el anticipo pagado aplica así: 90 % con más de 7 días de anticipación, 50 % entre 3 y 7 días, y sin reembolso con menos de 3 días.",
+                            body = "El primer cambio de fecha solicitado con más de $freeChangeHours horas de antelación no genera recargo, sujeto a disponibilidad. En caso de cancelación, el reembolso sobre el anticipo pagado aplica así: 90 % con más de 7 días de anticipación, 50 % entre 3 y 7 días, y sin reembolso con menos de 3 días.",
                         )
                         TermsSection87(
                             title = "4. Entrega, custodia y reposición de piezas",
@@ -5278,7 +5305,19 @@ internal fun RenderChangeDateModalS84(
     val monthShort = spanishMonthShort84(displayedMonth)
     val weekdayShort = spanishWeekdayShort84(displayedYear, displayedMonth, selectedDayInt)
     val formattedSelection = "$weekdayShort $selectedDayInt $monthShort $displayedYear · $selectedTimeSlot"
-    val selectedDaysUntil = DomainClockFormatter.computeDaysUntilEvent("$selectedDayInt $monthShort $displayedYear")
+    val selectedDateLabel = "$selectedDayInt $monthShort $displayedYear"
+    val selectedDaysUntil = DomainClockFormatter.computeDaysUntilEvent(selectedDateLabel)
+    val dateAvailabilityWarning = viewModel?.dateAvailabilityWarning?.collectAsState()?.value
+    LaunchedEffect(viewModel, activeEvent?.id, selectedDateLabel, selectedDaysUntil) {
+        if (viewModel != null) {
+            if (selectedDaysUntil >= 2) {
+                viewModel.checkDraftAvailabilityForDate(
+                    dateText = selectedDateLabel,
+                    excludeEventId = activeEvent?.id.orEmpty(),
+                )
+            }
+        }
+    }
     val sheetInteractionSource = remember { MutableInteractionSource() }
     val rootModifier = if (renderOriginBackdrop) {
         Modifier.fillMaxSize().background(RfThemeState.currentPalette.bg)
@@ -5465,7 +5504,8 @@ internal fun RenderChangeDateModalS84(
                                             val isBlockedDay = if (isPastDate) true else isTooSoon
                                             val isToday = daysUntilDay == 0
                                             val isSelected = dayNumber == selectedDayInt
-                                            val hasLowStockDot = dayNumber.mod(7) == 0
+                                            val hasDateConflict = !dateAvailabilityWarning.isNullOrBlank()
+                                            val hasLowStockDot = if (isSelected) hasDateConflict else false
 
                                             Box(
                                                 modifier = Modifier
@@ -5586,12 +5626,19 @@ internal fun RenderChangeDateModalS84(
                     }
                 }
 
-                val bannerText = feedbackBannerMessage ?: if (selectedDaysUntil >= 2) {
-                    "Tus $itemCountTotal artículos están disponibles para $formattedSelection. Tu primer cambio de fecha es gratis."
-                } else {
-                    "Selecciona una fecha con al menos 48 horas de anticipación para solicitar el cambio."
+                val hasAvailabilityConflict = !dateAvailabilityWarning.isNullOrBlank()
+                val bannerText = feedbackBannerMessage ?: when {
+                    selectedDaysUntil < 2 ->
+                        "Selecciona una fecha con al menos 48 horas de anticipación para solicitar el cambio."
+
+                    hasAvailabilityConflict ->
+                        dateAvailabilityWarning.orEmpty()
+
+                    else ->
+                        "Tus $itemCountTotal artículos están disponibles para $formattedSelection. Tu primer cambio de fecha es gratis."
                 }
-                val showErrorStyle = if (isFeedbackError) true else selectedDaysUntil < 2
+                val isErrorStyle = if (isFeedbackError) true else selectedDaysUntil < 2
+                val showErrorStyle = if (isErrorStyle) true else hasAvailabilityConflict
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

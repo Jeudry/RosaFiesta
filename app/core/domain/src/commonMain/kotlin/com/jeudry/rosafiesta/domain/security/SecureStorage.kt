@@ -23,6 +23,7 @@ public interface SecureStorage {
         public const val KEY_ACCESS_TOKEN: String = "rf_access_token"
         public const val KEY_REFRESH_TOKEN: String = "rf_refresh_token"
         public const val KEY_SESSION_METADATA: String = "rf_session_metadata"
+        public const val KEY_PENDING_OAUTH_PKCE: String = "rf_pending_oauth_pkce"
         public const val KEY_ACTIVE_VIEW: String = "rf_active_view"
         public const val KEY_USER_ROLE: String = "rf_user_role"
         public const val KEY_DARK_THEME: String = "rf_dark_theme"

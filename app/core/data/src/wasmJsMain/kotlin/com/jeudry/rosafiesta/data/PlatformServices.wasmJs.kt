@@ -2,6 +2,7 @@
 
 package com.jeudry.rosafiesta.data
 
+import com.jeudry.rosafiesta.domain.platform.ExternalOAuthCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
 import com.jeudry.rosafiesta.domain.platform.OAuthBrowserOutcome
@@ -107,13 +108,74 @@ private external fun jsPlayWebAudioChime(
 private external fun jsIsWebSpeechSupported(): Boolean
 
 @JsFun(
-    """(onTranscript, onError, onEnded) => {
+    """(onTranscript, onAmplitude, onError, onEnded) => {
+        const stopMeter = () => {
+            try {
+                if (window.__rfAudioMeterTimer) {
+                    window.clearInterval(window.__rfAudioMeterTimer);
+                    window.__rfAudioMeterTimer = 0;
+                }
+                const activeStream = window.__rfAudioStream;
+                if (activeStream) {
+                    if (activeStream.getTracks) {
+                        activeStream.getTracks().forEach((track) => {
+                            try { track.stop(); } catch (trackErr) {}
+                        });
+                    }
+                }
+                window.__rfAudioStream = null;
+                if (window.__rfAudioSource) {
+                    try { window.__rfAudioSource.disconnect(); } catch (srcErr) {}
+                    window.__rfAudioSource = null;
+                }
+            } catch (meterErr) {}
+        };
+        window.__rfStopAudioMeter = stopMeter;
+        const startMeter = () => {
+            try {
+                if (!navigator.mediaDevices) return;
+                if (!navigator.mediaDevices.getUserMedia) return;
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                    if (!window.__rfSpeechRec) {
+                        stream.getTracks().forEach((track) => track.stop());
+                        return;
+                    }
+                    window.__rfAudioStream = stream;
+                    const ctx = window.__rfAudioContext || new AudioCtx();
+                    window.__rfAudioContext = ctx;
+                    const source = ctx.createMediaStreamSource(stream);
+                    const analyser = ctx.createAnalyser();
+                    analyser.fftSize = 256;
+                    source.connect(analyser);
+                    window.__rfAudioSource = source;
+                    const bins = new Uint8Array(analyser.frequencyBinCount);
+                    window.__rfAudioMeterTimer = window.setInterval(() => {
+                        if (!window.__rfSpeechRec) {
+                            stopMeter();
+                            return;
+                        }
+                        analyser.getByteTimeDomainData(bins);
+                        let sumSquares = 0.0;
+                        for (let idx = 0; idx < bins.length; idx += 1) {
+                            const centered = (bins[idx] - 128) / 128.0;
+                            sumSquares += centered * centered;
+                        }
+                        const rms = Math.sqrt(sumSquares / Math.max(1, bins.length));
+                        const normalized = Math.min(1.0, Math.max(0.05, rms * 3.5));
+                        onAmplitude(normalized);
+                    }, 80);
+                }).catch(() => {});
+            } catch (err) {}
+        };
         try {
             const SpeechCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechCtor) {
                 onError('Web Speech API is not supported in this browser.');
                 return false;
             }
+            stopMeter();
             if (window.__rfSpeechRec) {
                 try { window.__rfSpeechRec.abort(); } catch (err) {}
             }
@@ -140,15 +202,21 @@ private external fun jsIsWebSpeechSupported(): Boolean
                 }
             };
             rec.onerror = (event) => {
+                stopMeter();
+                window.__rfSpeechRec = null;
                 onError(event && event.error ? String(event.error) : 'speech-recognition-error');
             };
             rec.onend = () => {
+                stopMeter();
+                window.__rfSpeechRec = null;
                 onEnded();
             };
             window.__rfSpeechRec = rec;
             rec.start();
+            startMeter();
             return true;
         } catch (err) {
+            stopMeter();
             onError(err && err.message ? String(err.message) : 'speech-start-failed');
             return false;
         }
@@ -156,6 +224,7 @@ private external fun jsIsWebSpeechSupported(): Boolean
 )
 private external fun jsStartWebSpeechRecognition(
     onTranscript: (String, Boolean) -> Unit,
+    onAmplitude: (Double) -> Unit,
     onError: (String) -> Unit,
     onEnded: () -> Unit,
 ): Boolean
@@ -167,6 +236,11 @@ private external fun jsStartWebSpeechRecognition(
             if (hasActiveSpeech) {
                 window.__rfSpeechRec.stop();
                 window.__rfSpeechRec = null;
+            }
+            if (typeof window !== 'undefined') {
+                if (typeof window.__rfStopAudioMeter === 'function') {
+                    window.__rfStopAudioMeter();
+                }
             }
         } catch (err) {}
     }""",
@@ -291,6 +365,52 @@ private external fun jsLaunchOAuthPopup(
 
 @JsFun(
     """(promptTitle, onDone) => {
+        const CRED_STORAGE_KEY = 'rosafiesta.webauthn.credId';
+        const toBase64Url = (buf) => {
+            const bytes = new Uint8Array(buf);
+            let bin = '';
+            for (let i = 0; i < bytes.length; i += 1) {
+                bin += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+        };
+        const fromBase64Url = (b64) => {
+            const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+            const raw = window.atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+            const out = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; i += 1) {
+                out[i] = raw.charCodeAt(i);
+            }
+            return out;
+        };
+        const registerNewPasskey = () => {
+            const challenge = new Uint8Array(32);
+            crypto.getRandomValues(challenge);
+            const userId = new Uint8Array(16);
+            crypto.getRandomValues(userId);
+            navigator.credentials.create({
+                publicKey: {
+                    challenge: challenge,
+                    rp: { name: 'RosaFiesta' },
+                    user: { id: userId, name: 'owner@rosafiesta.do', displayName: promptTitle || 'RosaFiesta' },
+                    pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+                    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+                    timeout: 30000
+                }
+            }).then((cred) => {
+                try {
+                    const credId = cred ? cred.rawId : null;
+                    if (credId) {
+                        if (window.localStorage) {
+                            window.localStorage.setItem(CRED_STORAGE_KEY, toBase64Url(credId));
+                        }
+                    }
+                } catch (storeErr) {}
+                onDone(true, '');
+            }).catch(() => {
+                onDone(false, 'DEVICE_AUTH_CANCELLED');
+            });
+        };
         try {
             if (typeof window === 'undefined' || !window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) {
                 onDone(false, 'DEVICE_AUTH_UNAVAILABLE');
@@ -302,24 +422,34 @@ private external fun jsLaunchOAuthPopup(
                         onDone(false, 'DEVICE_AUTH_UNAVAILABLE');
                         return;
                     }
-                    const challenge = new Uint8Array(32);
-                    crypto.getRandomValues(challenge);
-                    const userId = new Uint8Array(16);
-                    crypto.getRandomValues(userId);
-                    navigator.credentials.create({
-                        publicKey: {
-                            challenge: challenge,
-                            rp: { name: 'RosaFiesta' },
-                            user: { id: userId, name: 'owner@rosafiesta.do', displayName: promptTitle || 'RosaFiesta' },
-                            pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
-                            authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
-                            timeout: 30000
-                        }
-                    }).then(() => {
-                        onDone(true, '');
-                    }).catch(() => {
-                        onDone(false, 'DEVICE_AUTH_CANCELLED');
-                    });
+                    let storedCredId = '';
+                    try {
+                        storedCredId = window.localStorage ? (window.localStorage.getItem(CRED_STORAGE_KEY) || '') : '';
+                    } catch (readErr) {}
+                    if (storedCredId.length > 0) {
+                        const challenge = new Uint8Array(32);
+                        crypto.getRandomValues(challenge);
+                        navigator.credentials.get({
+                            publicKey: {
+                                challenge: challenge,
+                                allowCredentials: [{ id: fromBase64Url(storedCredId), type: 'public-key' }],
+                                userVerification: 'required',
+                                timeout: 30000
+                            }
+                        }).then(() => {
+                            onDone(true, '');
+                        }).catch((err) => {
+                            const errName = err && err.name ? String(err.name) : '';
+                            const shouldReRegister = errName === 'InvalidStateError' || errName === 'NotFoundError';
+                            if (shouldReRegister) {
+                                registerNewPasskey();
+                            } else {
+                                onDone(false, 'DEVICE_AUTH_CANCELLED');
+                            }
+                        });
+                    } else {
+                        registerNewPasskey();
+                    }
                 })
                 .catch(() => onDone(false, 'DEVICE_AUTH_UNAVAILABLE'));
         } catch (err) {
@@ -330,6 +460,24 @@ private external fun jsLaunchOAuthPopup(
 private external fun jsAuthenticateWebAuthnDeviceOwner(
     promptTitle: String,
     onDone: (Boolean, String) -> Unit,
+)
+
+@JsFun(
+    """(onRecovered) => {
+        try {
+            if (typeof window === 'undefined') return;
+            if (!window.sessionStorage) return;
+            const raw = window.sessionStorage.getItem('rosafiesta_pending_oauth');
+            if (!raw) return;
+            window.sessionStorage.removeItem('rosafiesta_pending_oauth');
+            const parsed = JSON.parse(raw);
+            if (!parsed) return;
+            onRecovered(String(parsed.code || ''), String(parsed.state || ''), String(parsed.error || ''));
+        } catch (err) {}
+    }""",
+)
+private external fun jsConsumePendingOAuthCallback(
+    onRecovered: (String, String, String) -> Unit,
 )
 
 @JsFun(
@@ -642,10 +790,15 @@ internal class WasmVoiceInputMonitor : VoiceInputMonitor {
             onTranscript = { text, isFinal ->
                 _recognizedTranscript.value = text
                 _isTranscribing.value = !isFinal
-                _amplitudeLevel.value = if (isFinal) 0f else 0.55f
                 if (isFinal) {
+                    _amplitudeLevel.value = 0f
                     _isListening.value = false
                     onTranscriptResult(text)
+                }
+            },
+            onAmplitude = { rmsLevel ->
+                if (_isListening.value) {
+                    _amplitudeLevel.value = rmsLevel.toFloat().coerceIn(0f, 1f)
                 }
             },
             onError = { errorCode ->
@@ -683,6 +836,20 @@ internal class WasmPlatformActions : PlatformActions {
                 eventId = eventId,
                 cancelled = cancelled,
             )
+        }
+        val redirectUri = jsCurrentBrowserOAuthRedirectUri()
+        jsConsumePendingOAuthCallback { code, state, errorCode ->
+            val hasPayload = if (code.isNotEmpty()) true else errorCode.isNotEmpty()
+            if (hasPayload) {
+                ExternalOAuthCallbackBridge.dispatchOAuthReturn(
+                    OAuthBrowserOutcome(
+                        code = code.ifEmpty { null },
+                        state = state.ifEmpty { null },
+                        redirectUri = redirectUri,
+                        errorCode = errorCode.ifEmpty { null },
+                    ),
+                )
+            }
         }
     }
 

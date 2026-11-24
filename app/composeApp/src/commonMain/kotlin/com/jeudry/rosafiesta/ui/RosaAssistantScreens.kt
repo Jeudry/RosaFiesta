@@ -527,6 +527,12 @@ internal fun RenderMyEventDraftS25(
     val allBalloons: List<BalloonProduct> = viewModel?.balloonProducts?.collectAsState()?.value ?: CanonicalSampleData.balloonProducts
     val draftDiscountDop = viewModel?.draftDiscountDop?.collectAsState()?.value ?: 0
     val formError = viewModel?.formError?.collectAsState()?.value
+    val draftEventTitle = viewModel?.clientEventTitleInput?.collectAsState()?.value.orEmpty()
+    val draftEventType = viewModel?.eventTypeInput?.collectAsState()?.value.orEmpty()
+    val draftEventDate = viewModel?.eventDateInput?.collectAsState()?.value.orEmpty()
+    val draftEventVenue = viewModel?.eventVenueInput?.collectAsState()?.value.orEmpty()
+    val draftEventGuests = viewModel?.eventGuestsInput?.collectAsState()?.value.orEmpty()
+    val hasConfiguredDraft = viewModel?.hasConfiguredEventDraft() == true
 
     val rawLineItems: List<EventLineItem> = remember(draftQuantities, allArticles, allBalloons, viewModel) {
         viewModel?.draftLineItems() ?: emptyList()
@@ -650,11 +656,73 @@ internal fun RenderMyEventDraftS25(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
+            if (hasConfiguredDraft) {
+                val resolvedCardTitle = draftEventTitle.ifBlank { draftEventType.ifBlank { "Tu evento" } }
+                val formattedDate = formatReadableSpanishDateText(draftEventDate)
+                val guestsFragment = if (draftEventGuests.isNotBlank()) " · $draftEventGuests inv." else ""
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(RfThemeState.currentPalette.surface)
+                        .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
+                        .clickable {
+                            viewModel.startEventDraftSetup(returnScreenCode = "s25")
+                            onSelectScreenCode("s38")
+                        }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFFDE6F2)),
+                    ) {
+                        RfIcon(kind = RfIconKind.PARTY, tint = Color(0xFFC2338F), size = 20.dp)
+                    }
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        BasicText(
+                            text = resolvedCardTitle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink),
+                        )
+                        BasicText(
+                            text = "$formattedDate · $draftEventVenue$guestsFragment",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = RfThemeState.currentPalette.muted),
+                        )
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .height(30.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFFF3EBFF))
+                            .padding(horizontal = 10.dp),
+                    ) {
+                        BasicText(
+                            text = "Editar",
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7A4FD8)),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+            }
+
             if (resolvedRows.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 40.dp),
+                        .padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -663,13 +731,29 @@ internal fun RenderMyEventDraftS25(
                     ) {
                         RfIcon(kind = RfIconKind.ORDERS, tint = Color(0xFFC2338F), size = 48.dp)
                         BasicText(
-                            text = "Tu carrito de evento está vacío",
-                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink),
+                            text = if (hasConfiguredDraft) "Ahora agrega artículos a tu evento" else "Tu carrito de evento está vacío",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink, textAlign = TextAlign.Center),
                         )
                         BasicText(
                             text = "Explora el catálogo o la tienda de globos para armar tu cotización",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = RfThemeState.currentPalette.muted, textAlign = TextAlign.Center),
                         )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .height(46.dp)
+                                .rfPrimaryButtonShadow(RoundedCornerShape(14.dp), isAdmin = false)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(RosaButtonGradient)
+                                .clickable { onSelectScreenCode("s18") }
+                                .padding(horizontal = 22.dp),
+                        ) {
+                            BasicText(
+                                text = "Explorar catálogo",
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White),
+                            )
+                        }
                     }
                 }
             } else {
@@ -876,16 +960,25 @@ internal fun RenderMyEventDraftS25(
                         .background(RosaButtonGradient)
                         .clickable {
                             if (resolvedRows.isEmpty()) {
-                                viewModel?.postError("Agrega al menos un artículo al carrito para continuar con los detalles.")
+                                onSelectScreenCode("s18")
+                            } else if (hasConfiguredDraft) {
+                                viewModel.clearFormError()
+                                onSelectScreenCode("s32")
                             } else {
                                 viewModel?.clearFormError()
-                                onSelectScreenCode("s31")
+                                viewModel?.startEventDraftSetup(returnScreenCode = "s32")
+                                onSelectScreenCode("s38")
                             }
                         },
                     contentAlignment = Alignment.Center,
                 ) {
+                    val primaryCtaLabel = when {
+                        resolvedRows.isEmpty() -> "Explorar catálogo"
+                        hasConfiguredDraft -> "Revisar y solicitar cotización"
+                        else -> "Configurar datos del evento"
+                    }
                     BasicText(
-                        text = "Continuar con detalles",
+                        text = primaryCtaLabel,
                         style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White),
                     )
                 }
@@ -1348,14 +1441,32 @@ private fun parseRosaNaturalLanguagePrompt(rawText: String): ParsedRosaPrompt {
     val rawNumber = numberMatch?.groupValues?.getOrNull(1)?.toIntOrNull()
     val isGuestRange = if (rawNumber != null) rawNumber in 15..500 else false
     val detectedGuests = if (isGuestRange) rawNumber else null
-    val detectedDate = when {
-        lower.contains("14") -> "Sábado 14 de noviembre"
-        lower.contains("21") -> "Sábado 21 de noviembre"
-        lower.contains("30") -> "Viernes 30 de octubre"
-        lower.contains("7 nov") -> "Sábado 7 de noviembre"
-        lower.contains("diciembre") -> "Viernes 4 de diciembre"
-        lower.contains("noviembre") -> "Sábado 14 de noviembre"
-        else -> null
+    val explicitDateMatch = Regex(
+        "\\b(\\d{1,2})\\s*(?:de\\s+)?(enero|ene|febrero|feb|marzo|mar|abril|abr|mayo|may|junio|jun|julio|jul|agosto|ago|septiembre|sep|octubre|oct|noviembre|nov|diciembre|dic)\\b",
+    ).find(lower)
+    val detectedDate = if (explicitDateMatch != null) {
+        val dayNum = explicitDateMatch.groupValues[1].toIntOrNull() ?: 0
+        val monthToken = explicitDateMatch.groupValues[2]
+        val maxDayInMonth = when {
+            monthToken.startsWith("feb") -> 29
+            monthToken.startsWith("abr") -> 30
+            monthToken.startsWith("jun") -> 30
+            monthToken.startsWith("sep") -> 30
+            monthToken.startsWith("nov") -> 30
+            else -> 31
+        }
+        if (dayNum in 1..maxDayInMonth) {
+            "$dayNum de $monthToken"
+        } else {
+            null
+        }
+    } else {
+        when {
+            lower.contains("diciembre") -> "4 de diciembre"
+            lower.contains("noviembre") -> "14 de noviembre"
+            lower.contains("octubre") -> "23 de octubre"
+            else -> null
+        }
     }
     val detectedVenue = when {
         lower.contains("botánico") -> "Jardín Botánico"
@@ -5347,7 +5458,7 @@ internal fun RenderRosaDetailsS31(
 }
 
 @Composable
-private fun GuestStepperButtons(
+internal fun GuestStepperButtons(
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
 ) {
@@ -5551,7 +5662,7 @@ internal fun RenderRosaSummaryS32(
             RosaWizardHeader(
                 screenCode = "s32",
                 viewModel = viewModel,
-                onBack = { onSelectScreenCode("BACK:s31") },
+                onBack = { onSelectScreenCode("BACK:s25") },
                 onCart = { onSelectScreenCode("s25") },
             )
 
@@ -5593,6 +5704,10 @@ internal fun RenderRosaSummaryS32(
                         .padding(vertical = 4.dp),
                 ) {
                     Column {
+                        val openDraftStepEditor: () -> Unit = {
+                            viewModel?.startEventDraftSetup(returnScreenCode = "s32")
+                            onSelectScreenCode("s38")
+                        }
                         RosaSummaryDetailRow(
                             iconKind = RfIconKind.EDIT,
                             iconBg = Color(0xFFEFE8FD),
@@ -5600,7 +5715,7 @@ internal fun RenderRosaSummaryS32(
                             label = "Título",
                             valueText = resolvedTitle,
                             showChevron = true,
-                            onClick = { onSelectScreenCode("s31") },
+                            onClick = openDraftStepEditor,
                         )
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                         RosaSummaryDetailRow(
@@ -5610,7 +5725,7 @@ internal fun RenderRosaSummaryS32(
                             label = "Evento",
                             valueText = eventType,
                             showChevron = true,
-                            onClick = { onSelectScreenCode("s31") },
+                            onClick = openDraftStepEditor,
                         )
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                         RosaSummaryDetailRow(
@@ -5621,7 +5736,7 @@ internal fun RenderRosaSummaryS32(
                             valueText = eventDate,
                             pendingLabel = "Por definir",
                             showChevron = true,
-                            onClick = { onSelectScreenCode("s31") },
+                            onClick = openDraftStepEditor,
                         )
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                         RosaSummaryDetailRow(
@@ -5632,7 +5747,7 @@ internal fun RenderRosaSummaryS32(
                             valueText = eventVenue,
                             pendingLabel = "Por definir",
                             showChevron = true,
-                            onClick = { onSelectScreenCode("s31") },
+                            onClick = openDraftStepEditor,
                         )
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                         RosaSummaryDetailRow(
@@ -5644,7 +5759,7 @@ internal fun RenderRosaSummaryS32(
                             pendingLabel = "Opcional · Definir",
                             isOptional = true,
                             showChevron = true,
-                            onClick = { onSelectScreenCode("s31") },
+                            onClick = openDraftStepEditor,
                         )
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.lineSoft))
                         RosaSummaryDetailRow(
@@ -6456,8 +6571,20 @@ internal fun RenderRosaChatS34(
                             else -> ""
                         }
                         if (combinedPrompt.isNotEmpty()) {
+                            val currentPickedFile = pickedAttachment
                             applyNaturalLanguageEventPrompt(combinedPrompt, viewModel)
-                            viewModel?.sendConversationalRosaPrompt(combinedPrompt)
+                            val activeViewModel = viewModel
+                            if (activeViewModel != null) {
+                                if (currentPickedFile != null) {
+                                    activeViewModel.uploadAndAttachMedia("chat", currentPickedFile) { uploadedUrl ->
+                                        val promptWithAttachment = "$combinedPrompt [$uploadedUrl]"
+                                        activeViewModel.sendConversationalRosaPrompt(promptWithAttachment)
+                                        activeViewModel.clearPickedAttachment()
+                                    }
+                                } else {
+                                    activeViewModel.sendConversationalRosaPrompt(combinedPrompt)
+                                }
+                            }
                         }
                         onSelectScreenCode("s29")
                     }
@@ -8234,6 +8361,7 @@ internal fun RenderRosaSketchS36(
     var nextElementSerial by remember { mutableStateOf(100) }
     var selectedElementId by remember { mutableStateOf<String?>(null) }
     var chairCapacityWarning by remember { mutableStateOf<String?>(null) }
+    var sketchFallbackNotice by remember { mutableStateOf<String?>(null) }
 
     val selectedElement = remember(canvasElements, selectedElementId) {
         val activeId = selectedElementId ?: return@remember null
@@ -8411,6 +8539,23 @@ internal fun RenderRosaSketchS36(
                         BasicText(
                             text = "Ayúdame con IA",
                             style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White),
+                        )
+                    }
+                }
+
+                val visibleCanvasNotice = chairCapacityWarning ?: sketchFallbackNotice
+                if (!visibleCanvasNotice.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFFFF4DA))
+                            .border(1.dp, Color(0xFFE5B84B), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                    ) {
+                        BasicText(
+                            text = visibleCanvasNotice,
+                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF7A5700)),
                         )
                     }
                 }
@@ -8751,7 +8896,14 @@ internal fun RenderRosaSketchS36(
                                         ) { proposal ->
                                             isGeneratingAiSketch = false
                                             val serverElements = if (proposal != null) mapProposalElementsToCanvas(proposal) else emptyList()
-                                            val resolvedLayout = serverElements.ifEmpty { buildAiBalancedSketchLayout(vmRosaGuests) }
+                                            val usedFallback = serverElements.isEmpty()
+                                            val resolvedLayout = if (usedFallback) {
+                                                sketchFallbackNotice = "IA remota no disponible · Se generó un plano local sugerido para $vmRosaGuests invitados."
+                                                buildAiBalancedSketchLayout(vmRosaGuests)
+                                            } else {
+                                                sketchFallbackNotice = null
+                                                serverElements
+                                            }
                                             commitElementsMutation(resolvedLayout)
                                             syncSketchElementsIdempotently(resolvedLayout, viewModel)
                                             showAiShapeNoticeModal = false
@@ -9382,7 +9534,18 @@ internal fun RenderAdminRosaA08(
     viewModel: RosaFiestaViewModel? = null,
 ) {
     val typo = LocalRfTypography.current
-    val clientCycle = remember { listOf("Camila Rodríguez", "Laura Peña", "Eventos Corporativos SD") }
+    val vmClients = viewModel?.clients?.collectAsState()?.value.orEmpty()
+    val vmArticles = viewModel?.articles?.collectAsState()?.value.orEmpty()
+    val clientCycle = remember(vmClients) {
+        val dynamicNames = vmClients.map { client -> client.fullName }.filter { name -> name.isNotBlank() }
+        if (dynamicNames.isNotEmpty()) {
+            dynamicNames
+        } else if (viewModel == null) {
+            listOf("Camila Rodríguez", "Laura Peña", "Eventos Corporativos SD")
+        } else {
+            emptyList()
+        }
+    }
     val dateCycle = remember {
         listOf(
             "Sáb 14 nov" to "14 de noviembre",
@@ -9425,14 +9588,18 @@ internal fun RenderAdminRosaA08(
     val currentLongDate = dateCycle[dateCycleIndex % dateCycle.size].second
     val chairCount = guestCount
     val tableCount = (guestCount / 10).coerceAtLeast(1)
-    val baseEstimateDop = chairCount * 8 + tableCount * 20 + 95
+    val chairUnitDop = vmArticles.firstOrNull { art -> art.id == "art-silla-tiffany" }?.pricePerDayDop ?: 8
+    val tableUnitDop = vmArticles.firstOrNull { art -> art.id == "art-mesa-redonda" }?.pricePerDayDop ?: 20
+    val archUnitDop = vmArticles.firstOrNull { art -> art.id == "art-arco-rosa" }?.pricePerDayDop ?: 95
+    val dessertUnitDop = vmArticles.firstOrNull { art -> art.id == "art-mesa-helados" }?.pricePerDayDop ?: 150
+    val baseEstimateDop = chairCount * chairUnitDop + tableCount * tableUnitDop + archUnitDop
     val lightingSurcharge = if (includeLighting) 180 else 0
-    val dessertSurcharge = if (includeDessertStation) 150 else 0
+    val dessertSurcharge = if (includeDessertStation) dessertUnitDop else 0
     val totalEstimateDop = baseEstimateDop + lightingSurcharge + dessertSurcharge
     val formattedEstimate = formatDopCurrency(totalEstimateDop)
 
     val syncDraftToViewModel = {
-        val targetClient = assignedClient ?: "Camila Rodríguez"
+        val targetClient = assignedClient ?: clientCycle.firstOrNull() ?: "Cliente por asignar"
         viewModel?.setEventTypeInput(eventTypeTitle)
         viewModel?.setEventDateInput(currentShortDate)
         viewModel?.setEventVenueInput("Jardín Los Rosales")
@@ -9469,14 +9636,22 @@ internal fun RenderAdminRosaA08(
                     lower.contains("camila") -> "Camila Rodríguez"
 
                     else -> {
-                        val cycled = clientCycle[clientCycleIndex % clientCycle.size]
-                        clientCycleIndex += 1
-                        cycled
+                        if (clientCycle.isNotEmpty()) {
+                            val cycled = clientCycle[clientCycleIndex % clientCycle.size]
+                            clientCycleIndex += 1
+                            cycled
+                        } else {
+                            ""
+                        }
                     }
                 }
-                assignedClient = chosenClient
-                viewModel?.setNewEventClient(chosenClient)
-                replySegments.add("Asigné el borrador a $chosenClient y vinculé su historial.")
+                if (chosenClient.isNotBlank()) {
+                    assignedClient = chosenClient
+                    viewModel?.setNewEventClient(chosenClient)
+                    replySegments.add("Asigné el borrador a $chosenClient y vinculé su historial.")
+                } else {
+                    replySegments.add("No hay clientes registrados aún para asignar. Registra uno en A26 primero.")
+                }
             }
 
             val parsedNumber = Regex("\\b(\\d{2,3})\\b").find(lower)?.groupValues?.getOrNull(1)?.toIntOrNull()
@@ -9545,8 +9720,8 @@ internal fun RenderAdminRosaA08(
             val updatedChairs = guestCount
             val updatedTables = (guestCount / 10).coerceAtLeast(1)
             val updatedLightingAdd = if (includeLighting) 180 else 0
-            val updatedDessertAdd = if (includeDessertStation) 150 else 0
-            val updatedTotal = updatedChairs * 8 + updatedTables * 20 + 95 + updatedLightingAdd + updatedDessertAdd
+            val updatedDessertAdd = if (includeDessertStation) dessertUnitDop else 0
+            val updatedTotal = updatedChairs * chairUnitDop + updatedTables * tableUnitDop + archUnitDop + updatedLightingAdd + updatedDessertAdd
             val replyText = if (replySegments.isNotEmpty()) {
                 "${replySegments.joinToString(" ")} Nuevo estimado: ${formatDopCurrency(updatedTotal)}."
             } else {

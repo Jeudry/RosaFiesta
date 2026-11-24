@@ -13,8 +13,10 @@ import com.jeudry.rosafiesta.PersonalApp
 import com.jeudry.rosafiesta.data.dispatchAndroidIncomingUri
 import com.jeudry.rosafiesta.data.initAndroidDriverContext
 import com.jeudry.rosafiesta.data.readAndroidPickedUri
+import com.jeudry.rosafiesta.data.registerAndroidAudioPermissionRequester
 import com.jeudry.rosafiesta.data.registerAndroidDeviceAuthBridge
 import com.jeudry.rosafiesta.data.registerAndroidMediaPickerBridge
+import com.jeudry.rosafiesta.domain.platform.AppLifecycleBridge
 import com.jeudry.rosafiesta.domain.platform.ExternalUrlBuilder
 import com.jeudry.rosafiesta.domain.platform.PickedMediaFile
 import kotlin.coroutines.Continuation
@@ -45,6 +47,12 @@ class MainActivity : ComponentActivity() {
                 credentialLauncher.launch(intent)
             },
         )
+        registerAndroidAudioPermissionRequester {
+            val isGranted = checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+            if (!isGranted) {
+                requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 4003)
+            }
+        }
         val documentLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { selectedUri ->
             val continuation = pendingMediaContinuation
             pendingMediaContinuation = null
@@ -83,7 +91,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) {
+            AppLifecycleBridge.dispatchAppBackgrounded()
+        }
+    }
+
     override fun onDestroy() {
+        registerAndroidAudioPermissionRequester(null)
         registerAndroidMediaPickerBridge(null)
         registerAndroidDeviceAuthBridge(null, null)
         super.onDestroy()

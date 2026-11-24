@@ -978,6 +978,11 @@ public data class UserPreferencesDto(
     public val emailReceiptsEnabled: Boolean = true,
     public val biometricLockEnabled: Boolean = false,
     public val autoSyncWifiOnly: Boolean = false,
+    public val eventRemindersEnabled: Boolean = true,
+    public val preferredLanguage: String = "es",
+    public val darkThemeEnabled: Boolean = false,
+    public val savedPaymentMethod: String = "Transferencia",
+    public val profileZone: String = "Distrito Nacional",
 )
 
 @Serializable
@@ -987,6 +992,11 @@ public data class UpdatePreferencesInputDto(
     public val emailReceiptsEnabled: Boolean? = null,
     public val biometricLockEnabled: Boolean? = null,
     public val autoSyncWifiOnly: Boolean? = null,
+    public val eventRemindersEnabled: Boolean? = null,
+    public val preferredLanguage: String? = null,
+    public val darkThemeEnabled: Boolean? = null,
+    public val savedPaymentMethod: String? = null,
+    public val profileZone: String? = null,
 )
 
 @Serializable
@@ -1086,4 +1096,81 @@ public data class RosaSketchResponseDto(
     public val eventDepthMeters: Double = 10.0,
     public val provider: String = "",
     public val model: String = "",
+)
+
+@Serializable
+public data class FavoritesOutputDto(
+    public val favorites: List<String>? = null,
+)
+
+@Serializable
+public data class EventTaskDto(
+    public val id: String,
+    public val eventId: String,
+    public val title: String,
+    public val assigneeName: String = "",
+    public val done: Boolean = false,
+    public val createdAt: String = "",
+)
+
+@Serializable
+public data class EventTasksListOutputDto(
+    public val tasks: List<EventTaskDto>? = null,
+)
+
+@Serializable
+public data class EventTaskOutputDto(
+    public val task: EventTaskDto,
+)
+
+@Serializable
+public data class CreateEventTaskInputDto(
+    public val title: String,
+    public val assigneeName: String = "",
+    public val done: Boolean = false,
+)
+
+@Serializable
+public data class UpdateEventTaskInputDto(
+    public val title: String? = null,
+    public val assigneeName: String? = null,
+    public val done: Boolean? = null,
+)
+
+@Serializable
+public data class DeleteEntityOutputDto(
+    public val deleted: Boolean = false,
+    public val id: String = "",
+)
+
+@Serializable
+public data class DeletePackageOutputDto(
+    public val deletedId: String = "",
+)
+
+@Serializable
+public data class ApproveRefundInputDto(
+    public val approvedBy: String = "",
+    public val method: String = "",
+    public val releaseInventory: Boolean? = null,
+    public val notifyWhatsapp: Boolean? = null,
+    public val clientMessage: String = "",
+)
+
+@Serializable
+public data class CancelEventInputDto(
+    public val reason: String = "",
+)
+
+@Serializable
+public data class PatchSupplierInputDto(
+    public val name: String = "",
+    public val category: String = "",
+    public val specialty: String = "",
+    public val contactName: String = "",
+    public val phone: String = "",
+    public val email: String = "",
+    public val website: String = "",
+    public val rating: String = "",
+    public val notes: String = "",
 )

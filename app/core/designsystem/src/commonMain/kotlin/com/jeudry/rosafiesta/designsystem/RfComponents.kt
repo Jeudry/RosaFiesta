@@ -60,6 +60,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -112,179 +113,76 @@ public fun PersonalTabBar(
     dark: Boolean = LocalRfPalette.current.isDark,
     modifier: Modifier = Modifier,
 ) {
-    val typo = LocalRfTypography.current
     val tabs = if (guestMode) PersonalTab.guestTabs else PersonalTab.standardTabs
-    val barBg = if (dark) Color(0xFF161624) else Color(0xFFFFFFFF)
-    val barLine = if (dark) Color(0xFF2A2A40) else Color(0xFFF0EBF4)
+    val dockSurface = if (dark) Color(0xF2171728) else Color(0xF7FFFFFF)
+    val dockBorder = if (dark) Color(0xFF30304B) else Color(0xFFE9E2F5)
     val inactiveColor = if (dark) Color(0xFFA6A3BA) else Color(0xFF62627A)
-    val activePillBg = Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-    val activeLabelColor = Color(0xFFA956D3)
+    val activePillBrush = Brush.horizontalGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
     val rosaLabelColor = if (dark) Color(0xFFF2F0F8) else Color(0xFF1A1A2E)
+    val dockShadowSpot = if (dark) Color(0x88000000) else Color(0x3024163D)
+    val dockShadowAmbient = if (dark) Color(0x55000000) else Color(0x1624163D)
+    val dockShape = RoundedCornerShape(29.dp)
+    val floatingDockHeight = 58.dp
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(RfDimens.BottomBarHeight),
+            .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+            .height(floatingDockHeight + 26.dp),
     ) {
-        // Superficie principal de 76 dp con borde superior fino y sombra superior suave
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(barBg)
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, if (dark) Color(0x28000000) else Color(0x0E1A1A2E)),
-                            startY = -14f,
-                            endY = 0f,
-                        ),
-                        topLeft = Offset(0f, -14f),
-                        size = Size(size.width, 14f),
-                    )
-                    drawLine(
-                        color = barLine,
-                        start = Offset(0f, 0f),
-                        end = Offset(drawContext.size.width, 0f),
-                        strokeWidth = 1f,
-                    )
-                }
-                .padding(top = 8.dp, start = 8.dp, end = 8.dp),
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(floatingDockHeight)
+                .shadow(
+                    elevation = 14.dp,
+                    shape = dockShape,
+                    spotColor = dockShadowSpot,
+                    ambientColor = dockShadowAmbient,
+                )
+                .clip(dockShape)
+                .background(dockSurface)
+                .border(1.dp, dockBorder, dockShape)
+                .padding(horizontal = 5.dp, vertical = 5.dp),
         ) {
             Row(
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize(),
             ) {
                 tabs.forEach { tab ->
                     if (tab == PersonalTab.ROSA) {
                         Spacer(Modifier.weight(1f))
                     } else {
-                        val selected = tab == activeTab
-                        val pillProgress by animateFloatAsState(
-                            targetValue = if (selected) 1f else 0f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMediumLow,
-                            ),
-                            label = "personal-tab-pill-${tab.key}",
+                        FloatingDockTabItem(
+                            key = "personal-${tab.key}",
+                            label = tab.label,
+                            icon = tab.icon,
+                            selected = tab == activeTab,
+                            inactiveColor = inactiveColor,
+                            activePillBrush = activePillBrush,
+                            badgeCount = 0,
+                            onClick = { onSelectTab(tab) },
+                            modifier = Modifier.weight(1f),
                         )
-                        val iconTint by animateColorAsState(
-                            targetValue = if (selected) Color.White else inactiveColor,
-                            animationSpec = tween(durationMillis = 220),
-                            label = "personal-tab-icon-${tab.key}",
-                        )
-                        val labelColor by animateColorAsState(
-                            targetValue = if (selected) activeLabelColor else inactiveColor,
-                            animationSpec = tween(durationMillis = 220),
-                            label = "personal-tab-label-${tab.key}",
-                        )
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
-                                .rfTactileClickable(pressedScale = 0.92f) { onSelectTab(tab) },
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(width = 52.dp, height = 30.dp),
-                            ) {
-                                if (pillProgress > 0.01f) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                scaleX = 0.45f + (0.55f * pillProgress)
-                                                scaleY = 0.70f + (0.30f * pillProgress)
-                                                alpha = pillProgress.coerceIn(0f, 1f)
-                                            }
-                                            .clip(RoundedCornerShape(999.dp))
-                                            .background(activePillBg),
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier.graphicsLayer {
-                                        val iconScale = 1f + (0.08f * pillProgress)
-                                        scaleX = iconScale
-                                        scaleY = iconScale
-                                        translationY = -1.5f * pillProgress
-                                    },
-                                ) {
-                                    RfIcon(
-                                        kind = tab.icon,
-                                        tint = iconTint,
-                                        size = 22.dp,
-                                    )
-                                }
-                            }
-                            BasicText(
-                                text = tab.label,
-                                style = typo.caption.copy(
-                                    fontSize = 11.5.sp,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                                    color = labelColor,
-                                ),
-                                maxLines = 1,
-                            )
-                        }
                     }
                 }
             }
         }
 
-        // Botón central Rosa sobresaliendo 26 dp respecto al contenedor de ítems (-16 dp del borde superior)
-        val rosaSelected = activeTab == PersonalTab.ROSA
-        val rosaScale by animateFloatAsState(
-            targetValue = if (rosaSelected) 1.07f else 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMediumLow,
-            ),
-            label = "personal-rosa-scale",
-        )
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        FloatingRosaCenterAction(
+            selected = activeTab == PersonalTab.ROSA,
+            ringSurface = dockSurface,
+            labelColor = rosaLabelColor,
+            glowSpotColor = Color(0x7AE04FAF),
+            glowAmbientColor = Color(0x2AE04FAF),
+            forceAdminPalette = false,
+            animationLabel = "personal-rosa-scale",
+            onClick = { onSelectTab(PersonalTab.ROSA) },
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .wrapContentHeight(align = Alignment.Top, unbounded = true)
-                .offset(y = (-22).dp)
-                .graphicsLayer {
-                    scaleX = rosaScale
-                    scaleY = rosaScale
-                }
-                .rfTactileClickable(pressedScale = 0.92f) { onSelectTab(PersonalTab.ROSA) },
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(64.dp)
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = CircleShape,
-                        spotColor = Color(0x70E04FAF),
-                        ambientColor = Color(0x25E04FAF),
-                    )
-                    .clip(CircleShape)
-                    .background(barBg)
-                    .padding(4.dp),
-            ) {
-                RosaAvatar(
-                    size = RosaAvatarSize.TAB_CENTER,
-                    glow = rosaSelected,
-                    forceAdminPalette = false,
-                )
-            }
-            BasicText(
-                text = "Rosa",
-                style = typo.caption.copy(
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = rosaLabelColor,
-                ),
-                maxLines = 1,
-            )
-        }
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 7.dp),
+        )
     }
 }
 
@@ -328,191 +226,245 @@ public fun AdminTabBar(
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalRfPalette.current
-    val typo = LocalRfTypography.current
     val dark = palette.isDark
-    val barBg = if (dark) palette.surface else Color(0xFFFFFFFF)
-    val barLine = if (dark) palette.line else Color(0xFFECECF5)
+    val dockSurface = if (dark) Color(0xF2151829) else Color(0xF7FFFFFF)
+    val dockBorder = if (dark) Color(0xFF2B2F4A) else Color(0xFFE5E7F5)
     val inactiveColor = if (dark) palette.muted else Color(0xFF5F6377)
-    val activePillBg = Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
-    val activeLabelColor = if (dark) Color(0xFFA59BFF) else Color(0xFF4B47D6)
+    val activePillBrush = Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
     val rosaLabelColor = if (dark) palette.ink else Color(0xFF151729)
-    val topShadowColor = if (dark) Color(0x28000000) else Color(0x0E1A1A2E)
+    val dockShadowSpot = if (dark) Color(0x88000000) else Color(0x30181C3A)
+    val dockShadowAmbient = if (dark) Color(0x55000000) else Color(0x16181C3A)
+    val dockShape = RoundedCornerShape(29.dp)
+    val floatingDockHeight = 58.dp
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(RfDimens.BottomBarHeight),
+            .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+            .height(floatingDockHeight + 26.dp),
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(barBg)
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, topShadowColor),
-                            startY = -14f,
-                            endY = 0f,
-                        ),
-                        topLeft = Offset(0f, -14f),
-                        size = Size(size.width, 14f),
-                    )
-                    drawLine(
-                        color = barLine,
-                        start = Offset(0f, 0f),
-                        end = Offset(drawContext.size.width, 0f),
-                        strokeWidth = 1f,
-                    )
-                }
-                .padding(top = 8.dp, start = 8.dp, end = 8.dp),
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(floatingDockHeight)
+                .shadow(
+                    elevation = 14.dp,
+                    shape = dockShape,
+                    spotColor = dockShadowSpot,
+                    ambientColor = dockShadowAmbient,
+                )
+                .clip(dockShape)
+                .background(dockSurface)
+                .border(1.dp, dockBorder, dockShape)
+                .padding(horizontal = 5.dp, vertical = 5.dp),
         ) {
             Row(
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize(),
             ) {
                 AdminTab.entries.forEach { tab ->
                     if (tab == AdminTab.ROSA) {
                         Spacer(Modifier.weight(1f))
                     } else {
-                        val selected = tab == activeTab
-                        val pillProgress by animateFloatAsState(
-                            targetValue = if (selected) 1f else 0f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMediumLow,
-                            ),
-                            label = "admin-tab-pill-${tab.key}",
+                        val effectiveBadgeCount = if (showBadges) tab.badgeCount else 0
+                        FloatingDockTabItem(
+                            key = "admin-${tab.key}",
+                            label = tab.label,
+                            icon = tab.icon,
+                            selected = tab == activeTab,
+                            inactiveColor = inactiveColor,
+                            activePillBrush = activePillBrush,
+                            badgeCount = effectiveBadgeCount,
+                            onClick = { onSelectTab(tab) },
+                            modifier = Modifier.weight(1f),
                         )
-                        val iconTint by animateColorAsState(
-                            targetValue = if (selected) Color.White else inactiveColor,
-                            animationSpec = tween(durationMillis = 220),
-                            label = "admin-tab-icon-${tab.key}",
-                        )
-                        val labelColor by animateColorAsState(
-                            targetValue = if (selected) activeLabelColor else inactiveColor,
-                            animationSpec = tween(durationMillis = 220),
-                            label = "admin-tab-label-${tab.key}",
-                        )
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp)
-                                .rfTactileClickable(pressedScale = 0.92f) { onSelectTab(tab) },
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(width = 52.dp, height = 30.dp),
-                            ) {
-                                if (pillProgress > 0.01f) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                scaleX = 0.45f + (0.55f * pillProgress)
-                                                scaleY = 0.70f + (0.30f * pillProgress)
-                                                alpha = pillProgress.coerceIn(0f, 1f)
-                                            }
-                                            .clip(RoundedCornerShape(999.dp))
-                                            .background(activePillBg),
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier.graphicsLayer {
-                                        val iconScale = 1f + (0.08f * pillProgress)
-                                        scaleX = iconScale
-                                        scaleY = iconScale
-                                        translationY = -1.5f * pillProgress
-                                    },
-                                ) {
-                                    RfIcon(kind = tab.icon, tint = iconTint, size = 22.dp)
-                                }
-                                if (showBadges && tab.badgeCount > 0) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .offset(x = 6.dp, y = (-2).dp)
-                                            .size(15.dp)
-                                            .clip(CircleShape)
-                                            .background(RfColors.Sol),
-                                    ) {
-                                        BasicText(
-                                            text = tab.badgeCount.toString(),
-                                            style = typo.tagLabel.copy(color = RfColors.SolInk, fontSize = 9.sp),
-                                        )
-                                    }
-                                }
-                            }
-                            BasicText(
-                                text = tab.label,
-                                style = typo.caption.copy(
-                                    fontSize = 11.5.sp,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                                    color = labelColor,
-                                ),
-                                maxLines = 1,
-                            )
-                        }
                     }
                 }
             }
         }
 
-        // Botón central Rosa de 56 dp con rosa-admin-bg sobresaliendo 26 dp respecto al contenedor de ítems (-16 dp del borde superior)
-        val rosaSelected = activeTab == AdminTab.ROSA
-        val rosaScale by animateFloatAsState(
-            targetValue = if (rosaSelected) 1.07f else 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMediumLow,
-            ),
-            label = "admin-rosa-scale",
-        )
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        FloatingRosaCenterAction(
+            selected = activeTab == AdminTab.ROSA,
+            ringSurface = dockSurface,
+            labelColor = rosaLabelColor,
+            glowSpotColor = Color(0x7A7650E8),
+            glowAmbientColor = Color(0x2A7650E8),
+            forceAdminPalette = true,
+            animationLabel = "admin-rosa-scale",
+            onClick = { onSelectTab(AdminTab.ROSA) },
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .wrapContentHeight(align = Alignment.Top, unbounded = true)
-                .offset(y = (-22).dp)
-                .graphicsLayer {
-                    scaleX = rosaScale
-                    scaleY = rosaScale
-                }
-                .rfTactileClickable(pressedScale = 0.92f) { onSelectTab(AdminTab.ROSA) },
-        ) {
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 7.dp),
+        )
+    }
+}
+
+@Composable
+private fun FloatingDockTabItem(
+    key: String,
+    label: String,
+    icon: RfIconKind,
+    selected: Boolean,
+    inactiveColor: Color,
+    activePillBrush: Brush,
+    badgeCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val typo = LocalRfTypography.current
+    val pillProgress by animateFloatAsState(
+        targetValue = if (selected) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "floating-tab-pill-$key",
+    )
+    val contentTint by animateColorAsState(
+        targetValue = if (selected) Color.White else inactiveColor,
+        animationSpec = tween(durationMillis = 200),
+        label = "floating-tab-content-$key",
+    )
+    val itemPillShape = RoundedCornerShape(24.dp)
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 2.dp)
+            .rfTactileClickable(pressedScale = 0.93f, onClick = onClick),
+    ) {
+        val isPillVisible = pillProgress > 0.01f
+        if (isPillVisible) {
             Box(
-                contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(64.dp)
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = CircleShape,
-                        spotColor = Color(0x707650E8),
-                        ambientColor = Color(0x257650E8),
-                    )
-                    .clip(CircleShape)
-                    .background(barBg)
-                    .padding(4.dp),
-            ) {
-                RosaAvatar(
-                    size = RosaAvatarSize.TAB_CENTER,
-                    glow = rosaSelected,
-                    forceAdminPalette = true,
-                )
-            }
-            BasicText(
-                text = "Rosa",
-                style = typo.caption.copy(
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = rosaLabelColor,
-                ),
-                maxLines = 1,
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = 0.72f + (0.28f * pillProgress)
+                        scaleY = 0.80f + (0.20f * pillProgress)
+                        alpha = pillProgress.coerceIn(0f, 1f)
+                    }
+                    .clip(itemPillShape)
+                    .background(activePillBrush),
             )
         }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterVertically),
+            modifier = Modifier.padding(horizontal = 4.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.graphicsLayer {
+                        val iconScale = 1f + (0.05f * pillProgress)
+                        scaleX = iconScale
+                        scaleY = iconScale
+                    },
+                ) {
+                    RfIcon(
+                        kind = icon,
+                        tint = contentTint,
+                        size = 19.dp,
+                    )
+                }
+                val hasBadge = badgeCount > 0
+                if (hasBadge) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 8.dp, y = (-3).dp)
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(RfColors.Sol),
+                    ) {
+                        BasicText(
+                            text = badgeCount.toString(),
+                            style = typo.tagLabel.copy(color = RfColors.SolInk, fontSize = 8.5.sp),
+                        )
+                    }
+                }
+            }
+            BasicText(
+                text = label,
+                style = typo.caption.copy(
+                    fontSize = 10.5.sp,
+                    lineHeight = 12.sp,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                    color = contentTint,
+                ),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FloatingRosaCenterAction(
+    selected: Boolean,
+    ringSurface: Color,
+    labelColor: Color,
+    glowSpotColor: Color,
+    glowAmbientColor: Color,
+    forceAdminPalette: Boolean,
+    animationLabel: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val typo = LocalRfTypography.current
+    val rosaScale by animateFloatAsState(
+        targetValue = if (selected) 1.07f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = animationLabel,
+    )
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(1.dp),
+        modifier = modifier
+            .wrapContentHeight(align = Alignment.Bottom, unbounded = true)
+            .graphicsLayer {
+                scaleX = rosaScale
+                scaleY = rosaScale
+            }
+            .rfTactileClickable(pressedScale = 0.92f, onClick = onClick),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(64.dp)
+                .shadow(
+                    elevation = 10.dp,
+                    shape = CircleShape,
+                    spotColor = glowSpotColor,
+                    ambientColor = glowAmbientColor,
+                )
+                .clip(CircleShape)
+                .background(ringSurface)
+                .padding(4.dp),
+        ) {
+            RosaAvatar(
+                size = RosaAvatarSize.TAB_CENTER,
+                glow = selected,
+                forceAdminPalette = forceAdminPalette,
+            )
+        }
+        BasicText(
+            text = "Rosa",
+            style = typo.caption.copy(
+                fontSize = 10.5.sp,
+                lineHeight = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = labelColor,
+            ),
+            maxLines = 1,
+            softWrap = false,
+        )
     }
 }
 
@@ -1899,6 +1851,7 @@ public fun RfPhoneFrame(
     showMockStatusBar: Boolean = false,
     wrapInPhoneBorder: Boolean = false,
     fillAvailable: Boolean = false,
+    useTransparentBackground: Boolean = false,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -1917,9 +1870,7 @@ public fun RfPhoneFrame(
                 .height(RfDimens.PhoneFrameHeight)
         }
 
-        RfRadialBackgroundBox(
-            modifier = frameModifier,
-        ) {
+        val frameBody: @Composable () -> Unit = {
             Box(modifier = Modifier.fillMaxSize().rfClearFocusOnOutsidePress()) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -1930,6 +1881,17 @@ public fun RfPhoneFrame(
                         bottomBar()
                     }
                 }
+            }
+        }
+        if (useTransparentBackground) {
+            Box(modifier = frameModifier) {
+                frameBody()
+            }
+        } else {
+            RfRadialBackgroundBox(
+                modifier = frameModifier,
+            ) {
+                frameBody()
             }
         }
     }

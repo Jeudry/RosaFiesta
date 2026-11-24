@@ -31,6 +31,7 @@ import com.jeudry.rosafiesta.domain.EventLineItem
 import com.jeudry.rosafiesta.domain.EventPackage
 import com.jeudry.rosafiesta.domain.EventScheduleBlock
 import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.EventTaskRecord
 import com.jeudry.rosafiesta.domain.EventTypeTemplate
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
 import com.jeudry.rosafiesta.domain.LeadRecord
@@ -45,6 +46,7 @@ import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
+import com.jeudry.rosafiesta.domain.RefundApprovalOptions
 import com.jeudry.rosafiesta.domain.RefundRequest
 import com.jeudry.rosafiesta.domain.ReportExportResult
 import com.jeudry.rosafiesta.domain.ReviewRecord
@@ -161,6 +163,7 @@ public class DefaultRosaFiestaRepository(
         currentAuthenticatedUserFlow = _currentAuthenticatedUser,
         userAccountsFlow = userAccountsState,
         seedDemoData = seedDemoData,
+        favoritesFlow = _favorites,
         onPersistAccountAndSession = { _, _ -> persistBrowserSnapshot() },
         onPersistCoreSync = { persistBrowserSnapshot() },
     )
@@ -215,6 +218,10 @@ public class DefaultRosaFiestaRepository(
         get() = submodules.botKeywords
     override val botThreads: StateFlow<List<BotThreadRecord>>
         get() = submodules.botThreads
+    override val eventTasks: StateFlow<List<EventTaskRecord>>
+        get() = submodules.eventTasks
+    override val isRealtimeConnected: StateFlow<Boolean>
+        get() = submodules.isRealtimeConnected
 
     init {
         restoreBrowserSnapshotIfPresent()
@@ -277,12 +284,35 @@ public class DefaultRosaFiestaRepository(
     }
 
     override fun syncOfflineQueue() {
-        _offlineQueue.update { list ->
-            list.map { item -> item.copy(synced = true) }
+        val pendingStructured = _offlineQueue.value.filter { item ->
+            !item.synced && item.operationType.isNotBlank()
+        }
+        val client = apiClient
+        if (client == null) {
+            _offlineQueue.update { list -> list.map { item -> item.copy(synced = true) } }
+            persistBrowserSnapshot()
+            return
         }
         scope.launch {
-            runCatching {
-                apiClient?.syncOfflineQueue()
+            val result = runCatching {
+                if (pendingStructured.isNotEmpty()) {
+                    val items = pendingStructured.map { item ->
+                        OfflineMutationSyncItemDto(
+                            actionLabel = item.actionLabel,
+                            entityCode = item.entityCode,
+                            operationType = item.operationType,
+                            payloadJson = item.payloadJson,
+                            idempotencyKey = item.idempotencyKey.ifBlank { "idem-${item.id}" },
+                        )
+                    }
+                    client.syncOfflineQueue(items)
+                } else {
+                    client.syncOfflineQueue()
+                }
+            }
+            if (result.isSuccess) {
+                _offlineQueue.update { list -> list.map { item -> item.copy(synced = true) } }
+                persistBrowserSnapshot()
             }
         }
     }
@@ -756,12 +786,32 @@ public class DefaultRosaFiestaRepository(
         persistBrowserSnapshot()
     }
 
+    override suspend fun deleteCurrentAccountOnline(): Result<Unit> {
+        val currentToken = _currentSessionJwt.value
+        val client = apiClient
+        if (client != null) {
+            if (!currentToken.isNullOrBlank()) {
+                val result = runCatching { client.deleteAccount(currentToken) }
+                if (result.isFailure) {
+                    return Result.failure(result.exceptionOrNull() ?: IllegalStateException("ACCOUNT_DELETE_FAILED"))
+                }
+            }
+        }
+        _currentSessionJwt.value = null
+        _currentAuthenticatedUser.value = null
+        _activeRole.value = "guest"
+        client?.setAccessToken(null)
+        persistBrowserSnapshot()
+        return Result.success(Unit)
+    }
+
     override fun deleteCurrentAccount(): Boolean {
         val currentToken = _currentSessionJwt.value
         _currentSessionJwt.value = null
         _currentAuthenticatedUser.value = null
         _activeRole.value = "guest"
         apiClient?.setAccessToken(null)
+        persistBrowserSnapshot()
         if (!currentToken.isNullOrBlank()) {
             scope.launch {
                 runCatching {
@@ -820,8 +870,25 @@ public class DefaultRosaFiestaRepository(
     override fun toggleFavorite(articleId: String) {
         val cleanId = articleId.trim()
         if (cleanId.isEmpty()) return
+        val willAdd = cleanId !in _favorites.value
         _favorites.update { current ->
             if (cleanId in current) current - cleanId else current + cleanId
+        }
+        persistBrowserSnapshot()
+        val client = apiClient
+        if (client != null) {
+            if (submodules.hasRealServerToken()) {
+                scope.launch {
+                    runCatching {
+                        val response = if (willAdd) client.addFavorite(cleanId) else client.removeFavorite(cleanId)
+                        val remoteFavs = response.favorites
+                        if (remoteFavs != null) {
+                            _favorites.value = remoteFavs.toSet()
+                            persistBrowserSnapshot()
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1040,7 +1107,7 @@ public class DefaultRosaFiestaRepository(
                         unitPriceRD = item.unitPriceDop.toLong(),
                     )
                 }
-                apiClient?.createRemoteEvent(
+                val response = apiClient?.createRemoteEvent(
                     CreateEventInputDto(
                         title = cleanTitle,
                         clientName = cleanClient,
@@ -1054,6 +1121,16 @@ public class DefaultRosaFiestaRepository(
                         items = eventItems,
                     ),
                 )
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toClientEvent(
+                        dto = response.event,
+                        fallbackById = mapOf(response.event.id to newEvent),
+                    )
+                    _events.update { existing ->
+                        existing.map { candidate -> if (candidate.id == newEvent.id) mapped else candidate }
+                    }
+                    persistBrowserSnapshot()
+                }
             }
         }
     }
@@ -1061,7 +1138,6 @@ public class DefaultRosaFiestaRepository(
     override fun changeEventDate(eventId: String, newDateLabel: String): DateChangeResult {
         val cleanDate = newDateLabel.trim()
         val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() }
-            ?: _events.value.firstOrNull()
             ?: return RosaFiestaEngine.evaluateDateChange(0, 2)
         val eval = RosaFiestaEngine.evaluateDateChange(currentEvent.daysUntilEvent, currentEvent.priorChangesCount)
         if (!eval.allowed) return eval
@@ -1100,9 +1176,10 @@ public class DefaultRosaFiestaRepository(
         return eval
     }
 
-    override fun cancelEvent(eventId: String): CancellationRefund {
+    override fun cancelEvent(eventId: String): CancellationRefund = cancelEvent(eventId, "")
+
+    override fun cancelEvent(eventId: String, reason: String): CancellationRefund {
         val currentEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() }
-            ?: _events.value.firstOrNull()
             ?: return RosaFiestaEngine.calculateCancellationRefund(0, 0)
         val refund = RosaFiestaEngine.calculateCancellationRefund(currentEvent.paidDepositDop, currentEvent.daysUntilEvent)
         _events.update { list ->
@@ -1122,7 +1199,7 @@ public class DefaultRosaFiestaRepository(
         }
         scope.launch {
             runCatching {
-                apiClient?.cancelEvent(currentEvent.id)
+                apiClient?.cancelEvent(currentEvent.id, reason)
             }
         }
         return refund
@@ -1160,7 +1237,6 @@ public class DefaultRosaFiestaRepository(
         if (cleanMethod.isEmpty()) return null
 
         val targetEvent = _events.value.firstOrNull { event -> event.id == eventId.trim() }
-            ?: _events.value.firstOrNull()
             ?: return null
         val nextNumber = 185 + _payments.value.size
         val receipt = "REC-2026-${nextNumber.toString().padStart(4, '0')}"
@@ -1218,7 +1294,7 @@ public class DefaultRosaFiestaRepository(
         }
         scope.launch {
             runCatching {
-                apiClient?.registerPayment(
+                val response = apiClient?.registerPayment(
                     RegisterPaymentInputDto(
                         eventId = record.eventId,
                         eventTitle = record.eventTitle,
@@ -1234,6 +1310,13 @@ public class DefaultRosaFiestaRepository(
                         referenceNumber = cleanRef,
                     ),
                 )
+                if (response != null) {
+                    val mapped = RosaFiestaBackendMappers.toPaymentRecord(response.payment)
+                    _payments.update { existing ->
+                        existing.map { candidate -> if (candidate.id == record.id) mapped else candidate }
+                    }
+                    persistBrowserSnapshot()
+                }
             }
         }
         return record
@@ -1702,12 +1785,22 @@ public class DefaultRosaFiestaRepository(
         emailReceiptsEnabled: Boolean?,
         biometricLockEnabled: Boolean?,
         autoSyncWifiOnly: Boolean?,
+        eventRemindersEnabled: Boolean?,
+        preferredLanguage: String?,
+        darkThemeEnabled: Boolean?,
+        savedPaymentMethod: String?,
+        profileZone: String?,
     ): Result<RegisteredUserAccount> = submodules.updateUserPreferences(
         pushNotificationsEnabled = pushNotificationsEnabled,
         whatsappAlertsEnabled = whatsappAlertsEnabled,
         emailReceiptsEnabled = emailReceiptsEnabled,
         biometricLockEnabled = biometricLockEnabled,
         autoSyncWifiOnly = autoSyncWifiOnly,
+        eventRemindersEnabled = eventRemindersEnabled,
+        preferredLanguage = preferredLanguage,
+        darkThemeEnabled = darkThemeEnabled,
+        savedPaymentMethod = savedPaymentMethod,
+        profileZone = profileZone,
     )
 
     override suspend fun sendEventPaymentReminder(
@@ -1740,6 +1833,52 @@ public class DefaultRosaFiestaRepository(
     ): Result<ClientEvent> = submodules.updateEventItems(eventId = eventId, items = items)
 
     override suspend fun verifyAccountPassword(password: String): Result<Boolean> = submodules.verifyAccountPassword(password)
+
+    override suspend fun changeUserPasswordOnline(currentPassword: String, newPassword: String): AuthOutcome = submodules.changeUserPasswordOnline(currentPassword, newPassword)
+
+    override fun approveRefundWithOptions(refundId: String, options: RefundApprovalOptions): RefundRequest? = submodules.approveRefundWithOptions(refundId, options)
+
+    override fun deleteEventGuest(eventId: String, guestId: String): Boolean = submodules.deleteEventGuest(eventId, guestId)
+
+    override suspend fun loadEventTasks(eventId: String): List<EventTaskRecord> = submodules.loadEventTasks(eventId)
+
+    override fun createEventTask(eventId: String, title: String, assigneeName: String): EventTaskRecord? = submodules.createEventTask(eventId, title, assigneeName)
+
+    override fun toggleEventTask(eventId: String, taskId: String, done: Boolean): EventTaskRecord? = submodules.toggleEventTask(eventId, taskId, done)
+
+    override fun deleteEventTask(eventId: String, taskId: String): Boolean = submodules.deleteEventTask(eventId, taskId)
+
+    override fun updateSupplier(
+        supplierId: String,
+        name: String,
+        category: String,
+        contactName: String,
+        phone: String,
+        email: String,
+        website: String,
+        notes: String,
+    ): SupplierRecord? = submodules.updateSupplier(
+        supplierId = supplierId,
+        name = name,
+        category = category,
+        contactName = contactName,
+        phone = phone,
+        email = email,
+        website = website,
+        notes = notes,
+    )
+
+    override fun deleteSupplier(supplierId: String): Boolean = submodules.deleteSupplier(supplierId)
+
+    override fun deleteBotFaq(faqId: String): Boolean = submodules.deleteBotFaq(faqId)
+
+    override fun deleteBotKeyword(keywordId: String): Boolean = submodules.deleteBotKeyword(keywordId)
+
+    override fun deleteStaffMember(staffId: String): Boolean = submodules.deleteStaffMember(staffId)
+
+    override fun deletePackage(packageId: String): Boolean = submodules.deletePackage(packageId)
+
+    override suspend fun downloadQuoteContractPdf(quoteId: String): Result<ByteArray> = submodules.downloadQuoteContractPdf(quoteId)
 
     private fun persistBrowserSnapshot() {
         val cache = snapshotCache ?: return
@@ -1779,6 +1918,11 @@ public class DefaultRosaFiestaRepository(
                     emailReceiptsEnabled = account.preferences.emailReceiptsEnabled,
                     biometricLockEnabled = account.preferences.biometricLockEnabled,
                     autoSyncWifiOnly = account.preferences.autoSyncWifiOnly,
+                    eventRemindersEnabled = account.preferences.eventRemindersEnabled,
+                    preferredLanguage = account.preferences.preferredLanguage,
+                    darkThemeEnabled = account.preferences.darkThemeEnabled,
+                    savedPaymentMethod = account.preferences.savedPaymentMethod,
+                    profileZone = account.preferences.profileZone,
                 )
             },
         )
@@ -1814,6 +1958,11 @@ public class DefaultRosaFiestaRepository(
                         emailReceiptsEnabled = saved.emailReceiptsEnabled,
                         biometricLockEnabled = saved.biometricLockEnabled,
                         autoSyncWifiOnly = saved.autoSyncWifiOnly,
+                        eventRemindersEnabled = saved.eventRemindersEnabled,
+                        preferredLanguage = saved.preferredLanguage,
+                        darkThemeEnabled = saved.darkThemeEnabled,
+                        savedPaymentMethod = saved.savedPaymentMethod,
+                        profileZone = saved.profileZone,
                     ),
                 )
             }
@@ -1885,6 +2034,11 @@ private data class PersistedBrowserAccount(
     val emailReceiptsEnabled: Boolean = true,
     val biometricLockEnabled: Boolean = false,
     val autoSyncWifiOnly: Boolean = false,
+    val eventRemindersEnabled: Boolean = true,
+    val preferredLanguage: String = "es",
+    val darkThemeEnabled: Boolean = false,
+    val savedPaymentMethod: String = "Transferencia",
+    val profileZone: String = "Distrito Nacional",
 )
 
 @Serializable

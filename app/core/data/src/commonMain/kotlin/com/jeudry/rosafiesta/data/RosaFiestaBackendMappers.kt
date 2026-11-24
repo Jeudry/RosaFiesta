@@ -32,6 +32,7 @@ import com.jeudry.rosafiesta.domain.EventLineItem
 import com.jeudry.rosafiesta.domain.EventPackage
 import com.jeudry.rosafiesta.domain.EventScheduleBlock
 import com.jeudry.rosafiesta.domain.EventStatus
+import com.jeudry.rosafiesta.domain.EventTaskRecord
 import com.jeudry.rosafiesta.domain.EventTypeCount
 import com.jeudry.rosafiesta.domain.EventTypeTemplate
 import com.jeudry.rosafiesta.domain.InsurancePolicyRecord
@@ -1051,8 +1052,21 @@ internal object RosaFiestaBackendMappers {
             emailReceiptsEnabled = dto.emailReceiptsEnabled,
             biometricLockEnabled = dto.biometricLockEnabled,
             autoSyncWifiOnly = dto.autoSyncWifiOnly,
+            eventRemindersEnabled = dto.eventRemindersEnabled,
+            preferredLanguage = dto.preferredLanguage.ifBlank { "es" },
+            darkThemeEnabled = dto.darkThemeEnabled,
+            savedPaymentMethod = dto.savedPaymentMethod.ifBlank { "Transferencia" },
+            profileZone = dto.profileZone.ifBlank { "Distrito Nacional" },
         )
     }
+
+    fun toEventTaskRecord(dto: EventTaskDto): EventTaskRecord = EventTaskRecord(
+        id = dto.id,
+        eventId = dto.eventId,
+        title = dto.title,
+        assigneeName = dto.assigneeName,
+        done = dto.done,
+    )
 
     fun toOAuthProviderConfig(dto: OAuthConfigOutputDto): OAuthProviderConfig = OAuthProviderConfig(
         googleEnabled = dto.googleEnabled,

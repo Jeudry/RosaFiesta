@@ -159,6 +159,7 @@ private fun isUnfilteredCatalogCategory18(category: String): Boolean {
 internal fun RenderPersonalCatalogS18(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
@@ -224,170 +225,173 @@ internal fun RenderPersonalCatalogS18(
         }
     }
 
+    val catalogTopPadding = if (includeHeader) 16.dp else 6.dp
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 16.dp, start = 20.dp, end = 20.dp),
+            .padding(top = catalogTopPadding, start = 20.dp, end = 20.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            BasicText(
-                text = "Catálogo",
-                style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink),
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
-                        .clickable { onSelectScreenCode("s20") },
-                ) {
-                    RfIcon(kind = RfIconKind.GRID, tint = RfThemeState.currentPalette.ink, size = 20.dp)
-                }
-
-                RfDraftCartPillButton(
-                    count = totalDraftCount,
-                    onClick = { onSelectScreenCode("s25") },
-                )
-            }
-        }
-
-        Spacer(Modifier.height(14.dp))
-
-        val searchBorderColor = if (searchFieldError != null) Color(0xFFE53935) else RfThemeState.currentPalette.line
-        Box(
-            contentAlignment = Alignment.CenterStart,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
-                .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
-                .clip(RoundedCornerShape(16.dp))
-                .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, searchBorderColor, RoundedCornerShape(16.dp))
-                .padding(start = 16.dp, end = 6.dp),
-        ) {
+        if (includeHeader) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth(),
+            ) {
+                BasicText(
+                    text = "Catálogo",
+                    style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink),
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.surface)
+                            .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
+                            .clickable { onSelectScreenCode("s20") },
+                    ) {
+                        RfIcon(kind = RfIconKind.GRID, tint = RfThemeState.currentPalette.ink, size = 20.dp)
+                    }
+
+                    RfDraftCartPillButton(
+                        count = totalDraftCount,
+                        onClick = { onSelectScreenCode("s25") },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            val searchBorderColor = if (searchFieldError != null) Color(0xFFE53935) else RfThemeState.currentPalette.line
+            Box(
+                contentAlignment = Alignment.CenterStart,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .rfInputShadow(RoundedCornerShape(16.dp), isAdmin = false)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(RfThemeState.currentPalette.surface)
+                    .border(1.dp, searchBorderColor, RoundedCornerShape(16.dp))
+                    .padding(start = 16.dp, end = 6.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.muted, size = 20.dp)
-                    Box(modifier = Modifier.weight(1f)) {
-                        if (searchQuery.isEmpty()) {
-                            BasicText("Buscar sillas, mesas, flores…", style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
-                        }
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { updatedQuery ->
-                                val cappedQuery = updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
-                                searchQuery = cappedQuery
-                                hasInteractedSearch = true
-                                viewModel?.setSearchQuery(cappedQuery)
-                            },
-                            textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                    }
-                }
-                if (searchQuery.isNotEmpty()) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFF5EAF9))
-                            .clickable {
-                                searchQuery = ""
-                                hasInteractedSearch = false
-                                viewModel?.setSearchQuery("")
-                            },
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f),
                     ) {
-                        RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB54BD6), size = 14.dp)
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clickable { onSelectScreenCode("s81") },
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFF5EAF9)),
-                    ) {
-                        RfIcon(kind = RfIconKind.FILTER, tint = Color(0xFFB54BD6), size = 18.dp)
-                    }
-                    if (activeFilterCount > 0) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 3.dp, y = (-3).dp)
-                                .size(18.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFD45C)),
-                        ) {
-                            BasicText(
-                                text = activeFilterCount.toString(),
-                                style = typo.sectionCap.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
+                        RfIcon(kind = RfIconKind.SEARCH, tint = RfThemeState.currentPalette.muted, size = 20.dp)
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (searchQuery.isEmpty()) {
+                                BasicText("Buscar sillas, mesas, flores…", style = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.muted))
+                            }
+                            BasicTextField(
+                                value = searchQuery,
+                                onValueChange = { updatedQuery ->
+                                    val cappedQuery = updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                                    searchQuery = cappedQuery
+                                    hasInteractedSearch = true
+                                    viewModel?.setSearchQuery(cappedQuery)
+                                },
+                                textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
                             )
                         }
                     }
-                }
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (isSearchMicActive) {
-                                Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
-                            } else {
-                                SolidColor(Color(0xFFF5EAF9))
+                    if (searchQuery.isNotEmpty()) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF5EAF9))
+                                .clickable {
+                                    searchQuery = ""
+                                    hasInteractedSearch = false
+                                    viewModel?.setSearchQuery("")
+                                },
+                        ) {
+                            RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFFB54BD6), size = 14.dp)
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clickable { onSelectScreenCode("s81") },
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFF5EAF9)),
+                        ) {
+                            RfIcon(kind = RfIconKind.FILTER, tint = Color(0xFFB54BD6), size = 18.dp)
+                        }
+                        if (activeFilterCount > 0) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 3.dp, y = (-3).dp)
+                                    .size(18.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFD45C)),
+                            ) {
+                                BasicText(
+                                    text = activeFilterCount.toString(),
+                                    style = typo.sectionCap.copy(fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF2E1A47)),
+                                )
+                            }
+                        }
+                    }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (isSearchMicActive) {
+                                    Brush.linearGradient(listOf(Color(0xFFEA4EA9), Color(0xFF865DEC)))
+                                } else {
+                                    SolidColor(Color(0xFFF5EAF9))
+                                },
+                            )
+                            .clickable {
+                                viewModel?.toggleInlineVoiceSearch()
                             },
-                        )
-                        .clickable {
-                            viewModel?.toggleInlineVoiceSearch()
-                        },
-                ) {
-                    val micTint = if (isSearchMicActive) Color.White else Color(0xFFB54BD6)
-                    RfIcon(kind = RfIconKind.MIC, tint = micTint, size = 20.dp)
+                    ) {
+                        val micTint = if (isSearchMicActive) Color.White else Color(0xFFB54BD6)
+                        RfIcon(kind = RfIconKind.MIC, tint = micTint, size = 20.dp)
+                    }
                 }
             }
+            RfValidationErrorText(
+                errorMessage = searchFieldError,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+
+            InlineVoiceSearchBanner(
+                viewModel = viewModel,
+                onApplyVoiceQuery = { spokenQuery ->
+                    val cappedSpoken = spokenQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
+                    searchQuery = cappedSpoken
+                    hasInteractedSearch = true
+                    viewModel?.setSearchQuery(cappedSpoken)
+                },
+                modifier = Modifier.padding(top = 10.dp),
+            )
+
+            Spacer(Modifier.height(12.dp))
         }
-        RfValidationErrorText(
-            errorMessage = searchFieldError,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-
-        InlineVoiceSearchBanner(
-            viewModel = viewModel,
-            onApplyVoiceQuery = { spokenQuery ->
-                val cappedSpoken = spokenQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH)
-                searchQuery = cappedSpoken
-                hasInteractedSearch = true
-                viewModel?.setSearchQuery(cappedSpoken)
-            },
-            modifier = Modifier.padding(top = 10.dp),
-        )
-
-        Spacer(Modifier.height(12.dp))
 
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -785,6 +789,7 @@ internal fun RenderProductDetailS19(
         return
     }
     val draftQuantities = viewModel?.draftQuantities?.collectAsState()?.value ?: emptyMap()
+    val isOutOfStock = currentArticle.availableOct23 <= 0
     val maxAvailableUnits = currentArticle.availableOct23.coerceAtLeast(1)
     val initialDraftCount = draftQuantities[currentArticle.id] ?: 1
     val initialCount = initialDraftCount.coerceIn(1, maxAvailableUnits)
@@ -1415,8 +1420,14 @@ internal fun RenderProductDetailS19(
                         .height(56.dp)
                         .rfPrimaryButtonShadow(RoundedCornerShape(16.dp), isAdmin = false)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9))))
-                        .clickable {
+                        .background(
+                            if (isOutOfStock) {
+                                SolidColor(RfThemeState.currentPalette.muted)
+                            } else {
+                                Brush.linearGradient(listOf(Color(0xFFE04FAF), Color(0xFF945AE1), Color(0xFF6664E9)))
+                            },
+                        )
+                        .clickable(enabled = !isOutOfStock) {
                             viewModel?.setArticleColorVariant(currentArticle.id, selectedColor)
                             viewModel?.setDraftQuantity(currentArticle.id, count)
                             viewModel?.soundPlayer?.playCartAdd()
@@ -1427,7 +1438,7 @@ internal fun RenderProductDetailS19(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         RfIcon(kind = RfIconKind.SPARKLE, tint = Color.White, size = 20.dp)
                         BasicText(
-                            text = "Agregar · RD$ ${count * currentArticle.pricePerDayDop}",
+                            text = if (isOutOfStock) "Agotado temporalmente" else "Agregar · RD$ ${count * currentArticle.pricePerDayDop}",
                             style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
                         )
                     }
@@ -1458,6 +1469,7 @@ internal fun RenderProductDetailS19(
 internal fun RenderCategoriesScreenS20(
     viewModel: RosaFiestaViewModel? = null,
     onSelectScreenCode: (String) -> Unit,
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val articlesState = viewModel?.articles?.collectAsState()?.value ?: CanonicalSampleData.articles
@@ -1505,48 +1517,53 @@ internal fun RenderCategoriesScreenS20(
         }
     }
 
+    val categoriesTopPadding = if (includeHeader) 16.dp else 6.dp
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(RfThemeState.currentPalette.bg),
+            .background(if (includeHeader) RfThemeState.currentPalette.bg else Color.Transparent),
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)), center = Offset(0f, 0f), radius = size.width * 0.9f))
-            drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
+        if (includeHeader) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialPrimary, RfThemeState.currentPalette.radialPrimary.copy(alpha = 0f)), center = Offset(0f, 0f), radius = size.width * 0.9f))
+                drawRect(Brush.radialGradient(colors = listOf(RfThemeState.currentPalette.radialSecondary, RfThemeState.currentPalette.radialSecondary.copy(alpha = 0f)), center = Offset(size.width, 0f), radius = size.width * 0.8f))
+            }
         }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp),
+                .padding(top = categoriesTopPadding, start = 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .clickable { onSelectScreenCode("BACK:s18") },
+            if (includeHeader) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
-                }
-                Column {
-                    BasicText(
-                        "Categorías",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, letterSpacing = (-0.48).sp, color = RfThemeState.currentPalette.ink),
-                    )
-                    BasicText(
-                        "Explora el catálogo por tipo de artículo",
-                        style = typo.secondary.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
-                    )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(RfThemeState.currentPalette.surface)
+                            .clickable { onSelectScreenCode("BACK:s18") },
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 22.dp)
+                    }
+                    Column {
+                        BasicText(
+                            "Categorías",
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, letterSpacing = (-0.48).sp, color = RfThemeState.currentPalette.ink),
+                        )
+                        BasicText(
+                            "Explora el catálogo por tipo de artículo",
+                            style = typo.secondary.copy(fontSize = 14.sp, color = RfThemeState.currentPalette.muted),
+                        )
+                    }
                 }
             }
 
@@ -2019,6 +2036,7 @@ private fun matchesPackageFilter21(
 internal fun RenderPackagesScreenS21(
     onSelectScreenCode: (String) -> Unit,
     viewModel: RosaFiestaViewModel? = null,
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
@@ -2044,78 +2062,83 @@ internal fun RenderPackagesScreenS21(
         }
     }
 
+    val packagesTopPadding = if (includeHeader) 16.dp else 6.dp
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(palette.bg),
+            .background(if (includeHeader) palette.bg else Color.Transparent),
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(
-                Brush.radialGradient(
-                    colors = listOf(palette.radialPrimary, palette.radialPrimary.copy(alpha = 0f)),
-                    center = Offset(0f, 0f),
-                    radius = size.width * 0.9f,
-                ),
-            )
-            drawRect(
-                Brush.radialGradient(
-                    colors = listOf(palette.radialSecondary, palette.radialSecondary.copy(alpha = 0f)),
-                    center = Offset(size.width, 0f),
-                    radius = size.width * 0.8f,
-                ),
-            )
+        if (includeHeader) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawRect(
+                    Brush.radialGradient(
+                        colors = listOf(palette.radialPrimary, palette.radialPrimary.copy(alpha = 0f)),
+                        center = Offset(0f, 0f),
+                        radius = size.width * 0.9f,
+                    ),
+                )
+                drawRect(
+                    Brush.radialGradient(
+                        colors = listOf(palette.radialSecondary, palette.radialSecondary.copy(alpha = 0f)),
+                        center = Offset(size.width, 0f),
+                        radius = size.width * 0.8f,
+                    ),
+                )
+            }
         }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+                .padding(top = packagesTopPadding, start = 20.dp, end = 20.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .rfIconButtonShadow(CircleShape, isAdmin = false)
-                        .clip(CircleShape)
-                        .background(palette.surface)
-                        .border(1.dp, palette.line, CircleShape)
-                        .clickable { onSelectScreenCode("BACK:s14") },
+            if (includeHeader) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
-                }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .rfIconButtonShadow(CircleShape, isAdmin = false)
+                            .clip(CircleShape)
+                            .background(palette.surface)
+                            .border(1.dp, palette.line, CircleShape)
+                            .clickable { onSelectScreenCode("BACK:s14") },
+                    ) {
+                        RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                    }
 
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    BasicText(
-                        "Paquetes",
-                        style = typo.heroTitle.copy(
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = palette.ink,
-                        ),
-                    )
-                    BasicText(
-                        "Colecciones temáticas, listas para tu evento",
-                        style = typo.secondary.copy(
-                            fontSize = 13.5.sp,
-                            color = palette.muted,
-                        ),
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        BasicText(
+                            "Paquetes",
+                            style = typo.heroTitle.copy(
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = palette.ink,
+                            ),
+                        )
+                        BasicText(
+                            "Colecciones temáticas, listas para tu evento",
+                            style = typo.secondary.copy(
+                                fontSize = 13.5.sp,
+                                color = palette.muted,
+                            ),
+                        )
+                    }
+
+                    RfDraftCartPillButton(
+                        count = totalDraftCount,
+                        onClick = { onSelectScreenCode("s25") },
                     )
                 }
-
-                RfDraftCartPillButton(
-                    count = totalDraftCount,
-                    onClick = { onSelectScreenCode("s25") },
-                )
             }
 
             val packageBorderColor = if (packageSearchError != null) Color(0xFFE53935) else palette.line
@@ -2720,6 +2743,8 @@ internal fun RenderPackageDetailScreenS22(
                                     }
                                 }
                             }
+                            viewModel?.soundPlayer?.playCartAdd()
+                            onSelectScreenCode("s25")
                         },
                 ) {
                     BasicText("Personalizar este paquete", style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))
@@ -3589,6 +3614,7 @@ private data class FavoriteDisplayCardSpec(
 internal fun RenderClientFavoritesScreenS24(
     onSelectScreenCode: (String) -> Unit,
     viewModel: RosaFiestaViewModel? = null,
+    includeHeader: Boolean = true,
 ) {
     val typo = LocalRfTypography.current
     val palette = RfThemeState.currentPalette
@@ -3665,39 +3691,42 @@ internal fun RenderClientFavoritesScreenS24(
     }
     val addAllButtonLabel = if (totalFavoritesCount == 2) "Agregar ambos" else "Agregar todos"
 
+    val favoritesTopPadding = if (includeHeader) 16.dp else 6.dp
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 16.dp, start = 20.dp, end = 20.dp, bottom = 116.dp),
+            .padding(top = favoritesTopPadding, start = 20.dp, end = 20.dp, bottom = 116.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = false)
-                    .clip(CircleShape)
-                    .background(palette.surface)
-                    .border(1.dp, palette.line, CircleShape)
-                    .clickable { onSelectScreenCode("BACK:s14") },
+        if (includeHeader) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .rfIconButtonShadow(CircleShape, isAdmin = false)
+                        .clip(CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
+                        .clickable { onSelectScreenCode("BACK:s14") },
+                ) {
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink))
+                    BasicText("$totalFavoritesCount artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = palette.muted))
+                }
             }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                BasicText("Favoritos", style = typo.heroTitle.copy(fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink))
-                BasicText("$totalFavoritesCount artículos guardados", style = typo.secondary.copy(fontSize = 15.sp, color = palette.muted))
-            }
-        }
 
-        Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(18.dp))
+        }
 
         if (favoriteDisplayItems.isEmpty()) {
             Box(
@@ -3844,6 +3873,8 @@ internal fun RenderClientFavoritesScreenS24(
                                     favoriteDisplayItems.forEach { favItem ->
                                         viewModel?.adjustDraftQuantity(favItem.id, 1)
                                     }
+                                    viewModel?.soundPlayer?.playCartAdd()
+                                    onSelectScreenCode("s25")
                                 },
                         ) {
                             BasicText(addAllButtonLabel, style = typo.body.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White))

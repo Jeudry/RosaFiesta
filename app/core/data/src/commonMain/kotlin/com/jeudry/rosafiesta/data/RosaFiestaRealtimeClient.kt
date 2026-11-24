@@ -13,6 +13,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import kotlinx.serialization.json.Json
@@ -26,6 +29,12 @@ public class RosaFiestaRealtimeClient(
     private val reconnectDelayMs: Long = 3_000L,
 ) {
     private val jsonCodec: Json = Json { ignoreUnknownKeys = true }
+    private val _isConnected: MutableStateFlow<Boolean> = MutableStateFlow(false)
+
+    /**
+     * Indica si la suscripción SSE contra `/v1/stream` está actualmente conectada.
+     */
+    public val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
     /**
      * Subscribes to `/v1/stream` using [accessTokenProvider] and emits parsed domain stream events.
@@ -37,6 +46,7 @@ public class RosaFiestaRealtimeClient(
         while (currentCoroutineContext().isActive) {
             val token = accessTokenProvider()?.trim().orEmpty()
             if (token.isEmpty()) {
+                _isConnected.value = false
                 delay(reconnectDelayMs)
                 continue
             }
@@ -47,8 +57,11 @@ public class RosaFiestaRealtimeClient(
                     onEvent = { parsedEvent -> emit(parsedEvent) },
                 )
             } catch (cancellation: CancellationException) {
+                _isConnected.value = false
                 throw cancellation
             } catch (_: Throwable) {
+            } finally {
+                _isConnected.value = false
             }
             delay(reconnectDelayMs)
         }
@@ -69,14 +82,17 @@ public class RosaFiestaRealtimeClient(
             }
         }.execute { response ->
             if (!response.status.isSuccess()) {
+                _isConnected.value = false
                 return@execute
             }
+            _isConnected.value = true
             val channel = response.bodyAsChannel()
             highestSeq = readSseFrames(
                 channel = channel,
                 initialSeq = highestSeq,
                 onEvent = onEvent,
             )
+            _isConnected.value = false
         }
         return highestSeq
     }

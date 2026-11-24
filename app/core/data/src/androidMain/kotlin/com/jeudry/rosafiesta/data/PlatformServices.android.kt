@@ -66,6 +66,9 @@ import javax.crypto.spec.GCMParameterSpec
 private var registeredAndroidMediaPicker: (suspend (List<String>) -> PickedMediaFile?)? = null
 
 @Volatile
+private var registeredAndroidAudioPermissionRequester: (() -> Unit)? = null
+
+@Volatile
 private var registeredAndroidDeviceAuthActivity: Activity? = null
 
 @Volatile
@@ -146,6 +149,16 @@ public fun registerAndroidDeviceAuthBridge(
 ) {
     registeredAndroidDeviceAuthActivity = activity
     registeredAndroidCredentialLauncher = credentialLauncher
+}
+
+/**
+ * Registers the foreground Android [Activity] audio permission prompt callback so
+ * [AndroidVoiceInputMonitor] can request `RECORD_AUDIO` interactively when missing.
+ */
+public fun registerAndroidAudioPermissionRequester(
+    requester: (() -> Unit)?,
+) {
+    registeredAndroidAudioPermissionRequester = requester
 }
 
 /**
@@ -413,8 +426,9 @@ internal class AndroidVoiceInputMonitor(
 
         val permissionState = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
         if (permissionState != PackageManager.PERMISSION_GRANTED) {
+            registeredAndroidAudioPermissionRequester?.invoke()
             _hasHardwareMicrophone.value = false
-            _errorMessage.value = "Microphone permission RECORD_AUDIO is not granted."
+            _errorMessage.value = "Permiso de micrófono requerido. Acéptalo e intenta de nuevo."
             _isListening.value = false
             return
         }
@@ -589,10 +603,16 @@ internal class AndroidPlatformActions(
         val context = contextProvider() ?: return false
         return runCatching {
             var exportedLocation = ""
+            var attachmentUri: Uri? = null
+            var resolvedAttachmentMime = "text/plain"
             if (fileBytes != null) {
                 if (fileBytes.isNotEmpty()) {
                     val safeName = ExternalUrlBuilder.sanitizeFileName(fileName ?: "rosafiesta-compartido.pdf")
-                    exportedLocation = saveDocument(safeName, mimeType, fileBytes).orEmpty()
+                    resolvedAttachmentMime = mimeType.trim().ifEmpty { ExternalUrlBuilder.inferMimeType(safeName) }
+                    attachmentUri = resolveShareableFileUri(context, safeName, fileBytes)
+                    if (attachmentUri == null) {
+                        exportedLocation = saveDocument(safeName, resolvedAttachmentMime, fileBytes).orEmpty()
+                    }
                 }
             }
             val bodyText = buildString {
@@ -603,18 +623,49 @@ internal class AndroidPlatformActions(
                 }
             }
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
+                if (attachmentUri != null) {
+                    type = resolvedAttachmentMime
+                    putExtra(Intent.EXTRA_STREAM, attachmentUri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } else {
+                    type = "text/plain"
+                }
                 putExtra(Intent.EXTRA_SUBJECT, title.trim())
                 putExtra(Intent.EXTRA_TEXT, bodyText.ifEmpty { title.trim() })
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             val chooser = Intent.createChooser(sendIntent, title.trim().ifEmpty { "Compartir" }).apply {
+                if (attachmentUri != null) {
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(chooser)
             true
         }.getOrDefault(false)
     }
+
+    private fun resolveShareableFileUri(
+        context: Context,
+        safeName: String,
+        fileBytes: ByteArray,
+    ): Uri? = runCatching {
+        val exportDir = File(context.cacheDir, "exports")
+        if (!exportDir.exists()) {
+            exportDir.mkdirs()
+        }
+        val exportFile = File(exportDir, safeName)
+        exportFile.writeBytes(fileBytes)
+        val fileProviderClass = Class.forName("androidx.core.content.FileProvider")
+        val getUriForFile = fileProviderClass.getMethod(
+            "getUriForFile",
+            Context::class.java,
+            String::class.java,
+            File::class.java,
+        )
+        val authority = "${context.packageName}.fileprovider"
+        getUriForFile.invoke(null, context, authority, exportFile) as? Uri
+    }.getOrNull()
 
     override fun saveDocument(
         fileName: String,
@@ -800,23 +851,30 @@ internal class AndroidPlatformActions(
     override suspend fun launchOAuthBrowserFlow(
         resolveAuthorizeUrl: suspend (redirectUri: String) -> String?,
     ): OAuthBrowserOutcome {
+        pendingAndroidOAuthCallback?.cancel()
         val deferred = CompletableDeferred<OAuthBrowserOutcome>()
         pendingAndroidOAuthCallback = deferred
         val authorizeUrl = resolveAuthorizeUrl(ANDROID_OAUTH_REDIRECT_URI)
         if (authorizeUrl == null) {
-            pendingAndroidOAuthCallback = null
+            if (pendingAndroidOAuthCallback === deferred) {
+                pendingAndroidOAuthCallback = null
+            }
             return OAuthBrowserOutcome(redirectUri = ANDROID_OAUTH_REDIRECT_URI, errorCode = "OAUTH_START_FAILED")
         }
         val opened = openExternalUrl(authorizeUrl)
         if (!opened) {
-            pendingAndroidOAuthCallback = null
+            if (pendingAndroidOAuthCallback === deferred) {
+                pendingAndroidOAuthCallback = null
+            }
             return OAuthBrowserOutcome(redirectUri = ANDROID_OAUTH_REDIRECT_URI, errorCode = "OAUTH_BROWSER_UNAVAILABLE")
         }
         return try {
             withTimeoutOrNull(180_000L) { deferred.await() }
                 ?: OAuthBrowserOutcome(redirectUri = ANDROID_OAUTH_REDIRECT_URI, errorCode = "OAUTH_TIMEOUT")
         } finally {
-            pendingAndroidOAuthCallback = null
+            if (pendingAndroidOAuthCallback === deferred) {
+                pendingAndroidOAuthCallback = null
+            }
         }
     }
 

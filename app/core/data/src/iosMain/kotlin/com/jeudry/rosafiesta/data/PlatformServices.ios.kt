@@ -78,6 +78,7 @@ import platform.LocalAuthentication.LAPolicyDeviceOwnerAuthentication
 import platform.Network.nw_interface_type_wifi
 import platform.Network.nw_interface_type_wired
 import platform.Network.nw_path_get_status
+import platform.Network.nw_path_monitor_cancel
 import platform.Network.nw_path_monitor_create
 import platform.Network.nw_path_monitor_set_queue
 import platform.Network.nw_path_monitor_set_update_handler
@@ -575,10 +576,9 @@ internal class IosVoiceInputMonitor : VoiceInputMonitor {
     }
 }
 
-internal class IosPlatformActions : PlatformActions {
-    private var retainedDocumentDelegate: NSObject? = null
+internal object IosSharedNetworkMonitor {
     private var lastObservedUnmeteredNetwork: Boolean = true
-    private val pathMonitor = nw_path_monitor_create().also { monitor ->
+    private var monitorRef = nw_path_monitor_create().also { monitor ->
         nw_path_monitor_set_update_handler(monitor) { path ->
             if (path != null) {
                 val satisfied = nw_path_get_status(path) == nw_path_status_satisfied
@@ -592,7 +592,25 @@ internal class IosPlatformActions : PlatformActions {
         nw_path_monitor_start(monitor)
     }
 
-    override fun isOnWifiNetwork(): Boolean = lastObservedUnmeteredNetwork
+    fun isUnmeteredConnected(): Boolean = lastObservedUnmeteredNetwork
+
+    fun stop() {
+        val current = monitorRef
+        monitorRef = null
+        if (current != null) {
+            nw_path_monitor_cancel(current)
+        }
+    }
+}
+
+internal class IosPlatformActions : PlatformActions {
+    private var retainedDocumentDelegate: NSObject? = null
+
+    init {
+        IosSharedNetworkMonitor.isUnmeteredConnected()
+    }
+
+    override fun isOnWifiNetwork(): Boolean = IosSharedNetworkMonitor.isUnmeteredConnected()
 
     override fun authenticateDeviceOwner(
         promptTitle: String,
