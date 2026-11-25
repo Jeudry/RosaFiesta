@@ -3,6 +3,7 @@ package com.jeudry.rosafiesta.data
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.pluginOrNull
 import io.ktor.client.request.HttpRequestBuilder
@@ -341,6 +342,8 @@ public data class EventDto(
     public val closeoutNotes: String? = null,
     public val lastPaymentReminderAt: String? = null,
     public val lastPaymentReminderChannel: String? = null,
+    public val setupPhotoUrls: List<String>? = null,
+    public val contactPhone: String? = null,
 )
 
 @Serializable
@@ -566,6 +569,7 @@ public data class RegisterPaymentInputDto(
     public val clientRnc: String? = null,
     public val securityDepositDop: Long? = null,
     public val referenceNumber: String? = null,
+    public val contactPhone: String? = null,
 )
 
 @Serializable
@@ -619,6 +623,9 @@ public data class QuoteDto(
     public val packageId: String? = null,
     public val contractPdfUrl: String? = null,
     public val signedAtIso: String? = null,
+    public val contactPhone: String? = null,
+    public val signedByUserId: String? = null,
+    public val contractHashSha256: String? = null,
 )
 
 @Serializable
@@ -647,6 +654,7 @@ public data class CreateQuoteInputDto(
     public val packageId: String? = null,
     public val notes: String? = null,
     public val sendImmediately: Boolean? = null,
+    public val contactPhone: String? = null,
 )
 
 @Serializable
@@ -731,6 +739,11 @@ public class RosaFiestaApiClient(
     private val httpClient: HttpClient = HttpClient {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 20_000L
+            connectTimeoutMillis = 10_000L
+            socketTimeoutMillis = 20_000L
         }
     },
     private val accessTokenProvider: () -> String? = { null },
@@ -1813,7 +1826,14 @@ public class RosaFiestaApiClient(
         }.decodeBodyOrThrow()
     }
 
-    public suspend fun replyToReview(reviewId: String, adminReply: String): ReviewOutputDto = replyToReview(reviewId = reviewId, input = ReplyReviewInputDto(adminReply = adminReply))
+    public suspend fun replyToReview(
+        reviewId: String,
+        adminReply: String,
+        verified: Boolean? = null,
+    ): ReviewOutputDto = replyToReview(
+        reviewId = reviewId,
+        input = ReplyReviewInputDto(adminReply = adminReply, verified = verified),
+    )
 
     public suspend fun listSuppliers(category: String? = null): SuppliersListOutputDto = withContext(ioDispatcher) {
         httpClient.get("$baseUrl/v1/operations/suppliers") {

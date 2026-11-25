@@ -44,6 +44,18 @@ func (r *Repository) Enabled() bool {
 	return r.pool != nil
 }
 
+// CountAdminUsers devuelve la cantidad de cuentas administradoras activas en PostgreSQL.
+func (r *Repository) CountAdminUsers(ctx context.Context) (int, error) {
+	if !r.Enabled() {
+		return 0, nil
+	}
+	count, err := r.queries.CountAdminUsers(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func (r *Repository) UpsertUser(ctx context.Context, user domain.User, rawSessionToken string, expiresAt time.Time) error {
 	if !r.Enabled() {
 		return nil

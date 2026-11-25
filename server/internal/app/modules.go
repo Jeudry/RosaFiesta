@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 	"time"
@@ -254,12 +255,21 @@ type assembledServices struct {
 }
 
 func Modules(deps Dependencies) []httpapi.Module {
-	base, svcs, clk := coreModules(deps)
-	onReset := buildResetHandler(deps.Pool, clk, svcs, deps.AdminOnlySeed)
-	return append(base, devModules(onReset)...)
+	mods, _ := BuildModules(deps)
+	return mods
 }
 
-func coreModules(deps Dependencies) ([]httpapi.Module, assembledServices, clock.Clock) {
+// BuildModules ensambla todos los módulos HTTP del sistema validando dependencias críticas de producción.
+func BuildModules(deps Dependencies) ([]httpapi.Module, error) {
+	base, svcs, clk, err := coreModules(deps)
+	if err != nil {
+		return nil, err
+	}
+	onReset := buildResetHandler(deps.Pool, clk, svcs, deps.AdminOnlySeed)
+	return append(base, devModules(onReset)...), nil
+}
+
+func coreModules(deps Dependencies) ([]httpapi.Module, assembledServices, clock.Clock, error) {
 	clk := deps.Clock
 	if clk == nil {
 		clk = clock.System{}
@@ -271,13 +281,26 @@ func coreModules(deps Dependencies) ([]httpapi.Module, assembledServices, clock.
 	if shouldAutoSeed {
 		seedSelectedMode(context.Background(), deps.Pool, clk, deps.AdminOnlySeed)
 	}
-	svcs := wireServices(deps, clk)
+	svcs, err := wireServicesChecked(deps, clk)
+	if err != nil {
+		return nil, assembledServices{}, nil, err
+	}
+	if deps.Config.Env == config.EnvProduction {
+		if bootErr := ensureProductionAdmin(context.Background(), svcs.identity, deps.Config); bootErr != nil {
+			return nil, assembledServices{}, nil, bootErr
+		}
+	}
 	var readiness health.ReadinessChecker
 	if deps.Pool != nil {
 		readiness = deps.Pool
 	}
 	base := []httpapi.Module{
-		health.Module{Readiness: readiness},
+		health.Module{
+			Readiness: readiness,
+			Checks: []health.NamedCheck{
+				{Name: "storage", Check: svcs.media.CheckHealth},
+			},
+		},
 		identityhttp.Module{
 			Service:           svcs.identity,
 			AllowedWebOrigins: deps.Config.CORSAllowedOrigins,
@@ -290,7 +313,32 @@ func coreModules(deps Dependencies) ([]httpapi.Module, assembledServices, clock.
 		mediahttp.Module{Service: svcs.media, Auth: svcs.identity},
 		realtimehttp.Module{Broker: svcs.broker, Auth: svcs.identity},
 	}
-	return base, svcs, clk
+	return base, svcs, clk, nil
+}
+
+func ensureProductionAdmin(ctx context.Context, identitySvc *identityapp.Service, cfg config.Config) error {
+	created, err := identitySvc.EnsureBootstrapAdmin(
+		ctx,
+		cfg.BootstrapAdminEmail,
+		cfg.BootstrapAdminPassword,
+		cfg.BootstrapAdminName,
+	)
+	if err == nil {
+		if created {
+			slog.Info("production_bootstrap_admin_created", slog.String("email", cfg.BootstrapAdminEmail))
+		}
+		return nil
+	}
+	if errors.Is(err, identityapp.ErrBootstrapAdminMissing) {
+		slog.Error(
+			"production_bootstrap_admin_missing",
+			slog.String("error", err.Error()),
+			slog.String("action", "set BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD"),
+		)
+		return nil
+	}
+	slog.Error("production_bootstrap_admin_failed", slog.String("error", err.Error()))
+	return err
 }
 
 func seedSelectedMode(ctx context.Context, pool *pgxpool.Pool, clk clock.Clock, adminOnly bool) {
@@ -308,11 +356,14 @@ func buildMediaStore(pool *pgxpool.Pool) mediaapp.Store {
 	return mediapg.NewMemoryStore()
 }
 
-func wireServices(deps Dependencies, clk clock.Clock) assembledServices {
+func wireServicesChecked(deps Dependencies, clk clock.Clock) (assembledServices, error) {
 	broker := realtimeapp.NewBroker(clk.Now).StartPostgresFanout(deps.Context, deps.Pool)
 	smtpSender := buildMailSender(deps.Config)
 	pushSender := buildPushSender(deps)
-	mediaSvc := buildMediaService(deps, clk)
+	mediaSvc, mediaErr := buildMediaServiceChecked(deps, clk)
+	if mediaErr != nil {
+		return assembledServices{}, mediaErr
+	}
 
 	eventsSvc := eventsapp.NewService().WithClock(clk).WithRealtimePublisher(broker)
 	identitySvc := identityapp.NewServiceWithOptions(clk, eventsSvc, buildIdentityOptions(deps, smtpSender))
@@ -343,7 +394,7 @@ func wireServices(deps Dependencies, clk clock.Clock) assembledServices {
 	attachPostgresStores(deps.Pool, clk, svcs)
 	svcs.identity.StartMaintenanceLoop(deps.Context, time.Hour)
 	NewEventReminderWorker(eventsSvc, identitySvc, operationsSvc, smtpSender, pushSender, clk).Start(deps.Context, 15*time.Minute)
-	return svcs
+	return svcs, nil
 }
 
 func buildMailSender(cfg config.Config) *mailer.SMTPSender {
@@ -356,10 +407,10 @@ func buildMailSender(cfg config.Config) *mailer.SMTPSender {
 	})
 }
 
-func buildMediaService(deps Dependencies, clk clock.Clock) *mediaapp.Service {
+func buildMediaServiceChecked(deps Dependencies, clk clock.Clock) (*mediaapp.Service, error) {
 	svc := mediaapp.NewService(buildMediaStore(deps.Pool), deps.Config.MediaStorageDir, deps.Config.MediaMaxBytes, clk.Now)
 	if !strings.EqualFold(strings.TrimSpace(deps.Config.MediaStorageBackend), "s3") {
-		return svc
+		return svc, nil
 	}
 	s3Cfg := mediaapp.S3Config{
 		Endpoint:        deps.Config.S3Endpoint,
@@ -368,14 +419,18 @@ func buildMediaService(deps Dependencies, clk clock.Clock) *mediaapp.Service {
 		AccessKeyID:     deps.Config.S3AccessKeyID,
 		SecretAccessKey: deps.Config.S3SecretAccessKey,
 		PublicBaseURL:   deps.Config.S3PublicBaseURL,
+		MaxBytes:        deps.Config.MediaMaxBytes,
 		Clock:           clk.Now,
 	}
 	s3Svc, err := svc.WithS3Storage(s3Cfg)
 	if err != nil {
 		slog.Error("media_s3_init_failed", slog.String("error", err.Error()), slog.String("bucket", s3Cfg.Bucket))
-		return svc
+		if deps.Config.Env == config.EnvProduction {
+			return nil, err
+		}
+		return svc, nil
 	}
-	return s3Svc
+	return s3Svc, nil
 }
 
 func buildPushSender(deps Dependencies) push.Sender {

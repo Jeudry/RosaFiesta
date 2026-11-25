@@ -16,7 +16,7 @@ import (
 	"github.com/Jeudry/rosafiesta/server/internal/media/domain"
 )
 
-const defaultMaxMediaBytes = 10 << 20
+const defaultMaxMediaBytes = 16 << 20
 
 // Store abstrae la persistencia de metadatos de archivos multimedia.
 type Store interface {
@@ -127,6 +127,24 @@ func (s *Service) Open(ctx context.Context, id string) (domain.Asset, []byte, er
 		return domain.Asset{}, nil, err
 	}
 	return asset, content, nil
+}
+
+// CheckHealth verifica que el almacén de medios configurado esté disponible para escritura/lectura.
+func (s *Service) CheckHealth(_ context.Context) error {
+	if s == nil {
+		return fmt.Errorf("media service not initialized")
+	}
+	switch store := s.blobs.(type) {
+	case localBlobStore:
+		return os.MkdirAll(store.storageDir, 0o750)
+	case s3BlobStore:
+		if !store.cfg.IsConfigured() {
+			return fmt.Errorf("s3 storage credentials incomplete")
+		}
+		return nil
+	default:
+		return nil
+	}
 }
 
 func normalizePurpose(raw string) string {

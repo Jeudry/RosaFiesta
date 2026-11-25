@@ -32,6 +32,7 @@ public data class RegisteredUserAccount(
     public val phone: String,
     public val role: String,
     public val preferences: UserPreferences = UserPreferences(),
+    public val avatarKey: String = "",
 )
 
 /**

@@ -109,25 +109,28 @@ FROM suppliers
 ORDER BY id;
 
 -- name: UpsertReview :exec
-INSERT INTO reviews (id, event_id, client_name, rating, comment, admin_reply, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO reviews (id, event_id, client_name, rating, comment, admin_reply, verified, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (id) DO UPDATE SET
     admin_reply = EXCLUDED.admin_reply,
+    verified = EXCLUDED.verified,
     comment = EXCLUDED.comment,
     rating = EXCLUDED.rating;
 
 -- name: ListReviews :many
-SELECT id, event_id, client_name, rating, comment, admin_reply, created_at
+SELECT id, event_id, client_name, rating, comment, admin_reply, verified, created_at
 FROM reviews
 ORDER BY created_at DESC, id ASC;
 
 -- name: UpsertBusinessSettings :exec
 INSERT INTO business_settings (
     id, company_name, rnc, address, phone, whatsapp, email,
-    instagram, facebook, business_hours, itbis_percent, deposit_percent, updated_at
+    instagram, facebook, business_hours, itbis_percent, deposit_percent,
+    whatsapp_auto_alerts_enabled, updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7,
-    $8, $9, $10, $11, $12, $13
+    $8, $9, $10, $11, $12,
+    $13, $14
 )
 ON CONFLICT (id) DO UPDATE SET
     company_name = EXCLUDED.company_name,
@@ -141,11 +144,13 @@ ON CONFLICT (id) DO UPDATE SET
     business_hours = EXCLUDED.business_hours,
     itbis_percent = EXCLUDED.itbis_percent,
     deposit_percent = EXCLUDED.deposit_percent,
+    whatsapp_auto_alerts_enabled = EXCLUDED.whatsapp_auto_alerts_enabled,
     updated_at = EXCLUDED.updated_at;
 
 -- name: GetBusinessSettings :one
 SELECT id, company_name, rnc, address, phone, whatsapp, email,
-       instagram, facebook, business_hours, itbis_percent, deposit_percent, updated_at
+       instagram, facebook, business_hours, itbis_percent, deposit_percent,
+       whatsapp_auto_alerts_enabled, updated_at
 FROM business_settings
 WHERE id = 'default';
 
@@ -157,6 +162,10 @@ ON CONFLICT (id) DO UPDATE SET
     fee_dop = EXCLUDED.fee_dop,
     eta_minutes = EXCLUDED.eta_minutes,
     active = EXCLUDED.active;
+
+-- name: DeleteDeliveryZonesNotIn :exec
+DELETE FROM delivery_zones
+WHERE NOT (id = ANY($1::text[]));
 
 -- name: ListDeliveryZones :many
 SELECT id, name, fee_dop, eta_minutes, active

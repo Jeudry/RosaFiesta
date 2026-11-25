@@ -899,6 +899,9 @@
           },
           "whatsapp": {
             "type": "string"
+          },
+          "whatsappAutoAlertsEnabled": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -913,7 +916,8 @@
           "facebook",
           "businessHours",
           "itbisPercent",
-          "depositPercent"
+          "depositPercent",
+          "whatsappAutoAlertsEnabled"
         ],
         "type": "object"
       },
@@ -1512,6 +1516,9 @@
           "clientRnc": {
             "type": "string"
           },
+          "contactPhone": {
+            "type": "string"
+          },
           "eventId": {
             "minLength": 2,
             "type": "string"
@@ -1556,6 +1563,9 @@
           "clientName": {
             "type": "string"
           },
+          "contactPhone": {
+            "type": "string"
+          },
           "dateLabel": {
             "type": "string"
           },
@@ -1585,6 +1595,15 @@
           "paidDepositRD": {
             "format": "int64",
             "type": "integer"
+          },
+          "setupPhotoUrls": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "sketchJson": {
             "type": "string"
@@ -1680,6 +1699,9 @@
           },
           "clientName": {
             "minLength": 2,
+            "type": "string"
+          },
+          "contactPhone": {
             "type": "string"
           },
           "deliveryFeeRD": {
@@ -2443,6 +2465,9 @@
           "code": {
             "type": "string"
           },
+          "contactPhone": {
+            "type": "string"
+          },
           "dateChangesUsed": {
             "format": "int64",
             "type": "integer"
@@ -2495,6 +2520,15 @@
           "returnDateIso": {
             "type": "string"
           },
+          "setupPhotoUrls": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "sketchJson": {
             "type": "string"
           },
@@ -2533,6 +2567,7 @@
           "status",
           "dateChangesUsed",
           "assignedLead",
+          "setupPhotoUrls",
           "items"
         ],
         "type": "object"
@@ -4420,6 +4455,12 @@
           "code": {
             "type": "string"
           },
+          "contactPhone": {
+            "type": "string"
+          },
+          "contractHashSha256": {
+            "type": "string"
+          },
           "contractPdfUrl": {
             "type": "string"
           },
@@ -4483,6 +4524,9 @@
             "type": "string"
           },
           "signedByName": {
+            "type": "string"
+          },
+          "signedByUserId": {
             "type": "string"
           },
           "status": {
@@ -4868,6 +4912,9 @@
           "clientRnc": {
             "type": "string"
           },
+          "contactPhone": {
+            "type": "string"
+          },
           "eventId": {
             "minLength": 2,
             "type": "string"
@@ -4973,6 +5020,9 @@
           "adminReply": {
             "minLength": 2,
             "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -5231,6 +5281,9 @@
           "rating": {
             "format": "int64",
             "type": "integer"
+          },
+          "verified": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -5238,7 +5291,8 @@
           "eventId",
           "clientName",
           "rating",
-          "comment"
+          "comment",
+          "verified"
         ],
         "type": "object"
       },
@@ -6660,13 +6714,11 @@
             "type": "boolean"
           },
           "staffName": {
-            "minLength": 2,
             "type": "string"
           }
         },
         "required": [
-          "completed",
-          "staffName"
+          "completed"
         ],
         "type": "object"
       },
@@ -6999,6 +7051,9 @@
           "assignedLead": {
             "type": "string"
           },
+          "contactPhone": {
+            "type": "string"
+          },
           "dateLabel": {
             "type": "string"
           },
@@ -7016,6 +7071,12 @@
           "items": {
             "items": {
               "$ref": "#/components/schemas/EventItem"
+            },
+            "type": "array"
+          },
+          "setupPhotoUrls": {
+            "items": {
+              "type": "string"
             },
             "type": "array"
           },
@@ -7282,6 +7343,8 @@
           },
           "itbisPercent": {
             "format": "int64",
+            "maximum": 100,
+            "minimum": 0,
             "type": "integer"
           },
           "phone": {
@@ -7292,6 +7355,9 @@
           },
           "whatsapp": {
             "type": "string"
+          },
+          "whatsappAutoAlertsEnabled": {
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -7799,7 +7865,7 @@
             "description": "Error"
           }
         },
-        "summary": "Check service and database readiness",
+        "summary": "Check service, database, and storage readiness",
         "tags": [
           "Health"
         ]

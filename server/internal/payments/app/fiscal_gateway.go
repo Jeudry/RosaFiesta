@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/Jeudry/rosafiesta/server/internal/payments/domain"
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
@@ -20,7 +21,7 @@ import (
 	realtimedomain "github.com/Jeudry/rosafiesta/server/internal/realtime/domain"
 )
 
-const defaultStripePublicReturnBase = "https://rosafiesta.do"
+const defaultStripePublicReturnBase = "https://app.rosafiesta.do"
 
 // VerifyPaymentForCaller aprueba una transferencia pendiente, asigna NCF secuencial y sincroniza módulos.
 func (s *Service) VerifyPaymentForCaller(
@@ -210,11 +211,51 @@ func (s *Service) allocateNextNCF(ctx context.Context, ncfType string) (string, 
 		}
 	}
 	if normalized == "B01" {
+		if s.isNCFExpired("B01", s.clock.Now()) {
+			return "", domain.ErrNCFSequenceExpired
+		}
 		seq := s.ncfSeqB01.Add(1)
 		return domain.FormatNCFNumber("B01", seq), nil
 	}
+	if s.isNCFExpired("B02", s.clock.Now()) {
+		return "", domain.ErrNCFSequenceExpired
+	}
 	seq := s.ncfSeqB02.Add(1)
 	return domain.FormatNCFNumber("B02", seq), nil
+}
+
+// SetNCFValidUntil configura la fecha límite de vigencia (YYYY-MM-DD) de una secuencia NCF en memoria.
+func (s *Service) SetNCFValidUntil(ncfType, validUntilISO string) *Service {
+	normalized := normalizeNCFPrefix(ncfType)
+	s.mu.Lock()
+	if s.ncfValidUntil == nil {
+		s.ncfValidUntil = make(map[string]string)
+	}
+	s.ncfValidUntil[normalized] = strings.TrimSpace(validUntilISO)
+	s.mu.Unlock()
+	return s
+}
+
+func (s *Service) isNCFExpired(ncfType string, now time.Time) bool {
+	s.mu.RLock()
+	validUntil := ""
+	if s.ncfValidUntil != nil {
+		validUntil = strings.TrimSpace(s.ncfValidUntil[ncfType])
+	}
+	s.mu.RUnlock()
+	if validUntil == "" {
+		return false
+	}
+	todayAST := now.In(santoDomingoLocation()).Format("2006-01-02")
+	return todayAST > validUntil
+}
+
+func santoDomingoLocation() *time.Location {
+	loc, err := time.LoadLocation("America/Santo_Domingo")
+	if err == nil {
+		return loc
+	}
+	return time.FixedZone("America/Santo_Domingo", -4*3600)
 }
 
 func normalizeNCFPrefix(ncfType string) string {
@@ -481,6 +522,9 @@ func buildStripeSessionForm(
 	form.Set("metadata[kind]", strings.TrimSpace(cmd.Kind))
 	form.Set("metadata[ncf_type]", ncfType)
 	form.Set("metadata[client_rnc]", cleanedRNC)
+	if trimmedPhone := strings.TrimSpace(cmd.ContactPhone); trimmedPhone != "" {
+		form.Set("metadata[contact_phone]", trimmedPhone)
+	}
 	if trimmedEmail := strings.TrimSpace(callerEmail); trimmedEmail != "" {
 		form.Set("customer_email", trimmedEmail)
 	}
@@ -547,6 +591,15 @@ func matchesDGIIPeriod(item domain.Payment, period string) bool {
 		return true
 	}
 	compactPeriod := strings.ReplaceAll(strings.TrimSpace(period), "-", "")
+	if parsed, err := time.Parse(time.RFC3339, strings.TrimSpace(item.VerifiedAtISO)); err == nil {
+		astMonth := parsed.In(santoDomingoLocation()).Format("200601")
+		if len(compactPeriod) == 6 {
+			return astMonth == compactPeriod
+		}
+		if len(compactPeriod) == 4 {
+			return strings.HasPrefix(astMonth, compactPeriod)
+		}
+	}
 	compactVerified := strings.ReplaceAll(item.VerifiedAtISO, "-", "")
 	if strings.Contains(compactVerified, compactPeriod) {
 		return true
@@ -563,16 +616,28 @@ func buildDGII607Row(item domain.Payment) []string {
 		}
 	}
 	return []string{
-		item.ClientRNC,
-		item.NCFType,
-		item.NCFNumber,
-		item.PaidDateLabel,
-		item.EventID,
-		item.ClientName,
+		sanitizeCSVCell(item.ClientRNC),
+		sanitizeCSVCell(item.NCFType),
+		sanitizeCSVCell(item.NCFNumber),
+		sanitizeCSVCell(item.PaidDateLabel),
+		sanitizeCSVCell(item.EventID),
+		sanitizeCSVCell(item.ClientName),
 		strconv.Itoa(subtotal),
 		strconv.Itoa(itbis),
 		strconv.Itoa(item.SecurityDepositDOP),
 		strconv.Itoa(item.AmountRD),
-		string(item.Method),
+		sanitizeCSVCell(string(item.Method)),
+	}
+}
+
+func sanitizeCSVCell(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	switch raw[0] {
+	case '=', '+', '-', '@', '\t', '\r':
+		return "'" + raw
+	default:
+		return raw
 	}
 }

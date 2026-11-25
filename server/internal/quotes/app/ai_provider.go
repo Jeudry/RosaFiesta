@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -17,6 +18,7 @@ import (
 	"github.com/google/uuid"
 
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
+	"github.com/Jeudry/rosafiesta/server/internal/platform/redact"
 	"github.com/Jeudry/rosafiesta/server/internal/quotes/domain"
 )
 
@@ -221,7 +223,7 @@ func callGeminiChat(
 	systemPrompt string,
 	userMessage string,
 ) (domain.RosaChatReply, error) {
-	endpoint := fmt.Sprintf("%s/v1beta/models/%s:generateContent?key=%s", baseURL, model, apiKey)
+	endpoint := fmt.Sprintf("%s/v1beta/models/%s:generateContent", baseURL, model)
 	body := map[string]any{
 		"systemInstruction": map[string]any{
 			"parts": []map[string]string{{"text": systemPrompt}},
@@ -233,7 +235,8 @@ func callGeminiChat(
 			"responseMimeType": "application/json",
 		},
 	}
-	respBytes, err := postJSON(ctx, client, endpoint, "", body)
+	headers := map[string]string{"x-goog-api-key": apiKey}
+	respBytes, err := postJSONWithHeaders(ctx, client, endpoint, "", headers, body)
 	if err != nil {
 		return domain.RosaChatReply{}, err
 	}
@@ -408,13 +411,14 @@ func requestAIJSONText(
 		return callOpenAICompatRawText(ctx, client, endpoint, cfg.AIProvider, cfg.AIModel, cfg.AIAPIKey, systemPrompt, userMessage)
 	default:
 		baseURL := defaultURL(cfg.AIBaseURL, "https://generativelanguage.googleapis.com")
-		endpoint := fmt.Sprintf("%s/v1beta/models/%s:generateContent?key=%s", baseURL, cfg.AIModel, cfg.AIAPIKey)
+		endpoint := fmt.Sprintf("%s/v1beta/models/%s:generateContent", baseURL, cfg.AIModel)
 		body := map[string]any{
 			"systemInstruction": map[string]any{"parts": []map[string]string{{"text": systemPrompt}}},
 			"contents":          []map[string]any{{"role": "user", "parts": []map[string]string{{"text": userMessage}}}},
 			"generationConfig":  map[string]string{"responseMimeType": "application/json"},
 		}
-		respBytes, err := postJSON(ctx, client, endpoint, "", body)
+		headers := map[string]string{"x-goog-api-key": cfg.AIAPIKey}
+		respBytes, err := postJSONWithHeaders(ctx, client, endpoint, "", headers, body)
 		if err != nil {
 			return "", err
 		}
@@ -507,7 +511,7 @@ func callGeminiAudioSTT(
 	analysis domain.AudioAnalysis,
 	locale string,
 ) (string, error) {
-	endpoint := fmt.Sprintf("%s/v1beta/models/%s:generateContent?key=%s", baseURL, model, apiKey)
+	endpoint := fmt.Sprintf("%s/v1beta/models/%s:generateContent", baseURL, model)
 	mimeType, _ := resolveAudioFormat(cmd.MimeType)
 	instruction := fmt.Sprintf("Transcribe literalmente este audio en idioma %s sin agregar explicaciones.", locale)
 	if strings.TrimSpace(cmd.PromptHint) != "" {
@@ -525,7 +529,8 @@ func callGeminiAudioSTT(
 			},
 		},
 	}
-	respBytes, err := postJSON(ctx, client, endpoint, "", body)
+	headers := map[string]string{"x-goog-api-key": apiKey}
+	respBytes, err := postJSONWithHeaders(ctx, client, endpoint, "", headers, body)
 	if err != nil {
 		return "", err
 	}
@@ -630,6 +635,17 @@ func postJSON(
 	bearerToken string,
 	payload any,
 ) ([]byte, error) {
+	return postJSONWithHeaders(ctx, client, endpoint, bearerToken, nil, payload)
+}
+
+func postJSONWithHeaders(
+	ctx context.Context,
+	client *http.Client,
+	endpoint string,
+	bearerToken string,
+	extraHeaders map[string]string,
+	payload any,
+) ([]byte, error) {
 	rawBody, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -638,11 +654,16 @@ func postJSON(
 	defer cancel()
 	httpReq, err := http.NewRequestWithContext(reqCtx, http.MethodPost, endpoint, bytes.NewReader(rawBody))
 	if err != nil {
-		return nil, err
+		return nil, errors.New(redact.Text(err.Error()))
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	if bearerToken != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+bearerToken)
+	}
+	for headerName, headerVal := range extraHeaders {
+		if strings.TrimSpace(headerVal) != "" {
+			httpReq.Header.Set(headerName, headerVal)
+		}
 	}
 	return executeHTTPRequest(client, httpReq)
 }
@@ -654,15 +675,16 @@ func executeHTTPRequest(client *http.Client, httpReq *http.Request) ([]byte, err
 	}
 	resp, err := activeClient.Do(httpReq)
 	if err != nil {
-		return nil, err
+		return nil, errors.New(redact.Text(err.Error()))
 	}
 	defer func() { _ = resp.Body.Close() }()
 	respBytes, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil {
-		return nil, err
+		return nil, errors.New(redact.Text(err.Error()))
 	}
 	if resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("provider returned status %d: %s", resp.StatusCode, strings.TrimSpace(string(respBytes)))
+		safeBody := redact.Text(strings.TrimSpace(string(respBytes)))
+		return nil, fmt.Errorf("provider returned status %d: %s", resp.StatusCode, safeBody)
 	}
 	return respBytes, nil
 }

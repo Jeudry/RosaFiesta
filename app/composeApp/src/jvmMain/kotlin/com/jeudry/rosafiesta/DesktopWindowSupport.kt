@@ -14,6 +14,10 @@ import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import com.jeudry.rosafiesta.domain.platform.AppLifecycleBridge
+import java.awt.Dimension
+
+private const val MIN_DESKTOP_WINDOW_WIDTH_PX: Int = 380
+private const val MIN_DESKTOP_WINDOW_HEIGHT_PX: Int = 680
 
 /**
  * Vector window icon [Painter] for RosaFiesta Desktop JVM applications.
@@ -69,6 +73,9 @@ internal fun ApplicationScope.RosaFiestaDesktopWindow(
         icon = iconPainter,
         state = state,
     ) {
+        LaunchedEffect(window) {
+            window.minimumSize = Dimension(MIN_DESKTOP_WINDOW_WIDTH_PX, MIN_DESKTOP_WINDOW_HEIGHT_PX)
+        }
         content()
     }
 }

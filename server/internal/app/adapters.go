@@ -617,10 +617,10 @@ func (a businessSettingsAdapter) CurrentITBISPercent(ctx context.Context) int {
 		return 18
 	}
 	settings, _ := a.operations.GetSettings(ctx)
-	if settings.ItbisPercent > 0 {
-		return settings.ItbisPercent
+	if settings.ItbisPercent < 0 {
+		return 18
 	}
-	return 18
+	return settings.ItbisPercent
 }
 
 func (a businessSettingsAdapter) CurrentDepositPercent(ctx context.Context) int {
@@ -858,7 +858,7 @@ func (a reviewEventAdapter) VerifyEventOwnership(
 	eventID string,
 	caller platformhttp.Principal,
 ) error {
-	_, err := a.events.GetEventForCaller(ctx, eventID, caller, false)
+	_, err := a.events.GetEventForCaller(ctx, eventID, caller, true)
 	if errors.Is(err, eventsdomain.ErrEventForbidden) {
 		return operationsdomain.ErrReviewForbidden
 	}

@@ -4,13 +4,15 @@ INSERT INTO events (
     event_date_label, event_date_iso, pickup_date_iso, return_date_iso, days_until, guests_count,
     articles_count, total_dop, deposit_dop, paid_dop, paid_deposit_dop, balance_dop, balance_due_label,
     status, date_changes_count, assigned_lead, sketch_json, cancellation_reason, quote_id,
-    closeout_completed, closeout_notes, last_payment_reminder_at, last_payment_reminder_channel, created_at
+    closeout_completed, closeout_notes, last_payment_reminder_at, last_payment_reminder_channel,
+    setup_photo_urls, contact_phone, created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
     $11, $12, $13, $14, $15, $16,
     $17, $18, $19, $20, $21, $22, $23,
     $24, $25, $26, $27, $28, $29,
-    $30, $31, $32, $33, $34
+    $30, $31, $32, $33,
+    $34, $35, $36
 )
 ON CONFLICT (id) DO UPDATE SET
     code = EXCLUDED.code,
@@ -44,14 +46,17 @@ ON CONFLICT (id) DO UPDATE SET
     closeout_completed = EXCLUDED.closeout_completed,
     closeout_notes = EXCLUDED.closeout_notes,
     last_payment_reminder_at = EXCLUDED.last_payment_reminder_at,
-    last_payment_reminder_channel = EXCLUDED.last_payment_reminder_channel;
+    last_payment_reminder_channel = EXCLUDED.last_payment_reminder_channel,
+    setup_photo_urls = EXCLUDED.setup_photo_urls,
+    contact_phone = EXCLUDED.contact_phone;
 
 -- name: ListEvents :many
 SELECT id, code, client_id, client_name, client_email, title, event_type, photo_key, venue, zone,
        event_date_label, event_date_iso, pickup_date_iso, return_date_iso, days_until, guests_count,
        articles_count, total_dop, deposit_dop, paid_dop, paid_deposit_dop, balance_dop, balance_due_label,
        status, date_changes_count, assigned_lead, sketch_json, cancellation_reason, quote_id,
-       closeout_completed, closeout_notes, last_payment_reminder_at, last_payment_reminder_channel, created_at
+       closeout_completed, closeout_notes, last_payment_reminder_at, last_payment_reminder_channel,
+       setup_photo_urls, contact_phone, created_at
 FROM events
 ORDER BY created_at, id;
 
@@ -60,7 +65,8 @@ SELECT id, code, client_id, client_name, client_email, title, event_type, photo_
        event_date_label, event_date_iso, pickup_date_iso, return_date_iso, days_until, guests_count,
        articles_count, total_dop, deposit_dop, paid_dop, paid_deposit_dop, balance_dop, balance_due_label,
        status, date_changes_count, assigned_lead, sketch_json, cancellation_reason, quote_id,
-       closeout_completed, closeout_notes, last_payment_reminder_at, last_payment_reminder_channel, created_at
+       closeout_completed, closeout_notes, last_payment_reminder_at, last_payment_reminder_channel,
+       setup_photo_urls, contact_phone, created_at
 FROM events
 WHERE id = $1;
 

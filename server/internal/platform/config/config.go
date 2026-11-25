@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -24,7 +25,7 @@ const (
 const (
 	defaultPort            = 8788
 	defaultSMTPPort        = 587
-	defaultMediaMaxBytes   = 10 << 20
+	defaultMediaMaxBytes   = 16 << 20
 	minJWTSecretLength     = 32
 	defaultPublicBaseURL   = "http://localhost:8788"
 	defaultMediaStorageDir = "./var/media"
@@ -44,6 +45,10 @@ type Config struct {
 	DatabaseURL            string
 	JWTSecret              string
 	CORSAllowedOrigins     []string
+	TrustedProxies         []string
+	BootstrapAdminEmail    string
+	BootstrapAdminPassword string
+	BootstrapAdminName     string
 	PublicAppBaseURL       string
 	MediaStorageBackend    string
 	MediaStorageDir        string
@@ -116,18 +121,29 @@ func Load(getenv func(string) string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	trustedProxies, err := parseTrustedProxies(getenv("TRUSTED_PROXIES"))
+	if err != nil {
+		return Config{}, err
+	}
 	cfg := Config{
-		Env:                 env,
-		Port:                port,
-		SeedMode:            resolveSeedMode(getenv("ROSAFIESTA_SEED_MODE")),
-		DatabaseURL:         dbURL,
-		JWTSecret:           jwtSecret,
-		CORSAllowedOrigins:  corsOrigins,
-		PublicAppBaseURL:    fallbackString(getenv("PUBLIC_APP_BASE_URL"), defaultPublicBaseURL),
-		MediaStorageBackend: fallbackString(getenv("MEDIA_STORAGE_BACKEND"), "local"),
-		MediaStorageDir:     fallbackString(getenv("MEDIA_STORAGE_DIR"), defaultMediaStorageDir),
+		Env:                    env,
+		Port:                   port,
+		SeedMode:               resolveSeedMode(getenv("ROSAFIESTA_SEED_MODE")),
+		DatabaseURL:            dbURL,
+		JWTSecret:              jwtSecret,
+		CORSAllowedOrigins:     corsOrigins,
+		TrustedProxies:         trustedProxies,
+		BootstrapAdminEmail:    strings.TrimSpace(getenv("BOOTSTRAP_ADMIN_EMAIL")),
+		BootstrapAdminPassword: strings.TrimSpace(getenv("BOOTSTRAP_ADMIN_PASSWORD")),
+		BootstrapAdminName:     strings.TrimSpace(getenv("BOOTSTRAP_ADMIN_NAME")),
+		PublicAppBaseURL:       fallbackString(getenv("PUBLIC_APP_BASE_URL"), defaultPublicBaseURL),
+		MediaStorageBackend:    fallbackString(getenv("MEDIA_STORAGE_BACKEND"), "local"),
+		MediaStorageDir:        fallbackString(getenv("MEDIA_STORAGE_DIR"), defaultMediaStorageDir),
 	}
 	if err := populateIntegrations(getenv, &cfg); err != nil {
+		return Config{}, err
+	}
+	if err := validateProductionMediaStorage(cfg); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil
@@ -259,6 +275,9 @@ func resolveJWTSecret(raw string, env Environment) (string, error) {
 		if len(trimmed) < minJWTSecretLength {
 			return "", errors.New("JWT_SECRET with at least 32 characters is required in production")
 		}
+		if hasWeakJWTSecretPattern(trimmed) {
+			return "", errors.New("JWT_SECRET cannot use a weak or placeholder value in production")
+		}
 		return trimmed, nil
 	}
 	if trimmed != "" {
@@ -269,6 +288,65 @@ func resolveJWTSecret(raw string, env Environment) (string, error) {
 		return "", fmt.Errorf("generate ephemeral dev jwt key: %w", err)
 	}
 	return hex.EncodeToString(buf), nil
+}
+
+func hasWeakJWTSecretPattern(secret string) bool {
+	lower := strings.ToLower(strings.TrimSpace(secret))
+	weakTokens := []string{"changeme", "change-me", "replace-with", "placeholder", "dev-secret", "secret123", "rosafiesta-dev"}
+	for _, token := range weakTokens {
+		if strings.Contains(lower, token) {
+			return true
+		}
+	}
+	return false
+}
+
+func parseTrustedProxies(raw string) ([]string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, nil
+	}
+	parts := strings.Split(trimmed, ",")
+	proxies := make([]string, 0, len(parts))
+	for _, part := range parts {
+		candidate := strings.TrimSpace(part)
+		if candidate == "" {
+			continue
+		}
+		_, _, cidrErr := net.ParseCIDR(candidate)
+		parsedIP := net.ParseIP(candidate)
+		isValidCIDR := cidrErr == nil
+		isValidIP := parsedIP != nil
+		if !isValidCIDR {
+			if !isValidIP {
+				return nil, fmt.Errorf("invalid TRUSTED_PROXIES entry %q", candidate)
+			}
+		}
+		proxies = append(proxies, candidate)
+	}
+	return proxies, nil
+}
+
+func validateProductionMediaStorage(cfg Config) error {
+	if cfg.Env != EnvProduction {
+		return nil
+	}
+	if !strings.EqualFold(strings.TrimSpace(cfg.MediaStorageBackend), "s3") {
+		return nil
+	}
+	if strings.TrimSpace(cfg.S3Endpoint) == "" {
+		return errors.New("S3_ENDPOINT is required in production when MEDIA_STORAGE_BACKEND=s3")
+	}
+	if strings.TrimSpace(cfg.S3Bucket) == "" {
+		return errors.New("S3_BUCKET is required in production when MEDIA_STORAGE_BACKEND=s3")
+	}
+	if strings.TrimSpace(cfg.S3AccessKeyID) == "" {
+		return errors.New("S3_ACCESS_KEY_ID is required in production when MEDIA_STORAGE_BACKEND=s3")
+	}
+	if strings.TrimSpace(cfg.S3SecretAccessKey) == "" {
+		return errors.New("S3_SECRET_ACCESS_KEY is required in production when MEDIA_STORAGE_BACKEND=s3")
+	}
+	return nil
 }
 
 func resolveCORSOrigins(raw string, env Environment) ([]string, error) {

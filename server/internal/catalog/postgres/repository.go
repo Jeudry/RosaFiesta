@@ -234,14 +234,30 @@ func (r *Repository) UpsertArticle(ctx context.Context, article domain.Article) 
 	if !r.Enabled() {
 		return nil
 	}
-	if err := r.ensureCategoryExists(ctx, article.CategoryID); err != nil {
+	if strings.TrimSpace(article.ID) == "" {
+		return errors.New("article id is required")
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := r.queries.WithTx(tx)
+	if err := upsertArticleTx(ctx, qtx, article); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func upsertArticleTx(ctx context.Context, q *sqlcgen.Queries, article domain.Article) error {
+	if err := ensureCategoryExistsTx(ctx, q, article.CategoryID); err != nil {
 		return err
 	}
 	variants := article.ColorVariants
 	if variants == nil {
 		variants = []string{}
 	}
-	return r.queries.UpsertArticle(ctx, sqlcgen.UpsertArticleParams{
+	return q.UpsertArticle(ctx, sqlcgen.UpsertArticleParams{
 		ID:                article.ID,
 		Name:              article.Name,
 		CategoryID:        article.CategoryID,
@@ -306,8 +322,8 @@ func (r *Repository) CountArticlesByCategory(ctx context.Context, categoryID str
 	return count, nil
 }
 
-func (r *Repository) ensureCategoryExists(ctx context.Context, categoryID string) error {
-	existing, err := r.queries.ListCategories(ctx)
+func ensureCategoryExistsTx(ctx context.Context, q *sqlcgen.Queries, categoryID string) error {
+	existing, err := q.ListCategories(ctx)
 	if err == nil {
 		for _, row := range existing {
 			matchesID := strings.EqualFold(row.ID, categoryID)
@@ -320,7 +336,7 @@ func (r *Repository) ensureCategoryExists(ctx context.Context, categoryID string
 			}
 		}
 	}
-	return r.queries.UpsertCategory(ctx, sqlcgen.UpsertCategoryParams{
+	return q.UpsertCategory(ctx, sqlcgen.UpsertCategoryParams{
 		ID:        categoryID,
 		Name:      categoryID,
 		IlloKey:   "mobiliario",
@@ -332,7 +348,23 @@ func (r *Repository) UpsertPackage(ctx context.Context, pkg domain.PackageBundle
 	if !r.Enabled() {
 		return nil
 	}
-	err := r.queries.UpsertPackage(ctx, sqlcgen.UpsertPackageParams{
+	if strings.TrimSpace(pkg.ID) == "" {
+		return errors.New("package id is required")
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := r.queries.WithTx(tx)
+	if err := upsertPackageTx(ctx, qtx, pkg); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func upsertPackageTx(ctx context.Context, q *sqlcgen.Queries, pkg domain.PackageBundle) error {
+	err := q.UpsertPackage(ctx, sqlcgen.UpsertPackageParams{
 		ID:            pkg.ID,
 		Name:          pkg.Name,
 		EventType:     pkg.EventType,
@@ -346,11 +378,14 @@ func (r *Repository) UpsertPackage(ctx context.Context, pkg domain.PackageBundle
 	if err != nil {
 		return err
 	}
-	if err := r.queries.DeletePackageItems(ctx, pkg.ID); err != nil {
+	if err := q.DeletePackageItems(ctx, pkg.ID); err != nil {
 		return err
 	}
 	for _, item := range pkg.Items {
-		err := r.queries.UpsertPackageItem(ctx, sqlcgen.UpsertPackageItemParams{
+		if item.Quantity <= 0 {
+			continue
+		}
+		err := q.UpsertPackageItem(ctx, sqlcgen.UpsertPackageItemParams{
 			PackageID:    pkg.ID,
 			ArticleID:    item.ArticleID,
 			ArticleName:  item.ArticleName,

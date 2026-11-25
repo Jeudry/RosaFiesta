@@ -29,6 +29,11 @@ internal object RosaFiestaSchemaUpgrade {
         "ALTER TABLE eventEntity ADD COLUMN itemsJson TEXT NOT NULL DEFAULT '[]'",
         "ALTER TABLE eventEntity ADD COLUMN clientEmail TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE eventEntity ADD COLUMN cancellationReason TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE eventEntity ADD COLUMN setupPhotoUrlsJson TEXT NOT NULL DEFAULT '[]'",
+        "ALTER TABLE eventEntity ADD COLUMN contactPhone TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE quoteEntity ADD COLUMN contactPhone TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE quoteEntity ADD COLUMN signedByUserId TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE quoteEntity ADD COLUMN contractHashSha256 TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE staffPermissionEntity ADD COLUMN email TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE staffPermissionEntity ADD COLUMN phone TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE staffPermissionEntity ADD COLUMN active INTEGER NOT NULL DEFAULT 1",
@@ -42,6 +47,7 @@ internal object RosaFiestaSchemaUpgrade {
         "ALTER TABLE userAccountEntity ADD COLUMN darkThemeEnabled INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE userAccountEntity ADD COLUMN savedPaymentMethod TEXT NOT NULL DEFAULT 'Transferencia'",
         "ALTER TABLE userAccountEntity ADD COLUMN profileZone TEXT NOT NULL DEFAULT 'Distrito Nacional'",
+        "ALTER TABLE userAccountEntity ADD COLUMN avatarKey TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE paymentEntity ADD COLUMN voucherUrl TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE paymentEntity ADD COLUMN ncfType TEXT NOT NULL DEFAULT 'B02'",
         "ALTER TABLE paymentEntity ADD COLUMN ncfNumber TEXT NOT NULL DEFAULT ''",
@@ -122,6 +128,13 @@ internal object RosaFiestaSchemaUpgrade {
         CREATE TABLE IF NOT EXISTS submoduleSnapshotEntity (
             snapshotKey TEXT NOT NULL PRIMARY KEY,
             payloadJson TEXT NOT NULL
+        )
+        """.trimIndent(),
+        """
+        CREATE TABLE IF NOT EXISTS activeSessionEntity (
+            slot INTEGER NOT NULL PRIMARY KEY,
+            userId TEXT NOT NULL,
+            accessToken TEXT NOT NULL
         )
         """.trimIndent(),
     )

@@ -375,6 +375,7 @@ func TestService_ConfirmCardSessionWebhookAndAnalytics(t *testing.T) {
 		_, _ = w.Write([]byte(`{
 			"id":"cs_paid_900",
 			"payment_status":"paid",
+			"currency":"dop",
 			"amount_total":320000,
 			"customer_email":"camila@rosafiesta.do",
 			"metadata":{"event_id":"evt-boda-real","kind":"saldo","ncf_type":"B02"}
@@ -429,6 +430,7 @@ func newMockStripeRefundServer(t *testing.T, capturedForm *url.Values) *httptest
 				"id":"cs_card_refund_1",
 				"payment_intent":"pi_stripe_888",
 				"payment_status":"paid",
+				"currency":"dop",
 				"amount_total":150000,
 				"customer_email":"camila@rosafiesta.do",
 				"metadata":{"event_id":"evt-stripe-refund","kind":"anticipo","ncf_type":"B02"}

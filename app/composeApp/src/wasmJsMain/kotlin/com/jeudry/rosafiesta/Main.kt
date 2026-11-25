@@ -52,7 +52,7 @@ private fun resolveInitialWebRoute(
     rawHash: String,
 ): Pair<String, Boolean> {
     val isAdminMode = isAdminWebRoute(hostname = hostname, pathname = pathname, search = search)
-    val defaultScreen = if (isAdminMode) "A01" else "s14"
+    val defaultScreen = if (isAdminMode) "A39" else "s14"
     if (!isLocalDevHost(hostname)) {
         return defaultScreen to false
     }

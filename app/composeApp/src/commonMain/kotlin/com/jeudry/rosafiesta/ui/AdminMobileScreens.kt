@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -52,6 +53,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -60,7 +62,15 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -187,6 +197,17 @@ private fun AdminCenteredDialogOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0x73151729))
+                .onPreviewKeyEvent { keyEvent ->
+                    val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                    val isEscape = keyEvent.key == Key.Escape
+                    val shouldDismiss = if (isKeyDown) isEscape else false
+                    if (shouldDismiss) {
+                        onDismiss()
+                        true
+                    } else {
+                        false
+                    }
+                }
                 .clickable(
                     interactionSource = scrimInteractionSource,
                     indication = null,
@@ -244,6 +265,17 @@ internal fun AdminBottomSheetOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0x73141632))
+                .onPreviewKeyEvent { keyEvent ->
+                    val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                    val isEscape = keyEvent.key == Key.Escape
+                    val shouldDismiss = if (isKeyDown) isEscape else false
+                    if (shouldDismiss) {
+                        onDismiss()
+                        true
+                    } else {
+                        false
+                    }
+                }
                 .clickable(
                     interactionSource = scrimInteractionSource,
                     indication = null,
@@ -1269,7 +1301,7 @@ internal fun RenderAdminHomeA01(
                         text = formatAdminDop(totalRevenueDop),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E3048)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink),
                     )
                 }
             }
@@ -1286,7 +1318,7 @@ internal fun RenderAdminHomeA01(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     BasicText("Eventos activos", maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = RfThemeState.currentPalette.muted))
-                    BasicText("$activeEventsCount", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E3048)))
+                    BasicText("$activeEventsCount", style = TextStyle(fontFamily = typo.displayFamily, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = RfThemeState.currentPalette.ink))
                 }
             }
 
@@ -1320,12 +1352,17 @@ internal fun RenderAdminHomeA01(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                val rosaCreateGradient = if (RfThemeState.currentPalette.isDark) {
+                    Brush.linearGradient(listOf(rfAdminIndigoPillBg(), rfAdminTealPillBg()))
+                } else {
+                    Brush.linearGradient(listOf(Color(0xFFE9E8FF), Color(0xFFDDF2F6)))
+                }
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFFE9E8FF), Color(0xFFDDF2F6))))
+                        .background(rosaCreateGradient)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
                         .clickable { onSelectScreenCode("A08") }
                         .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -4271,6 +4308,21 @@ private fun AdminRejectPaymentDialog(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0x66151729))
+            .onPreviewKeyEvent { keyEvent ->
+                val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                val isEscape = keyEvent.key == Key.Escape
+                val shouldCancel = if (isKeyDown) {
+                    if (isEscape) !isSubmitting else false
+                } else {
+                    false
+                }
+                if (shouldCancel) {
+                    onCancel()
+                    true
+                } else {
+                    false
+                }
+            }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -5862,7 +5914,9 @@ internal fun RenderAdminExecutionA16(
             ),
         )
     }
-    var uploadedPhotos by remember(selectedEvent.id) { mutableStateOf(listOf<String>()) }
+    var uploadedPhotos by remember(selectedEvent.id, selectedEvent.setupPhotoUrls) {
+        mutableStateOf(selectedEvent.setupPhotoUrls)
+    }
 
     val domainStageRows = activeChecklist.map { stepItem ->
         val stageIdx = classifyChecklistStageIndex(stepItem.stageLabel)
@@ -6229,16 +6283,23 @@ internal fun RenderAdminExecutionA16(
                                 if (viewModel != null) {
                                     viewModel.pickMediaAttachment(listOf("jpg", "jpeg", "png")) { pickedFile ->
                                         val fallbackLabel = pickedFile.fileName.ifBlank { "montaje-${uploadedPhotos.size + 1}.jpg" }
-                                        viewModel.uploadAndAttachMedia("event", pickedFile) { uploadedUrl ->
-                                            val resolvedEntry = uploadedUrl.ifBlank { fallbackLabel }
-                                            if (!uploadedPhotos.contains(resolvedEntry)) {
-                                                uploadedPhotos = uploadedPhotos + resolvedEntry
+                                        viewModel.attachSetupPhotosToEvent(
+                                            eventId = selectedEvent.id,
+                                            files = listOf(pickedFile),
+                                        ) { savedOk, persistedUrls ->
+                                            val hasPersisted = persistedUrls.isNotEmpty()
+                                            val shouldReplace = if (savedOk) hasPersisted else false
+                                            if (shouldReplace) {
+                                                uploadedPhotos = persistedUrls
+                                            } else {
+                                                val appended = if (hasPersisted) persistedUrls else listOf(fallbackLabel)
+                                                uploadedPhotos = (uploadedPhotos + appended).distinct()
                                             }
                                         }
                                     }
                                 } else {
                                     val nextDemoPhoto = "montaje-${uploadedPhotos.size + 1}.jpg"
-                                    uploadedPhotos = uploadedPhotos + nextDemoPhoto
+                                    uploadedPhotos = (uploadedPhotos + nextDemoPhoto).distinct()
                                 }
                             }
                             .padding(horizontal = 14.dp, vertical = 12.dp),
@@ -6278,7 +6339,12 @@ internal fun RenderAdminExecutionA16(
                                                 .clip(CircleShape)
                                                 .background(rfAdminSuccessPillBg())
                                                 .clickable {
-                                                    uploadedPhotos = uploadedPhotos.filterNot { itemPhoto -> itemPhoto == photoName }
+                                                    val remainingPhotos = uploadedPhotos.filterNot { itemPhoto -> itemPhoto == photoName }
+                                                    uploadedPhotos = remainingPhotos
+                                                    viewModel?.saveEventSetupPhotoUrls(
+                                                        eventId = selectedEvent.id,
+                                                        photoUrls = remainingPhotos,
+                                                    )
                                                 }
                                                 .padding(horizontal = 10.dp, vertical = 5.dp),
                                         ) {
@@ -6890,6 +6956,48 @@ internal fun RenderAdminTasksA17(
 // ==============================================================================
 // A18 · PLANO Y DISTRIBUCIÓN
 // ==============================================================================
+private fun parseTablesCountFromBlueprintJson(rawSketchJson: String): Int? {
+    val trimmed = rawSketchJson.trim()
+    if (!trimmed.startsWith("{")) return null
+    val marker = "\"tables\":"
+    val markerIndex = trimmed.indexOf(marker)
+    if (markerIndex < 0) return null
+    val digits = trimmed
+        .substring(markerIndex + marker.length)
+        .trimStart()
+        .takeWhile { character -> character.isDigit() }
+    return digits.toIntOrNull()?.coerceIn(1, 16)
+}
+
+private fun mergeAdminTableCountIntoSketchElements(
+    existingElements: List<SketchCanvasElement>,
+    targetTableCount: Int,
+): List<SketchCanvasElement> {
+    val existingTables = existingElements.filter { element -> isTableElementKind(element.kind) }
+    if (existingTables.size == targetTableCount) {
+        return existingElements
+    }
+    val nonTableElements = existingElements.filterNot { element -> isTableElementKind(element.kind) }
+    val retainedTables = existingTables.take(targetTableCount)
+    val missingTablesCount = (targetTableCount - retainedTables.size).coerceAtLeast(0)
+    if (missingTablesCount == 0) {
+        return nonTableElements + retainedTables
+    }
+    val candidateOffsets = buildTableCanvasOffsets(targetTableCount)
+    val appendedTables = (retainedTables.size until targetTableCount).map { tableIdx ->
+        val rawOffset = candidateOffsets[tableIdx.coerceAtMost(candidateOffsets.lastIndex)]
+        SketchCanvasElement(
+            id = "el-admin-tbl-${tableIdx + 1}",
+            kind = SketchElementKind.ROUND_TABLE,
+            normX = (rawOffset.x / 358f).coerceIn(0.08f, 0.92f),
+            normY = (rawOffset.y / 440f).coerceIn(0.10f, 0.90f),
+            colorHex = 0xFF5B6CF0,
+            label = "Mesa ${tableIdx + 1}",
+        )
+    }
+    return nonTableElements + retainedTables + appendedTables
+}
+
 private fun buildSketchBlueprintJson(
     eventId: String,
     tableCount: Int,
@@ -6965,17 +7073,31 @@ internal fun RenderAdminSketchA18(
         )
         return
     }
-    val vmTableCount = viewModel?.sketchTableCount?.collectAsState()?.value
+    val parsedClientElements = remember(selectedEvent.id, selectedEvent.sketchJson) {
+        parseSketchElements(selectedEvent.sketchJson)
+    }
+    val clientElementTableCount = remember(parsedClientElements) {
+        parsedClientElements.count { element -> isTableElementKind(element.kind) }
+    }
+    val initialSketchTableCount = remember(selectedEvent.id, selectedEvent.sketchJson, selectedEvent.guests) {
+        val suggestedTables = ((selectedEvent.guests + 9) / 10).coerceIn(4, 16)
+        val jsonTables = parseTablesCountFromBlueprintJson(selectedEvent.sketchJson)
+        when {
+            clientElementTableCount > 0 -> clientElementTableCount.coerceIn(1, 16)
+            jsonTables != null -> jsonTables
+            else -> suggestedTables
+        }
+    }
     val formFeedback = viewModel?.formFeedback?.collectAsState()?.value
 
-    var fallbackTableCount by remember(selectedEvent.id) {
-        val suggestedTables = ((selectedEvent.guests + 9) / 10).coerceIn(4, 16)
-        mutableStateOf(suggestedTables)
+    var activeTableCount by remember(selectedEvent.id, selectedEvent.sketchJson) {
+        mutableStateOf(initialSketchTableCount)
     }
-    var selectedViewMode by remember { mutableStateOf("Plano") }
+    var selectedViewMode by remember(selectedEvent.id) {
+        mutableStateOf(if (parsedClientElements.isNotEmpty()) "Boceto original" else "Plano")
+    }
     var localSaveNotice by remember { mutableStateOf<String?>(null) }
 
-    val activeTableCount = (vmTableCount ?: fallbackTableCount).coerceIn(1, 16)
     val calculatedSeats = activeTableCount * 10
     val clientFirstName = selectedEvent.clientName.trim().substringBefore(" ").ifBlank { "Cliente" }
     val isOriginalSelected = selectedViewMode == "Boceto original"
@@ -6984,20 +7106,26 @@ internal fun RenderAdminSketchA18(
 
     val adjustTablesByDelta: (Int) -> Unit = { delta ->
         localSaveNotice = null
-        if (viewModel != null) {
-            viewModel.adjustSketchTables(delta)
-        } else {
-            fallbackTableCount = (fallbackTableCount + delta).coerceIn(1, 16)
-        }
+        val updatedCount = (activeTableCount + delta).coerceIn(1, 16)
+        activeTableCount = updatedCount
+        viewModel?.setSketchTableCount(updatedCount)
     }
 
     val saveCurrentBlueprint: () -> Unit = {
-        val payloadJson = buildSketchBlueprintJson(
-            eventId = selectedEvent.id,
-            tableCount = activeTableCount,
-            guestsCount = selectedEvent.guests,
-            viewMode = selectedViewMode,
-        )
+        val payloadJson = if (parsedClientElements.isNotEmpty()) {
+            val mergedElements = mergeAdminTableCountIntoSketchElements(
+                existingElements = parsedClientElements,
+                targetTableCount = activeTableCount,
+            )
+            serializeSketchElements(mergedElements)
+        } else {
+            buildSketchBlueprintJson(
+                eventId = selectedEvent.id,
+                tableCount = activeTableCount,
+                guestsCount = selectedEvent.guests,
+                viewMode = selectedViewMode,
+            )
+        }
         if (viewModel != null) {
             viewModel.saveSketchLayoutJson(payloadJson, selectedEvent.id)
             viewModel.postFeedback("Plano guardado: $activeTableCount mesas ($calculatedSeats sillas).")
@@ -7164,132 +7292,195 @@ internal fun RenderAdminSketchA18(
                 }
 
                 if (isOriginalSelected) {
+                    val palette = RfThemeState.currentPalette
+                    val originalCanvasGradient = if (palette.isDark) {
+                        Brush.verticalGradient(listOf(palette.surface, palette.chipBg))
+                    } else {
+                        Brush.verticalGradient(listOf(Color(0xFFFFF8FB), Color(0xFFF7F5FF)))
+                    }
+                    val originalCanvasBorder = if (palette.isDark) palette.line else Color(0xFFF3DCEB)
+                    val displayedClientElements = remember(parsedClientElements, activeTableCount) {
+                        if (parsedClientElements.isEmpty()) {
+                            emptyList()
+                        } else {
+                            mergeAdminTableCountIntoSketchElements(
+                                existingElements = parsedClientElements,
+                                targetTableCount = activeTableCount,
+                            )
+                        }
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(280.dp)
                             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(Brush.verticalGradient(listOf(Color(0xFFFFF8FB), Color(0xFFF7F5FF))))
-                            .border(1.dp, Color(0xFFF3DCEB), RoundedCornerShape(20.dp)),
+                            .background(originalCanvasGradient)
+                            .border(1.dp, originalCanvasBorder, RoundedCornerShape(20.dp)),
                     ) {
-                        val tablePositions = buildTableCanvasOffsets(activeTableCount)
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val scaleX = size.width / 358f
-                            val scaleY = size.height / 440f
-                            scale(scaleX, scaleY, Offset.Zero) {
-                                drawArc(
-                                    color = rfAdminIndigoPillBg(),
-                                    startAngle = 180f,
-                                    sweepAngle = 180f,
-                                    useCenter = true,
-                                    topLeft = Offset(86f, 22f),
-                                    size = Size(186f, 92f),
-                                )
-                                drawArc(
-                                    color = rfAdminIndigoPillInk(),
-                                    startAngle = 180f,
-                                    sweepAngle = 180f,
-                                    useCenter = false,
-                                    topLeft = Offset(86f, 22f),
-                                    size = Size(186f, 92f),
-                                    style = Stroke(width = 3f, cap = StrokeCap.Round),
-                                )
-
-                                drawRoundRect(
-                                    color = rfAdminWarnPillBg(),
-                                    topLeft = Offset(246f, 34f),
-                                    size = Size(92f, 44f),
-                                    cornerRadius = CornerRadius(12f, 12f),
-                                )
-                                drawRoundRect(
-                                    color = Color(0xFFD9A441),
-                                    topLeft = Offset(246f, 34f),
-                                    size = Size(92f, 44f),
-                                    cornerRadius = CornerRadius(12f, 12f),
-                                    style = Stroke(width = 2f),
-                                )
-
-                                drawRoundRect(
-                                    color = rfAdminSuccessPillBg(),
-                                    topLeft = Offset(128f, 236f),
-                                    size = Size(102f, 88f),
-                                    cornerRadius = CornerRadius(16f, 16f),
-                                )
-
-                                tablePositions.forEach { tableCenter ->
-                                    drawCircle(color = rfAdminIndigoPillBg(), radius = 21f, center = tableCenter)
-                                    drawCircle(color = rfAdminIndigoPillInk(), radius = 21f, center = tableCenter, style = Stroke(width = 2f))
-                                    for (chairIndex in 0 until 10) {
-                                        val angle = chairIndex * (kotlin.math.PI * 2 / 10)
-                                        val chairX = tableCenter.x + kotlin.math.cos(angle).toFloat() * 29f
-                                        val chairY = tableCenter.y + kotlin.math.sin(angle).toFloat() * 29f
-                                        drawCircle(color = Color(0xFFFFD45C), radius = 3.5f, center = Offset(chairX, chairY))
+                        if (displayedClientElements.isNotEmpty()) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                displayedClientElements.forEach { element ->
+                                    drawSingleSketchElement(
+                                        element = element,
+                                        isThreeDimensionalPreview = false,
+                                    )
+                                }
+                            }
+                            Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.align(Alignment.BottomStart),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(palette.surface)
+                                            .border(1.dp, palette.line, CircleShape)
+                                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                                    ) {
+                                        BasicText(
+                                            text = "Boceto del cliente · ${displayedClientElements.size} elementos",
+                                            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = rfAdminIndigoPillInk()),
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(palette.surface)
+                                            .border(1.dp, palette.fieldBorder, CircleShape)
+                                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                                    ) {
+                                        BasicText("${selectedEvent.guests} invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = palette.ink))
                                     }
                                 }
                             }
-                        }
+                        } else {
+                            val tablePositions = buildTableCanvasOffsets(activeTableCount)
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val scaleX = size.width / 358f
+                                val scaleY = size.height / 440f
+                                scale(scaleX, scaleY, Offset.Zero) {
+                                    drawArc(
+                                        color = rfAdminIndigoPillBg(),
+                                        startAngle = 180f,
+                                        sweepAngle = 180f,
+                                        useCenter = true,
+                                        topLeft = Offset(86f, 22f),
+                                        size = Size(186f, 92f),
+                                    )
+                                    drawArc(
+                                        color = rfAdminIndigoPillInk(),
+                                        startAngle = 180f,
+                                        sweepAngle = 180f,
+                                        useCenter = false,
+                                        topLeft = Offset(86f, 22f),
+                                        size = Size(186f, 92f),
+                                        style = Stroke(width = 3f, cap = StrokeCap.Round),
+                                    )
 
-                        Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopCenter)
-                                    .offset(y = 14.dp)
-                                    .clip(CircleShape)
-                                    .background(RfThemeState.currentPalette.surface.copy(alpha = 0.92f))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                            ) {
-                                BasicText("Arco floral principal", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = rfAdminIndigoPillInk()))
+                                    drawRoundRect(
+                                        color = rfAdminWarnPillBg(),
+                                        topLeft = Offset(246f, 34f),
+                                        size = Size(92f, 44f),
+                                        cornerRadius = CornerRadius(12f, 12f),
+                                    )
+                                    drawRoundRect(
+                                        color = Color(0xFFD9A441),
+                                        topLeft = Offset(246f, 34f),
+                                        size = Size(92f, 44f),
+                                        cornerRadius = CornerRadius(12f, 12f),
+                                        style = Stroke(width = 2f),
+                                    )
+
+                                    drawRoundRect(
+                                        color = rfAdminSuccessPillBg(),
+                                        topLeft = Offset(128f, 236f),
+                                        size = Size(102f, 88f),
+                                        cornerRadius = CornerRadius(16f, 16f),
+                                    )
+
+                                    tablePositions.forEach { tableCenter ->
+                                        drawCircle(color = rfAdminIndigoPillBg(), radius = 21f, center = tableCenter)
+                                        drawCircle(color = rfAdminIndigoPillInk(), radius = 21f, center = tableCenter, style = Stroke(width = 2f))
+                                        for (chairIndex in 0 until 10) {
+                                            val angle = chairIndex * (kotlin.math.PI * 2 / 10)
+                                            val chairX = tableCenter.x + kotlin.math.cos(angle).toFloat() * 29f
+                                            val chairY = tableCenter.y + kotlin.math.sin(angle).toFloat() * 29f
+                                            drawCircle(color = Color(0xFFFFD45C), radius = 3.5f, center = Offset(chairX, chairY))
+                                        }
+                                    }
+                                }
                             }
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(y = 20.dp)
-                                    .clip(CircleShape)
-                                    .background(rfAdminNoteAmberBg())
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                            ) {
-                                BasicText("Estación de postres", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = rfAdminWarnPillInk()))
-                            }
-                            BasicText(
-                                text = "Pista central",
-                                modifier = Modifier.align(Alignment.Center).offset(y = 32.dp),
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = rfAdminSuccessPillInk()),
-                            )
-                            Row(
-                                modifier = Modifier.align(Alignment.BottomStart),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
+
+                            Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
                                 Box(
                                     modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .offset(y = 14.dp)
                                         .clip(CircleShape)
-                                        .background(RfThemeState.currentPalette.surface)
-                                        .border(1.dp, Color(0xFFD5D4F7), CircleShape)
-                                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                                        .background(palette.surface.copy(alpha = 0.92f))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp),
                                 ) {
-                                    BasicText("Vista conceptual decorativa", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = rfAdminIndigoPillInk()))
+                                    BasicText("Arco floral principal", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = rfAdminIndigoPillInk()))
                                 }
                                 Box(
                                     modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(y = 20.dp)
                                         .clip(CircleShape)
-                                        .background(RfThemeState.currentPalette.surface)
-                                        .border(1.dp, RfThemeState.currentPalette.fieldBorder, CircleShape)
-                                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                                        .background(rfAdminNoteAmberBg())
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
                                 ) {
-                                    BasicText("${selectedEvent.guests} invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
+                                    BasicText("Estación de postres", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = rfAdminWarnPillInk()))
+                                }
+                                BasicText(
+                                    text = "Pista central",
+                                    modifier = Modifier.align(Alignment.Center).offset(y = 32.dp),
+                                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = rfAdminSuccessPillInk()),
+                                )
+                                Row(
+                                    modifier = Modifier.align(Alignment.BottomStart),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(palette.surface)
+                                            .border(1.dp, palette.line, CircleShape)
+                                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                                    ) {
+                                        BasicText("Vista conceptual decorativa", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = rfAdminIndigoPillInk()))
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(palette.surface)
+                                            .border(1.dp, palette.fieldBorder, CircleShape)
+                                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                                    ) {
+                                        BasicText("${selectedEvent.guests} invitados", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = palette.ink))
+                                    }
                                 }
                             }
                         }
                     }
                 } else {
+                    val palette = RfThemeState.currentPalette
+                    val blueprintBg = if (palette.isDark) palette.surface else Color(0xFFF4F7FF)
+                    val blueprintBorder = if (palette.isDark) palette.fieldBorder else Color(0xFFBBC6F2)
+                    val blueprintGridColor = if (palette.isDark) palette.line else Color(0xFFDCE3FA)
+                    val blueprintLineColor = if (palette.isDark) Color(0xFF8B98F8) else Color(0xFF3949AB)
+                    val blueprintStageFill = if (palette.isDark) rfAdminIndigoPillBg() else Color(0xFFE3E8FF)
+                    val blueprintTableFill = if (palette.isDark) palette.chipBg else Color.White
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(280.dp)
                             .rfCardShadow(RoundedCornerShape(20.dp), isAdmin = true)
                             .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFFF4F7FF))
-                            .border(1.5.dp, Color(0xFFBBC6F2), RoundedCornerShape(20.dp)),
+                            .background(blueprintBg)
+                            .border(1.5.dp, blueprintBorder, RoundedCornerShape(20.dp)),
                     ) {
                         val tablePositions = buildTableCanvasOffsets(activeTableCount)
                         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -7299,7 +7490,7 @@ internal fun RenderAdminSketchA18(
                                 for (gridX in 1..8) {
                                     val xCoord = gridX * 40f
                                     drawLine(
-                                        color = Color(0xFFDCE3FA),
+                                        color = blueprintGridColor,
                                         start = Offset(xCoord, 20f),
                                         end = Offset(xCoord, 420f),
                                         strokeWidth = 1f,
@@ -7308,7 +7499,7 @@ internal fun RenderAdminSketchA18(
                                 for (gridY in 1..10) {
                                     val yCoord = gridY * 40f
                                     drawLine(
-                                        color = Color(0xFFDCE3FA),
+                                        color = blueprintGridColor,
                                         start = Offset(18f, yCoord),
                                         end = Offset(340f, yCoord),
                                         strokeWidth = 1f,
@@ -7316,7 +7507,7 @@ internal fun RenderAdminSketchA18(
                                 }
 
                                 drawRect(
-                                    color = Color(0xFF3949AB),
+                                    color = blueprintLineColor,
                                     topLeft = Offset(18f, 24f),
                                     size = Size(322f, 392f),
                                     style = Stroke(width = 2f),
@@ -7338,13 +7529,13 @@ internal fun RenderAdminSketchA18(
                                 )
 
                                 drawRoundRect(
-                                    color = Color(0xFFE3E8FF),
+                                    color = blueprintStageFill,
                                     topLeft = Offset(76f, 34f),
                                     size = Size(206f, 44f),
                                     cornerRadius = CornerRadius(6f, 6f),
                                 )
                                 drawRoundRect(
-                                    color = Color(0xFF3949AB),
+                                    color = blueprintLineColor,
                                     topLeft = Offset(76f, 34f),
                                     size = Size(206f, 44f),
                                     cornerRadius = CornerRadius(6f, 6f),
@@ -7352,8 +7543,8 @@ internal fun RenderAdminSketchA18(
                                 )
 
                                 tablePositions.forEach { tableCenter ->
-                                    drawCircle(color = Color.White, radius = 19f, center = tableCenter)
-                                    drawCircle(color = Color(0xFF3949AB), radius = 19f, center = tableCenter, style = Stroke(width = 1.8f))
+                                    drawCircle(color = blueprintTableFill, radius = 19f, center = tableCenter)
+                                    drawCircle(color = blueprintLineColor, radius = 19f, center = tableCenter, style = Stroke(width = 1.8f))
                                 }
                             }
                         }
@@ -11487,26 +11678,23 @@ internal fun RenderAdminTeamA28(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    val nextSet = activeMember.permissions.toMutableSet()
-                                    val nextActive = !isPermissionActive
-                                    if (nextActive) {
-                                        nextSet.add(optionRow.permission)
-                                    } else {
-                                        nextSet.remove(optionRow.permission)
-                                    }
-                                    val permissionNames = nextSet.map { perm -> perm.name }
-                                    viewModel?.updateStaffPermissions(
-                                        staffId = activeMember.id,
-                                        permissions = permissionNames,
-                                    )
-                                    if (isPaymentsRow) {
-                                        val needsPaymentSync = activeMember.canViewPayments != nextActive
-                                        if (needsPaymentSync) {
-                                            viewModel?.toggleStaffPaymentAccess(activeMember.name)
+                                .toggleable(
+                                    value = isPermissionActive,
+                                    role = Role.Switch,
+                                    onValueChange = { nextActive ->
+                                        val nextSet = activeMember.permissions.toMutableSet()
+                                        if (nextActive) {
+                                            nextSet.add(optionRow.permission)
+                                        } else {
+                                            nextSet.remove(optionRow.permission)
                                         }
-                                    }
-                                }
+                                        val permissionNames = nextSet.map { perm -> perm.name }
+                                        viewModel?.updateStaffPermissions(
+                                            staffId = activeMember.id,
+                                            permissions = permissionNames,
+                                        )
+                                    },
+                                )
                                 .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,

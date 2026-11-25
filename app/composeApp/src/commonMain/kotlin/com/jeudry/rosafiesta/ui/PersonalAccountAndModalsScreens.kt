@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -58,6 +59,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -1603,8 +1608,8 @@ private enum class PersonalSettingsSection(
         icon = RfIconKind.SPARKLE,
         titleEs = "Preferencias",
         titleEn = "Preferences",
-        subtitleEs = "Tema, idioma y recordatorios",
-        subtitleEn = "Theme, language and reminders",
+        subtitleEs = "Tema y recordatorios",
+        subtitleEn = "Theme and reminders",
     ),
     AUDIO(
         icon = RfIconKind.BELL,
@@ -1739,6 +1744,10 @@ internal fun RenderAccountSettingsS86(
                         .clip(CircleShape)
                         .background(palette.surface)
                         .testTag("settings-back-button")
+                        .semantics {
+                            contentDescription = "Volver"
+                            role = Role.Button
+                        }
                         .clickable {
                             if (selectedSection != null) {
                                 selectedSection = null
@@ -2043,27 +2052,45 @@ internal fun RenderAccountSettingsS86(
                                                     viewModel?.soundPlayer?.playAlertError()
                                                     return@clickable
                                                 }
-                                                val changed = if (viewModel != null) {
-                                                    viewModel.changeCurrentPassword(
+                                                val activeViewModel = viewModel
+                                                if (activeViewModel != null) {
+                                                    activeViewModel.changeCurrentPassword(
                                                         currentPassword = currentPasswordInput,
                                                         newPassword = newPasswordInput,
                                                         confirmPassword = confirmPasswordInput,
+                                                        onComplete = { changed ->
+                                                            if (changed) {
+                                                                currentPasswordInput = ""
+                                                                newPasswordInput = ""
+                                                                confirmPasswordInput = ""
+                                                                hasInteractedCurrentPassword = false
+                                                                hasInteractedNewPassword = false
+                                                                hasInteractedConfirmPassword = false
+                                                                forceShowPasswordErrors = false
+                                                                passwordErrorBanner = null
+                                                                passwordSuccessBanner = "Contraseña actualizada correctamente."
+                                                            }
+                                                        },
                                                     )
                                                 } else {
-                                                    validateInlinePasswordChange86(currentPasswordInput, newPasswordInput, confirmPasswordInput)
-                                                }
-                                                if (changed) {
-                                                    currentPasswordInput = ""
-                                                    newPasswordInput = ""
-                                                    confirmPasswordInput = ""
-                                                    hasInteractedCurrentPassword = false
-                                                    hasInteractedNewPassword = false
-                                                    hasInteractedConfirmPassword = false
-                                                    forceShowPasswordErrors = false
-                                                    passwordErrorBanner = null
-                                                    passwordSuccessBanner = "Contraseña actualizada correctamente."
-                                                } else if (viewModel == null) {
-                                                    passwordErrorBanner = "Verifica tu contraseña actual, mínimo 6 caracteres y confirmación igual."
+                                                    val changed = validateInlinePasswordChange86(
+                                                        currentPasswordInput,
+                                                        newPasswordInput,
+                                                        confirmPasswordInput,
+                                                    )
+                                                    if (changed) {
+                                                        currentPasswordInput = ""
+                                                        newPasswordInput = ""
+                                                        confirmPasswordInput = ""
+                                                        hasInteractedCurrentPassword = false
+                                                        hasInteractedNewPassword = false
+                                                        hasInteractedConfirmPassword = false
+                                                        forceShowPasswordErrors = false
+                                                        passwordErrorBanner = null
+                                                        passwordSuccessBanner = "Contraseña actualizada correctamente."
+                                                    } else {
+                                                        passwordErrorBanner = "Verifica tu contraseña actual, mínimo 6 caracteres y confirmación igual."
+                                                    }
                                                 }
                                             },
                                         contentAlignment = Alignment.Center,
@@ -2390,7 +2417,15 @@ private fun SettingsRow86(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 54.dp)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier
+                        .semantics { role = Role.Button }
+                        .clickable(onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -2427,7 +2462,11 @@ private fun SettingsSwitch86(
                     Brush.linearGradient(listOf(offTrack, offTrack))
                 },
             )
-            .clickable(onClick = onToggle),
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = { onToggle() },
+            ),
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
         Box(modifier = Modifier.padding(horizontal = 3.dp).size(22.dp).clip(CircleShape).background(palette.surface).shadow(1.dp, CircleShape))
@@ -3082,6 +3121,10 @@ internal fun RenderDeleteAccountS88(
                             .rfIconButtonShadow(CircleShape, isAdmin = false)
                             .clip(CircleShape)
                             .background(RfThemeState.currentPalette.surface)
+                            .semantics {
+                                contentDescription = "Volver"
+                                role = Role.Button
+                            }
                             .clickable { onSelectScreenCode("BACK") },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -3102,15 +3145,20 @@ internal fun RenderDeleteAccountS88(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
+                    val dangerHaloColor = if (RfThemeState.currentPalette.isDark) {
+                        rfAdminDangerPillBg().copy(alpha = 0.55f)
+                    } else {
+                        Color(0xFFFDF1F3)
+                    }
                     Box(
                         modifier = Modifier
                             .size(84.dp)
-                            .border(10.dp, Color(0xFFFDF1F3), CircleShape)
+                            .border(10.dp, dangerHaloColor, CircleShape)
                             .clip(CircleShape)
-                            .background(Color(0xFFFCE3E8)),
+                            .background(rfAdminDangerPillBg()),
                         contentAlignment = Alignment.Center,
                     ) {
-                        RfIcon(kind = RfIconKind.TRASH, tint = Color(0xFFB42345), size = 36.dp)
+                        RfIcon(kind = RfIconKind.TRASH, tint = rfAdminDangerPillInk(), size = 36.dp)
                     }
 
                     Spacer(modifier = Modifier.height(2.dp))
@@ -3274,15 +3322,20 @@ internal fun RenderDeleteAccountS88(
                                     viewModel?.soundPlayer?.playAlertError()
                                     return@clickable
                                 }
-                                val deleted = if (viewModel != null) {
-                                    viewModel.deleteCurrentUserAccount()
-                                } else {
-                                    true
-                                }
-                                if (deleted) {
+                                val activeViewModel = viewModel
+                                if (activeViewModel == null) {
                                     onSelectScreenCode("s06")
                                 } else {
-                                    deletionErrorText = viewModel?.formError?.value ?: "No fue posible eliminar la cuenta activa."
+                                    activeViewModel.deleteCurrentUserAccount(
+                                        onComplete = { deleted ->
+                                            if (deleted) {
+                                                onSelectScreenCode("s06")
+                                            } else {
+                                                deletionErrorText = activeViewModel.formError.value
+                                                    ?: "No fue posible eliminar la cuenta activa."
+                                            }
+                                        },
+                                    )
                                 }
                             },
                         contentAlignment = Alignment.Center,

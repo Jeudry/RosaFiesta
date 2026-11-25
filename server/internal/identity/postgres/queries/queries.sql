@@ -50,6 +50,12 @@ SELECT id, full_name, email, phone, password_hash, role, permissions, created_at
 FROM users
 ORDER BY created_at ASC;
 
+-- name: CountAdminUsers :one
+SELECT COUNT(*)::int AS admin_count
+FROM users
+WHERE role = 'admin'
+  AND active = TRUE;
+
 -- name: UpdateUserPreferencesByID :exec
 UPDATE users
 SET push_notifications_enabled = $2,

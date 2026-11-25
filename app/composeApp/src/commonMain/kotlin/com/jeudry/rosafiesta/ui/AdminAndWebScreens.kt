@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -54,6 +55,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -2962,11 +2964,23 @@ private fun AdminDesktopChatsSection(
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                    val submitChatReply = {
+                        sendAttempted = true
+                        val validation = InputValidator.validateChatMessage(draftMessage, isRequired = true)
+                        if (validation == null) {
+                            onSendReply(draftMessage.trim())
+                            draftMessage = ""
+                            messageTouched = false
+                            sendAttempted = false
+                        }
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         DesktopInlineInput(
                             value = draftMessage,
                             placeholder = "Responder al cliente...",
                             isError = messageError != null,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            onSubmit = submitChatReply,
                             onValueChange = { updated ->
                                 messageTouched = true
                                 sendAttempted = false
@@ -2976,16 +2990,7 @@ private fun AdminDesktopChatsSection(
                         )
                         DesktopGradientPillButton(
                             label = "Enviar",
-                            onClick = {
-                                sendAttempted = true
-                                val validation = InputValidator.validateChatMessage(draftMessage, isRequired = true)
-                                if (validation == null) {
-                                    onSendReply(draftMessage.trim())
-                                    draftMessage = ""
-                                    messageTouched = false
-                                    sendAttempted = false
-                                }
-                            },
+                            onClick = submitChatReply,
                         )
                     }
                     RfValidationErrorText(errorMessage = messageError)
@@ -3301,6 +3306,18 @@ private fun AdminDesktopModalHost(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0x66151729))
+                .onPreviewKeyEvent { keyEvent ->
+                    val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                    val isEscape = keyEvent.key == Key.Escape
+                    val shouldDismiss = if (isKeyDown) isEscape else false
+                    if (shouldDismiss) {
+                        showNewEventCalendar = false
+                        onDismiss()
+                        true
+                    } else {
+                        false
+                    }
+                }
                 .clickable(
                     interactionSource = scrimInteraction,
                     indication = null,
@@ -3770,9 +3787,18 @@ private fun DesktopInlineInput(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     cursorMask: ((previousFormatted: String, newRawText: String, newSelectionEnd: Int) -> MaskedTextCursorResult)? = null,
     onFocusChanged: ((Boolean) -> Unit)? = null,
+    onSubmit: (() -> Unit)? = null,
 ) {
     val typo = LocalRfTypography.current
     val palette = LocalRfPalette.current
+    val submitActions = if (onSubmit != null) {
+        KeyboardActions(
+            onDone = { onSubmit() },
+            onSend = { onSubmit() },
+        )
+    } else {
+        KeyboardActions.Default
+    }
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = modifier
@@ -3794,6 +3820,18 @@ private fun DesktopInlineInput(
                 cursorBrush = SolidColor(palette.primaryAccent),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .onPreviewKeyEvent { keyEvent ->
+                        val isKeyUp = keyEvent.type == KeyEventType.KeyUp
+                        val isEnter = if (keyEvent.key == Key.Enter) true else keyEvent.key == Key.NumPadEnter
+                        val canSubmit = if (isKeyUp) isEnter else false
+                        val shouldRunSubmit = if (canSubmit) onSubmit != null else false
+                        if (shouldRunSubmit) {
+                            onSubmit?.invoke()
+                            true
+                        } else {
+                            false
+                        }
+                    }
                     .rfTrackValidationFocus(focusKey = maskKey) { isFocused ->
                         onFocusChanged?.invoke(isFocused)
                     },
@@ -3811,10 +3849,23 @@ private fun DesktopInlineInput(
                 onValueChange = onValueChange,
                 singleLine = true,
                 keyboardOptions = keyboardOptions,
+                keyboardActions = submitActions,
                 textStyle = typo.body.copy(fontSize = 13.5.sp, color = palette.ink),
                 cursorBrush = SolidColor(palette.primaryAccent),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .onPreviewKeyEvent { keyEvent ->
+                        val isKeyUp = keyEvent.type == KeyEventType.KeyUp
+                        val isEnter = if (keyEvent.key == Key.Enter) true else keyEvent.key == Key.NumPadEnter
+                        val canSubmit = if (isKeyUp) isEnter else false
+                        val shouldRunSubmit = if (canSubmit) onSubmit != null else false
+                        if (shouldRunSubmit) {
+                            onSubmit?.invoke()
+                            true
+                        } else {
+                            false
+                        }
+                    }
                     .rfTrackValidationFocus(focusKey = plainKey) { isFocused ->
                         onFocusChanged?.invoke(isFocused)
                     },

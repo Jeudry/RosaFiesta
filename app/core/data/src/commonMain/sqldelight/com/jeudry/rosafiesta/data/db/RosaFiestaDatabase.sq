@@ -70,7 +70,9 @@ CREATE TABLE IF NOT EXISTS eventEntity (
     lastPaymentReminderChannel TEXT NOT NULL DEFAULT '',
     itemsJson TEXT NOT NULL DEFAULT '[]',
     clientEmail TEXT NOT NULL DEFAULT '',
-    cancellationReason TEXT NOT NULL DEFAULT ''
+    cancellationReason TEXT NOT NULL DEFAULT '',
+    setupPhotoUrlsJson TEXT NOT NULL DEFAULT '[]',
+    contactPhone TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS paymentEntity (
@@ -120,7 +122,10 @@ CREATE TABLE IF NOT EXISTS quoteEntity (
     packageId TEXT NOT NULL,
     contractPdfUrl TEXT NOT NULL,
     signedAtIso TEXT NOT NULL,
-    sortOrder INTEGER NOT NULL DEFAULT 0
+    sortOrder INTEGER NOT NULL DEFAULT 0,
+    contactPhone TEXT NOT NULL DEFAULT '',
+    signedByUserId TEXT NOT NULL DEFAULT '',
+    contractHashSha256 TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS deliveryStopEntity (
@@ -207,7 +212,8 @@ CREATE TABLE IF NOT EXISTS userAccountEntity (
     preferredLanguage TEXT NOT NULL DEFAULT 'es',
     darkThemeEnabled INTEGER NOT NULL DEFAULT 0,
     savedPaymentMethod TEXT NOT NULL DEFAULT 'Transferencia',
-    profileZone TEXT NOT NULL DEFAULT 'Distrito Nacional'
+    profileZone TEXT NOT NULL DEFAULT 'Distrito Nacional',
+    avatarKey TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS activeSessionEntity (
@@ -283,9 +289,10 @@ INSERT OR REPLACE INTO eventEntity(
     guests, articleCount, totalDop, paidDepositDop, depositMethodLabel, depositDateLabel,
     balanceDueDateLabel, status, leadStaffName, photoKey, priorChangesCount, sortOrder,
     eventDateIso, pickupDateIso, returnDateIso, quoteId, closeoutCompleted, closeoutNotes, sketchJson,
-    lastPaymentReminderAt, lastPaymentReminderChannel, itemsJson, clientEmail, cancellationReason
+    lastPaymentReminderAt, lastPaymentReminderChannel, itemsJson, clientEmail, cancellationReason,
+    setupPhotoUrlsJson, contactPhone
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateEventDateAndTotal:
 UPDATE eventEntity
@@ -331,9 +338,9 @@ INSERT OR REPLACE INTO quoteEntity(
     id, code, eventId, eventTitle, clientName, clientEmail, venue, dateLabel,
     guests, status, linesJson, deliveryFeeDop, discountDop, totalDop, signatureSvg,
     depositPercent, depositDop, signedByName, rejectionReason, eventDateIso, packageId,
-    contractPdfUrl, signedAtIso, sortOrder
+    contractPdfUrl, signedAtIso, sortOrder, contactPhone, signedByUserId, contractHashSha256
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 deleteAllQuotes:
 DELETE FROM quoteEntity;
@@ -430,9 +437,9 @@ upsertUserAccount:
 INSERT OR REPLACE INTO userAccountEntity(
     id, username, email, fullName, passwordHash, salt, birthDate, phone, role,
     pushNotificationsEnabled, whatsappAlertsEnabled, emailReceiptsEnabled, biometricLockEnabled, autoSyncWifiOnly,
-    eventRemindersEnabled, preferredLanguage, darkThemeEnabled, savedPaymentMethod, profileZone
+    eventRemindersEnabled, preferredLanguage, darkThemeEnabled, savedPaymentMethod, profileZone, avatarKey
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateUserAccountPassword:
 UPDATE userAccountEntity

@@ -3,6 +3,8 @@ package domain
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -59,32 +61,66 @@ func (l QuoteLine) SubtotalRD() int {
 }
 
 type Quote struct {
-	ID              string      `json:"id"`
-	Code            string      `json:"code"`
-	EventID         string      `json:"eventId,omitempty"`
-	ClientID        string      `json:"clientId,omitempty"`
-	ClientEmail     string      `json:"clientEmail,omitempty"`
-	EventTitle      string      `json:"eventTitle"`
-	ClientName      string      `json:"clientName"`
-	EventDateLabel  string      `json:"eventDateLabel"`
-	EventDateISO    string      `json:"eventDateIso,omitempty"`
-	PackageID       string      `json:"packageId,omitempty"`
-	Venue           string      `json:"venue"`
-	Guests          int         `json:"guests"`
-	Lines           []QuoteLine `json:"lines"`
-	DeliveryFeeRD   int         `json:"deliveryFeeRD"`
-	DiscountRD      int         `json:"discountRD"`
-	TotalRD         int         `json:"totalRD"`
-	DepositPercent  int         `json:"depositPercent"`
-	DepositRD       int         `json:"depositRD"`
-	BalanceRD       int         `json:"balanceRD"`
-	Status          QuoteStatus `json:"status"`
-	Notes           string      `json:"notes,omitempty"`
-	SignatureSVG    string      `json:"signatureSvg,omitempty"`
-	SignedByName    string      `json:"signedByName,omitempty"`
-	SignedAtISO     string      `json:"signedAtIso,omitempty"`
-	ContractPDFURL  string      `json:"contractPdfUrl,omitempty"`
-	RejectionReason string      `json:"rejectionReason,omitempty"`
+	ID                 string      `json:"id"`
+	Code               string      `json:"code"`
+	EventID            string      `json:"eventId,omitempty"`
+	ClientID           string      `json:"clientId,omitempty"`
+	ClientEmail        string      `json:"clientEmail,omitempty"`
+	EventTitle         string      `json:"eventTitle"`
+	ClientName         string      `json:"clientName"`
+	EventDateLabel     string      `json:"eventDateLabel"`
+	EventDateISO       string      `json:"eventDateIso,omitempty"`
+	PackageID          string      `json:"packageId,omitempty"`
+	Venue              string      `json:"venue"`
+	Guests             int         `json:"guests"`
+	Lines              []QuoteLine `json:"lines"`
+	DeliveryFeeRD      int         `json:"deliveryFeeRD"`
+	DiscountRD         int         `json:"discountRD"`
+	TotalRD            int         `json:"totalRD"`
+	DepositPercent     int         `json:"depositPercent"`
+	DepositRD          int         `json:"depositRD"`
+	BalanceRD          int         `json:"balanceRD"`
+	Status             QuoteStatus `json:"status"`
+	Notes              string      `json:"notes,omitempty"`
+	SignatureSVG       string      `json:"signatureSvg,omitempty"`
+	SignedByName       string      `json:"signedByName,omitempty"`
+	SignedByUserID     string      `json:"signedByUserId,omitempty"`
+	SignedAtISO        string      `json:"signedAtIso,omitempty"`
+	ContractPDFURL     string      `json:"contractPdfUrl,omitempty"`
+	ContractHashSHA256 string      `json:"contractHashSha256,omitempty"`
+	ContactPhone       string      `json:"contactPhone,omitempty"`
+	RejectionReason    string      `json:"rejectionReason,omitempty"`
+}
+
+// ComputeQuoteContractHash genera un resumen SHA-256 determinístico de los términos y firma del contrato.
+func ComputeQuoteContractHash(quote Quote) string {
+	var canonical strings.Builder
+	fmt.Fprintf(&canonical, "%s|%s|%s|%s|%s|%s|%s|%d|%d|%d|%d|%s|%s|%s",
+		strings.TrimSpace(quote.ID),
+		strings.TrimSpace(quote.Code),
+		strings.TrimSpace(quote.ClientEmail),
+		strings.TrimSpace(quote.EventTitle),
+		strings.TrimSpace(quote.EventDateISO),
+		strings.TrimSpace(quote.Venue),
+		strings.TrimSpace(quote.SignedByUserID),
+		quote.Guests,
+		quote.TotalRD,
+		quote.DepositRD,
+		quote.BalanceRD,
+		strings.TrimSpace(quote.SignedByName),
+		strings.TrimSpace(quote.SignedAtISO),
+		strings.TrimSpace(quote.SignatureSVG),
+	)
+	for _, line := range quote.Lines {
+		fmt.Fprintf(&canonical, "|%s:%s:%d:%d",
+			strings.TrimSpace(line.ArticleCode),
+			strings.TrimSpace(line.Name),
+			line.Quantity,
+			line.UnitPriceRD,
+		)
+	}
+	sum := sha256.Sum256([]byte(canonical.String()))
+	return hex.EncodeToString(sum[:])
 }
 
 func (q Quote) BelongsToClient(userID, email, _ string) bool {
@@ -147,27 +183,34 @@ func CalculateQuoteTotalsWithDeposit(
 }
 
 // BuildQuoteContractPDF genera un documento PDF 1.4 válido con el detalle del contrato y firma.
+const maxPDFLinesPerPage = 44
+
 func BuildQuoteContractPDF(quote Quote) []byte {
 	lines := buildContractLines(quote)
-	var stream bytes.Buffer
-	stream.WriteString("BT\n/F1 11 Tf\n48 750 Td\n15 TL\n")
-	for idx, line := range lines {
-		escaped := escapePDFText(line)
-		if idx == 0 {
-			fmt.Fprintf(&stream, "(%s) Tj\n", escaped)
-		} else {
-			fmt.Fprintf(&stream, "T* (%s) Tj\n", escaped)
-		}
-	}
-	stream.WriteString("ET\n")
-	streamBytes := stream.Bytes()
+	pages := paginateContractLines(lines, maxPDFLinesPerPage)
+	pageCount := len(pages)
 
-	objects := []string{
+	// Objects: 1=Catalog, 2=Pages, 3=Font, then per-page [Page, Stream] pairs.
+	pageRefs := make([]string, 0, pageCount)
+	for pageIdx := 0; pageIdx < pageCount; pageIdx++ {
+		pageObjID := 4 + (pageIdx * 2)
+		pageRefs = append(pageRefs, fmt.Sprintf("%d 0 R", pageObjID))
+	}
+
+	objects := make([]string, 0, 3+(pageCount*2))
+	objects = append(objects,
 		"<< /Type /Catalog /Pages 2 0 R >>",
-		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
-		fmt.Sprintf("<< /Length %d >>\nstream\n%sendstream", len(streamBytes), streamBytes),
-		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+		fmt.Sprintf("<< /Type /Pages /Kids [%s] /Count %d >>", strings.Join(pageRefs, " "), pageCount),
+		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+	)
+	for pageIdx, pageLines := range pages {
+		pageObjID := 4 + (pageIdx * 2)
+		streamObjID := pageObjID + 1
+		streamBytes := buildPDFTextStream(pageLines)
+		objects = append(objects,
+			fmt.Sprintf("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents %d 0 R /Resources << /Font << /F1 3 0 R >> >> >>", streamObjID),
+			fmt.Sprintf("<< /Length %d >>\nstream\n%sendstream", len(streamBytes), streamBytes),
+		)
 	}
 
 	var out bytes.Buffer
@@ -186,6 +229,39 @@ func BuildQuoteContractPDF(quote Quote) []byte {
 	return out.Bytes()
 }
 
+func paginateContractLines(lines []string, perPage int) [][]string {
+	if len(lines) == 0 {
+		return [][]string{{""}}
+	}
+	if perPage <= 0 {
+		perPage = maxPDFLinesPerPage
+	}
+	pages := make([][]string, 0, (len(lines)+perPage-1)/perPage)
+	for start := 0; start < len(lines); start += perPage {
+		end := start + perPage
+		if end > len(lines) {
+			end = len(lines)
+		}
+		pages = append(pages, lines[start:end])
+	}
+	return pages
+}
+
+func buildPDFTextStream(lines []string) []byte {
+	var stream bytes.Buffer
+	stream.WriteString("BT\n/F1 11 Tf\n48 750 Td\n15 TL\n")
+	for idx, line := range lines {
+		escaped := escapePDFText(line)
+		if idx == 0 {
+			fmt.Fprintf(&stream, "(%s) Tj\n", escaped)
+		} else {
+			fmt.Fprintf(&stream, "T* (%s) Tj\n", escaped)
+		}
+	}
+	stream.WriteString("ET\n")
+	return stream.Bytes()
+}
+
 func buildContractLines(quote Quote) []string {
 	statusLabel := string(quote.Status)
 	signerLabel := strings.TrimSpace(quote.SignedByName)
@@ -194,12 +270,12 @@ func buildContractLines(quote Quote) []string {
 	}
 	lines := []string{
 		"ROSAFIESTA SRL - CONTRATO Y COTIZACION",
-		fmt.Sprintf("Codigo: %s | Estado: %s", quote.Code, statusLabel),
+		fmt.Sprintf("Código: %s | Estado: %s", quote.Code, statusLabel),
 		fmt.Sprintf("Evento: %s", quote.EventTitle),
 		fmt.Sprintf("Cliente: %s (%s)", quote.ClientName, quote.ClientEmail),
 		fmt.Sprintf("Fecha: %s | Lugar: %s | Invitados: %d", quote.EventDateLabel, quote.Venue, quote.Guests),
 		"------------------------------------------------------------",
-		"Detalle de articulos:",
+		"Detalle de artículos:",
 	}
 	for _, item := range quote.Lines {
 		lines = append(lines, fmt.Sprintf("- %s x%d @ RD$%d = RD$%d", item.Name, item.Quantity, item.UnitPriceRD, item.SubtotalRD()))
@@ -210,6 +286,9 @@ func buildContractLines(quote Quote) []string {
 		fmt.Sprintf("Total: RD$%d | Anticipo (%d%%): RD$%d | Saldo: RD$%d", quote.TotalRD, quote.DepositPercent, quote.DepositRD, quote.BalanceRD),
 		fmt.Sprintf("Firmado por: %s | Fecha firma: %s", signerLabel, quote.SignedAtISO),
 	)
+	if strings.TrimSpace(quote.ContractHashSHA256) != "" {
+		lines = append(lines, fmt.Sprintf("Hash SHA-256: %s", quote.ContractHashSHA256))
+	}
 	return lines
 }
 
@@ -221,14 +300,50 @@ func escapePDFText(raw string) string {
 			b.WriteByte('\\')
 			b.WriteRune(r)
 		default:
-			if isPrintableASCII(r) {
-				b.WriteRune(r)
-			} else {
-				b.WriteByte(' ')
-			}
+			writeWinAnsiRune(&b, r)
 		}
 	}
 	return b.String()
+}
+
+func writeWinAnsiRune(b *strings.Builder, r rune) {
+	if isPrintableASCII(r) {
+		b.WriteRune(r)
+		return
+	}
+	if code, ok := encodeWinAnsiByte(r); ok {
+		fmt.Fprintf(b, "\\%03o", code)
+		return
+	}
+	b.WriteByte(' ')
+}
+
+func encodeWinAnsiByte(r rune) (byte, bool) {
+	if r >= 0xA0 {
+		if r <= 0xFF {
+			return byte(r), true
+		}
+	}
+	switch r {
+	case '€':
+		return 0x80, true
+	case '–':
+		return 0x96, true
+	case '—':
+		return 0x97, true
+	case '‘':
+		return 0x91, true
+	case '’':
+		return 0x92, true
+	case '“':
+		return 0x93, true
+	case '”':
+		return 0x94, true
+	case '•':
+		return 0x95, true
+	default:
+		return 0, false
+	}
 }
 
 func isPrintableASCII(r rune) bool {

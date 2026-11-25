@@ -2871,4 +2871,229 @@ class ScreenCatalogAndFlowTest {
         assertTrue(vm.formFeedback.value?.contains("cancelado", ignoreCase = true) == true)
         assertEquals(0, com.jeudry.rosafiesta.domain.platform.ExternalPaymentCallbackBridge.paymentReturns.replayCache.size)
     }
+
+    @Test
+    fun `notifications filter preserves ntf ids unlimited price filter works entry choice persists and LRU bounds media cache`() = runTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        val storage = InMemorySecureStorage()
+        val vm = RosaFiestaViewModel(
+            repository = repo,
+            secureStorage = storage,
+            soundPlayer = NoOpSoundPlayer(),
+            platformActions = NoOpPlatformActions(),
+        )
+        vm.submitRegistration(
+            firstName = "Carmen",
+            lastName = "Diaz",
+            username = "carmen_d",
+            email = "carmen@correo.do",
+            password = "Password2026",
+            birthDate = "10/04/1994",
+            acceptedTerms = true,
+            phone = "8095550122",
+        )
+        val notificationsSample = listOf(
+            com.jeudry.rosafiesta.domain.NotificationRecord(
+                id = "ntf-live-1",
+                title = "Recordatorio vivo",
+                body = "Evento proximo",
+                category = "EVENT",
+                createdAtLabel = "Ahora",
+                isRead = false,
+                recipientRole = "client",
+            ),
+            com.jeudry.rosafiesta.domain.NotificationRecord(
+                id = "ntf-admin-only",
+                title = "Alerta interna",
+                body = "Solo admin",
+                category = "SYSTEM",
+                createdAtLabel = "Ahora",
+                isRead = false,
+                recipientRole = "admin",
+            ),
+        )
+        val filtered = vm.filterNotificationsForPersonalClient(notificationsSample)
+        assertEquals(listOf("ntf-live-1"), filtered.map { item -> item.id })
+
+        repo.createArticle(
+            code = "RF-LUX-99",
+            name = "Pergola Cristal",
+            category = "Estructuras",
+            pricePerDayDop = 12500,
+            totalStock = 2,
+        )
+        vm.setMaxPriceFilterDop(5000)
+        assertTrue(vm.filteredCatalogArticles().any { art -> art.code == "RF-LUX-99" })
+        vm.setMaxPriceFilterDop(4500)
+        assertFalse(vm.filteredCatalogArticles().any { art -> art.code == "RF-LUX-99" })
+
+        vm.saveRememberedEntryChoice(true)
+        withContext(Dispatchers.Default) {
+            for (attempt in 0 until 40) {
+                if (storage.get(SecureStorage.KEY_REMEMBER_ENTRY_CHOICE) == "true") break
+                kotlinx.coroutines.delay(15)
+            }
+        }
+        assertEquals("true", storage.get(SecureStorage.KEY_REMEMBER_ENTRY_CHOICE))
+        val restoredVm = RosaFiestaViewModel(
+            repository = repo,
+            secureStorage = storage,
+            soundPlayer = NoOpSoundPlayer(),
+            platformActions = NoOpPlatformActions(),
+        )
+        withContext(Dispatchers.Default) {
+            for (attempt in 0 until 40) {
+                if (restoredVm.rememberEntryChoice.value) break
+                kotlinx.coroutines.delay(15)
+            }
+        }
+        assertTrue(restoredVm.rememberEntryChoice.value)
+
+        val lruRepo = object : RosaFiestaRepository by repo {
+            override suspend fun uploadMedia(
+                filename: String,
+                mimeType: String,
+                purpose: String,
+                bytes: ByteArray,
+            ): Result<com.jeudry.rosafiesta.domain.MediaUploadAsset> = Result.success(
+                com.jeudry.rosafiesta.domain.MediaUploadAsset(
+                    id = filename,
+                    url = "/v1/media/$filename",
+                    mimeType = mimeType,
+                    byteSize = bytes.size.toLong(),
+                    filename = filename,
+                ),
+            )
+        }
+        val lruVm = RosaFiestaViewModel(
+            repository = lruRepo,
+            secureStorage = InMemorySecureStorage(),
+            soundPlayer = NoOpSoundPlayer(),
+            platformActions = NoOpPlatformActions(),
+        )
+        for (idx in 1..44) {
+            val done = CompletableDeferred<Unit>()
+            lruVm.uploadAndAttachMedia(
+                purpose = "setup",
+                file = PickedMediaFile(
+                    fileName = "photo-$idx.png",
+                    mimeType = "image/png",
+                    sizeBytes = 1024L,
+                    bytes = ByteArray(1024),
+                ),
+                onUploaded = { done.complete(Unit) },
+            )
+            withContext(Dispatchers.Default) {
+                withTimeout(2_000L) { done.await() }
+            }
+        }
+        assertEquals(40, lruVm.mediaBytesCache.value.size)
+        assertFalse(lruVm.mediaBytesCache.value.containsKey("/v1/media/photo-1.png"))
+        assertTrue(lruVm.mediaBytesCache.value.containsKey("/v1/media/photo-44.png"))
+    }
+
+    @Test
+    fun `password reset change password account deletion callbacks reminders revert whatsapp alerts and analytics work`() = runTest {
+        val baseRepo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        val failingPrefsRepo = object : RosaFiestaRepository by baseRepo {
+            var resetOtpCalled = false
+
+            override suspend fun resetPasswordWithOtp(
+                email: String,
+                newPassword: String,
+                resetToken: String,
+                otpCode: String,
+            ): AuthOutcome {
+                resetOtpCalled = true
+                return baseRepo.resetPasswordWithOtp(email, newPassword, resetToken, otpCode)
+            }
+
+            override suspend fun updateUserPreferences(
+                pushNotificationsEnabled: Boolean?,
+                whatsappAlertsEnabled: Boolean?,
+                emailReceiptsEnabled: Boolean?,
+                biometricLockEnabled: Boolean?,
+                autoSyncWifiOnly: Boolean?,
+                eventRemindersEnabled: Boolean?,
+                preferredLanguage: String?,
+                darkThemeEnabled: Boolean?,
+                savedPaymentMethod: String?,
+                profileZone: String?,
+            ): Result<RegisteredUserAccount> = Result.failure(IllegalStateException("Error persistiendo recordatorios"))
+        }
+        val storage = InMemorySecureStorage()
+        val vm = RosaFiestaViewModel(
+            repository = failingPrefsRepo,
+            secureStorage = storage,
+            soundPlayer = NoOpSoundPlayer(),
+            platformActions = NoOpPlatformActions(),
+        )
+
+        val regOk = vm.submitRegistration(
+            firstName = "Pedro",
+            lastName = "Nunez",
+            username = "pedro_n",
+            email = "pedro.nunez@correo.do",
+            password = "Password2026",
+            birthDate = "11/02/1992",
+            acceptedTerms = true,
+            phone = "8095550177",
+        )
+        assertTrue(regOk)
+
+        val initialReminders = vm.remindersEnabled.value
+        vm.setRemindersEnabled(!initialReminders)
+        withContext(Dispatchers.Default) {
+            for (attempt in 0 until 40) {
+                if (vm.formError.value != null) break
+                kotlinx.coroutines.delay(15)
+            }
+        }
+        assertEquals(initialReminders, vm.remindersEnabled.value)
+        assertTrue(vm.formError.value?.contains("Error persistiendo") == true)
+
+        val resetDeferred = CompletableDeferred<Boolean>()
+        vm.submitPasswordReset(
+            identifier = "pedro.nunez@correo.do",
+            newPassword = "NewPassword2026",
+            confirmPassword = "NewPassword2026",
+            otpCode = "123456",
+            onComplete = { ok -> resetDeferred.complete(ok) },
+        )
+        val resetResult = withContext(Dispatchers.Default) {
+            withTimeout(2_000L) { resetDeferred.await() }
+        }
+        assertTrue(resetResult)
+        assertTrue(failingPrefsRepo.resetOtpCalled)
+
+        val changeFailDeferred = CompletableDeferred<Boolean>()
+        vm.changeCurrentPassword(
+            currentPassword = "WrongPassword1",
+            newPassword = "AnotherPassword2",
+            confirmPassword = "AnotherPassword2",
+            onComplete = { ok -> changeFailDeferred.complete(ok) },
+        )
+        val changeFailResult = withContext(Dispatchers.Default) {
+            withTimeout(2_000L) { changeFailDeferred.await() }
+        }
+        assertFalse(changeFailResult)
+
+        val beforeWhatsapp = vm.businessSettings.value.whatsappAutoAlertsEnabled
+        vm.toggleBusinessWhatsappAutoAlerts()
+        assertEquals(!beforeWhatsapp, vm.businessSettings.value.whatsappAutoAlertsEnabled)
+
+        val analytics3m = vm.computePeriodSpendingAnalytics("3m")
+        val analytics12m = vm.computePeriodSpendingAnalytics("12m")
+        assertEquals("90d", analytics3m.rangeKey)
+        assertEquals("365d", analytics12m.rangeKey)
+        assertEquals(3, analytics3m.trendMonths.size)
+        assertEquals(6, analytics12m.trendMonths.size)
+
+        val deleteDeferred = CompletableDeferred<Boolean>()
+        vm.deleteCurrentUserAccount { ok -> deleteDeferred.complete(ok) }
+        val deleteResult = withContext(Dispatchers.Default) {
+            withTimeout(2_000L) { deleteDeferred.await() }
+        }
+        assertTrue(deleteResult)
+    }
 }

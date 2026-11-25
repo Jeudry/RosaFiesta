@@ -55,6 +55,11 @@ type ReminderStore interface {
 	InsertSentEventReminder(ctx context.Context, eventID string, userID uuid.UUID, reminderKind string, sentAt time.Time) error
 }
 
+// DeliveryZoneReplacer reemplaza atómicamente las zonas de entrega eliminando las ausentes.
+type DeliveryZoneReplacer interface {
+	ReplaceDeliveryZones(ctx context.Context, zones []domain.DeliveryZone) error
+}
+
 // Store abstrae la persistencia PostgreSQL del módulo de operaciones.
 type Store interface {
 	Enabled() bool
@@ -306,8 +311,10 @@ func (s *Service) ResetEmpty(_ context.Context) {
 	s.suppliers = nil
 	s.leads = nil
 	s.settings = domain.BusinessSettings{
-		ID:          "default",
-		CompanyName: "Rosa Fiesta",
+		ID:             "default",
+		CompanyName:    "Rosa Fiesta",
+		ItbisPercent:   18,
+		DepositPercent: 30,
 	}
 	s.deliveryZones = nil
 	s.notifications = nil
@@ -429,6 +436,66 @@ func mergeChecklistSlice(checklist []domain.ChecklistItem, persisted map[string]
 
 // ToggleChecklistItem actualiza el estado de una tarea del checklist y lo persiste.
 func (s *Service) ToggleChecklistItem(
+	ctx context.Context,
+	eventID string,
+	itemID string,
+	completed bool,
+	staffName string,
+) (domain.EventLogistics, error) {
+	return s.toggleChecklistItemAuthorized(ctx, eventID, itemID, completed, staffName)
+}
+
+// ToggleChecklistItemForCaller valida que el cliente dueño o el equipo autorizado actualice el checklist.
+func (s *Service) ToggleChecklistItemForCaller(
+	ctx context.Context,
+	eventID string,
+	itemID string,
+	completed bool,
+	staffName string,
+	caller platformhttp.Principal,
+) (domain.EventLogistics, error) {
+	if err := s.authorizeChecklistCaller(ctx, eventID, caller); err != nil {
+		return domain.EventLogistics{}, err
+	}
+	return s.toggleChecklistItemAuthorized(ctx, eventID, itemID, completed, staffName)
+}
+
+func (s *Service) authorizeChecklistCaller(
+	ctx context.Context,
+	eventID string,
+	caller platformhttp.Principal,
+) error {
+	if caller.ID == uuid.Nil {
+		if caller.Role == "" {
+			return domain.ErrOperationForbidden
+		}
+	}
+	if !caller.IsClient() {
+		if hasAnyChecklistStaffPerm(caller) {
+			return nil
+		}
+		return domain.ErrOperationForbidden
+	}
+	s.mu.RLock()
+	checker := s.eventChecker
+	s.mu.RUnlock()
+	if checker == nil {
+		return domain.ErrOperationForbidden
+	}
+	return checker.VerifyEventOwnership(ctx, eventID, caller)
+}
+
+func hasAnyChecklistStaffPerm(caller platformhttp.Principal) bool {
+	allowed := []string{"tareas", "eventos", "inventario", "decoracion"}
+	for _, perm := range allowed {
+		if caller.HasPermission(perm) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) toggleChecklistItemAuthorized(
 	ctx context.Context,
 	eventID string,
 	itemID string,

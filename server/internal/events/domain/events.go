@@ -147,6 +147,8 @@ type Event struct {
 	CloseoutNotes              string      `json:"closeoutNotes,omitempty"`
 	LastPaymentReminderAt      string      `json:"lastPaymentReminderAt,omitempty"`
 	LastPaymentReminderChannel string      `json:"lastPaymentReminderChannel,omitempty"`
+	SetupPhotoUrls             []string    `json:"setupPhotoUrls"`
+	ContactPhone               string      `json:"contactPhone,omitempty"`
 	Items                      []EventItem `json:"items"`
 }
 

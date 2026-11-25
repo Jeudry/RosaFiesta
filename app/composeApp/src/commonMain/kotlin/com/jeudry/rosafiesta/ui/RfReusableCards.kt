@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -32,7 +33,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -89,10 +96,20 @@ internal fun RfPreferenceToggleRow(
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onCheckedChange,
+            ),
     ) {
         BasicText(label, style = typo.bodyStrong, modifier = Modifier.weight(1f))
-        RfSwitch(checked = checked, onCheckedChange = onCheckedChange)
+        RfSwitch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            accessibilityLabel = label,
+        )
     }
 }
 
@@ -193,12 +210,12 @@ internal fun RfUploadedOrCatalogPhoto(
     }
     val cacheMap = viewModel?.mediaBytesCache?.collectAsState()?.value.orEmpty()
     val rawBytes = if (cleanUrl.isNotBlank()) cacheMap[cleanUrl] else null
-    val decodedBitmap = rememberDecodedImageBitmap(rawBytes)
+    val decodedBitmap = rememberDecodedImageBitmap(cacheKey = cleanUrl, bytes = rawBytes)
     if (decodedBitmap != null) {
         Box(
             modifier = modifier
                 .clip(RoundedCornerShape(cornerRadius))
-                .background(Color(0xFFF3F3F8)),
+                .background(RfThemeState.currentPalette.chipBg),
         ) {
             Image(
                 bitmap = decodedBitmap,
@@ -248,7 +265,7 @@ internal fun RfCategoryCustomOrFallbackIcon(
     }
     val cacheMap = viewModel?.mediaBytesCache?.collectAsState()?.value.orEmpty()
     val rawBytes = if (hasCustomUrl) cacheMap[cleanValue] else null
-    val decodedBitmap = rememberDecodedImageBitmap(rawBytes)
+    val decodedBitmap = rememberDecodedImageBitmap(cacheKey = cleanValue, bytes = rawBytes)
     if (decodedBitmap != null) {
         Image(
             bitmap = decodedBitmap,
@@ -686,7 +703,8 @@ internal fun RfSavedCartPreviewToast(
                 .size(24.dp)
                 .clip(CircleShape)
                 .background(palette.chipBg)
-                .clickable(onClick = onDismiss),
+                .semantics { contentDescription = "Cerrar vista previa" }
+                .clickable(role = Role.Button, onClick = onDismiss),
         ) {
             RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 12.dp)
         }
@@ -723,6 +741,21 @@ internal fun RfDeleteConfirmationDialog(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0x73141632))
+                .onPreviewKeyEvent { keyEvent ->
+                    val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                    val isEscape = keyEvent.key == Key.Escape
+                    val shouldDismiss = if (isKeyDown) {
+                        if (isEscape) !isSubmitting else false
+                    } else {
+                        false
+                    }
+                    if (shouldDismiss) {
+                        onDismiss()
+                        true
+                    } else {
+                        false
+                    }
+                }
                 .clickable(
                     interactionSource = scrimInteraction,
                     indication = null,
@@ -863,7 +896,8 @@ internal fun PersonalEmptyEventStateScaffold(
                         .clip(CircleShape)
                         .background(palette.surface)
                         .border(1.dp, palette.line, CircleShape)
-                        .clickable { onSelectScreenCode(backTargetCode) },
+                        .semantics { contentDescription = "Volver" }
+                        .clickable(role = Role.Button) { onSelectScreenCode(backTargetCode) },
                     contentAlignment = Alignment.Center,
                 ) {
                     RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 22.dp)

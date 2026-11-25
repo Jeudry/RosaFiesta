@@ -34,7 +34,7 @@ type ToggleChecklistInput struct {
 	ItemID  string `path:"itemId" doc:"Checklist step identifier."`
 	Body    struct {
 		Completed bool   `json:"completed"`
-		StaffName string `json:"staffName" minLength:"2"`
+		StaffName string `json:"staffName,omitempty"`
 	}
 }
 
@@ -162,6 +162,7 @@ type ReplyReviewInput struct {
 	ID   string `path:"id" doc:"Review identifier."`
 	Body struct {
 		AdminReply string `json:"adminReply" minLength:"2"`
+		Verified   *bool  `json:"verified,omitempty"`
 	}
 }
 
@@ -334,35 +335,38 @@ type SettingsOutput struct {
 
 type UpdateSettingsInput struct {
 	Body struct {
-		CompanyName    string                `json:"companyName,omitempty"`
-		RNC            string                `json:"rnc,omitempty"`
-		Address        string                `json:"address,omitempty"`
-		Phone          string                `json:"phone,omitempty"`
-		WhatsApp       string                `json:"whatsapp,omitempty"`
-		Email          string                `json:"email,omitempty"`
-		Instagram      string                `json:"instagram,omitempty"`
-		Facebook       string                `json:"facebook,omitempty"`
-		BusinessHours  string                `json:"businessHours,omitempty"`
-		ItbisPercent   int                   `json:"itbisPercent,omitempty"`
-		DepositPercent int                   `json:"depositPercent,omitempty"`
-		DeliveryZones  []domain.DeliveryZone `json:"deliveryZones,omitempty"`
+		CompanyName               string                `json:"companyName,omitempty"`
+		RNC                       string                `json:"rnc,omitempty"`
+		Address                   string                `json:"address,omitempty"`
+		Phone                     string                `json:"phone,omitempty"`
+		WhatsApp                  string                `json:"whatsapp,omitempty"`
+		Email                     string                `json:"email,omitempty"`
+		Instagram                 string                `json:"instagram,omitempty"`
+		Facebook                  string                `json:"facebook,omitempty"`
+		BusinessHours             string                `json:"businessHours,omitempty"`
+		ItbisPercent              *int                  `json:"itbisPercent,omitempty" minimum:"0" maximum:"100"`
+		DepositPercent            int                   `json:"depositPercent,omitempty"`
+		WhatsAppAutoAlertsEnabled *bool                 `json:"whatsappAutoAlertsEnabled,omitempty"`
+		DeliveryZones             []domain.DeliveryZone `json:"deliveryZones,omitempty"`
 	}
 }
 
 func (in *UpdateSettingsInput) ToCommand() app.UpdateSettingsCommand {
 	return app.UpdateSettingsCommand{
-		CompanyName:    in.Body.CompanyName,
-		RNC:            in.Body.RNC,
-		Address:        in.Body.Address,
-		Phone:          in.Body.Phone,
-		WhatsApp:       in.Body.WhatsApp,
-		Email:          in.Body.Email,
-		Instagram:      in.Body.Instagram,
-		Facebook:       in.Body.Facebook,
-		BusinessHours:  in.Body.BusinessHours,
-		ItbisPercent:   in.Body.ItbisPercent,
-		DepositPercent: in.Body.DepositPercent,
-		DeliveryZones:  in.Body.DeliveryZones,
+		CompanyName:               in.Body.CompanyName,
+		RNC:                       in.Body.RNC,
+		Address:                   in.Body.Address,
+		Phone:                     in.Body.Phone,
+		WhatsApp:                  in.Body.WhatsApp,
+		Email:                     in.Body.Email,
+		Instagram:                 in.Body.Instagram,
+		Facebook:                  in.Body.Facebook,
+		BusinessHours:             in.Body.BusinessHours,
+		ItbisPercent:              in.Body.ItbisPercent,
+		DepositPercent:            in.Body.DepositPercent,
+		WhatsAppAutoAlertsEnabled: in.Body.WhatsAppAutoAlertsEnabled,
+		DeliveryZones:             in.Body.DeliveryZones,
+		HasDeliveryZones:          in.Body.DeliveryZones != nil,
 	}
 }
 
@@ -544,6 +548,7 @@ var operationsErrorSpecs = []operationsErrorSpec{
 	{domain.ErrWebhookSignatureInvalid, http.StatusForbidden, "WHATSAPP_SIGNATURE_INVALID", "WhatsAppWebhookSignatureVerification"},
 	{domain.ErrNotificationForbidden, http.StatusForbidden, "NOTIFICATION_FORBIDDEN", "NotificationOwnershipPolicy"},
 	{domain.ErrOfflineActionForbidden, http.StatusForbidden, "OFFLINE_ACTION_FORBIDDEN", "OfflineSyncPermissionPolicy"},
+	{domain.ErrOperationForbidden, http.StatusForbidden, "OPERATION_FORBIDDEN", "EventOperationOwnershipPolicy"},
 	{domain.ErrReviewForbidden, http.StatusForbidden, "REVIEW_FORBIDDEN", "ReviewEventOwnershipPolicy"},
 	{domain.ErrReviewEventNotFound, http.StatusNotFound, "REVIEW_EVENT_NOT_FOUND", "ReviewEventMustExist"},
 }

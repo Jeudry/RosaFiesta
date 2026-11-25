@@ -203,6 +203,8 @@ public data class ClientEvent(
     public val closeoutNotes: String = "",
     public val lastPaymentReminderAt: String = "",
     public val lastPaymentReminderChannel: String = "",
+    public val setupPhotoUrls: List<String> = emptyList(),
+    public val contactPhone: String = "",
 ) {
     public val balanceDop: Int
         get() = (totalDop - paidDepositDop).coerceAtLeast(0)

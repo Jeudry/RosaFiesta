@@ -52,6 +52,7 @@ func (m Module) anyPermMiddlewares(api huma.API, perms ...string) huma.Middlewar
 }
 
 func (m Module) registerLogisticsAndDamageRoutes(api huma.API) {
+	authMW := m.authMiddlewares(api)
 	fieldMW := m.anyPermMiddlewares(api, "tareas", "eventos", "inventario", "decoracion")
 
 	huma.Register(api, huma.Operation{
@@ -71,7 +72,7 @@ func (m Module) registerLogisticsAndDamageRoutes(api huma.API) {
 		Summary:     "Toggle a setup or teardown checklist item",
 		Tags:        []string{"Operations"},
 		Security:    platformhttp.Secured(),
-		Middlewares: fieldMW,
+		Middlewares: authMW,
 	}, m.handleToggleChecklist)
 
 	huma.Register(api, huma.Operation{
@@ -475,7 +476,12 @@ func (m Module) handleGetEventLogistics(ctx context.Context, in *EventLogisticsI
 }
 
 func (m Module) handleToggleChecklist(ctx context.Context, in *ToggleChecklistInput) (*EventLogisticsOutput, error) {
-	logi, err := m.Service.ToggleChecklistItem(ctx, in.EventID, in.ItemID, in.Body.Completed, in.Body.StaffName)
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	actorName := in.Body.StaffName
+	if actorName == "" {
+		actorName = caller.FullName
+	}
+	logi, err := m.Service.ToggleChecklistItemForCaller(ctx, in.EventID, in.ItemID, in.Body.Completed, actorName, caller)
 	if err != nil {
 		return nil, mapOperationsError(err, "PATCH /v1/operations/events/"+in.EventID+"/checklist/"+in.ItemID, "CHECKLIST_ITEM_NOT_FOUND", "ChecklistItemMustExist", http.StatusNotFound)
 	}
@@ -551,7 +557,7 @@ func (m Module) handleCreateReview(ctx context.Context, in *CreateReviewInput) (
 
 func (m Module) handleReplyReview(ctx context.Context, in *ReplyReviewInput) (*ReviewOutput, error) {
 	caller, _ := platformhttp.CurrentPrincipal(ctx)
-	rev, err := m.Service.ReplyReview(ctx, in.ID, in.Body.AdminReply, caller)
+	rev, err := m.Service.ReplyReviewWithVerification(ctx, in.ID, in.Body.AdminReply, in.Body.Verified, caller)
 	if err != nil {
 		return nil, mapOperationsError(err, "PATCH /v1/reviews/"+in.ID+"/reply", "REVIEW_REPLY_FAILED", "ReplyReviewValidation", http.StatusBadRequest)
 	}

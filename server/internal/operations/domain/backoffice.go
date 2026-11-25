@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 )
@@ -13,6 +14,7 @@ type Review struct {
 	Rating         int    `json:"rating"`
 	Comment        string `json:"comment"`
 	AdminReply     string `json:"adminReply,omitempty"`
+	Verified       bool   `json:"verified"`
 	CreatedAtLabel string `json:"createdAtLabel,omitempty"`
 }
 
@@ -43,18 +45,19 @@ type Lead struct {
 }
 
 type BusinessSettings struct {
-	ID             string `json:"id"`
-	CompanyName    string `json:"companyName"`
-	RNC            string `json:"rnc"`
-	Address        string `json:"address"`
-	Phone          string `json:"phone"`
-	WhatsApp       string `json:"whatsapp"`
-	Email          string `json:"email"`
-	Instagram      string `json:"instagram"`
-	Facebook       string `json:"facebook"`
-	BusinessHours  string `json:"businessHours"`
-	ItbisPercent   int    `json:"itbisPercent"`
-	DepositPercent int    `json:"depositPercent"`
+	ID                        string `json:"id"`
+	CompanyName               string `json:"companyName"`
+	RNC                       string `json:"rnc"`
+	Address                   string `json:"address"`
+	Phone                     string `json:"phone"`
+	WhatsApp                  string `json:"whatsapp"`
+	Email                     string `json:"email"`
+	Instagram                 string `json:"instagram"`
+	Facebook                  string `json:"facebook"`
+	BusinessHours             string `json:"businessHours"`
+	ItbisPercent              int    `json:"itbisPercent"`
+	DepositPercent            int    `json:"depositPercent"`
+	WhatsAppAutoAlertsEnabled bool   `json:"whatsappAutoAlertsEnabled"`
 }
 
 type DeliveryZone struct {
@@ -464,7 +467,7 @@ func BuildReportExportFromSnapshot(reportType, period string, snapshot ReportSna
 		monthCount = 12
 	}
 	itbisRate := snapshot.ItbisPercent
-	if itbisRate <= 0 {
+	if itbisRate < 0 {
 		itbisRate = 18
 	}
 	series := buildReportSeriesFromSnapshot(normalizedType, monthCount, snapshot.Months, now)
@@ -472,7 +475,7 @@ func BuildReportExportFromSnapshot(reportType, period string, snapshot ReportSna
 	for _, point := range series {
 		totalRD += point.ValueRD
 	}
-	itbisRD := (totalRD * itbisRate) / 100
+	itbisRD := extractIncludedITBIS(totalRD, itbisRate)
 	csvBody := formatReportCSVWithRate(series, itbisRate)
 	return ReportExport{
 		ReportType:  normalizedType,
@@ -569,9 +572,24 @@ func formatReportCSVWithRate(series []ReportPoint, itbisRate int) string {
 	var builder strings.Builder
 	fmt.Fprintf(&builder, "Periodo,Monto_DOP,ITBIS_%d_DOP,Cantidad\n", itbisRate)
 	for _, point := range series {
-		itbis := (point.ValueRD * itbisRate) / 100
+		itbis := extractIncludedITBIS(point.ValueRD, itbisRate)
 		line := fmt.Sprintf("%s,%d,%d,%d\n", point.Label, point.ValueRD, itbis, point.Count)
 		builder.WriteString(line)
 	}
 	return builder.String()
+}
+
+func extractIncludedITBIS(grossRD, itbisRate int) int {
+	if grossRD <= 0 {
+		return 0
+	}
+	if itbisRate <= 0 {
+		return 0
+	}
+	divisor := 1.0 + float64(itbisRate)/100.0
+	subtotal := int(math.Round(float64(grossRD) / divisor))
+	if subtotal > grossRD {
+		return 0
+	}
+	return grossRD - subtotal
 }

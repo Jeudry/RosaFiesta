@@ -50,6 +50,9 @@ public data class QuoteRecord(
     public val packageId: String = "",
     public val contractPdfUrl: String = "",
     public val signedAtIso: String = "",
+    public val contactPhone: String = "",
+    public val signedByUserId: String = "",
+    public val contractHashSha256: String = "",
 ) {
     public val balanceDop: Int
         get() = (totalDop - depositDop).coerceAtLeast(0)
@@ -118,6 +121,7 @@ public data class BusinessSettings(
     public val depositPercent: Int = 30,
     public val itbisPercent: Int = 18,
     public val zones: List<DeliveryZone> = emptyList(),
+    public val whatsappAutoAlertsEnabled: Boolean = false,
 )
 
 /**
@@ -508,6 +512,44 @@ public object DomainClockFormatter {
         return (targetEpochDay - todayEpochDay).toInt()
     }
 
+    /**
+     * Returns calendar days elapsed since [dateLabel] relative to [nowEpochSeconds] (in UTC-4),
+     * or `null` when [dateLabel] cannot be parsed.
+     */
+    public fun daysSinceDateLabel(
+        dateLabel: String,
+        nowEpochSeconds: Long = JwtAuthManager.currentEpochSeconds(),
+    ): Int? {
+        val todayCivil = toLocalCivilDate(nowEpochSeconds)
+        val todayEpochDay = epochDayFromCivil(todayCivil.year, todayCivil.month, todayCivil.day)
+        val parsedTarget = parseDateLabel(dateLabel, todayCivil.year, todayEpochDay) ?: return null
+        val targetEpochDay = epochDayFromCivil(parsedTarget.year, parsedTarget.month, parsedTarget.day)
+        return (todayEpochDay - targetEpochDay).toInt()
+    }
+
+    /**
+     * Extracts a normalized `YYYY-MM` key from [dateLabel] using Dominican local time as year reference,
+     * or `null` if [dateLabel] cannot be parsed.
+     */
+    public fun monthYearKeyForDateLabel(
+        dateLabel: String,
+        nowEpochSeconds: Long = JwtAuthManager.currentEpochSeconds(),
+    ): String? {
+        val todayCivil = toLocalCivilDate(nowEpochSeconds)
+        val todayEpochDay = epochDayFromCivil(todayCivil.year, todayCivil.month, todayCivil.day)
+        val parsedTarget = parseDateLabel(dateLabel, todayCivil.year, todayEpochDay) ?: return null
+        val paddedMonth = parsedTarget.month.toString().padStart(2, '0')
+        return "${parsedTarget.year}-$paddedMonth"
+    }
+
+    /**
+     * Returns the ordered Spanish short month label (`ene`..`dic`) for a 1-based [monthNumber].
+     */
+    public fun shortSpanishMonthLabel(monthNumber: Int): String {
+        val index = (monthNumber - 1).coerceIn(0, spanishShortMonths.lastIndex)
+        return spanishShortMonths[index]
+    }
+
     private data class CivilDate(
         val year: Int,
         val month: Int,
@@ -778,3 +820,314 @@ public data class RefundApprovalOptions(
     public val notifyWhatsApp: Boolean = false,
     public val clientMessage: String = "",
 )
+
+/**
+ * Real expense category slice computed for a selected analytics period.
+ */
+public data class AnalyticsExpenseCategory(
+    public val key: String,
+    public val label: String,
+    public val amountDop: Int,
+)
+
+/**
+ * Period-scoped financial and operational analytics summary for `s57` and reports.
+ */
+public data class PeriodSpendingAnalytics(
+    public val rangeKey: String,
+    public val periodLabel: String,
+    public val totalIncomeDop: Int,
+    public val totalExpensesDop: Int,
+    public val netMarginPercent: Int,
+    public val expenseCategories: List<AnalyticsExpenseCategory>,
+    public val trendMonths: List<String>,
+    public val trendValuesDop: List<Int>,
+    public val trendDeltaPercent: Int,
+    public val confirmedCount: Int,
+    public val completedCount: Int,
+    public val quoteCount: Int,
+    public val otherCount: Int,
+)
+
+/**
+ * Pure domain calculator for period-scoped spending and revenue analytics without synthetic multipliers.
+ */
+public object SpendingAnalyticsCalculator {
+    /**
+     * Maps a human-readable period selector label (`Mes actual`, `Trimestre`, `6m`, `12m`, `Histórico`)
+     * to a canonical backend `/v1/payments/analytics` range token.
+     */
+    public fun mapPeriodToAnalyticsRange(periodLabel: String): String {
+        val normalized = periodLabel.trim().lowercase()
+        return when (normalized) {
+            "7d", "semana" -> "7d"
+            "30d", "mes actual", "1m" -> "30d"
+            "90d", "trimestre", "3m" -> "90d"
+            "180d", "6m", "6 meses" -> "180d"
+            "365d", "12m", "12 meses", "año" -> "365d"
+            else -> "all"
+        }
+    }
+
+    /**
+     * Computes period-scoped income, real expenses, monthly trend, and event counts.
+     */
+    public fun compute(
+        periodLabel: String,
+        analyticsSummary: PaymentsAnalyticsSummary?,
+        events: List<ClientEvent>,
+        payments: List<PaymentRecord>,
+        refunds: List<RefundRequest>,
+        damageIncidents: List<DamageIncident>,
+        nowEpochSeconds: Long = JwtAuthManager.currentEpochSeconds(),
+    ): PeriodSpendingAnalytics {
+        val rangeKey = mapPeriodToAnalyticsRange(periodLabel)
+        val windowDays = windowDaysForRange(rangeKey)
+        val scopedPayments = filterPaymentsForWindow(payments, windowDays, nowEpochSeconds)
+        val scopedEvents = filterEventsForWindow(events, windowDays, nowEpochSeconds)
+        val scopedRefunds = filterRefundsForWindow(refunds, windowDays, nowEpochSeconds)
+
+        val matchesServerRange = if (analyticsSummary != null) {
+            analyticsSummary.range.equals(rangeKey, ignoreCase = true)
+        } else {
+            false
+        }
+        val activeServerSummary = if (matchesServerRange) analyticsSummary else null
+
+        val localIncomeDop = scopedPayments.sumOf { payment -> payment.amountDop.coerceAtLeast(0) }
+        val totalIncomeDop = activeServerSummary?.totalRevenueDop ?: localIncomeDop
+
+        val approvedRefundsDop = scopedRefunds
+            .filter { refund -> refund.status.equals("APPROVED", ignoreCase = true) }
+            .sumOf { refund -> refund.refundAmountDop.coerceAtLeast(0) }
+        val damageReplacementDop = damageIncidents
+            .filter { incident -> isDamageInEventSet(incident, scopedEvents, windowDays) }
+            .sumOf { incident -> incident.replacementDop.coerceAtLeast(0) }
+
+        val localExpensesDop = approvedRefundsDop + damageReplacementDop
+        val totalExpensesDop = activeServerSummary?.totalExpensesDop ?: localExpensesDop
+        val residualOperatingDop = (totalExpensesDop - localExpensesDop).coerceAtLeast(0)
+
+        val categories = buildExpenseCategories(
+            approvedRefundsDop = approvedRefundsDop,
+            damageReplacementDop = damageReplacementDop,
+            residualOperatingDop = residualOperatingDop,
+        )
+
+        val monthBucketCount = monthCountForRange(rangeKey)
+        val trendSeries = buildTrendSeries(
+            activeServerSummary = activeServerSummary,
+            payments = payments,
+            monthCount = monthBucketCount,
+            nowEpochSeconds = nowEpochSeconds,
+        )
+        val trendMonths = trendSeries.map { pair -> pair.first }
+        val trendValuesDop = trendSeries.map { pair -> pair.second }
+        val trendDeltaPercent = computeTrendDeltaPercent(trendValuesDop)
+
+        val confirmedCount = activeServerSummary?.confirmedEventsCount
+            ?: scopedEvents.count { event -> event.status == EventStatus.CONFIRMED }
+        val completedCount = activeServerSummary?.completedEventsCount
+            ?: scopedEvents.count { event -> event.status == EventStatus.COMPLETED }
+        val quoteCount = activeServerSummary?.pendingEventsCount
+            ?: scopedEvents.count { event -> event.status == EventStatus.PENDING_QUOTE }
+        val totalEvents = activeServerSummary?.totalEventsCount ?: scopedEvents.size
+        val otherCount = (totalEvents - confirmedCount - completedCount - quoteCount).coerceAtLeast(0)
+
+        val netMarginPercent = activeServerSummary?.netMarginPercent ?: computeMarginPercent(
+            revenueDop = totalIncomeDop,
+            expensesDop = totalExpensesDop,
+        )
+
+        return PeriodSpendingAnalytics(
+            rangeKey = rangeKey,
+            periodLabel = periodLabel,
+            totalIncomeDop = totalIncomeDop,
+            totalExpensesDop = totalExpensesDop,
+            netMarginPercent = netMarginPercent,
+            expenseCategories = categories,
+            trendMonths = trendMonths,
+            trendValuesDop = trendValuesDop,
+            trendDeltaPercent = trendDeltaPercent,
+            confirmedCount = confirmedCount,
+            completedCount = completedCount,
+            quoteCount = quoteCount,
+            otherCount = otherCount,
+        )
+    }
+
+    private fun windowDaysForRange(rangeKey: String): Int? = when (rangeKey) {
+        "7d" -> 7
+        "30d" -> 30
+        "90d" -> 90
+        "180d" -> 180
+        "365d" -> 365
+        else -> null
+    }
+
+    private fun monthCountForRange(rangeKey: String): Int = when (rangeKey) {
+        "7d", "30d", "90d" -> 3
+        "180d" -> 6
+        else -> 6
+    }
+
+    private fun filterPaymentsForWindow(
+        payments: List<PaymentRecord>,
+        windowDays: Int?,
+        nowEpochSeconds: Long,
+    ): List<PaymentRecord> {
+        val eligible = payments.filter { payment ->
+            val hasNoRejection = payment.rejectionReason.isBlank()
+            if (payment.verified) hasNoRejection else false
+        }
+        if (windowDays == null) {
+            return eligible
+        }
+        return eligible.filter { payment ->
+            val dateText = payment.verifiedAtIso.ifBlank { payment.dateLabel }
+            val elapsed = DomainClockFormatter.daysSinceDateLabel(dateText, nowEpochSeconds)
+            if (elapsed == null) {
+                false
+            } else {
+                elapsed <= windowDays
+            }
+        }
+    }
+
+    private fun filterEventsForWindow(
+        events: List<ClientEvent>,
+        windowDays: Int?,
+        nowEpochSeconds: Long,
+    ): List<ClientEvent> {
+        if (windowDays == null) {
+            return events
+        }
+        return events.filter { event ->
+            val dateText = event.eventDateIso.ifBlank { event.dateLabel }
+            val elapsed = DomainClockFormatter.daysSinceDateLabel(dateText, nowEpochSeconds)
+            if (elapsed == null) {
+                false
+            } else {
+                elapsed <= windowDays
+            }
+        }
+    }
+
+    private fun filterRefundsForWindow(
+        refunds: List<RefundRequest>,
+        windowDays: Int?,
+        nowEpochSeconds: Long,
+    ): List<RefundRequest> {
+        if (windowDays == null) {
+            return refunds
+        }
+        return refunds.filter { refund ->
+            val dateText = refund.approvedAtLabel.ifBlank { refund.requestedAtLabel }
+            val elapsed = DomainClockFormatter.daysSinceDateLabel(dateText, nowEpochSeconds)
+            if (elapsed == null) {
+                false
+            } else {
+                elapsed <= windowDays
+            }
+        }
+    }
+
+    private fun isDamageInEventSet(
+        incident: DamageIncident,
+        scopedEvents: List<ClientEvent>,
+        windowDays: Int?,
+    ): Boolean {
+        if (windowDays == null) {
+            return true
+        }
+        return scopedEvents.any { event -> event.id == incident.eventId }
+    }
+
+    private fun buildExpenseCategories(
+        approvedRefundsDop: Int,
+        damageReplacementDop: Int,
+        residualOperatingDop: Int,
+    ): List<AnalyticsExpenseCategory> {
+        val result = mutableListOf(
+            AnalyticsExpenseCategory(
+                key = "refunds",
+                label = "Reembolsos aprobados",
+                amountDop = approvedRefundsDop,
+            ),
+            AnalyticsExpenseCategory(
+                key = "damages",
+                label = "Reposición y daños",
+                amountDop = damageReplacementDop,
+            ),
+        )
+        if (residualOperatingDop > 0) {
+            result.add(
+                AnalyticsExpenseCategory(
+                    key = "operations",
+                    label = "Operación y logística",
+                    amountDop = residualOperatingDop,
+                ),
+            )
+        }
+        return result
+    }
+
+    private fun buildTrendSeries(
+        activeServerSummary: PaymentsAnalyticsSummary?,
+        payments: List<PaymentRecord>,
+        monthCount: Int,
+        nowEpochSeconds: Long,
+    ): List<Pair<String, Int>> {
+        val serverSeries = activeServerSummary?.monthlySeries.orEmpty()
+        if (serverSeries.isNotEmpty()) {
+            return serverSeries.takeLast(monthCount).map { point ->
+                val label = point.monthLabel
+                    .ifBlank { point.monthKey.takeLast(2) }
+                    .replaceFirstChar { ch -> ch.uppercase() }
+                label to point.revenueDop.coerceAtLeast(0)
+            }
+        }
+        val (currentYear, currentMonth, _) = DomainClockFormatter.currentCivilDateTriple(nowEpochSeconds)
+        val buckets = mutableListOf<Pair<String, String>>()
+        for (offset in (monthCount - 1) downTo 0) {
+            val zeroBasedTotalMonths = (currentYear * 12) + (currentMonth - 1) - offset
+            val bucketYear = zeroBasedTotalMonths.floorDiv(12)
+            val bucketMonth = zeroBasedTotalMonths.mod(12) + 1
+            val key = "$bucketYear-${bucketMonth.toString().padStart(2, '0')}"
+            val label = DomainClockFormatter.shortSpanishMonthLabel(bucketMonth)
+                .replaceFirstChar { ch -> ch.uppercase() }
+            buckets.add(key to label)
+        }
+        val revenueByMonthKey = mutableMapOf<String, Int>()
+        for (payment in payments) {
+            val isEligible = if (payment.verified) payment.rejectionReason.isBlank() else false
+            if (!isEligible) continue
+            val dateText = payment.verifiedAtIso.ifBlank { payment.dateLabel }
+            val key = DomainClockFormatter.monthYearKeyForDateLabel(dateText, nowEpochSeconds) ?: continue
+            val prev = revenueByMonthKey[key] ?: 0
+            revenueByMonthKey[key] = prev + payment.amountDop.coerceAtLeast(0)
+        }
+        return buckets.map { pair ->
+            pair.second to (revenueByMonthKey[pair.first] ?: 0)
+        }
+    }
+
+    private fun computeTrendDeltaPercent(values: List<Int>): Int {
+        val previous = values.dropLast(1).lastOrNull() ?: 0
+        val latest = values.lastOrNull() ?: 0
+        if (previous > 0) {
+            return ((latest - previous) * 100) / previous
+        }
+        if (latest > 0) {
+            return 100
+        }
+        return 0
+    }
+
+    private fun computeMarginPercent(revenueDop: Int, expensesDop: Int): Int {
+        if (revenueDop <= 0) {
+            return 0
+        }
+        return (((revenueDop - expensesDop) * 100) / revenueDop).coerceIn(-100, 100)
+    }
+}

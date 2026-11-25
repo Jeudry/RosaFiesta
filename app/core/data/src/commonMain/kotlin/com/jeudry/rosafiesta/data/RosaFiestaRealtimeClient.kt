@@ -2,6 +2,10 @@ package com.jeudry.rosafiesta.data
 
 import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.HttpTimeoutConfig
+import io.ktor.client.plugins.pluginOrNull
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.header
 import io.ktor.client.request.prepareGet
 import io.ktor.client.statement.bodyAsChannel
@@ -110,6 +114,12 @@ public class RosaFiestaRealtimeClient(
             header(HttpHeaders.Accept, "text/event-stream")
             if (highestSeq > 0L) {
                 header("Last-Event-ID", highestSeq.toString())
+            }
+            if (httpClient.pluginOrNull(HttpTimeout) != null) {
+                timeout {
+                    requestTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS
+                    socketTimeoutMillis = HttpTimeoutConfig.INFINITE_TIMEOUT_MS
+                }
             }
         }.execute { response ->
             if (!response.status.isSuccess()) {

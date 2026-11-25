@@ -271,7 +271,7 @@ internal object RosaFiestaBackendMappers {
             priorChangesCount = dto.dateChangesUsed.toInt(),
             clientEmail = dto.clientEmail.orEmpty(),
             cancellationReason = dto.cancellationReason.orEmpty(),
-            sketchJson = dto.sketchJson.orEmpty(),
+            sketchJson = dto.sketchJson.orEmpty().ifBlank { fallback?.sketchJson.orEmpty() },
             eventDateIso = dto.eventDateIso.orEmpty().ifBlank { fallback?.eventDateIso.orEmpty() },
             pickupDateIso = dto.pickupDateIso.orEmpty().ifBlank { fallback?.pickupDateIso.orEmpty() },
             returnDateIso = dto.returnDateIso.orEmpty().ifBlank { fallback?.returnDateIso.orEmpty() },
@@ -280,6 +280,8 @@ internal object RosaFiestaBackendMappers {
             closeoutNotes = dto.closeoutNotes.orEmpty(),
             lastPaymentReminderAt = dto.lastPaymentReminderAt.orEmpty().ifBlank { fallback?.lastPaymentReminderAt.orEmpty() },
             lastPaymentReminderChannel = dto.lastPaymentReminderChannel.orEmpty().ifBlank { fallback?.lastPaymentReminderChannel.orEmpty() },
+            setupPhotoUrls = dto.setupPhotoUrls ?: fallback?.setupPhotoUrls.orEmpty(),
+            contactPhone = dto.contactPhone.orEmpty().ifBlank { fallback?.contactPhone.orEmpty() },
         )
     }
 
@@ -357,6 +359,9 @@ internal object RosaFiestaBackendMappers {
             packageId = dto.packageId.orEmpty(),
             contractPdfUrl = dto.contractPdfUrl.orEmpty(),
             signedAtIso = dto.signedAtIso.orEmpty(),
+            contactPhone = dto.contactPhone.orEmpty(),
+            signedByUserId = dto.signedByUserId.orEmpty(),
+            contractHashSha256 = dto.contractHashSha256.orEmpty(),
         )
     }
 
@@ -397,7 +402,6 @@ internal object RosaFiestaBackendMappers {
         val fallback = fallbackById[dto.id]
         val linkedEvent = eventsById[dto.eventId]
         val eventTitle = linkedEvent?.title ?: fallback?.eventTitle.orEmpty()
-        val verified = fallback?.verified ?: (linkedEvent != null)
         return ReviewRecord(
             id = dto.id,
             eventId = dto.eventId,
@@ -405,7 +409,7 @@ internal object RosaFiestaBackendMappers {
             authorName = dto.clientName,
             rating = dto.rating.toInt().coerceIn(1, 5),
             comment = dto.comment,
-            verified = verified,
+            verified = dto.verified,
             dateLabel = dto.createdAtLabel ?: fallback?.dateLabel ?: DomainClockFormatter.currentFullDateLabel(),
             adminReply = dto.adminReply ?: fallback?.adminReply.orEmpty(),
         )
@@ -535,9 +539,11 @@ internal object RosaFiestaBackendMappers {
         dto: PublicBusinessSettingsDto,
         fallback: BusinessSettings,
     ): BusinessSettings {
-        val mappedZones = dto.deliveryZones?.map { zone -> toDeliveryZone(zone) }
-            ?.takeIf { list -> list.isNotEmpty() }
-            ?: fallback.zones
+        val mappedZones = if (dto.deliveryZones != null) {
+            dto.deliveryZones.map { zone -> toDeliveryZone(zone) }
+        } else {
+            fallback.zones
+        }
         return BusinessSettings(
             businessName = dto.companyName.ifBlank { fallback.businessName },
             rnc = dto.rnc.ifBlank { fallback.rnc },
@@ -550,6 +556,7 @@ internal object RosaFiestaBackendMappers {
             facebookUrl = dto.facebook.ifBlank { fallback.facebookUrl },
             depositPercent = dto.depositPercent.toInt(),
             itbisPercent = fallback.itbisPercent,
+            whatsappAutoAlertsEnabled = fallback.whatsappAutoAlertsEnabled,
             zones = mappedZones,
         )
     }
@@ -559,9 +566,11 @@ internal object RosaFiestaBackendMappers {
         fallback: BusinessSettings,
     ): BusinessSettings {
         val dto = output.settings
-        val mappedZones = output.deliveryZones?.map { zone -> toDeliveryZone(zone) }
-            ?.takeIf { list -> list.isNotEmpty() }
-            ?: fallback.zones
+        val mappedZones = if (output.deliveryZones != null) {
+            output.deliveryZones.map { zone -> toDeliveryZone(zone) }
+        } else {
+            fallback.zones
+        }
         return BusinessSettings(
             businessName = dto.companyName.ifBlank { fallback.businessName },
             rnc = dto.rnc.ifBlank { fallback.rnc },
@@ -574,6 +583,7 @@ internal object RosaFiestaBackendMappers {
             facebookUrl = dto.facebook.ifBlank { fallback.facebookUrl },
             depositPercent = dto.depositPercent.toInt(),
             itbisPercent = dto.itbisPercent.toInt(),
+            whatsappAutoAlertsEnabled = dto.whatsappAutoAlertsEnabled,
             zones = mappedZones,
         )
     }
@@ -590,6 +600,7 @@ internal object RosaFiestaBackendMappers {
         facebook = settings.facebookUrl,
         depositPercent = settings.depositPercent.toLong(),
         itbisPercent = settings.itbisPercent.toLong(),
+        whatsappAutoAlertsEnabled = settings.whatsappAutoAlertsEnabled,
         deliveryZones = settings.zones.map { zone -> toDeliveryZoneDto(zone) },
     )
 

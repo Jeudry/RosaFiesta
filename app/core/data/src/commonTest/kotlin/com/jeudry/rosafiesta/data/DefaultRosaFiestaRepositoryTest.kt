@@ -1,7 +1,10 @@
 package com.jeudry.rosafiesta.data
 
+import com.jeudry.rosafiesta.domain.CanonicalSampleData
 import com.jeudry.rosafiesta.domain.EventLineItem
 import com.jeudry.rosafiesta.domain.PhotoAsset
+import com.jeudry.rosafiesta.domain.security.JwtAuthManager
+import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -486,5 +489,173 @@ class DefaultRosaFiestaRepositoryTest {
         assertTrue(expiredCallbackCalled)
         assertEquals(null, apiClient.currentAccessToken())
         assertEquals(null, apiClient.currentRefreshToken())
+    }
+
+    @Test
+    fun `short circuits backend sync on network failure and handles checklist settings reviews and setup photos`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val offlinePaths = mutableListOf<String>()
+        val offlineEngine = MockEngine { request ->
+            offlinePaths.add(request.url.encodedPath)
+            throw IllegalStateException("Network unreachable")
+        }
+        val offlineHttp = HttpClient(offlineEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val offlineApi = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = offlineHttp,
+        )
+        val offlineRepo = DefaultRosaFiestaRepository(
+            apiClient = offlineApi,
+            ioDispatcher = testDispatcher,
+            seedDemoData = false,
+            snapshotCache = null,
+        )
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            for (attempt in 0 until 50) {
+                testScheduler.advanceUntilIdle()
+                if (offlinePaths.isNotEmpty()) break
+                kotlinx.coroutines.delay(10)
+            }
+        }
+        testScheduler.advanceUntilIdle()
+        offlinePaths.clear()
+        val syncOk = offlineRepo.syncFromBackendAsync()
+        assertFalse(syncOk)
+        assertEquals(listOf("/v1/catalog/categories"), offlinePaths)
+
+        var lastReviewReplyBody = ""
+        var lastSettingsBody = ""
+        var lastEventPatchBody = ""
+        val onlineEngine = MockEngine { request ->
+            val path = request.url.encodedPath
+            when {
+                path == "/v1/auth/login" -> {
+                    respond(
+                        content = """{"accessToken":"server.jwt.token","user":{"id":"usr-admin-test","username":"admin_test","fullName":"Admin Test","email":"admin@rosafiesta.do","role":"admin"}}""",
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                }
+
+                path.contains("/checklist/chk-1") -> {
+                    respond(
+                        content = """{"code":"AUTH_FORBIDDEN","message":"Sin permiso para checklist"}""",
+                        status = HttpStatusCode.Forbidden,
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                }
+
+                path.startsWith("/v1/reviews/") -> {
+                    lastReviewReplyBody = request.body.toString()
+                    val targetRevId = CanonicalSampleData.reviews.first().id
+                    respond(
+                        content = """{"review":{"id":"$targetRevId","eventId":"evt-1","clientName":"Laura","rating":5,"comment":"Excelente","verified":false,"adminReply":"Gracias por comentar"}}""",
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                }
+
+                path == "/v1/operations/settings" -> {
+                    lastSettingsBody = request.body.toString()
+                    respond(
+                        content = """{"settings":{"id":"default","companyName":"RosaFiesta","rnc":"131","address":"Av 27","phone":"8095550101","whatsapp":"8095550101","email":"info@rf.do","businessHours":"9-6","instagram":"","facebook":"","depositPercent":35,"itbisPercent":0,"whatsappAutoAlertsEnabled":true},"deliveryZones":[]}""",
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                }
+
+                path.startsWith("/v1/events/") -> {
+                    lastEventPatchBody = request.body.toString()
+                    val firstEvtId = CanonicalSampleData.events.first().id
+                    respond(
+                        content = """{"event":{"id":"$firstEvtId","code":"RF-2026-1","clientName":"Camila","title":"Boda Real","eventType":"Boda","dateLabel":"23 Oct 2026","daysUntilEvent":5,"venue":"Salón Piantini","zone":"Santo Domingo DN","guests":40,"articleCount":1,"totalRD":10000,"paidDepositRD":5000,"balanceDueDate":"2026-11-01","status":"CONFIRMED","dateChangesUsed":0,"assignedLead":"Ana","sketchJson":"","setupPhotoUrls":["/v1/media/setup-1"]},"balanceRD":5000}""",
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                }
+
+                else -> {
+                    respond(
+                        content = """{}""",
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                }
+            }
+        }
+        val onlineHttp = HttpClient(onlineEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val onlineApi = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = onlineHttp,
+        )
+        val onlineRepo = DefaultRosaFiestaRepository(
+            apiClient = onlineApi,
+            ioDispatcher = testDispatcher,
+            snapshotCache = null,
+        )
+        val authOutcome = onlineRepo.authenticateUserOnline("admin@rosafiesta.do", "Password2026")
+        assertTrue(authOutcome.success)
+        testScheduler.advanceUntilIdle()
+
+        val initialStep = onlineRepo.checklist.value.first { step -> step.id == "chk-1" }
+        var checklistError = ""
+        onlineRepo.toggleChecklistStep("chk-1") { msg -> checklistError = msg }
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            for (attempt in 0 until 50) {
+                testScheduler.advanceUntilIdle()
+                if (checklistError.isNotBlank()) break
+                kotlinx.coroutines.delay(10)
+            }
+        }
+        testScheduler.advanceUntilIdle()
+        val revertedStep = onlineRepo.checklist.value.first { step -> step.id == "chk-1" }
+        assertEquals(initialStep.completed, revertedStep.completed)
+        assertTrue(checklistError.isNotBlank())
+
+        val targetReviewId = onlineRepo.reviews.value.first().id
+        val replied = onlineRepo.replyToReview(targetReviewId, "Gracias por comentar", verified = false)
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            for (attempt in 0 until 50) {
+                testScheduler.advanceUntilIdle()
+                if (lastReviewReplyBody.isNotEmpty()) break
+                kotlinx.coroutines.delay(10)
+            }
+        }
+        testScheduler.advanceUntilIdle()
+        assertEquals(false, replied?.verified)
+        assertTrue(lastReviewReplyBody.isNotEmpty())
+
+        val zeroItbisSettings = onlineRepo.businessSettings.value.copy(
+            itbisPercent = 0,
+            whatsappAutoAlertsEnabled = true,
+            zones = emptyList(),
+        )
+        val savedSettingsResult = onlineRepo.saveBusinessSettingsOnline(zeroItbisSettings)
+        assertTrue(savedSettingsResult.isSuccess)
+        val savedSettings = savedSettingsResult.getOrThrow()
+        assertEquals(0, savedSettings.itbisPercent)
+        assertTrue(savedSettings.whatsappAutoAlertsEnabled)
+        assertTrue(savedSettings.zones.isEmpty())
+        assertTrue(lastSettingsBody.isNotEmpty())
+
+        val targetEventId = onlineRepo.events.value.first().id
+        onlineRepo.updateEventDetails(eventId = targetEventId, sketchJson = "{\"tables\":4}")
+        testScheduler.advanceUntilIdle()
+        val setupResult = onlineRepo.updateEventSetupPhotos(targetEventId, listOf("/v1/media/setup-1"))
+        assertTrue(setupResult.isSuccess, "setup failed: ${setupResult.exceptionOrNull()}")
+        val updatedEvent = setupResult.getOrThrow()
+        assertEquals(listOf("/v1/media/setup-1"), updatedEvent.setupPhotoUrls)
+        assertEquals("{\"tables\":4}", updatedEvent.sketchJson)
+        assertTrue(lastEventPatchBody.isNotEmpty())
     }
 }

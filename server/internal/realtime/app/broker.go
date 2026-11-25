@@ -40,6 +40,37 @@ type Broker struct {
 	recent      []domain.RealtimeEvent
 	subscribers map[uint64]*subscriber
 	clock       func() time.Time
+	streamWG    sync.WaitGroup
+}
+
+// TrackStream registra una conexión SSE activa para drenado ordenado al apagar el servidor.
+func (b *Broker) TrackStream() func() {
+	if b == nil {
+		return func() {}
+	}
+	b.streamWG.Add(1)
+	var once sync.Once
+	return func() {
+		once.Do(b.streamWG.Done)
+	}
+}
+
+// WaitStreams espera a que todas las conexiones SSE activas cierren o venza el contexto.
+func (b *Broker) WaitStreams(ctx context.Context) bool {
+	if b == nil {
+		return true
+	}
+	done := make(chan struct{})
+	go func() {
+		b.streamWG.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 // NewBroker inicializa un Broker en memoria listo para publicar y retransmitir eventos.

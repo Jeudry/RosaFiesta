@@ -226,6 +226,19 @@ func (s *Service) issueSessionBundleLocked(
 	expiresAt := now.Add(defaultAccessTokenTTL)
 	jwtToken := s.tokenMgr.IssueWithTTL(user, now, defaultAccessTokenTTL)
 	tokenHash := domain.HashToken(jwtToken)
+	if len(s.sessionHashes) >= maxInMemorySessions {
+		for existingHash, existing := range s.sessionHashes {
+			if !existing.ExpiresAt.After(now) {
+				delete(s.sessionHashes, existingHash)
+			}
+		}
+	}
+	if len(s.sessionHashes) >= maxInMemorySessions {
+		for existingHash := range s.sessionHashes {
+			delete(s.sessionHashes, existingHash)
+			break
+		}
+	}
 	s.sessionHashes[tokenHash] = sessionEntry{
 		UserID:    user.ID,
 		ExpiresAt: expiresAt,
@@ -311,6 +324,76 @@ func (s *Service) revokeRefreshFamilyLocked(ctx context.Context, familyID uuid.U
 	}
 }
 
+const (
+	maxInMemorySessions      = 10000
+	maxInMemoryRevokedHashes = 10000
+	maxInMemoryOTPRecords    = 5000
+	maxInMemoryOAuthStates   = 2000
+)
+
+func (s *Service) recordRevokedHashLocked(tokenHash string, expiresAt, now time.Time) {
+	if s.revokedHashes == nil {
+		s.revokedHashes = make(map[string]time.Time)
+	}
+	s.evictExpiredRevokedHashesLocked(now)
+	if len(s.revokedHashes) >= maxInMemoryRevokedHashes {
+		evictOneArbitraryTimeEntry(s.revokedHashes)
+	}
+	s.revokedHashes[tokenHash] = expiresAt
+}
+
+func evictOneArbitraryTimeEntry(target map[string]time.Time) {
+	for key := range target {
+		delete(target, key)
+		return
+	}
+}
+
+func (s *Service) evictExpiredInMemoryStateLocked(now time.Time) int64 {
+	var removed int64
+	removed += s.evictExpiredRevokedHashesLocked(now)
+	for hash, entry := range s.sessionHashes {
+		if !entry.ExpiresAt.After(now) {
+			delete(s.sessionHashes, hash)
+			removed++
+		}
+	}
+	for email, rec := range s.otps {
+		if isOTPRecordExpired(rec, now) {
+			delete(s.otps, email)
+			removed++
+		}
+	}
+	for stateKey, entry := range s.oauthStates {
+		if !entry.ExpiresAt.After(now) {
+			delete(s.oauthStates, stateKey)
+			removed++
+		}
+	}
+	return removed
+}
+
+func (s *Service) evictExpiredRevokedHashesLocked(now time.Time) int64 {
+	var removed int64
+	for hash, exp := range s.revokedHashes {
+		if !exp.After(now) {
+			delete(s.revokedHashes, hash)
+			removed++
+		}
+	}
+	return removed
+}
+
+func isOTPRecordExpired(rec domain.OTPRecord, now time.Time) bool {
+	if !now.After(rec.ExpiresAt) {
+		return false
+	}
+	if rec.ResetExpiresAt.IsZero() {
+		return true
+	}
+	return now.After(rec.ResetExpiresAt)
+}
+
 func (s *Service) CleanupExpiredRefreshTokens(ctx context.Context) (int64, error) {
 	now := s.clock.Now()
 	revokedCutoff := now.Add(-revokedTokenRetentionDuration)
@@ -323,6 +406,7 @@ func (s *Service) CleanupExpiredRefreshTokens(ctx context.Context) (int64, error
 			removedMemory++
 		}
 	}
+	_ = s.evictExpiredInMemoryStateLocked(now)
 	store := s.store
 	s.mu.Unlock()
 

@@ -41,6 +41,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -57,6 +58,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -975,9 +981,24 @@ private fun AppLockOverlay(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done,
                     ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { onUnlockWithPassword(passwordInput) },
+                    ),
                     cursorBrush = SolidColor(palette.ink),
                     textStyle = typo.body.copy(fontSize = 14.sp, color = palette.ink),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onPreviewKeyEvent { keyEvent ->
+                            val isKeyUp = keyEvent.type == KeyEventType.KeyUp
+                            val isEnterKey = if (keyEvent.key == Key.Enter) true else keyEvent.key == Key.NumPadEnter
+                            val shouldSubmit = if (isKeyUp) isEnterKey else false
+                            if (shouldSubmit) {
+                                onUnlockWithPassword(passwordInput)
+                                true
+                            } else {
+                                false
+                            }
+                        },
                 )
             }
 

@@ -37,6 +37,10 @@ var (
 	ErrCardCheckoutRequired = errors.New("card payments require Stripe checkout session")
 	// ErrClientCashRestricted indica que solo administración puede registrar pagos inmediatos en efectivo.
 	ErrClientCashRestricted = errors.New("clients must pay via transfer voucher or card checkout")
+	// ErrInvalidPaymentCurrency rechaza sesiones de pago emitidas en una moneda distinta a DOP.
+	ErrInvalidPaymentCurrency = errors.New("stripe checkout currency must be DOP")
+	// ErrNCFSequenceExpired indica que la secuencia NCF configurada está vencida o agotada.
+	ErrNCFSequenceExpired = errors.New("ncf sequence is expired or exhausted")
 )
 
 // PaymentMethod representa el medio utilizado para efectuar el pago.

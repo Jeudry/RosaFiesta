@@ -78,6 +78,8 @@ type CreateEventCommand struct {
 	BalanceDueDate string
 	AssignedLead   string
 	SketchJSON     string
+	SetupPhotoUrls []string
+	ContactPhone   string
 	Items          []domain.EventItem
 }
 
@@ -92,6 +94,8 @@ type UpdateEventCommand struct {
 	Status         *string
 	AssignedLead   *string
 	SketchJSON     *string
+	SetupPhotoUrls *[]string
+	ContactPhone   *string
 	Items          *[]domain.EventItem
 }
 
@@ -358,6 +362,9 @@ func (s *Service) GetEventForCaller(
 }
 
 func (s *Service) withComputedDaysUntil(evt domain.Event) domain.Event {
+	if evt.SetupPhotoUrls == nil {
+		evt.SetupPhotoUrls = []string{}
+	}
 	if strings.TrimSpace(evt.EventDateISO) != "" {
 		evt.DaysUntilEvent = domain.ComputeDaysUntilEvent(evt.EventDateISO, s.clock.Now(), evt.DaysUntilEvent)
 	}
@@ -713,8 +720,21 @@ func buildCreatedEvent(
 		Status:         domain.StatusPending,
 		AssignedLead:   strings.TrimSpace(cmd.AssignedLead),
 		SketchJSON:     sketch,
+		SetupPhotoUrls: sanitizePhotoURLs(cmd.SetupPhotoUrls),
+		ContactPhone:   strings.TrimSpace(cmd.ContactPhone),
 		Items:          items,
 	}
+}
+
+func sanitizePhotoURLs(raw []string) []string {
+	out := make([]string, 0, len(raw))
+	for _, item := range raw {
+		trimmed := strings.TrimSpace(item)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 func resolveCreatedEventClient(
@@ -784,29 +804,44 @@ func applyEventDetailsPatch(updated domain.Event, cmd UpdateEventCommand, caller
 		updated.Guests = *cmd.Guests
 	}
 	if cmd.Status != nil {
-		trimmedStatus := strings.TrimSpace(*cmd.Status)
-		candidate := domain.EventStatus(trimmedStatus)
-		if !domain.IsValidEventStatus(candidate) {
-			return domain.Event{}, domain.ErrInvalidEventStatus
+		nextStatus, err := validatePatchStatus(*cmd.Status, caller)
+		if err != nil {
+			return domain.Event{}, err
 		}
-		clientDenied := caller.IsClient()
-		if clientDenied {
-			clientDenied = !isClientAllowedStatus(candidate)
-		}
-		if clientDenied {
-			return domain.Event{}, domain.ErrEventForbidden
-		}
-		updated.Status = candidate
+		updated.Status = nextStatus
 	}
-	canAssignLead := !caller.IsClient()
-	if canAssignLead {
-		canAssignLead = cmd.AssignedLead != nil
+	return applyEventMediaAndItemsPatch(updated, cmd, caller), nil
+}
+
+func validatePatchStatus(rawStatus string, caller platformhttp.Principal) (domain.EventStatus, error) {
+	candidate := domain.EventStatus(strings.TrimSpace(rawStatus))
+	if !domain.IsValidEventStatus(candidate) {
+		return "", domain.ErrInvalidEventStatus
 	}
-	if canAssignLead {
-		updated.AssignedLead = strings.TrimSpace(*cmd.AssignedLead)
+	if caller.IsClient() {
+		if !isClientAllowedStatus(candidate) {
+			return "", domain.ErrEventForbidden
+		}
+	}
+	return candidate, nil
+}
+
+func applyEventMediaAndItemsPatch(updated domain.Event, cmd UpdateEventCommand, caller platformhttp.Principal) domain.Event {
+	if !caller.IsClient() {
+		if cmd.AssignedLead != nil {
+			updated.AssignedLead = strings.TrimSpace(*cmd.AssignedLead)
+		}
 	}
 	if cmd.SketchJSON != nil {
-		updated.SketchJSON = strings.TrimSpace(*cmd.SketchJSON)
+		if trimmedSketch := strings.TrimSpace(*cmd.SketchJSON); trimmedSketch != "" {
+			updated.SketchJSON = trimmedSketch
+		}
+	}
+	if cmd.SetupPhotoUrls != nil {
+		updated.SetupPhotoUrls = sanitizePhotoURLs(*cmd.SetupPhotoUrls)
+	}
+	if cmd.ContactPhone != nil {
+		updated.ContactPhone = strings.TrimSpace(*cmd.ContactPhone)
 	}
 	if cmd.Items != nil {
 		items := *cmd.Items
@@ -817,7 +852,7 @@ func applyEventDetailsPatch(updated domain.Event, cmd UpdateEventCommand, caller
 			updated.TotalRD = total
 		}
 	}
-	return updated, nil
+	return updated
 }
 
 func isClientPatchBlockedOnCommittedEvent(
@@ -903,25 +938,36 @@ func (s *Service) syncFromStoreLocked(ctx context.Context) {
 
 func mergeEventFromDB(existing, dbEvt domain.Event) domain.Event {
 	merged := dbEvt
-	if merged.Code == "" {
-		merged.Code = existing.Code
-	}
-	if merged.Zone == "" {
-		merged.Zone = existing.Zone
-	}
-	if merged.AssignedLead == "" {
-		merged.AssignedLead = existing.AssignedLead
-	}
+	merged.Code = defaultTrimmed(merged.Code, existing.Code)
+	merged.Zone = defaultTrimmed(merged.Zone, existing.Zone)
+	merged.AssignedLead = defaultTrimmed(merged.AssignedLead, existing.AssignedLead)
+	merged.QuoteID = defaultTrimmed(merged.QuoteID, existing.QuoteID)
+	merged.ContactPhone = defaultTrimmed(merged.ContactPhone, existing.ContactPhone)
 	if merged.EventDateISO == "" {
 		merged.EventDateISO = existing.EventDateISO
 		merged.PickupDateISO = existing.PickupDateISO
 		merged.ReturnDateISO = existing.ReturnDateISO
 	}
-	if merged.QuoteID == "" {
-		merged.QuoteID = existing.QuoteID
-	}
 	if len(merged.Items) == 0 {
 		merged.Items = existing.Items
+	}
+	return mergeEventMediaAndSketch(existing, merged)
+}
+
+func mergeEventMediaAndSketch(existing, merged domain.Event) domain.Event {
+	if len(merged.SetupPhotoUrls) == 0 {
+		if len(existing.SetupPhotoUrls) > 0 {
+			merged.SetupPhotoUrls = existing.SetupPhotoUrls
+		}
+	}
+	isDefaultMergedSketch := merged.SketchJSON == ""
+	if !isDefaultMergedSketch {
+		isDefaultMergedSketch = merged.SketchJSON == "{}"
+	}
+	if isDefaultMergedSketch {
+		if existing.SketchJSON != "" {
+			merged.SketchJSON = existing.SketchJSON
+		}
 	}
 	return merged
 }

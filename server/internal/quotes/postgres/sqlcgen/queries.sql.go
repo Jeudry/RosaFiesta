@@ -14,40 +14,44 @@ const getQuoteByID = `-- name: GetQuoteByID :one
 SELECT id, code, event_id, client_id, client_email, client_name, event_title,
        event_date_label, event_date_iso, package_id, venue, guests, lines_json, delivery_fee_dop, discount_dop,
        total_dop, deposit_percent, deposit_dop, balance_dop, status, version, notes,
-       signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason, created_at
+       signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason,
+       signed_by_user_id, contract_hash_sha256, contact_phone, created_at
 FROM quotes
 WHERE id = $1
 `
 
 type GetQuoteByIDRow struct {
-	ID              string
-	Code            string
-	EventID         string
-	ClientID        string
-	ClientEmail     string
-	ClientName      string
-	EventTitle      string
-	EventDateLabel  string
-	EventDateIso    string
-	PackageID       string
-	Venue           string
-	Guests          int
-	LinesJson       []byte
-	DeliveryFeeDop  int
-	DiscountDop     int
-	TotalDop        int
-	DepositPercent  int
-	DepositDop      int
-	BalanceDop      int
-	Status          string
-	Version         int
-	Notes           string
-	SignatureSvg    string
-	SignedByName    string
-	SignedAtIso     string
-	ContractPdfUrl  string
-	RejectionReason string
-	CreatedAt       time.Time
+	ID                 string
+	Code               string
+	EventID            string
+	ClientID           string
+	ClientEmail        string
+	ClientName         string
+	EventTitle         string
+	EventDateLabel     string
+	EventDateIso       string
+	PackageID          string
+	Venue              string
+	Guests             int
+	LinesJson          []byte
+	DeliveryFeeDop     int
+	DiscountDop        int
+	TotalDop           int
+	DepositPercent     int
+	DepositDop         int
+	BalanceDop         int
+	Status             string
+	Version            int
+	Notes              string
+	SignatureSvg       string
+	SignedByName       string
+	SignedAtIso        string
+	ContractPdfUrl     string
+	RejectionReason    string
+	SignedByUserID     string
+	ContractHashSha256 string
+	ContactPhone       string
+	CreatedAt          time.Time
 }
 
 func (q *Queries) GetQuoteByID(ctx context.Context, id string) (GetQuoteByIDRow, error) {
@@ -81,6 +85,93 @@ func (q *Queries) GetQuoteByID(ctx context.Context, id string) (GetQuoteByIDRow,
 		&i.SignedAtIso,
 		&i.ContractPdfUrl,
 		&i.RejectionReason,
+		&i.SignedByUserID,
+		&i.ContractHashSha256,
+		&i.ContactPhone,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getQuoteByIDForUpdate = `-- name: GetQuoteByIDForUpdate :one
+SELECT id, code, event_id, client_id, client_email, client_name, event_title,
+       event_date_label, event_date_iso, package_id, venue, guests, lines_json, delivery_fee_dop, discount_dop,
+       total_dop, deposit_percent, deposit_dop, balance_dop, status, version, notes,
+       signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason,
+       signed_by_user_id, contract_hash_sha256, contact_phone, created_at
+FROM quotes
+WHERE id = $1
+FOR UPDATE
+`
+
+type GetQuoteByIDForUpdateRow struct {
+	ID                 string
+	Code               string
+	EventID            string
+	ClientID           string
+	ClientEmail        string
+	ClientName         string
+	EventTitle         string
+	EventDateLabel     string
+	EventDateIso       string
+	PackageID          string
+	Venue              string
+	Guests             int
+	LinesJson          []byte
+	DeliveryFeeDop     int
+	DiscountDop        int
+	TotalDop           int
+	DepositPercent     int
+	DepositDop         int
+	BalanceDop         int
+	Status             string
+	Version            int
+	Notes              string
+	SignatureSvg       string
+	SignedByName       string
+	SignedAtIso        string
+	ContractPdfUrl     string
+	RejectionReason    string
+	SignedByUserID     string
+	ContractHashSha256 string
+	ContactPhone       string
+	CreatedAt          time.Time
+}
+
+func (q *Queries) GetQuoteByIDForUpdate(ctx context.Context, id string) (GetQuoteByIDForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getQuoteByIDForUpdate, id)
+	var i GetQuoteByIDForUpdateRow
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.EventID,
+		&i.ClientID,
+		&i.ClientEmail,
+		&i.ClientName,
+		&i.EventTitle,
+		&i.EventDateLabel,
+		&i.EventDateIso,
+		&i.PackageID,
+		&i.Venue,
+		&i.Guests,
+		&i.LinesJson,
+		&i.DeliveryFeeDop,
+		&i.DiscountDop,
+		&i.TotalDop,
+		&i.DepositPercent,
+		&i.DepositDop,
+		&i.BalanceDop,
+		&i.Status,
+		&i.Version,
+		&i.Notes,
+		&i.SignatureSvg,
+		&i.SignedByName,
+		&i.SignedAtIso,
+		&i.ContractPdfUrl,
+		&i.RejectionReason,
+		&i.SignedByUserID,
+		&i.ContractHashSha256,
+		&i.ContactPhone,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -90,40 +181,44 @@ const listQuotes = `-- name: ListQuotes :many
 SELECT id, code, event_id, client_id, client_email, client_name, event_title,
        event_date_label, event_date_iso, package_id, venue, guests, lines_json, delivery_fee_dop, discount_dop,
        total_dop, deposit_percent, deposit_dop, balance_dop, status, version, notes,
-       signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason, created_at
+       signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason,
+       signed_by_user_id, contract_hash_sha256, contact_phone, created_at
 FROM quotes
 ORDER BY created_at, id
 `
 
 type ListQuotesRow struct {
-	ID              string
-	Code            string
-	EventID         string
-	ClientID        string
-	ClientEmail     string
-	ClientName      string
-	EventTitle      string
-	EventDateLabel  string
-	EventDateIso    string
-	PackageID       string
-	Venue           string
-	Guests          int
-	LinesJson       []byte
-	DeliveryFeeDop  int
-	DiscountDop     int
-	TotalDop        int
-	DepositPercent  int
-	DepositDop      int
-	BalanceDop      int
-	Status          string
-	Version         int
-	Notes           string
-	SignatureSvg    string
-	SignedByName    string
-	SignedAtIso     string
-	ContractPdfUrl  string
-	RejectionReason string
-	CreatedAt       time.Time
+	ID                 string
+	Code               string
+	EventID            string
+	ClientID           string
+	ClientEmail        string
+	ClientName         string
+	EventTitle         string
+	EventDateLabel     string
+	EventDateIso       string
+	PackageID          string
+	Venue              string
+	Guests             int
+	LinesJson          []byte
+	DeliveryFeeDop     int
+	DiscountDop        int
+	TotalDop           int
+	DepositPercent     int
+	DepositDop         int
+	BalanceDop         int
+	Status             string
+	Version            int
+	Notes              string
+	SignatureSvg       string
+	SignedByName       string
+	SignedAtIso        string
+	ContractPdfUrl     string
+	RejectionReason    string
+	SignedByUserID     string
+	ContractHashSha256 string
+	ContactPhone       string
+	CreatedAt          time.Time
 }
 
 func (q *Queries) ListQuotes(ctx context.Context) ([]ListQuotesRow, error) {
@@ -163,6 +258,9 @@ func (q *Queries) ListQuotes(ctx context.Context) ([]ListQuotesRow, error) {
 			&i.SignedAtIso,
 			&i.ContractPdfUrl,
 			&i.RejectionReason,
+			&i.SignedByUserID,
+			&i.ContractHashSha256,
+			&i.ContactPhone,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -180,12 +278,14 @@ INSERT INTO quotes (
     id, code, event_id, client_id, client_email, client_name, event_title,
     event_date_label, event_date_iso, package_id, venue, guests, lines_json, delivery_fee_dop, discount_dop,
     total_dop, deposit_percent, deposit_dop, balance_dop, status, version, notes,
-    signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason, created_at
+    signature_svg, signed_by_name, signed_at_iso, contract_pdf_url, rejection_reason,
+    signed_by_user_id, contract_hash_sha256, contact_phone, created_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7,
     $8, $9, $10, $11, $12, $13, $14, $15,
     $16, $17, $18, $19, $20, $21, $22,
-    $23, $24, $25, $26, $27, $28
+    $23, $24, $25, $26, $27,
+    $28, $29, $30, $31
 )
 ON CONFLICT (id) DO UPDATE SET
     code = EXCLUDED.code,
@@ -213,38 +313,44 @@ ON CONFLICT (id) DO UPDATE SET
     signed_by_name = EXCLUDED.signed_by_name,
     signed_at_iso = EXCLUDED.signed_at_iso,
     contract_pdf_url = EXCLUDED.contract_pdf_url,
-    rejection_reason = EXCLUDED.rejection_reason
+    rejection_reason = EXCLUDED.rejection_reason,
+    signed_by_user_id = EXCLUDED.signed_by_user_id,
+    contract_hash_sha256 = EXCLUDED.contract_hash_sha256,
+    contact_phone = EXCLUDED.contact_phone
 `
 
 type UpsertQuoteParams struct {
-	ID              string
-	Code            string
-	EventID         string
-	ClientID        string
-	ClientEmail     string
-	ClientName      string
-	EventTitle      string
-	EventDateLabel  string
-	EventDateIso    string
-	PackageID       string
-	Venue           string
-	Guests          int
-	LinesJson       []byte
-	DeliveryFeeDop  int
-	DiscountDop     int
-	TotalDop        int
-	DepositPercent  int
-	DepositDop      int
-	BalanceDop      int
-	Status          string
-	Version         int
-	Notes           string
-	SignatureSvg    string
-	SignedByName    string
-	SignedAtIso     string
-	ContractPdfUrl  string
-	RejectionReason string
-	CreatedAt       time.Time
+	ID                 string
+	Code               string
+	EventID            string
+	ClientID           string
+	ClientEmail        string
+	ClientName         string
+	EventTitle         string
+	EventDateLabel     string
+	EventDateIso       string
+	PackageID          string
+	Venue              string
+	Guests             int
+	LinesJson          []byte
+	DeliveryFeeDop     int
+	DiscountDop        int
+	TotalDop           int
+	DepositPercent     int
+	DepositDop         int
+	BalanceDop         int
+	Status             string
+	Version            int
+	Notes              string
+	SignatureSvg       string
+	SignedByName       string
+	SignedAtIso        string
+	ContractPdfUrl     string
+	RejectionReason    string
+	SignedByUserID     string
+	ContractHashSha256 string
+	ContactPhone       string
+	CreatedAt          time.Time
 }
 
 func (q *Queries) UpsertQuote(ctx context.Context, arg UpsertQuoteParams) error {
@@ -276,6 +382,9 @@ func (q *Queries) UpsertQuote(ctx context.Context, arg UpsertQuoteParams) error 
 		arg.SignedAtIso,
 		arg.ContractPdfUrl,
 		arg.RejectionReason,
+		arg.SignedByUserID,
+		arg.ContractHashSha256,
+		arg.ContactPhone,
 		arg.CreatedAt,
 	)
 	return err

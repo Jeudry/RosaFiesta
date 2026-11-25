@@ -119,6 +119,16 @@ public interface RosaFiestaRepository {
         get() = RepositoryFallbackFlows.isRealtimeConnected
 
     public fun toggleChecklistStep(stepId: String)
+
+    /**
+     * Toggles [stepId] and invokes [onError] if backend synchronization rejects or fails.
+     */
+    public fun toggleChecklistStep(
+        stepId: String,
+        onError: (String) -> Unit,
+    ) {
+        toggleChecklistStep(stepId)
+    }
     public fun syncOfflineQueue()
     public fun adjustArticleStock(articleId: String, delta: Int)
     public fun login(email: String, password: String): Boolean
@@ -139,9 +149,18 @@ public interface RosaFiestaRepository {
         phone: String,
         birthDate: String,
         username: String,
+        avatarKey: String? = null,
     ): AuthOutcome = AuthOutcome.failure(
         errorCode = "PROFILE_UPDATE_UNSUPPORTED",
         errorMessage = "No se pudo actualizar el perfil.",
+    )
+
+    /**
+     * Persists a newly uploaded or selected [avatarKey] on the authenticated user via `/v1/auth/me`.
+     */
+    public suspend fun updateUserAvatarOnline(avatarKey: String?): AuthOutcome = AuthOutcome.failure(
+        errorCode = "AVATAR_UPDATE_UNSUPPORTED",
+        errorMessage = "No se pudo sincronizar la foto de perfil.",
     )
     public fun restoreSessionFromJwt(accessToken: String): RegisteredUserAccount?
     public fun clearSession()
@@ -163,6 +182,20 @@ public interface RosaFiestaRepository {
         venue: String,
         guests: Int,
     )
+
+    /**
+     * Creates an event including an optional client [contactPhone].
+     */
+    public fun createEvent(
+        title: String,
+        clientName: String,
+        dateLabel: String,
+        venue: String,
+        guests: Int,
+        contactPhone: String = "",
+    ) {
+        createEvent(title, clientName, dateLabel, venue, guests)
+    }
     public fun changeEventDate(eventId: String, newDateLabel: String): DateChangeResult
     public fun cancelEvent(eventId: String): CancellationRefund
 
@@ -335,6 +368,7 @@ public interface RosaFiestaRepository {
         eventId: String = "",
         notes: String = "",
         sendImmediately: Boolean = false,
+        contactPhone: String = "",
     ): QuoteRecord {
         val subtotal = lines.sumOf { line -> line.subtotalDop }
         val total = (subtotal + deliveryFeeDop - discountDop).coerceAtLeast(0)
@@ -354,6 +388,7 @@ public interface RosaFiestaRepository {
             discountDop = discountDop,
             totalDop = total,
             notes = notes,
+            contactPhone = contactPhone,
         )
     }
 
@@ -445,9 +480,13 @@ public interface RosaFiestaRepository {
     )
 
     /**
-     * Saves an administrative [adminReply] on [reviewId].
+     * Saves an administrative [adminReply] and verification status [verified] on [reviewId].
      */
-    public fun replyToReview(reviewId: String, adminReply: String): ReviewRecord? = reviews.value.firstOrNull { review -> review.id == reviewId }
+    public fun replyToReview(
+        reviewId: String,
+        adminReply: String,
+        verified: Boolean = true,
+    ): ReviewRecord? = reviews.value.firstOrNull { review -> review.id == reviewId }
 
     /**
      * Registers or updates a partner supplier in [suppliers].
@@ -521,7 +560,16 @@ public interface RosaFiestaRepository {
         status: EventStatus? = null,
         leadStaffName: String? = null,
         sketchJson: String? = null,
+        setupPhotoUrls: List<String>? = null,
     ): ClientEvent? = events.value.firstOrNull { event -> event.id == eventId }
+
+    /**
+     * Persists [setupPhotoUrls] onto [eventId] and awaits server confirmation when online.
+     */
+    public suspend fun updateEventSetupPhotos(
+        eventId: String,
+        setupPhotoUrls: List<String>,
+    ): Result<ClientEvent> = Result.failure(IllegalStateException("EVENT_UPDATE_UNAVAILABLE"))
 
     /**
      * Clones [eventId] into a new pending event draft.
@@ -611,6 +659,13 @@ public interface RosaFiestaRepository {
      * Saves company contact details, tax settings, and delivery coverage zones.
      */
     public fun saveBusinessSettings(updated: BusinessSettings): BusinessSettings = updated
+
+    /**
+     * Saves business configuration remotely and returns the confirmed server snapshot or failure.
+     */
+    public suspend fun saveBusinessSettingsOnline(updated: BusinessSettings): Result<BusinessSettings> = Result.success(
+        saveBusinessSettings(updated),
+    )
 
     /**
      * Invites a new staff member to the operational team.
@@ -860,7 +915,8 @@ public interface RosaFiestaRepository {
         period: String = "2026-10",
     ): ReportExportResult {
         val total = payments.value.sumOf { payment -> payment.amountDop }
-        val itbis = (total * 18) / 100
+        val activeItbis = businessSettings.value.itbisPercent.coerceAtLeast(0)
+        val itbis = (total * activeItbis) / 100
         return ReportExportResult(
             reportType = reportType,
             period = period,
@@ -908,6 +964,7 @@ public interface RosaFiestaRepository {
         amountDop: Int,
         ncfType: String = "B02",
         clientRnc: String = "",
+        contactPhone: String = "",
     ): Result<CardSessionResult> = Result.failure(IllegalStateException("CARD_GATEWAY_NOT_CONFIGURED"))
 
     /**
@@ -982,6 +1039,7 @@ public interface RosaFiestaRepository {
         clientRnc: String = "",
         bankName: String = "",
         kindLabel: String = "Anticipo",
+        contactPhone: String = "",
     ): PaymentRecord? = registerPayment(eventId, amountDop, methodLabel, referenceCode)
 
     /**

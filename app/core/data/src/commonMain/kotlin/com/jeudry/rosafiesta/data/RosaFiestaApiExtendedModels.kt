@@ -271,6 +271,8 @@ public data class CreateEventInputDto(
     public val paidDepositRD: Long? = null,
     public val sketchJson: String? = null,
     public val items: List<EventItemDto>? = null,
+    public val setupPhotoUrls: List<String>? = null,
+    public val contactPhone: String? = null,
 )
 
 @Serializable
@@ -286,6 +288,8 @@ public data class UpdateEventInputDto(
     public val assignedLead: String? = null,
     public val sketchJson: String? = null,
     public val items: List<EventItemDto>? = null,
+    public val setupPhotoUrls: List<String>? = null,
+    public val contactPhone: String? = null,
 )
 
 @Serializable
@@ -510,6 +514,7 @@ public data class ReviewDto(
     public val clientName: String,
     public val rating: Long,
     public val comment: String,
+    public val verified: Boolean = false,
     public val adminReply: String? = null,
     public val createdAtLabel: String? = null,
 )
@@ -535,6 +540,7 @@ public data class CreateReviewInputDto(
 @Serializable
 public data class ReplyReviewInputDto(
     public val adminReply: String,
+    public val verified: Boolean? = null,
 )
 
 @Serializable
@@ -642,6 +648,7 @@ public data class BusinessSettingsDto(
     public val facebook: String,
     public val depositPercent: Long,
     public val itbisPercent: Long,
+    public val whatsappAutoAlertsEnabled: Boolean = false,
 )
 
 @Serializable
@@ -684,6 +691,7 @@ public data class UpdateSettingsInputDto(
     public val depositPercent: Long? = null,
     public val itbisPercent: Long? = null,
     public val deliveryZones: List<DeliveryZoneDto>? = null,
+    public val whatsappAutoAlertsEnabled: Boolean? = null,
 )
 
 @Serializable
@@ -913,6 +921,7 @@ public data class CreateCardSessionInputDto(
     public val kind: String = "deposit",
     public val ncfType: String = "B02",
     public val clientRnc: String = "",
+    public val contactPhone: String? = null,
 )
 
 @Serializable

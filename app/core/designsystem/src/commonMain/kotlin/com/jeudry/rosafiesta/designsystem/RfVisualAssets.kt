@@ -369,7 +369,19 @@ public fun RfPhoto(
  * Decodes and remembers an [ImageBitmap] from encoded photo bytes (`png`, `jpg`, `jpeg`, `webp`).
  */
 @Composable
-public fun rememberDecodedImageBitmap(bytes: ByteArray?): ImageBitmap? = remember(bytes) {
+public fun rememberDecodedImageBitmap(bytes: ByteArray?): ImageBitmap? = rememberDecodedImageBitmap(
+    cacheKey = bytes,
+    bytes = bytes,
+)
+
+/**
+ * Decodes and remembers an [ImageBitmap] keyed by [cacheKey] and [bytes], preventing stale bitmaps when a URL changes.
+ */
+@Composable
+public fun rememberDecodedImageBitmap(
+    cacheKey: Any?,
+    bytes: ByteArray?,
+): ImageBitmap? = remember(cacheKey, bytes) {
     val hasImageBytes = if (bytes != null) bytes.isNotEmpty() else false
     if (hasImageBytes) {
         decodeEncodedImageBitmapOrNull(bytes!!)

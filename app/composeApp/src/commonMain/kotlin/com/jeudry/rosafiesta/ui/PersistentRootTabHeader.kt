@@ -43,7 +43,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -405,6 +407,10 @@ private fun PersonalHomeGreetingHeaderLeft(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
+            .semantics {
+                contentDescription = "Mi perfil"
+                role = Role.Button
+            }
             .clickable { onSelectScreenCode("s54") },
     ) {
         Box(
@@ -523,6 +529,10 @@ private fun PersonalHeaderLeadingAction(
                     .clip(CircleShape)
                     .background(palette.surface)
                     .border(1.dp, palette.line, CircleShape)
+                    .semantics {
+                        contentDescription = "Notificaciones"
+                        role = Role.Button
+                    }
                     .clickable { onSelectScreenCode("s79") },
             ) {
                 RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 21.dp)
@@ -605,7 +615,12 @@ private fun PersonalPersistentSearchSection(
                         kind = RfIconKind.SEARCH,
                         tint = palette.muted,
                         size = 20.dp,
-                        modifier = Modifier.clickable { onSelectScreenCode("s80") },
+                        modifier = Modifier
+                            .semantics {
+                                contentDescription = "Buscar"
+                                role = Role.Button
+                            }
+                            .clickable { onSelectScreenCode("s80") },
                     )
                     Box(modifier = Modifier.weight(1f)) {
                         if (vmQuery.isEmpty()) {
@@ -638,6 +653,10 @@ private fun PersonalPersistentSearchSection(
                             .size(28.dp)
                             .clip(CircleShape)
                             .background(palette.chipBg)
+                            .semantics {
+                                contentDescription = "Limpiar búsqueda"
+                                role = Role.Button
+                            }
                             .clickable { viewModel.setSearchQuery("") },
                     ) {
                         RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 14.dp)
@@ -650,6 +669,10 @@ private fun PersonalPersistentSearchSection(
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (activeFilterCount > 0) Color(0xFFFDE6F2) else palette.chipBg)
+                        .semantics {
+                            contentDescription = "Filtros"
+                            role = Role.Button
+                        }
                         .clickable { onSelectScreenCode("s81") },
                 ) {
                     RfIcon(
@@ -687,6 +710,10 @@ private fun PersonalPersistentSearchSection(
                                 SolidColor(palette.chipBg)
                             },
                         )
+                        .semantics {
+                            contentDescription = "Búsqueda por voz"
+                            role = Role.Button
+                        }
                         .clickable { viewModel.toggleInlineVoiceSearch() },
                 ) {
                     val micTint = if (isSearchMicActive) Color.White else Color(0xFFB54BD6)
@@ -787,6 +814,10 @@ private fun AdminHeaderLeftSlot(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .semantics {
+                        contentDescription = "Perfil administrativo"
+                        role = Role.Button
+                    }
                     .clickable { onSelectScreenCode("s54") },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -1139,7 +1170,10 @@ private fun HeaderSurfaceActionCircle(
             .clip(CircleShape)
             .background(surfaceColor)
             .border(1.dp, borderColor, CircleShape)
-            .semantics { contentDescription = accessibilityLabel }
+            .semantics {
+                contentDescription = accessibilityLabel
+                role = Role.Button
+            }
             .clickable(onClick = onClick),
     ) {
         RfIcon(kind = icon, tint = tint, size = 20.dp)
@@ -1165,7 +1199,10 @@ private fun HeaderGradientActionCircle(
             .rfPrimaryButtonShadow(CircleShape, isAdmin = isAdmin)
             .clip(CircleShape)
             .background(gradient)
-            .semantics { contentDescription = accessibilityLabel }
+            .semantics {
+                contentDescription = accessibilityLabel
+                role = Role.Button
+            }
             .clickable(onClick = onClick),
     ) {
         RfIcon(kind = icon, tint = Color.White, size = 21.dp)
@@ -1183,6 +1220,10 @@ private fun AdminNotificationBellButton(
     Box(
         modifier = Modifier
             .size(HEADER_ACTION_SIZE)
+            .semantics {
+                contentDescription = "Notificaciones"
+                role = Role.Button
+            }
             .clickable(onClick = onClick),
     ) {
         Box(

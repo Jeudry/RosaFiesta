@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -55,6 +56,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -472,6 +474,7 @@ private fun FloatingRosaCenterAction(
 private fun Modifier.rfTactileClickable(
     enabled: Boolean = true,
     pressedScale: Float = 0.975f,
+    role: Role? = Role.Button,
     onClick: () -> Unit,
 ): Modifier {
     if (!enabled) return this
@@ -493,6 +496,7 @@ private fun Modifier.rfTactileClickable(
         .clickable(
             interactionSource = interactionSource,
             indication = null,
+            role = role,
             onClick = onClick,
         )
 }
@@ -807,7 +811,11 @@ public fun RfSwitch(
                 },
             )
             .semantics { contentDescription = accessibilityLabel }
-            .clickable { onCheckedChange(!checked) }
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onCheckedChange,
+            )
             .padding(horizontal = 3.dp),
     ) {
         Box(
@@ -1073,7 +1081,8 @@ public fun RfSearchField(
                     .size(26.dp)
                     .clip(CircleShape)
                     .background(palette.chipBg)
-                    .clickable {
+                    .semantics { contentDescription = "Limpiar búsqueda" }
+                    .clickable(role = Role.Button) {
                         if (onClear != null) {
                             onClear()
                         } else {

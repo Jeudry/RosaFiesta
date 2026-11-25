@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Jeudry/rosafiesta/server/internal/events/domain"
@@ -55,11 +56,31 @@ func (r *Repository) UpsertEvent(ctx context.Context, event domain.Event, now ti
 	if !r.Enabled() {
 		return nil
 	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := r.queries.WithTx(tx)
+	if err := qtx.UpsertEvent(ctx, buildUpsertEventParams(event, now)); err != nil {
+		return err
+	}
+	if err := replaceEventItemsTx(ctx, qtx, event.ID, event.Items); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func buildUpsertEventParams(event domain.Event, now time.Time) sqlcgen.UpsertEventParams {
 	sketch := event.SketchJSON
 	if sketch == "" {
 		sketch = "{}"
 	}
-	err := r.queries.UpsertEvent(ctx, sqlcgen.UpsertEventParams{
+	setupPhotos := event.SetupPhotoUrls
+	if setupPhotos == nil {
+		setupPhotos = []string{}
+	}
+	return sqlcgen.UpsertEventParams{
 		ID:                         event.ID,
 		Code:                       event.Code,
 		ClientID:                   event.ClientID,
@@ -93,23 +114,21 @@ func (r *Repository) UpsertEvent(ctx context.Context, event domain.Event, now ti
 		CloseoutNotes:              event.CloseoutNotes,
 		LastPaymentReminderAt:      event.LastPaymentReminderAt,
 		LastPaymentReminderChannel: event.LastPaymentReminderChannel,
+		SetupPhotoUrls:             setupPhotos,
+		ContactPhone:               event.ContactPhone,
 		CreatedAt:                  now,
-	})
-	if err != nil {
-		return err
 	}
-	return r.replaceEventItems(ctx, event.ID, event.Items)
 }
 
-func (r *Repository) replaceEventItems(ctx context.Context, eventID string, items []domain.EventItem) error {
-	if err := r.queries.DeleteEventItems(ctx, eventID); err != nil {
+func replaceEventItemsTx(ctx context.Context, q *sqlcgen.Queries, eventID string, items []domain.EventItem) error {
+	if err := q.DeleteEventItems(ctx, eventID); err != nil {
 		return err
 	}
 	for _, item := range items {
 		if item.Quantity <= 0 {
 			continue
 		}
-		err := r.queries.UpsertEventItem(ctx, sqlcgen.UpsertEventItemParams{
+		err := q.UpsertEventItem(ctx, sqlcgen.UpsertEventItemParams{
 			EventID:      eventID,
 			ArticleCode:  item.ArticleCode,
 			Name:         item.Name,
@@ -209,6 +228,10 @@ func mapEventRow(row sqlcgen.ListEventsRow, items []domain.EventItem) domain.Eve
 	if items == nil {
 		items = []domain.EventItem{}
 	}
+	setupPhotos := row.SetupPhotoUrls
+	if setupPhotos == nil {
+		setupPhotos = []string{}
+	}
 	return domain.Event{
 		ID:                         row.ID,
 		Code:                       row.Code,
@@ -239,6 +262,8 @@ func mapEventRow(row sqlcgen.ListEventsRow, items []domain.EventItem) domain.Eve
 		CloseoutNotes:              row.CloseoutNotes,
 		LastPaymentReminderAt:      row.LastPaymentReminderAt,
 		LastPaymentReminderChannel: row.LastPaymentReminderChannel,
+		SetupPhotoUrls:             setupPhotos,
+		ContactPhone:               row.ContactPhone,
 		Items:                      items,
 	}
 }

@@ -39,6 +39,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -69,10 +70,20 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -2011,6 +2022,10 @@ internal fun RenderLoginScreenS07(
                     .clip(CircleShape)
                     .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
+                    .semantics {
+                        contentDescription = "Volver"
+                        role = Role.Button
+                    }
                     .clickable {
                         val backTarget = if (isAdminLoginOrigin) "BACK:A30" else "BACK:s06"
                         onSelectScreenCode(backTarget)
@@ -2173,6 +2188,34 @@ internal fun RenderLoginScreenS07(
                         } else {
                             PasswordVisualTransformation()
                         }
+                        val submitLoginForm = {
+                            if (!isSubmitting) {
+                                hasAttemptedLogin = true
+                                val trimmedIdentifier = email.trim()
+                                val checkIdError = InputValidator.validateLoginIdentifier(trimmedIdentifier)
+                                val checkPassError = InputValidator.validatePassword(password)
+                                val firstError = checkIdError ?: checkPassError
+                                if (firstError != null) {
+                                    localLoginError = firstError
+                                    viewModel?.soundPlayer?.playAlertError()
+                                } else {
+                                    localLoginError = null
+                                    viewModel?.setLoginEmail(trimmedIdentifier)
+                                    viewModel?.setLoginPassword(password)
+                                    coroutineScope.launch {
+                                        val success = viewModel?.submitLoginOnline() ?: true
+                                        if (success) {
+                                            val isAdminOrStaff = viewModel?.isCurrentSessionAdminOrStaff() == true
+                                            if (isAdminOrStaff) {
+                                                onSelectScreenCode("A01")
+                                            } else {
+                                                onSelectScreenCode("s14")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         BasicTextField(
                             value = password,
                             onValueChange = { nextPassword ->
@@ -2184,10 +2227,28 @@ internal fun RenderLoginScreenS07(
                             },
                             singleLine = true,
                             visualTransformation = loginPasswordVisualTransformation,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done,
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { submitLoginForm() },
+                            ),
                             textStyle = typo.body.copy(fontSize = 15.sp, color = RfThemeState.currentPalette.ink),
                             cursorBrush = SolidColor(authColors.cursorColor),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .onPreviewKeyEvent { keyEvent ->
+                                    val isKeyUp = keyEvent.type == KeyEventType.KeyUp
+                                    val isEnter = if (keyEvent.key == Key.Enter) true else keyEvent.key == Key.NumPadEnter
+                                    val canSubmit = if (isKeyUp) isEnter else false
+                                    if (canSubmit) {
+                                        submitLoginForm()
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                }
                                 .rfTrackValidationFocus(focusKey = passwordBlur) { focused ->
                                     passwordBlur.onFocusStateChanged(focused) { hasInteractedPassword = true }
                                 },
@@ -2208,6 +2269,10 @@ internal fun RenderLoginScreenS07(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(44.dp)
+                            .semantics {
+                                contentDescription = if (showPassword) "Ocultar contraseña" else "Mostrar contraseña"
+                                role = Role.Button
+                            }
                             .clickable { showPassword = !showPassword },
                     ) {
                         RfIcon(kind = RfIconKind.EYE, tint = RfThemeState.currentPalette.muted, size = 20.dp)
@@ -2254,6 +2319,7 @@ internal fun RenderLoginScreenS07(
                     .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot, ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
                     .background(loginButtonBrush)
+                    .semantics { role = Role.Button }
                     .clickable(enabled = !isSubmitting) {
                         hasAttemptedLogin = true
                         val trimmedIdentifier = email.trim()
@@ -2792,6 +2858,10 @@ internal fun RenderRegisterScreenS08(
                     .clip(CircleShape)
                     .background(RfThemeState.currentPalette.surface)
                     .border(1.dp, RfThemeState.currentPalette.line, CircleShape)
+                    .semantics {
+                        contentDescription = "Volver"
+                        role = Role.Button
+                    }
                     .clickable { onSelectScreenCode("BACK:s07") },
             ) {
                 RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 20.dp)
@@ -2822,9 +2892,64 @@ internal fun RenderRegisterScreenS08(
             )
         }
 
+        val submitRegistrationForm = {
+            if (!isSubmitting) {
+                hasAttemptedRegister = true
+                val checkFirstError = InputValidator.validatePersonNamePart(firstName, "El nombre")
+                val checkLastError = InputValidator.validatePersonNamePart(lastName, "El apellido")
+                val checkUserError = InputValidator.validateUsername(username)
+                val checkPassError = InputValidator.validatePassword(password)
+                val checkEmailError = InputValidator.validateEmail(email)
+                val checkPhoneError = InputValidator.validateOptionalPhone(phone)
+                val checkBirthError = InputValidator.validateBirthDate(birthDate, isRequired = true)
+                val termsError = if (!acceptedTerms) "Debes aceptar los Términos y condiciones para continuar." else null
+                val firstValidationError = checkFirstError
+                    ?: checkLastError
+                    ?: checkUserError
+                    ?: checkPassError
+                    ?: checkEmailError
+                    ?: checkPhoneError
+                    ?: checkBirthError
+                    ?: termsError
+                if (firstValidationError != null) {
+                    localRegisterError = firstValidationError
+                    viewModel?.soundPlayer?.playAlertError()
+                } else {
+                    localRegisterError = null
+                    viewModel?.setRegisterPhone(phone)
+                    coroutineScope.launch {
+                        val registered = viewModel?.submitRegistrationOnline(
+                            firstName = firstName,
+                            lastName = lastName,
+                            username = username,
+                            email = email,
+                            password = password,
+                            birthDate = birthDate,
+                            acceptedTerms = acceptedTerms,
+                            phone = phone,
+                        ) ?: true
+                        if (registered) {
+                            onSelectScreenCode("s14")
+                        }
+                    }
+                }
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .onPreviewKeyEvent { keyEvent ->
+                    val isKeyUp = keyEvent.type == KeyEventType.KeyUp
+                    val isEnter = if (keyEvent.key == Key.Enter) true else keyEvent.key == Key.NumPadEnter
+                    val canSubmit = if (isKeyUp) isEnter else false
+                    if (canSubmit) {
+                        submitRegistrationForm()
+                        true
+                    } else {
+                        false
+                    }
+                }
                 .verticalScroll(rememberScrollState())
                 .padding(top = 96.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
         ) {
@@ -3036,6 +3161,10 @@ internal fun RenderRegisterScreenS08(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(36.dp)
+                                .semantics {
+                                    contentDescription = if (showPassword) "Ocultar contraseña" else "Mostrar contraseña"
+                                    role = Role.Button
+                                }
                                 .clickable { showPassword = !showPassword },
                         ) {
                             RfIcon(kind = RfIconKind.EYE, tint = RfThemeState.currentPalette.muted, size = 18.dp)
@@ -3177,6 +3306,10 @@ internal fun RenderRegisterScreenS08(
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
+                            .semantics {
+                                contentDescription = "Abrir calendario"
+                                role = Role.Button
+                            }
                             .clickable { showBirthDatePicker = true },
                     ) {
                         RfIcon(
@@ -3294,46 +3427,9 @@ internal fun RenderRegisterScreenS08(
                     .shadow(elevation = 12.dp, shape = RoundedCornerShape(16.dp), spotColor = authColors.buttonShadowSpot, ambientColor = Color.Transparent)
                     .clip(RoundedCornerShape(16.dp))
                     .background(registerButtonBrush)
+                    .semantics { role = Role.Button }
                     .clickable(enabled = !isSubmitting) {
-                        hasAttemptedRegister = true
-                        val checkFirstError = InputValidator.validatePersonNamePart(firstName, "El nombre")
-                        val checkLastError = InputValidator.validatePersonNamePart(lastName, "El apellido")
-                        val checkUserError = InputValidator.validateUsername(username)
-                        val checkPassError = InputValidator.validatePassword(password)
-                        val checkEmailError = InputValidator.validateEmail(email)
-                        val checkPhoneError = InputValidator.validateOptionalPhone(phone)
-                        val checkBirthError = InputValidator.validateBirthDate(birthDate, isRequired = true)
-                        val termsError = if (!acceptedTerms) "Debes aceptar los Términos y condiciones para continuar." else null
-                        val firstValidationError = checkFirstError
-                            ?: checkLastError
-                            ?: checkUserError
-                            ?: checkPassError
-                            ?: checkEmailError
-                            ?: checkPhoneError
-                            ?: checkBirthError
-                            ?: termsError
-                        if (firstValidationError != null) {
-                            localRegisterError = firstValidationError
-                            viewModel?.soundPlayer?.playAlertError()
-                        } else {
-                            localRegisterError = null
-                            viewModel?.setRegisterPhone(phone)
-                            coroutineScope.launch {
-                                val registered = viewModel?.submitRegistrationOnline(
-                                    firstName = firstName,
-                                    lastName = lastName,
-                                    username = username,
-                                    email = email,
-                                    password = password,
-                                    birthDate = birthDate,
-                                    acceptedTerms = acceptedTerms,
-                                    phone = phone,
-                                ) ?: true
-                                if (registered) {
-                                    onSelectScreenCode("s14")
-                                }
-                            }
-                        }
+                        submitRegistrationForm()
                     },
             ) {
                 BasicText(registerButtonLabel, style = typo.body.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White))
@@ -3523,6 +3619,17 @@ private fun BirthDateCalendarModal(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF151729).copy(alpha = 0.45f))
+            .onPreviewKeyEvent { keyEvent ->
+                val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                val isEscape = keyEvent.key == Key.Escape
+                val shouldDismiss = if (isKeyDown) isEscape else false
+                if (shouldDismiss) {
+                    onDismiss()
+                    true
+                } else {
+                    false
+                }
+            }
             .clickable(
                 interactionSource = backdropInteractionSource,
                 indication = null,
@@ -4650,14 +4757,21 @@ internal fun RenderRecoveryAndConfirmationScreens(
                                     viewModel?.soundPlayer?.playAlertError()
                                 } else {
                                     val targetEmail = recoveryEmail.ifBlank { viewModel?.loginEmail?.value.orEmpty() }
-                                    val resetOk = viewModel?.submitPasswordReset(
-                                        identifier = targetEmail,
-                                        newPassword = newPassword,
-                                        confirmPassword = confirmPassword,
-                                        otpCode = otpCode,
-                                    ) ?: true
-                                    if (resetOk) {
+                                    val activeViewModel = viewModel
+                                    if (activeViewModel == null) {
                                         onSelectScreenCode("s07")
+                                    } else {
+                                        activeViewModel.submitPasswordReset(
+                                            identifier = targetEmail,
+                                            newPassword = newPassword,
+                                            confirmPassword = confirmPassword,
+                                            otpCode = otpCode,
+                                            onComplete = { resetOk ->
+                                                if (resetOk) {
+                                                    onSelectScreenCode("s07")
+                                                }
+                                            },
+                                        )
                                     }
                                 }
                             },

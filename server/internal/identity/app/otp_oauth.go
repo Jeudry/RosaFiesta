@@ -419,7 +419,19 @@ func (s *Service) consumeOTPResetTokenAtomically(
 }
 
 func (s *Service) saveOTPRecord(ctx context.Context, record domain.OTPRecord) {
+	now := s.clock.Now()
 	s.mu.Lock()
+	for email, existing := range s.otps {
+		if isOTPRecordExpired(existing, now) {
+			delete(s.otps, email)
+		}
+	}
+	if len(s.otps) >= maxInMemoryOTPRecords {
+		for key := range s.otps {
+			delete(s.otps, key)
+			break
+		}
+	}
 	s.otps[record.Email] = record
 	store := s.store
 	s.mu.Unlock()

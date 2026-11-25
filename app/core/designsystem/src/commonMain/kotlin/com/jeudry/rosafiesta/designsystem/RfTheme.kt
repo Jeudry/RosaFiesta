@@ -79,101 +79,106 @@ public data class RfPalette(
         }
 }
 
+private val PersonalLightPalette: RfPalette = RfPalette(
+    variant = RfThemeVariant.PERSONAL,
+    ink = RfColors.PersonalInk,
+    muted = RfColors.PersonalMuted,
+    bg = RfColors.PersonalBg,
+    radialPrimary = RfColors.PersonalRadialRose,
+    radialSecondary = RfColors.PersonalRadialViolet,
+    surface = Color.White,
+    line = RfColors.PersonalLine,
+    lineSoft = RfColors.PersonalLineSoft,
+    fieldBorder = RfColors.PersonalLine,
+    chipBg = RfColors.PersonalChipBg,
+    primaryAccent = RfColors.RosaBrand,
+    primaryGradient = RfColors.PersonalPrimaryGradient,
+    heroGradient = RfColors.PersonalHeroGradient,
+    priceTextGradient = RfColors.PersonalTextGradient,
+    rosaAvatarGradient = RfColors.PersonalHeroGradient,
+    rosaAssistantBgGradient = RfColors.PersonalAssistantBgGradient,
+    toastBg = RfColors.ToastPersonal,
+    cardShadow = RfColors.PersonalCardShadow,
+)
+
+private val PersonalDarkPalette: RfPalette = RfPalette(
+    variant = RfThemeVariant.PERSONAL_DARK,
+    ink = RfColors.PersonalDarkInk,
+    muted = RfColors.PersonalDarkMuted,
+    bg = RfColors.PersonalDarkBg,
+    radialPrimary = Color(0xFF2B1C38),
+    radialSecondary = Color(0xFF1E1B3A),
+    surface = RfColors.PersonalDarkSurface,
+    line = RfColors.PersonalDarkLine,
+    lineSoft = RfColors.PersonalDarkLine,
+    fieldBorder = RfColors.PersonalDarkLine,
+    chipBg = RfColors.PersonalDarkChipBg,
+    primaryAccent = RfColors.RosaBrand,
+    primaryGradient = RfColors.PersonalPrimaryGradient,
+    heroGradient = RfColors.PersonalHeroGradient,
+    priceTextGradient = RfColors.PersonalTextGradient,
+    rosaAvatarGradient = RfColors.PersonalHeroGradient,
+    rosaAssistantBgGradient = Brush.verticalGradient(
+        listOf(Color(0xFF1E1A36), Color(0xFF151428)),
+    ),
+    toastBg = Color(0xFF282644),
+    cardShadow = Color(0x40000000),
+)
+
+private val AdminLightPalette: RfPalette = RfPalette(
+    variant = RfThemeVariant.ADMIN,
+    ink = RfColors.AdminInk,
+    muted = RfColors.AdminMuted,
+    bg = RfColors.AdminBg,
+    radialPrimary = RfColors.AdminRadialIndigo,
+    radialSecondary = RfColors.AdminRadialLavender,
+    surface = Color.White,
+    line = RfColors.AdminLine,
+    lineSoft = RfColors.AdminLineSoft,
+    fieldBorder = RfColors.AdminLineStrong,
+    chipBg = RfColors.AdminChipBg,
+    primaryAccent = RfColors.IndigoBrand,
+    primaryGradient = RfColors.AdminPrimaryGradient,
+    heroGradient = RfColors.AdminHeroAndRosaGradient,
+    priceTextGradient = RfColors.AdminPrimaryGradient,
+    rosaAvatarGradient = RfColors.AdminHeroAndRosaGradient,
+    rosaAssistantBgGradient = RfColors.AdminAssistantBgGradient,
+    toastBg = RfColors.ToastAdmin,
+    cardShadow = RfColors.AdminCardShadow,
+)
+
+private val AdminDarkPalette: RfPalette = RfPalette(
+    variant = RfThemeVariant.ADMIN_DARK,
+    ink = RfColors.AdminDarkInk,
+    muted = RfColors.AdminDarkMuted,
+    bg = RfColors.AdminDarkBg,
+    radialPrimary = Color(0xFF202247),
+    radialSecondary = Color(0xFF18223D),
+    surface = RfColors.AdminDarkSurface,
+    line = RfColors.AdminDarkLine,
+    lineSoft = RfColors.AdminDarkLine,
+    fieldBorder = RfColors.AdminDarkLineStrong,
+    chipBg = RfColors.AdminDarkChipBg,
+    primaryAccent = RfColors.IndigoBrand,
+    primaryGradient = RfColors.AdminPrimaryGradient,
+    heroGradient = RfColors.AdminHeroAndRosaGradient,
+    priceTextGradient = RfColors.AdminPrimaryGradient,
+    rosaAvatarGradient = RfColors.AdminHeroAndRosaGradient,
+    rosaAssistantBgGradient = Brush.verticalGradient(
+        listOf(Color(0xFF1A1C3A), Color(0xFF121426)),
+    ),
+    toastBg = Color(0xFF222742),
+    cardShadow = Color(0x40000000),
+)
+
 /**
  * Paleta resuelta para la variante activa (`theme.personal` vs `theme.admin`, Sección 2 de `entrega-de-diseno.md`).
  */
 public fun paletteForVariant(variant: RfThemeVariant): RfPalette = when (variant) {
-    RfThemeVariant.PERSONAL -> RfPalette(
-        variant = RfThemeVariant.PERSONAL,
-        ink = RfColors.PersonalInk,
-        muted = RfColors.PersonalMuted,
-        bg = RfColors.PersonalBg,
-        radialPrimary = RfColors.PersonalRadialRose,
-        radialSecondary = RfColors.PersonalRadialViolet,
-        surface = Color.White,
-        line = RfColors.PersonalLine,
-        lineSoft = RfColors.PersonalLineSoft,
-        fieldBorder = RfColors.PersonalLine,
-        chipBg = RfColors.PersonalChipBg,
-        primaryAccent = RfColors.RosaBrand,
-        primaryGradient = RfColors.PersonalPrimaryGradient,
-        heroGradient = RfColors.PersonalHeroGradient,
-        priceTextGradient = RfColors.PersonalTextGradient,
-        rosaAvatarGradient = RfColors.PersonalHeroGradient,
-        rosaAssistantBgGradient = RfColors.PersonalAssistantBgGradient,
-        toastBg = RfColors.ToastPersonal,
-        cardShadow = RfColors.PersonalCardShadow,
-    )
-
-    RfThemeVariant.PERSONAL_DARK -> RfPalette(
-        variant = RfThemeVariant.PERSONAL_DARK,
-        ink = RfColors.PersonalDarkInk,
-        muted = RfColors.PersonalDarkMuted,
-        bg = RfColors.PersonalDarkBg,
-        radialPrimary = Color(0xFF2B1C38),
-        radialSecondary = Color(0xFF1E1B3A),
-        surface = RfColors.PersonalDarkSurface,
-        line = RfColors.PersonalDarkLine,
-        lineSoft = RfColors.PersonalDarkLine,
-        fieldBorder = RfColors.PersonalDarkLine,
-        chipBg = RfColors.PersonalDarkChipBg,
-        primaryAccent = RfColors.RosaBrand,
-        primaryGradient = RfColors.PersonalPrimaryGradient,
-        heroGradient = RfColors.PersonalHeroGradient,
-        priceTextGradient = RfColors.PersonalTextGradient,
-        rosaAvatarGradient = RfColors.PersonalHeroGradient,
-        rosaAssistantBgGradient = Brush.verticalGradient(
-            listOf(Color(0xFF1E1A36), Color(0xFF151428)),
-        ),
-        toastBg = Color(0xFF282644),
-        cardShadow = Color(0x40000000),
-    )
-
-    RfThemeVariant.ADMIN -> RfPalette(
-        variant = RfThemeVariant.ADMIN,
-        ink = RfColors.AdminInk,
-        muted = RfColors.AdminMuted,
-        bg = RfColors.AdminBg,
-        radialPrimary = RfColors.AdminRadialIndigo,
-        radialSecondary = RfColors.AdminRadialLavender,
-        surface = Color.White,
-        line = RfColors.AdminLine,
-        lineSoft = RfColors.AdminLineSoft,
-        fieldBorder = RfColors.AdminLineStrong,
-        chipBg = RfColors.AdminChipBg,
-        primaryAccent = RfColors.IndigoBrand,
-        primaryGradient = RfColors.AdminPrimaryGradient,
-        heroGradient = RfColors.AdminHeroAndRosaGradient,
-        priceTextGradient = RfColors.AdminPrimaryGradient,
-        rosaAvatarGradient = RfColors.AdminHeroAndRosaGradient,
-        rosaAssistantBgGradient = RfColors.AdminAssistantBgGradient,
-        toastBg = RfColors.ToastAdmin,
-        cardShadow = RfColors.AdminCardShadow,
-    )
-
-    RfThemeVariant.ADMIN_DARK -> RfPalette(
-        variant = RfThemeVariant.ADMIN_DARK,
-        ink = RfColors.AdminDarkInk,
-        muted = RfColors.AdminDarkMuted,
-        bg = RfColors.AdminDarkBg,
-        radialPrimary = Color(0xFF202247),
-        radialSecondary = Color(0xFF18223D),
-        surface = RfColors.AdminDarkSurface,
-        line = RfColors.AdminDarkLine,
-        lineSoft = RfColors.AdminDarkLine,
-        fieldBorder = RfColors.AdminDarkLineStrong,
-        chipBg = RfColors.AdminDarkChipBg,
-        primaryAccent = RfColors.IndigoBrand,
-        primaryGradient = RfColors.AdminPrimaryGradient,
-        heroGradient = RfColors.AdminHeroAndRosaGradient,
-        priceTextGradient = RfColors.AdminPrimaryGradient,
-        rosaAvatarGradient = RfColors.AdminHeroAndRosaGradient,
-        rosaAssistantBgGradient = Brush.verticalGradient(
-            listOf(Color(0xFF1A1C3A), Color(0xFF121426)),
-        ),
-        toastBg = Color(0xFF222742),
-        cardShadow = Color(0x40000000),
-    )
+    RfThemeVariant.PERSONAL -> PersonalLightPalette
+    RfThemeVariant.PERSONAL_DARK -> PersonalDarkPalette
+    RfThemeVariant.ADMIN -> AdminLightPalette
+    RfThemeVariant.ADMIN_DARK -> AdminDarkPalette
 }
 
 public val LocalRfPalette: androidx.compose.runtime.ProvidableCompositionLocal<RfPalette> =

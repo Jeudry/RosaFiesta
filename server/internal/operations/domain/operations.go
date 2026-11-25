@@ -6,6 +6,8 @@ import "errors"
 var (
 	// ErrOperationNotFound indica que la orden logística del evento no existe.
 	ErrOperationNotFound = errors.New("event logistics order not found")
+	// ErrOperationForbidden indica que el usuario no tiene acceso al checklist del evento.
+	ErrOperationForbidden = errors.New("caller does not have permission for event operation")
 	// ErrChecklistNotFound indica que el ítem del checklist operativo no existe.
 	ErrChecklistNotFound = errors.New("checklist item not found")
 	// ErrDamageIncidentNotFound indica que el reporte de daño solicitado no existe.

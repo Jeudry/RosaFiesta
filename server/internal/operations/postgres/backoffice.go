@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/Jeudry/rosafiesta/server/internal/operations/domain"
 	"github.com/Jeudry/rosafiesta/server/internal/operations/postgres/sqlcgen"
@@ -190,6 +191,7 @@ func (r *Repository) UpsertReview(ctx context.Context, rev domain.Review, now ti
 		Rating:     rev.Rating,
 		Comment:    rev.Comment,
 		AdminReply: rev.AdminReply,
+		Verified:   rev.Verified,
 		CreatedAt:  now,
 	}
 	return r.queries.UpsertReview(ctx, params)
@@ -212,6 +214,7 @@ func (r *Repository) ListReviews(ctx context.Context) ([]domain.Review, error) {
 			Rating:         row.Rating,
 			Comment:        row.Comment,
 			AdminReply:     row.AdminReply,
+			Verified:       row.Verified,
 			CreatedAtLabel: formatShortSpanishDate(row.CreatedAt),
 		})
 	}
@@ -242,19 +245,20 @@ func (r *Repository) UpsertBusinessSettings(ctx context.Context, settings domain
 		id = "default"
 	}
 	params := sqlcgen.UpsertBusinessSettingsParams{
-		ID:             id,
-		CompanyName:    settings.CompanyName,
-		Rnc:            settings.RNC,
-		Address:        settings.Address,
-		Phone:          settings.Phone,
-		Whatsapp:       settings.WhatsApp,
-		Email:          settings.Email,
-		Instagram:      settings.Instagram,
-		Facebook:       settings.Facebook,
-		BusinessHours:  settings.BusinessHours,
-		ItbisPercent:   settings.ItbisPercent,
-		DepositPercent: settings.DepositPercent,
-		UpdatedAt:      now,
+		ID:                        id,
+		CompanyName:               settings.CompanyName,
+		Rnc:                       settings.RNC,
+		Address:                   settings.Address,
+		Phone:                     settings.Phone,
+		Whatsapp:                  settings.WhatsApp,
+		Email:                     settings.Email,
+		Instagram:                 settings.Instagram,
+		Facebook:                  settings.Facebook,
+		BusinessHours:             settings.BusinessHours,
+		ItbisPercent:              settings.ItbisPercent,
+		DepositPercent:            settings.DepositPercent,
+		WhatsappAutoAlertsEnabled: settings.WhatsAppAutoAlertsEnabled,
+		UpdatedAt:                 now,
 	}
 	return r.queries.UpsertBusinessSettings(ctx, params)
 }
@@ -268,18 +272,19 @@ func (r *Repository) GetBusinessSettings(ctx context.Context) (domain.BusinessSe
 		return domain.BusinessSettings{}, err
 	}
 	return domain.BusinessSettings{
-		ID:             row.ID,
-		CompanyName:    row.CompanyName,
-		RNC:            row.Rnc,
-		Address:        row.Address,
-		Phone:          row.Phone,
-		WhatsApp:       row.Whatsapp,
-		Email:          row.Email,
-		Instagram:      row.Instagram,
-		Facebook:       row.Facebook,
-		BusinessHours:  row.BusinessHours,
-		ItbisPercent:   row.ItbisPercent,
-		DepositPercent: row.DepositPercent,
+		ID:                        row.ID,
+		CompanyName:               row.CompanyName,
+		RNC:                       row.Rnc,
+		Address:                   row.Address,
+		Phone:                     row.Phone,
+		WhatsApp:                  row.Whatsapp,
+		Email:                     row.Email,
+		Instagram:                 row.Instagram,
+		Facebook:                  row.Facebook,
+		BusinessHours:             row.BusinessHours,
+		ItbisPercent:              row.ItbisPercent,
+		DepositPercent:            row.DepositPercent,
+		WhatsAppAutoAlertsEnabled: row.WhatsappAutoAlertsEnabled,
 	}, nil
 }
 
@@ -295,6 +300,39 @@ func (r *Repository) UpsertDeliveryZone(ctx context.Context, zone domain.Deliver
 		Active:     zone.Active,
 	}
 	return r.queries.UpsertDeliveryZone(ctx, params)
+}
+
+// ReplaceDeliveryZones reemplaza atómicamente las zonas de entrega eliminando zonas quitadas en transacción.
+func (r *Repository) ReplaceDeliveryZones(ctx context.Context, zones []domain.DeliveryZone) error {
+	if !r.Enabled() {
+		return nil
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := r.queries.WithTx(tx)
+	keepIDs := make([]string, 0, len(zones))
+	for _, zone := range zones {
+		keepIDs = append(keepIDs, zone.ID)
+	}
+	if err := qtx.DeleteDeliveryZonesNotIn(ctx, keepIDs); err != nil {
+		return err
+	}
+	for _, zone := range zones {
+		err := qtx.UpsertDeliveryZone(ctx, sqlcgen.UpsertDeliveryZoneParams{
+			ID:         zone.ID,
+			Name:       zone.Name,
+			FeeDop:     zone.FeeDop,
+			EtaMinutes: zone.EtaMinutes,
+			Active:     zone.Active,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *Repository) ListDeliveryZones(ctx context.Context) ([]domain.DeliveryZone, error) {

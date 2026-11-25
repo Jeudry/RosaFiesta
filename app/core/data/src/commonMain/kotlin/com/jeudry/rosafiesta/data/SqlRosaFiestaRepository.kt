@@ -66,6 +66,7 @@ import com.jeudry.rosafiesta.domain.security.RegisteredUserAccount
 import com.jeudry.rosafiesta.domain.security.SensitiveDataRedactor
 import com.jeudry.rosafiesta.domain.security.UserPreferences
 import com.jeudry.rosafiesta.domain.validation.InputValidator
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -279,6 +280,7 @@ public class SqlRosaFiestaRepository(
             darkThemeEnabled = if (account.preferences.darkThemeEnabled) 1L else 0L,
             savedPaymentMethod = account.preferences.savedPaymentMethod.ifBlank { "Transferencia" },
             profileZone = account.preferences.profileZone.ifBlank { "Distrito Nacional" },
+            avatarKey = account.avatarKey,
         )
     }
 
@@ -397,6 +399,8 @@ public class SqlRosaFiestaRepository(
             itemsJson = sqlJsonCodec.encodeToString(itemDtos),
             clientEmail = evt.clientEmail,
             cancellationReason = evt.cancellationReason,
+            setupPhotoUrlsJson = sqlJsonCodec.encodeToString(evt.setupPhotoUrls),
+            contactPhone = evt.contactPhone,
         )
     }
 
@@ -474,6 +478,9 @@ public class SqlRosaFiestaRepository(
                 contractPdfUrl = quote.contractPdfUrl,
                 signedAtIso = quote.signedAtIso,
                 sortOrder = index.toLong(),
+                contactPhone = quote.contactPhone,
+                signedByUserId = quote.signedByUserId,
+                contractHashSha256 = quote.contractHashSha256,
             )
         }
         queries.clearDeliveryStops()
@@ -682,6 +689,9 @@ public class SqlRosaFiestaRepository(
                 packageId = row.packageId,
                 contractPdfUrl = row.contractPdfUrl,
                 signedAtIso = row.signedAtIso,
+                contactPhone = row.contactPhone,
+                signedByUserId = row.signedByUserId,
+                contractHashSha256 = row.contractHashSha256,
             )
         }
         val loadedStops = queries.selectAllDeliveryStops().executeAsList().map { row ->
@@ -750,6 +760,7 @@ public class SqlRosaFiestaRepository(
                 birthDate = row.birthDate,
                 phone = row.phone,
                 role = row.role,
+                avatarKey = row.avatarKey,
                 preferences = UserPreferences(
                     pushNotificationsEnabled = row.pushNotificationsEnabled != 0L,
                     whatsappAlertsEnabled = row.whatsappAlertsEnabled != 0L,
@@ -980,6 +991,10 @@ public class SqlRosaFiestaRepository(
                 closeoutNotes = row.closeoutNotes.ifBlank { currentInMemory?.closeoutNotes.orEmpty() },
                 lastPaymentReminderAt = row.lastPaymentReminderAt.ifBlank { currentInMemory?.lastPaymentReminderAt.orEmpty() },
                 lastPaymentReminderChannel = row.lastPaymentReminderChannel.ifBlank { currentInMemory?.lastPaymentReminderChannel.orEmpty() },
+                setupPhotoUrls = runCatching {
+                    sqlJsonCodec.decodeFromString<List<String>>(row.setupPhotoUrlsJson)
+                }.getOrDefault(emptyList()).ifEmpty { currentInMemory?.setupPhotoUrls.orEmpty() },
+                contactPhone = row.contactPhone.ifBlank { currentInMemory?.contactPhone.orEmpty() },
             )
         }
         val shouldApplyEvents = if (loadedEvents.isNotEmpty()) true else !seedDemoData
@@ -1094,15 +1109,22 @@ public class SqlRosaFiestaRepository(
     /**
      * Toggles a field checklist step in SQLite off the main thread and synchronizes with the backend.
      */
-    public suspend fun toggleChecklistStepAsync(stepId: String): Unit = withContext(ioDispatcher) {
+    public suspend fun toggleChecklistStepAsync(
+        stepId: String,
+        onError: (String) -> Unit = {},
+    ): Unit = withContext(ioDispatcher) {
         val cleanStepId = stepId.trim()
         val nowHm = DomainClockFormatter.currentTimeHmLabel()
         var staffName = ""
         var nextCompleted = false
+        var previousCompleted = 0L
+        var previousTimeLabel = "Pendiente"
         var resolvedEventId = ""
         sqlMutex.withLock {
             val current = queries.selectAllChecklistSteps().executeAsList()
                 .firstOrNull { row -> row.id == cleanStepId } ?: return@withContext
+            previousCompleted = current.completed
+            previousTimeLabel = current.timeLabel
             nextCompleted = current.completed == 0L
             staffName = current.completedBy
             resolvedEventId = current.eventId.ifBlank {
@@ -1122,18 +1144,38 @@ public class SqlRosaFiestaRepository(
             completed = nextCompleted,
             staffName = staffName,
         )
-        val remoteAttempt = runCatching {
-            val client = apiClient
-            val canSend = if (client != null) resolvedEventId.isNotEmpty() else false
-            if (canSend) {
+        val client = apiClient
+        val canSend = if (client != null) resolvedEventId.isNotEmpty() else false
+        var rejectedByServer: RosaFiestaApiException? = null
+        var failedTransport = false
+        if (canSend) {
+            try {
                 client!!.toggleChecklistItem(
                     eventId = resolvedEventId,
                     itemId = cleanStepId,
                     input = toggleInput,
                 )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (apiError: RosaFiestaApiException) {
+                rejectedByServer = apiError
+            } catch (_: Throwable) {
+                failedTransport = true
             }
         }
-        val needsEnqueue = if (apiClient == null) true else remoteAttempt.isFailure
+        if (rejectedByServer != null) {
+            sqlMutex.withLock {
+                queries.updateChecklistStepStatus(
+                    completed = previousCompleted,
+                    timeLabel = previousTimeLabel,
+                    id = cleanStepId,
+                )
+                reloadChecklistFromSql()
+            }
+            onError(SensitiveDataRedactor.translateBusinessError(rejectedByServer.errorCode, rejectedByServer.message))
+            return@withContext
+        }
+        val needsEnqueue = if (apiClient == null) true else failedTransport
         val hasTargetEvent = resolvedEventId.isNotEmpty()
         val shouldQueueToggle = if (needsEnqueue) hasTargetEvent else false
         if (shouldQueueToggle) {
@@ -1425,11 +1467,13 @@ public class SqlRosaFiestaRepository(
         venue: String,
         guests: Int,
         preassignedEventId: String? = null,
+        contactPhone: String = "",
     ): Unit = withContext(ioDispatcher) {
         val cleanTitle = title.trim()
         val cleanClient = clientName.trim()
         val cleanDate = dateLabel.trim()
         val cleanVenue = venue.trim()
+        val cleanContactPhone = contactPhone.trim()
         if (cleanTitle.isEmpty()) return@withContext
         if (cleanClient.isEmpty()) return@withContext
         if (cleanDate.isEmpty()) return@withContext
@@ -1490,6 +1534,7 @@ public class SqlRosaFiestaRepository(
                 eventDateIso = turnaround?.eventDateIso.orEmpty(),
                 pickupDateIso = turnaround?.pickupDateIso.orEmpty(),
                 returnDateIso = turnaround?.returnDateIso.orEmpty(),
+                contactPhone = cleanContactPhone,
             )
             upsertEventRow(createdEvt, sortIndex)
             reloadEventsFromSql()
@@ -1514,6 +1559,7 @@ public class SqlRosaFiestaRepository(
             assignedLead = assignedLead,
             totalRD = consistentTotalDop.toLong(),
             items = eventItems,
+            contactPhone = cleanContactPhone.ifBlank { null },
         )
         val remoteEventAttempt = runCatching {
             apiClient?.createRemoteEvent(createEventInput)
@@ -1683,12 +1729,14 @@ public class SqlRosaFiestaRepository(
         clientRnc: String = "",
         bankName: String = "",
         kindLabel: String = "",
+        contactPhone: String = "",
     ): PaymentRecord? = withContext(ioDispatcher) {
         val cleanMethod = methodLabel.trim()
         val cleanRef = referenceCode.trim().ifEmpty { "REF-2026" }
         val cleanVoucher = voucherUrl.trim()
         val cleanNcfType = ncfType.trim().ifEmpty { "B02" }.uppercase()
         val cleanRnc = clientRnc.trim()
+        val cleanContactPhone = contactPhone.trim()
         if (amountDop <= 0) return@withContext null
         if (cleanMethod.isEmpty()) return@withContext null
 
@@ -1794,6 +1842,7 @@ public class SqlRosaFiestaRepository(
                     ncfType = cleanNcfType,
                     clientRnc = cleanRnc.ifBlank { null },
                     referenceNumber = cleanRef,
+                    contactPhone = cleanContactPhone.ifBlank { null },
                 ),
             )
         }
@@ -1817,6 +1866,7 @@ public class SqlRosaFiestaRepository(
                         ncfType = cleanNcfType,
                         clientRnc = cleanRnc.ifBlank { null },
                         referenceNumber = cleanRef,
+                        contactPhone = cleanContactPhone.ifBlank { null },
                     ),
                 ),
                 idempotencyKey = "idem-pay-${createdRecord.id}-$cleanRef",
@@ -1850,6 +1900,13 @@ public class SqlRosaFiestaRepository(
     }
 
     override fun toggleChecklistStep(stepId: String) {
+        toggleChecklistStep(stepId = stepId, onError = {})
+    }
+
+    override fun toggleChecklistStep(
+        stepId: String,
+        onError: (String) -> Unit,
+    ) {
         val nowHm = DomainClockFormatter.currentTimeHmLabel()
         _checklist.update { list ->
             list.map { step ->
@@ -1865,7 +1922,7 @@ public class SqlRosaFiestaRepository(
             }
         }
         scope.launch {
-            toggleChecklistStepAsync(stepId)
+            toggleChecklistStepAsync(stepId, onError)
         }
     }
 
@@ -2211,6 +2268,7 @@ public class SqlRosaFiestaRepository(
         phone: String,
         birthDate: String,
         username: String,
+        avatarKey: String?,
     ): AuthOutcome {
         val cleanName = fullName.trim()
         val cleanEmail = email.trim().lowercase()
@@ -2270,12 +2328,14 @@ public class SqlRosaFiestaRepository(
             )
         }
 
+        val resolvedAvatarKey = avatarKey?.trim() ?: currentAccount.avatarKey
         val updatedAccount = currentAccount.copy(
             fullName = cleanName,
             email = cleanEmail,
             phone = cleanPhone,
             birthDate = cleanBirthDate,
             username = cleanUsername,
+            avatarKey = resolvedAvatarKey,
         )
         userAccountsState.update { accounts ->
             val hadExisting = accounts.any { account -> account.id == updatedAccount.id }
@@ -2312,6 +2372,7 @@ public class SqlRosaFiestaRepository(
             runCatching {
                 apiClient?.updateMyProfile(
                     UpdateProfileInputDto(
+                        avatarKey = avatarKey?.trim(),
                         fullName = cleanName,
                         email = cleanEmail,
                         phone = cleanPhone,
@@ -2327,6 +2388,8 @@ public class SqlRosaFiestaRepository(
             refreshToken = preservedRefresh,
         )
     }
+
+    override suspend fun updateUserAvatarOnline(avatarKey: String?): AuthOutcome = submodules.updateUserAvatarOnline(avatarKey)
 
     override suspend fun requestPasswordOtp(email: String): OtpChallengeOutcome = submodules.requestPasswordOtp(email)
 
@@ -2758,10 +2821,29 @@ public class SqlRosaFiestaRepository(
         venue: String,
         guests: Int,
     ) {
+        createEvent(
+            title = title,
+            clientName = clientName,
+            dateLabel = dateLabel,
+            venue = venue,
+            guests = guests,
+            contactPhone = "",
+        )
+    }
+
+    override fun createEvent(
+        title: String,
+        clientName: String,
+        dateLabel: String,
+        venue: String,
+        guests: Int,
+        contactPhone: String,
+    ) {
         val cleanTitle = title.trim()
         val cleanClient = clientName.trim()
         val cleanDate = dateLabel.trim()
         val cleanVenue = venue.trim()
+        val cleanContactPhone = contactPhone.trim()
         if (cleanTitle.isEmpty()) return
         if (cleanClient.isEmpty()) return
         if (cleanDate.isEmpty()) return
@@ -2798,11 +2880,20 @@ public class SqlRosaFiestaRepository(
             leadStaffName = assignedLead,
             photo = PhotoAsset.BODA,
             items = lines,
+            contactPhone = cleanContactPhone,
         )
         _events.update { existing -> existing + newEvent }
         recalculateMetricsFromState()
         scope.launch {
-            createEventAsync(cleanTitle, cleanClient, cleanDate, cleanVenue, guests, preassignedEventId = eventId)
+            createEventAsync(
+                title = cleanTitle,
+                clientName = cleanClient,
+                dateLabel = cleanDate,
+                venue = cleanVenue,
+                guests = guests,
+                preassignedEventId = eventId,
+                contactPhone = cleanContactPhone,
+            )
         }
     }
 
@@ -2882,6 +2973,7 @@ public class SqlRosaFiestaRepository(
         clientRnc: String,
         bankName: String,
         kindLabel: String,
+        contactPhone: String,
     ): PaymentRecord? {
         val cleanMethod = methodLabel.trim()
         val cleanRef = referenceCode.trim().ifEmpty { "REF-2026" }
@@ -2957,6 +3049,7 @@ public class SqlRosaFiestaRepository(
                 clientRnc = cleanRnc,
                 bankName = bankName,
                 kindLabel = resolvedKind,
+                contactPhone = contactPhone,
             )
         }
         return record
@@ -2975,6 +3068,7 @@ public class SqlRosaFiestaRepository(
         eventId: String,
         notes: String,
         sendImmediately: Boolean,
+        contactPhone: String,
     ): QuoteRecord = submodules.createQuote(
         eventTitle = eventTitle,
         clientName = clientName,
@@ -2988,6 +3082,7 @@ public class SqlRosaFiestaRepository(
         eventId = eventId,
         notes = notes,
         sendImmediately = sendImmediately,
+        contactPhone = contactPhone,
     )
 
     override fun sendQuote(
@@ -3037,7 +3132,11 @@ public class SqlRosaFiestaRepository(
         comment: String,
     ): ReviewRecord = submodules.createReview(eventId, authorName, rating, comment)
 
-    override fun replyToReview(reviewId: String, adminReply: String): ReviewRecord? = submodules.replyToReview(reviewId, adminReply)
+    override fun replyToReview(
+        reviewId: String,
+        adminReply: String,
+        verified: Boolean,
+    ): ReviewRecord? = submodules.replyToReview(reviewId, adminReply, verified)
 
     override fun createSupplier(
         name: String,
@@ -3089,6 +3188,7 @@ public class SqlRosaFiestaRepository(
         status: EventStatus?,
         leadStaffName: String?,
         sketchJson: String?,
+        setupPhotoUrls: List<String>?,
     ): ClientEvent? = submodules.updateEventDetails(
         eventId = eventId,
         title = title,
@@ -3098,7 +3198,13 @@ public class SqlRosaFiestaRepository(
         status = status,
         leadStaffName = leadStaffName,
         sketchJson = sketchJson,
+        setupPhotoUrls = setupPhotoUrls,
     )
+
+    override suspend fun updateEventSetupPhotos(
+        eventId: String,
+        setupPhotoUrls: List<String>,
+    ): Result<ClientEvent> = submodules.updateEventSetupPhotos(eventId, setupPhotoUrls)
 
     override fun duplicateEvent(eventId: String): ClientEvent? = submodules.duplicateEvent(eventId)
 
@@ -3137,6 +3243,8 @@ public class SqlRosaFiestaRepository(
     ): ChatMessageRecord = submodules.sendThreadMessage(threadId, senderName, body, attachmentName)
 
     override fun saveBusinessSettings(updated: BusinessSettings): BusinessSettings = submodules.saveBusinessSettings(updated)
+
+    override suspend fun saveBusinessSettingsOnline(updated: BusinessSettings): Result<BusinessSettings> = submodules.saveBusinessSettingsOnline(updated)
 
     override fun inviteStaffMember(
         fullName: String,
@@ -3330,7 +3438,8 @@ public class SqlRosaFiestaRepository(
         amountDop: Int,
         ncfType: String,
         clientRnc: String,
-    ): Result<CardSessionResult> = submodules.createCardPaymentSession(eventId, amountDop, ncfType, clientRnc)
+        contactPhone: String,
+    ): Result<CardSessionResult> = submodules.createCardPaymentSession(eventId, amountDop, ncfType, clientRnc, contactPhone)
 
     override suspend fun completeEventCloseout(
         eventId: String,

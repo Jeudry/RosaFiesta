@@ -85,6 +85,8 @@ func (m Module) streamEvents(
 	headers.Set("X-Accel-Buffering", "no")
 
 	rc := http.NewResponseController(w)
+	releaseStream := m.Broker.TrackStream()
+	defer releaseStream()
 	ch, cancel := m.Broker.Subscribe(r.Context(), filter, sinceSeq)
 	defer cancel()
 

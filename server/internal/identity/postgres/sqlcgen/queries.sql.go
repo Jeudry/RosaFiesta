@@ -51,6 +51,20 @@ func (q *Queries) ConsumeOTPResetToken(ctx context.Context, arg ConsumeOTPResetT
 	return result.RowsAffected(), nil
 }
 
+const countAdminUsers = `-- name: CountAdminUsers :one
+SELECT COUNT(*)::int AS admin_count
+FROM users
+WHERE role = 'admin'
+  AND active = TRUE
+`
+
+func (q *Queries) CountAdminUsers(ctx context.Context) (int, error) {
+	row := q.db.QueryRow(ctx, countAdminUsers)
+	var admin_count int
+	err := row.Scan(&admin_count)
+	return admin_count, err
+}
+
 const deleteExpiredOTPCodes = `-- name: DeleteExpiredOTPCodes :execrows
 DELETE FROM auth_otp_codes
 WHERE expires_at < $1 AND (used = TRUE OR reset_expires_at < $1)

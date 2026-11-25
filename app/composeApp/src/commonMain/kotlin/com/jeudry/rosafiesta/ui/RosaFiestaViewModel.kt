@@ -42,6 +42,7 @@ import com.jeudry.rosafiesta.domain.OfflineQueueItem
 import com.jeudry.rosafiesta.domain.PaymentRecord
 import com.jeudry.rosafiesta.domain.PaymentReminderOutcome
 import com.jeudry.rosafiesta.domain.PaymentsAnalyticsSummary
+import com.jeudry.rosafiesta.domain.PeriodSpendingAnalytics
 import com.jeudry.rosafiesta.domain.PhotoAsset
 import com.jeudry.rosafiesta.domain.QuoteRecord
 import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
@@ -52,6 +53,7 @@ import com.jeudry.rosafiesta.domain.RosaChatReply
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.RosaSketchProposal
 import com.jeudry.rosafiesta.domain.SeasonBanner
+import com.jeudry.rosafiesta.domain.SpendingAnalyticsCalculator
 import com.jeudry.rosafiesta.domain.StaffMember
 import com.jeudry.rosafiesta.domain.SupplierRecord
 import com.jeudry.rosafiesta.domain.platform.AppLifecycleBridge
@@ -596,6 +598,9 @@ public class RosaFiestaViewModel(
     private val _autoSyncWifiOnly = MutableStateFlow(false)
     public val autoSyncWifiOnly: StateFlow<Boolean> = _autoSyncWifiOnly.asStateFlow()
 
+    private val _rememberEntryChoice = MutableStateFlow(false)
+    public val rememberEntryChoice: StateFlow<Boolean> = _rememberEntryChoice.asStateFlow()
+
     private val _audioConfig = MutableStateFlow(AppAudioConfig.DEFAULT)
     public val audioConfig: StateFlow<AppAudioConfig> = _audioConfig.asStateFlow()
 
@@ -1058,6 +1063,8 @@ public class RosaFiestaViewModel(
 
             "whatsapp.message" -> "Nuevo mensaje de WhatsApp sincronizado."
 
+            "notification.created" -> streamEvent.summary.ifBlank { "Tienes una nueva notificación." }
+
             "event.reminder", "payment.reminder" -> {
                 if (_remindersEnabled.value) "Recordatorio de evento o pago pendiente." else ""
             }
@@ -1205,6 +1212,10 @@ public class RosaFiestaViewModel(
             val savedReminders = secureStorage.get(SecureStorage.KEY_REMINDERS)
             if (savedReminders != null) {
                 _remindersEnabled.value = savedReminders == "true"
+            }
+            val savedRememberChoice = secureStorage.get(SecureStorage.KEY_REMEMBER_ENTRY_CHOICE)
+            if (savedRememberChoice != null) {
+                _rememberEntryChoice.value = savedRememberChoice == "true"
             }
             val savedMethod = secureStorage.get(SecureStorage.KEY_PAYMENT_METHOD)
             if (!savedMethod.isNullOrBlank()) {
@@ -1711,6 +1722,15 @@ public class RosaFiestaViewModel(
         if (account.phone.isNotEmpty()) {
             _profilePhone.value = account.phone
         }
+        if (account.avatarKey.isNotBlank()) {
+            _profileAvatarKey.value = account.avatarKey
+            val isRelativeMedia = account.avatarKey.startsWith("/")
+            val isHttpMedia = account.avatarKey.startsWith("http", ignoreCase = true)
+            val isRemoteMedia = if (isRelativeMedia) true else isHttpMedia
+            if (isRemoteMedia) {
+                ensureMediaLoaded(account.avatarKey)
+            }
+        }
         applyPreferencesFromAccount(
             account = account,
             persistToStorage = persistPreferencesToStorage,
@@ -1783,7 +1803,8 @@ public class RosaFiestaViewModel(
         val filtered = articles.value.filter { article ->
             val visibleOk = if (includeHidden) true else article.visibleInCatalog
             val categoryOk = matchesCatalogCategory(article, activeCategory)
-            val priceOk = article.pricePerDayDop <= maxPrice
+            val isUnlimitedBudget = maxPrice >= 5000
+            val priceOk = if (isUnlimitedBudget) true else article.pricePerDayDop <= maxPrice
             val stockOk = if (onlyAvailable) article.availableOct23 > 0 else true
             val queryOk = if (activeQuery.isEmpty()) {
                 true
@@ -2157,7 +2178,7 @@ public class RosaFiestaViewModel(
         return result
     }
 
-    public fun syncDraftToOfficialQuote(): QuoteRecord? {
+    public fun syncDraftToOfficialQuote(contactPhone: String = ""): QuoteRecord? {
         val lines = draftLineItems()
         if (lines.isEmpty()) {
             postError("Agrega al menos un artículo al carrito para generar la cotización oficial.")
@@ -2166,6 +2187,7 @@ public class RosaFiestaViewModel(
         val deliveryFee = _deliveryBaseInput.value.toIntOrNull() ?: 350
         val discount = _draftDiscountDop.value
         val clientLabel = _profileName.value.trim().ifBlank { "Cliente Rosa Fiesta" }
+        val resolvedPhone = contactPhone.trim().ifBlank { _profilePhone.value.trim() }
         val resolvedTitle = _clientEventTitleInput.value.trim()
             .ifBlank { _eventTypeInput.value.trim() }
             .ifBlank { _rosaEventType.value.trim() }
@@ -2183,6 +2205,7 @@ public class RosaFiestaViewModel(
             discountDop = discount,
             eventId = _selectedEventId.value,
             notes = _eventNotesInput.value.trim(),
+            contactPhone = resolvedPhone,
         )
         _selectedQuoteId.value = created.id
         return created
@@ -3068,7 +3091,9 @@ public class RosaFiestaViewModel(
 
     public fun toggleChecklistStep(stepId: String) {
         soundPlayer.playChecklistTick()
-        repository.toggleChecklistStep(stepId)
+        repository.toggleChecklistStep(stepId) { errorMessage ->
+            postError(errorMessage)
+        }
     }
 
     public fun syncOfflineQueue() {
@@ -3380,68 +3405,89 @@ public class RosaFiestaViewModel(
         newPassword: String,
         confirmPassword: String,
         otpCode: String = "",
+        onComplete: (Boolean) -> Unit = {},
     ): Boolean {
-        if (_isSubmitting.value) return false
-        _isSubmitting.value = true
-        try {
-            val cleanPass = newPassword.trim()
-            val cleanConfirm = confirmPassword.trim()
-            val hasMinimumLength = cleanPass.length >= 8
-            val hasDigit = cleanPass.any { character -> character.isDigit() }
-            val isStrongPassword = if (hasMinimumLength) hasDigit else false
-            if (!isStrongPassword) {
-                soundPlayer.playAlertError()
-                _formError.value = "La nueva contraseña debe tener mínimo 8 caracteres e incluir al menos un número."
-                return false
-            }
-            if (cleanPass != cleanConfirm) {
-                soundPlayer.playAlertError()
-                _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_PASSWORD_MISMATCH", null)
-                return false
-            }
-            val cleanOtp = otpCode.trim()
-            val expectedLocalOtp = _activeOtpCode.value
-            val hasExpectedLocalOtp = !expectedLocalOtp.isNullOrBlank()
-            if (hasExpectedLocalOtp) {
-                val otpMatches = cleanOtp == expectedLocalOtp
-                val hasVerifiedToken = _verifiedOtpResetToken.value.isNotBlank()
-                val canProceedWithOtp = if (otpMatches) true else hasVerifiedToken
-                if (!canProceedWithOtp) {
-                    soundPlayer.playAlertError()
-                    _formError.value = "Ingresa el código de 6 dígitos enviado a tu correo."
-                    return false
-                }
-            }
-            val targetIdentifier = identifier.trim().ifBlank { _pendingOtpEmail.value }
-            val outcome = repository.resetUserPassword(targetIdentifier, cleanPass)
-            if (!outcome.success) {
-                soundPlayer.playAlertError()
-                _formError.value = outcome.errorMessage
-                    ?: SensitiveDataRedactor.translateBusinessError(outcome.errorCode, null)
-                return false
-            }
-            _activeOtpCode.value = null
-            _verifiedOtpResetToken.value = ""
-            soundPlayer.playPaymentSuccess()
-            _formError.value = null
-            _formFeedback.value = "Contraseña actualizada. Inicia sesión con tu nueva clave."
-            return true
-        } finally {
-            _isSubmitting.value = false
+        if (_isSubmitting.value) {
+            onComplete(false)
+            return false
         }
+        val cleanPass = newPassword.trim()
+        val cleanConfirm = confirmPassword.trim()
+        val hasMinimumLength = cleanPass.length >= 8
+        val hasDigit = cleanPass.any { character -> character.isDigit() }
+        val isStrongPassword = if (hasMinimumLength) hasDigit else false
+        if (!isStrongPassword) {
+            soundPlayer.playAlertError()
+            _formError.value = "La nueva contraseña debe tener mínimo 8 caracteres e incluir al menos un número."
+            onComplete(false)
+            return false
+        }
+        if (cleanPass != cleanConfirm) {
+            soundPlayer.playAlertError()
+            _formError.value = SensitiveDataRedactor.translateBusinessError("AUTH_PASSWORD_MISMATCH", null)
+            onComplete(false)
+            return false
+        }
+        val cleanOtp = otpCode.trim()
+        val expectedLocalOtp = _activeOtpCode.value
+        val hasExpectedLocalOtp = !expectedLocalOtp.isNullOrBlank()
+        if (hasExpectedLocalOtp) {
+            val otpMatches = cleanOtp == expectedLocalOtp
+            val hasVerifiedToken = _verifiedOtpResetToken.value.isNotBlank()
+            val canProceedWithOtp = if (otpMatches) true else hasVerifiedToken
+            if (!canProceedWithOtp) {
+                soundPlayer.playAlertError()
+                _formError.value = "Ingresa el código de 6 dígitos enviado a tu correo."
+                onComplete(false)
+                return false
+            }
+        }
+        val targetIdentifier = identifier.trim().ifBlank { _pendingOtpEmail.value }
+        _isSubmitting.value = true
+        securityScope.launch {
+            try {
+                val outcome = repository.resetPasswordWithOtp(
+                    email = targetIdentifier,
+                    newPassword = cleanPass,
+                    resetToken = _verifiedOtpResetToken.value,
+                    otpCode = cleanOtp,
+                )
+                if (!outcome.success) {
+                    soundPlayer.playAlertError()
+                    _formError.value = outcome.errorMessage
+                        ?: SensitiveDataRedactor.translateBusinessError(outcome.errorCode, null)
+                    onComplete(false)
+                } else {
+                    _activeOtpCode.value = null
+                    _verifiedOtpResetToken.value = ""
+                    soundPlayer.playPaymentSuccess()
+                    _formError.value = null
+                    _formFeedback.value = "Contraseña actualizada. Inicia sesión con tu nueva clave."
+                    onComplete(true)
+                }
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+        return true
     }
 
     public fun changeCurrentPassword(
         currentPassword: String,
         newPassword: String,
         confirmPassword: String,
+        onComplete: (Boolean) -> Unit = {},
     ): Boolean {
-        if (_isSubmitting.value) return false
+        if (_isSubmitting.value) {
+            onComplete(false)
+            return false
+        }
         val cleanCurrent = currentPassword.trim()
         val cleanNew = newPassword.trim()
         val cleanConfirm = confirmPassword.trim()
         if (cleanCurrent.isEmpty()) {
             postError("Ingresa tu contraseña actual.")
+            onComplete(false)
             return false
         }
         val hasMinLength = cleanNew.length >= 8
@@ -3449,10 +3495,12 @@ public class RosaFiestaViewModel(
         val isStrong = if (hasMinLength) hasDigit else false
         if (!isStrong) {
             postError("La nueva contraseña requiere mínimo 8 caracteres y al menos un número.")
+            onComplete(false)
             return false
         }
         if (cleanNew != cleanConfirm) {
             postError("La confirmación de contraseña no coincide.")
+            onComplete(false)
             return false
         }
         val activeToken = repository.currentSessionJwt.value?.trim().orEmpty()
@@ -3463,11 +3511,13 @@ public class RosaFiestaViewModel(
                 val outcome = repository.changeUserPassword(cleanCurrent, cleanNew)
                 if (!outcome.success) {
                     postError(outcome.errorMessage ?: "La contraseña actual no es correcta.")
+                    onComplete(false)
                     return false
                 }
                 soundPlayer.playPaymentSuccess()
                 _formError.value = null
                 _formFeedback.value = "Contraseña actualizada correctamente."
+                onComplete(true)
                 return true
             } finally {
                 _isSubmitting.value = false
@@ -3479,10 +3529,12 @@ public class RosaFiestaViewModel(
                 val remoteOutcome = repository.changeUserPasswordOnline(cleanCurrent, cleanNew)
                 if (!remoteOutcome.success) {
                     postError(remoteOutcome.errorMessage ?: "No se pudo actualizar la contraseña en el servidor.")
+                    onComplete(false)
                 } else {
                     soundPlayer.playPaymentSuccess()
                     _formError.value = null
                     _formFeedback.value = "Contraseña actualizada correctamente."
+                    onComplete(true)
                 }
             } finally {
                 _isSubmitting.value = false
@@ -3579,12 +3631,12 @@ public class RosaFiestaViewModel(
      * Submits the active client event and requests an official quote for any selected cart items,
      * then clears the in-progress draft without deleting the persisted event or quote records.
      */
-    public fun submitClientQuoteRequest(): Boolean {
-        val eventCreated = submitQuickClientEvent(clearDraftAfter = false)
+    public fun submitClientQuoteRequest(contactPhone: String = ""): Boolean {
+        val eventCreated = submitQuickClientEvent(clearDraftAfter = false, contactPhone = contactPhone)
         if (!eventCreated) return false
         val hasDraftItems = draftLineItems().isNotEmpty()
         if (hasDraftItems) {
-            syncDraftToOfficialQuote()
+            syncDraftToOfficialQuote(contactPhone = contactPhone)
         }
         clearEventDraftAfterSubmission()
         return true
@@ -3631,7 +3683,10 @@ public class RosaFiestaViewModel(
         }
     }
 
-    public fun submitQuickClientEvent(clearDraftAfter: Boolean = true): Boolean {
+    public fun submitQuickClientEvent(
+        clearDraftAfter: Boolean = true,
+        contactPhone: String = "",
+    ): Boolean {
         if (_isSubmitting.value) return false
         _isSubmitting.value = true
         try {
@@ -3640,6 +3695,7 @@ public class RosaFiestaViewModel(
             val date = _eventDateInput.value.trim()
             val venue = _eventVenueInput.value.trim()
             val guests = _eventGuestsInput.value.trim().toIntOrNull()?.coerceAtLeast(0) ?: 0
+            val resolvedContactPhone = contactPhone.trim().ifBlank { _profilePhone.value.trim() }
             val hasValidInputs = allConditionsTrue(
                 first = title.isNotEmpty(),
                 second = date.isNotEmpty(),
@@ -3652,7 +3708,14 @@ public class RosaFiestaViewModel(
             }
             val accountName = currentAuthenticatedUser.value?.fullName.orEmpty().trim()
             val resolvedClientName = accountName.ifEmpty { _profileName.value.trim().ifEmpty { "Cliente" } }
-            repository.createEvent(title, resolvedClientName, date, venue, guests)
+            repository.createEvent(
+                title = title,
+                clientName = resolvedClientName,
+                dateLabel = date,
+                venue = venue,
+                guests = guests,
+                contactPhone = resolvedContactPhone,
+            )
             repository.events.value.lastOrNull()?.id?.let { createdId ->
                 sessionCreatedEventIds.add(createdId)
                 selectEvent(createdId)
@@ -3968,12 +4031,15 @@ public class RosaFiestaViewModel(
                 return false
             }
 
+            val isCustomDraft = draftAvatarKey?.startsWith("CUSTOM:") == true
+            val persistedAvatarArg = if (isCustomDraft) null else draftAvatarKey
             val outcome = repository.updateUserProfile(
                 fullName = cleanName,
                 email = cleanEmail,
                 phone = cleanPhone,
                 birthDate = cleanBirthDate,
                 username = cleanUsername,
+                avatarKey = persistedAvatarArg,
             )
             val isUnsupportedFallback = outcome.errorCode == "PROFILE_UPDATE_UNSUPPORTED"
             val isRepositoryRejected = !outcome.success
@@ -4037,6 +4103,13 @@ public class RosaFiestaViewModel(
             }
             if (!isCustomAvatar) {
                 secureStorage.remove(SecureStorage.KEY_AVATAR_IMAGE_DATA)
+                if (hasValidAuthenticatedSession()) {
+                    val syncOutcome = repository.updateUserAvatarOnline(avatarKey)
+                    if (!syncOutcome.success) {
+                        val message = syncOutcome.errorMessage ?: "No se pudo sincronizar el avatar en el servidor."
+                        _formError.value = message
+                    }
+                }
             }
         }
     }
@@ -4050,10 +4123,48 @@ public class RosaFiestaViewModel(
                 if (picked.bytes.size <= 4 * 1024 * 1024) {
                     secureStorage.put(SecureStorage.KEY_AVATAR_IMAGE_DATA, Base64.encode(picked.bytes))
                 }
-                setProfileAvatarKey(customKey)
                 _pickedAttachmentFile.value = picked
+                val activeToken = repository.currentSessionJwt.value?.trim().orEmpty()
+                val hasServerToken = if (activeToken.isNotEmpty()) !activeToken.startsWith("rf-local.") else false
+                val canSyncRemote = if (hasValidAuthenticatedSession()) hasServerToken else false
+                if (!canSyncRemote) {
+                    setProfileAvatarKey(customKey)
+                    _formError.value = null
+                    _formFeedback.value = "Foto '${picked.fileName}' seleccionada."
+                    onPicked(picked)
+                    return@launch
+                }
+                val uploadResult = repository.uploadMedia(
+                    filename = picked.fileName,
+                    mimeType = picked.mimeType,
+                    purpose = "avatar",
+                    bytes = picked.bytes,
+                )
+                val uploadedAsset = uploadResult.getOrNull()
+                if (uploadedAsset == null) {
+                    setProfileAvatarKey(customKey)
+                    val uploadErr = uploadResult.exceptionOrNull()?.message?.trim().orEmpty().ifBlank {
+                        "No se pudo subir '${picked.fileName}' al servidor."
+                    }
+                    _formError.value = uploadErr
+                    soundPlayer.playAlertError()
+                    onPicked(picked)
+                    return@launch
+                }
+                putBoundedMediaCacheEntry(uploadedAsset.url, picked.bytes)
+                val avatarOutcome = repository.updateUserAvatarOnline(uploadedAsset.url)
+                if (!avatarOutcome.success) {
+                    val syncErr = avatarOutcome.errorMessage ?: "No se pudo guardar la foto de perfil."
+                    _formError.value = syncErr
+                    soundPlayer.playAlertError()
+                    onPicked(picked)
+                    return@launch
+                }
+                _profileAvatarKey.value = uploadedAsset.url
+                secureStorage.put(SecureStorage.KEY_AVATAR_KEY, uploadedAsset.url)
+                secureStorage.remove(SecureStorage.KEY_AVATAR_IMAGE_DATA)
                 _formError.value = null
-                _formFeedback.value = "Foto '${picked.fileName}' seleccionada."
+                _formFeedback.value = "Foto '${picked.fileName}' actualizada."
                 onPicked(picked)
             }
         }
@@ -4115,12 +4226,23 @@ public class RosaFiestaViewModel(
 
     public fun setRemindersEnabled(enabled: Boolean) {
         soundPlayer.playTap()
+        val previousEnabled = _remindersEnabled.value
         _remindersEnabled.value = enabled
         mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_REMINDERS
         securityScope.launch {
             secureStorage.put(SecureStorage.KEY_REMINDERS, enabled.toString())
             if (hasValidAuthenticatedSession()) {
-                repository.updateUserPreferences(eventRemindersEnabled = enabled)
+                val result = repository.updateUserPreferences(eventRemindersEnabled = enabled)
+                if (result.isFailure) {
+                    _remindersEnabled.value = previousEnabled
+                    secureStorage.put(SecureStorage.KEY_REMINDERS, previousEnabled.toString())
+                    val err = result.exceptionOrNull()
+                    postError(
+                        err?.message?.trim().orEmpty().ifBlank {
+                            "No se pudo guardar la preferencia de recordatorios."
+                        },
+                    )
+                }
             }
         }
     }
@@ -4389,12 +4511,10 @@ public class RosaFiestaViewModel(
         }
         return source.filter { item ->
             val roleLower = item.recipientRole.trim().lowercase()
-            val isAdminSeed = item.id.startsWith("ntf-")
-            val isClientRole = when (roleLower) {
+            when (roleLower) {
                 "client", "user", "all", "" -> true
                 else -> false
             }
-            if (isAdminSeed) false else isClientRole
         }
     }
 
@@ -4855,8 +4975,9 @@ public class RosaFiestaViewModel(
                         append(curMonth.toString().padStart(2, '0'))
                         append(curDay.toString().padStart(2, '0'))
                     }
+                    val activeItbisDivisor = 100 + businessSettings.value.itbisPercent.coerceAtLeast(0)
                     val records = payments.value.mapIndexed { index, payment ->
-                        val netAmount = ((payment.amountDop * 100) / 118).toLong()
+                        val netAmount = ((payment.amountDop * 100) / activeItbisDivisor).toLong()
                         val taxAmount = payment.amountDop.toLong() - netAmount
                         val paddedSeq = (index + 1).toString().padStart(8, '0')
                         val resolvedNcf = payment.ncfNumber.ifBlank { "${payment.ncfType.ifBlank { "B02" }}$paddedSeq" }
@@ -4881,8 +5002,9 @@ public class RosaFiestaViewModel(
                 val utf8Body = exported.csvContent.encodeToByteArray()
                 byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) + utf8Body
             } else {
+                val activeItbisDivisor = 100 + businessSettings.value.itbisPercent.coerceAtLeast(0)
                 val rows = payments.value.map { payment ->
-                    val subtotal = ((payment.amountDop * 100) / 118).toLong()
+                    val subtotal = ((payment.amountDop * 100) / activeItbisDivisor).toLong()
                     val itbis = payment.amountDop.toLong() - subtotal
                     FinancialReportCsvRow(
                         recordCode = payment.receiptNumber,
@@ -4968,14 +5090,17 @@ public class RosaFiestaViewModel(
         return true
     }
 
-    public fun replyToSelectedReview(replyText: String): Boolean {
+    public fun replyToSelectedReview(
+        replyText: String,
+        verified: Boolean = true,
+    ): Boolean {
         val cleanReply = replyText.trim()
         if (cleanReply.length < 4) {
             postError("Escribe una respuesta de al menos 4 caracteres.")
             return false
         }
         val targetReview = selectedReview() ?: return false
-        repository.replyToReview(targetReview.id, cleanReply)
+        repository.replyToReview(targetReview.id, cleanReply, verified)
         soundPlayer.playPaymentSuccess()
         _formError.value = null
         _formFeedback.value = "Respuesta publicada para ${targetReview.authorName}."
@@ -5416,10 +5541,16 @@ public class RosaFiestaViewModel(
         }
     }
 
-    public fun deleteCurrentUserAccount(): Boolean {
-        if (_isSubmitting.value) return false
+    public fun deleteCurrentUserAccount(
+        onComplete: (Boolean) -> Unit = {},
+    ): Boolean {
+        if (_isSubmitting.value) {
+            onComplete(false)
+            return false
+        }
         if (activeClientEventCount() > 0) {
             postError("No puedes eliminar tu cuenta mientras tengas eventos activos pendientes.")
+            onComplete(false)
             return false
         }
         _isSubmitting.value = true
@@ -5429,6 +5560,7 @@ public class RosaFiestaViewModel(
                 val result = repository.deleteCurrentAccountOnline()
                 if (result.isFailure) {
                     postError(result.exceptionOrNull()?.message ?: "No se pudo eliminar la cuenta en este momento.")
+                    onComplete(false)
                     return@launch
                 }
                 repository.setRefreshToken(null)
@@ -5436,11 +5568,31 @@ public class RosaFiestaViewModel(
                 resetUserScopedViewModelState()
                 _formError.value = null
                 _formFeedback.value = "Tu cuenta y sesión activa han sido eliminadas."
+                onComplete(true)
             } finally {
                 _isSubmitting.value = false
             }
         }
         return true
+    }
+
+    /**
+     * Toggles the business-wide automatic WhatsApp event/payment alerts flag and persists it.
+     */
+    public fun toggleBusinessWhatsappAutoAlerts() {
+        val current = businessSettings.value
+        val next = current.copy(whatsappAutoAlertsEnabled = !current.whatsappAutoAlertsEnabled)
+        saveBusinessConfig(next)
+    }
+
+    /**
+     * Persists the user's choice to remember workspace entry selection (`Personal` vs `Admin`).
+     */
+    public fun saveRememberedEntryChoice(remember: Boolean) {
+        _rememberEntryChoice.value = remember
+        securityScope.launch {
+            secureStorage.put(SecureStorage.KEY_REMEMBER_ENTRY_CHOICE, remember.toString())
+        }
     }
 
     public fun saveBusinessConfig(updatedSettings: BusinessSettings? = null): Boolean {
@@ -5459,6 +5611,15 @@ public class RosaFiestaViewModel(
         soundPlayer.playPaymentSuccess()
         _formError.value = null
         _formFeedback.value = "Ajustes del negocio guardados correctamente."
+        if (hasValidAuthenticatedSession()) {
+            securityScope.launch {
+                val remoteResult = repository.saveBusinessSettingsOnline(normalizedSettings)
+                if (remoteResult.isFailure) {
+                    val err = remoteResult.exceptionOrNull()
+                    postError(err?.message?.trim().orEmpty().ifBlank { "No se pudieron guardar los ajustes en el servidor." })
+                }
+            }
+        }
         return true
     }
 
@@ -6167,12 +6328,62 @@ public class RosaFiestaViewModel(
         return false
     }
 
+    private fun exceedsMediaCacheLimits(entryCount: Int, totalBytes: Long): Boolean {
+        if (entryCount > MAX_MEDIA_CACHE_ENTRIES) {
+            return true
+        }
+        return totalBytes > MAX_MEDIA_CACHE_BYTES
+    }
+
+    private fun putBoundedMediaCacheEntry(url: String, bytes: ByteArray) {
+        val cleanUrl = url.trim()
+        if (cleanUrl.isBlank()) {
+            return
+        }
+        _mediaBytesCache.update { currentCache ->
+            val ordered = linkedMapOf<String, ByteArray>()
+            for ((existingKey, existingBytes) in currentCache) {
+                if (existingKey != cleanUrl) {
+                    ordered[existingKey] = existingBytes
+                }
+            }
+            ordered[cleanUrl] = bytes
+            var totalBytes = 0L
+            for (entryBytes in ordered.values) {
+                totalBytes += entryBytes.size.toLong()
+            }
+            val maxIterations = ordered.size + 1
+            for (step in 0 until maxIterations) {
+                if (!exceedsMediaCacheLimits(ordered.size, totalBytes)) {
+                    break
+                }
+                val oldestKey = ordered.keys.firstOrNull() ?: break
+                val removed = ordered.remove(oldestKey)
+                if (removed != null) {
+                    totalBytes -= removed.size.toLong()
+                }
+            }
+            ordered.toMap()
+        }
+    }
+
+    private fun touchBoundedMediaCacheEntry(url: String) {
+        val currentCache = _mediaBytesCache.value
+        val existingBytes = currentCache[url] ?: return
+        val mostRecentKey = currentCache.keys.lastOrNull()
+        if (mostRecentKey == url) {
+            return
+        }
+        putBoundedMediaCacheEntry(url, existingBytes)
+    }
+
     public fun ensureMediaLoaded(urlOrId: String) {
         val cleanUrl = urlOrId.trim()
         if (cleanUrl.isBlank()) {
             return
         }
         if (_mediaBytesCache.value.containsKey(cleanUrl)) {
+            touchBoundedMediaCacheEntry(cleanUrl)
             return
         }
         securityScope.launch {
@@ -6192,9 +6403,7 @@ public class RosaFiestaViewModel(
             try {
                 repository.fetchMediaBytes(cleanUrl).onSuccess { decodedBytes ->
                     if (decodedBytes.isNotEmpty()) {
-                        _mediaBytesCache.update { currentCache ->
-                            currentCache + (cleanUrl to decodedBytes)
-                        }
+                        putBoundedMediaCacheEntry(cleanUrl, decodedBytes)
                     }
                 }
             } finally {
@@ -6222,9 +6431,7 @@ public class RosaFiestaViewModel(
                     bytes = file.bytes,
                 )
                 result.onSuccess { uploadedAsset ->
-                    _mediaBytesCache.update { currentCache ->
-                        currentCache + (uploadedAsset.url to file.bytes)
-                    }
+                    putBoundedMediaCacheEntry(uploadedAsset.url, file.bytes)
                     _formError.value = null
                     _formFeedback.value = "Archivo '${file.fileName}' subido correctamente."
                     onUploaded(uploadedAsset.url)
@@ -6240,6 +6447,132 @@ public class RosaFiestaViewModel(
         }
     }
 
+    /**
+     * Uploads montage setup photos in [files] for [eventId] and persists all resulting URLs onto the event.
+     */
+    public fun attachSetupPhotosToEvent(
+        eventId: String = _selectedEventId.value,
+        files: List<PickedMediaFile>,
+        onComplete: (Boolean, List<String>) -> Unit = { _, _ -> },
+    ) {
+        val cleanEventId = eventId.trim()
+        val hasMissingEvent = cleanEventId.isEmpty()
+        val hasNoFiles = files.isEmpty()
+        val isInvalidRequest = if (hasMissingEvent) true else hasNoFiles
+        if (isInvalidRequest) {
+            onComplete(false, emptyList())
+            return
+        }
+        if (_isSubmitting.value) {
+            onComplete(false, emptyList())
+            return
+        }
+        val existingEvent = events.value.firstOrNull { event -> event.id == cleanEventId }
+        val existingUrls = existingEvent?.setupPhotoUrls.orEmpty()
+        _isSubmitting.value = true
+        securityScope.launch {
+            try {
+                val uploadedUrls = mutableListOf<String>()
+                var failedMessage: String? = null
+                for (file in files) {
+                    val uploadResult = repository.uploadMedia(
+                        filename = file.fileName,
+                        mimeType = file.mimeType,
+                        purpose = "setup",
+                        bytes = file.bytes,
+                    )
+                    val asset = uploadResult.getOrNull()
+                    if (asset == null) {
+                        failedMessage = uploadResult.exceptionOrNull()?.message?.trim().orEmpty()
+                            .ifBlank { "No se pudo subir '${file.fileName}'." }
+                        break
+                    }
+                    putBoundedMediaCacheEntry(asset.url, file.bytes)
+                    uploadedUrls.add(asset.url)
+                }
+                if (failedMessage != null) {
+                    _formError.value = failedMessage
+                    soundPlayer.playAlertError()
+                    onComplete(false, uploadedUrls)
+                    return@launch
+                }
+                val mergedUrls = (existingUrls + uploadedUrls).distinct()
+                val persistResult = repository.updateEventSetupPhotos(
+                    eventId = cleanEventId,
+                    setupPhotoUrls = mergedUrls,
+                )
+                persistResult.onSuccess { updatedEvent ->
+                    _formError.value = null
+                    _formFeedback.value = "Fotos de montaje guardadas en ${updatedEvent.code}."
+                    soundPlayer.playPaymentSuccess()
+                    onComplete(true, updatedEvent.setupPhotoUrls)
+                }.onFailure { err ->
+                    val errText = err.message?.trim().orEmpty()
+                        .ifBlank { "No se pudieron asociar las fotos al evento." }
+                    _formError.value = errText
+                    soundPlayer.playAlertError()
+                    onComplete(false, uploadedUrls)
+                }
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    /**
+     * Persists a pre-resolved list of montage [photoUrls] onto [eventId].
+     */
+    public fun saveEventSetupPhotoUrls(
+        eventId: String = _selectedEventId.value,
+        photoUrls: List<String>,
+        onComplete: (Boolean) -> Unit = {},
+    ) {
+        val cleanEventId = eventId.trim()
+        if (cleanEventId.isEmpty()) {
+            onComplete(false)
+            return
+        }
+        val normalizedUrls = photoUrls.map { url -> url.trim() }.filter { url -> url.isNotBlank() }.distinct()
+        _isSubmitting.value = true
+        securityScope.launch {
+            try {
+                val persistResult = repository.updateEventSetupPhotos(
+                    eventId = cleanEventId,
+                    setupPhotoUrls = normalizedUrls,
+                )
+                persistResult.onSuccess { updatedEvent ->
+                    _formError.value = null
+                    _formFeedback.value = "Fotos de montaje actualizadas en ${updatedEvent.code}."
+                    soundPlayer.playPaymentSuccess()
+                    onComplete(true)
+                }.onFailure { err ->
+                    _formError.value = err.message?.trim().orEmpty()
+                        .ifBlank { "No se pudieron guardar las fotos de montaje." }
+                    soundPlayer.playAlertError()
+                    onComplete(false)
+                }
+            } finally {
+                _isSubmitting.value = false
+            }
+        }
+    }
+
+    /**
+     * Computes real period-scoped income, expenses, monthly series, and event volume for `s57`.
+     */
+    public fun computePeriodSpendingAnalytics(
+        periodLabel: String,
+        nowEpochSeconds: Long = JwtAuthManager.currentEpochSeconds(),
+    ): PeriodSpendingAnalytics = SpendingAnalyticsCalculator.compute(
+        periodLabel = periodLabel,
+        analyticsSummary = _analyticsSummary.value,
+        events = events.value,
+        payments = payments.value,
+        refunds = refundRequests.value,
+        damageIncidents = damageIncidents.value,
+        nowEpochSeconds = nowEpochSeconds,
+    )
+
     public fun submitDetailedPaymentFlow(
         eventId: String = _selectedEventId.value,
         amountDop: Int,
@@ -6250,10 +6583,12 @@ public class RosaFiestaViewModel(
         ncfType: String = _paymentNcfType.value,
         clientRnc: String = _paymentClientRnc.value,
         kindLabel: String = "Abono",
+        contactPhone: String = "",
     ): PaymentRecord? {
         if (_isSubmitting.value) return null
         val normalizedNcf = if (ncfType.trim().uppercase() == "B01") "B01" else "B02"
         val cleanRnc = InputValidator.filterDigitsOnly(clientRnc, 11)
+        val resolvedPhone = contactPhone.trim().ifBlank { _profilePhone.value.trim() }
         if (normalizedNcf == "B01") {
             val isValidRnc = isValidDominicanTaxId(cleanRnc)
             if (!isValidRnc) {
@@ -6274,6 +6609,7 @@ public class RosaFiestaViewModel(
                 clientRnc = cleanRnc,
                 bankName = bankName.trim(),
                 kindLabel = kindLabel,
+                contactPhone = resolvedPhone,
             )
             if (recorded != null) {
                 soundPlayer.playPaymentSuccess()
@@ -6299,12 +6635,14 @@ public class RosaFiestaViewModel(
         amountDop: Int,
         ncfType: String = _paymentNcfType.value,
         clientRnc: String = _paymentClientRnc.value,
+        contactPhone: String = "",
         onSessionReady: (CardSessionResult) -> Unit = {},
         onUnavailableOrError: (String) -> Unit = {},
     ) {
         if (_isSubmitting.value) return
         val normalizedNcf = if (ncfType.trim().uppercase() == "B01") "B01" else "B02"
         val cleanRnc = InputValidator.filterDigitsOnly(clientRnc, 11)
+        val resolvedPhone = contactPhone.trim().ifBlank { _profilePhone.value.trim() }
         if (normalizedNcf == "B01") {
             val isValidRnc = isValidDominicanTaxId(cleanRnc)
             if (!isValidRnc) {
@@ -6323,6 +6661,7 @@ public class RosaFiestaViewModel(
                     amountDop = amountDop,
                     ncfType = normalizedNcf,
                     clientRnc = cleanRnc,
+                    contactPhone = resolvedPhone,
                 )
                 result.onSuccess { session ->
                     _pendingCardCheckoutSession.value = session
@@ -7048,5 +7387,7 @@ public class RosaFiestaViewModel(
     private companion object {
         private const val MAX_DELIVERY_FEE_DOP: Int = 50_000
         private const val WAV_HEADER_MIN_BYTES: Int = 44
+        private const val MAX_MEDIA_CACHE_ENTRIES: Int = 40
+        private const val MAX_MEDIA_CACHE_BYTES: Int = 25 * 1024 * 1024
     }
 }

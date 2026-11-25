@@ -275,11 +275,13 @@ func (s *Service) syncStaffToLinkedUserLocked(ctx context.Context, rec domain.St
 }
 
 func (s *Service) revokeUserAccessLocked(ctx context.Context, userID uuid.UUID) {
-	s.revokeUserRefreshTokensLocked(ctx, userID, s.clock.Now())
+	now := s.clock.Now()
+	s.revokeUserRefreshTokensLocked(ctx, userID, now)
+	revokedExpiresAt := now.Add(defaultAccessTokenTTL)
 	for hash, entry := range s.sessionHashes {
 		if entry.UserID == userID {
 			delete(s.sessionHashes, hash)
-			s.revokedHashes[hash] = struct{}{}
+			s.recordRevokedHashLocked(hash, revokedExpiresAt, now)
 		}
 	}
 	if s.store != nil {

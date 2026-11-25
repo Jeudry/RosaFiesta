@@ -152,12 +152,13 @@ func (m Module) registerRosaAssistantRoutes(api huma.API) {
 	}, m.handleRosaChat)
 
 	huma.Register(api, huma.Operation{
-		OperationID: "rosa-transcribe",
-		Method:      http.MethodPost,
-		Path:        "/v1/rosa/transcribe",
-		Summary:     "Analyze and transcribe voice notes for Rosa AI",
-		Tags:        []string{"Quotes"},
-		Middlewares: optMW,
+		OperationID:  "rosa-transcribe",
+		Method:       http.MethodPost,
+		Path:         "/v1/rosa/transcribe",
+		Summary:      "Analyze and transcribe voice notes for Rosa AI",
+		Tags:         []string{"Quotes"},
+		MaxBodyBytes: 16 << 20,
+		Middlewares:  optMW,
 	}, m.handleRosaTranscribe)
 
 	huma.Register(api, huma.Operation{

@@ -15,16 +15,22 @@ UPDATE ncf_sequences
 SET last_number = last_number + 1
 WHERE ncf_type = $1
   AND last_number < max_number
+  AND (valid_until_iso = '' OR valid_until_iso >= $2)
 RETURNING prefix, last_number
 `
+
+type AllocateNextNCFParams struct {
+	NcfType       string
+	ValidUntilIso string
+}
 
 type AllocateNextNCFRow struct {
 	Prefix     string
 	LastNumber int64
 }
 
-func (q *Queries) AllocateNextNCF(ctx context.Context, ncfType string) (AllocateNextNCFRow, error) {
-	row := q.db.QueryRow(ctx, allocateNextNCF, ncfType)
+func (q *Queries) AllocateNextNCF(ctx context.Context, arg AllocateNextNCFParams) (AllocateNextNCFRow, error) {
+	row := q.db.QueryRow(ctx, allocateNextNCF, arg.NcfType, arg.ValidUntilIso)
 	var i AllocateNextNCFRow
 	err := row.Scan(&i.Prefix, &i.LastNumber)
 	return i, err

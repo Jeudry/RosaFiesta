@@ -3,6 +3,7 @@ package com.jeudry.rosafiesta.data
 import com.jeudry.rosafiesta.domain.MapPlaceSuggestion
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -50,8 +51,20 @@ public class InteractiveMapClient(
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
+        install(HttpTimeout) {
+            requestTimeoutMillis = REQUEST_TIMEOUT_MS
+            connectTimeoutMillis = CONNECT_TIMEOUT_MS
+            socketTimeoutMillis = SOCKET_TIMEOUT_MS
+        }
     },
 ) {
+    /**
+     * Releases underlying HTTP client resources when the map picker leaves composition.
+     */
+    public fun close() {
+        httpClient.close()
+    }
+
     /**
      * Searches real places matching [query], biased gently near the optional [biasLat] and [biasLon].
      */
@@ -153,6 +166,9 @@ public class InteractiveMapClient(
     public companion object {
         public const val DEFAULT_SANTO_DOMINGO_LAT: Double = 18.4861
         public const val DEFAULT_SANTO_DOMINGO_LON: Double = -69.9312
+        private const val REQUEST_TIMEOUT_MS: Long = 20_000L
+        private const val CONNECT_TIMEOUT_MS: Long = 10_000L
+        private const val SOCKET_TIMEOUT_MS: Long = 20_000L
         private val TILE_SUBDOMAINS = listOf("a", "b", "c", "d")
     }
 }

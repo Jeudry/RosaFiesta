@@ -41,13 +41,14 @@ type uploadMediaOutput struct {
 // Register registra la operación POST /v1/media en la especificación OpenAPI.
 func (m Module) Register(api huma.API) {
 	huma.Register(api, huma.Operation{
-		OperationID: "upload-media-asset",
-		Method:      http.MethodPost,
-		Path:        "/v1/media",
-		Summary:     "Subir imagen o PDF al almacenamiento del servidor",
-		Tags:        []string{"Media"},
-		Security:    []map[string][]string{{platformhttp.SecurityScheme: {}}},
-		Middlewares: huma.Middlewares{platformhttp.RequireAuth(api, m.Auth)},
+		OperationID:  "upload-media-asset",
+		Method:       http.MethodPost,
+		Path:         "/v1/media",
+		Summary:      "Subir imagen o PDF al almacenamiento del servidor",
+		Tags:         []string{"Media"},
+		MaxBodyBytes: 16 << 20,
+		Security:     []map[string][]string{{platformhttp.SecurityScheme: {}}},
+		Middlewares:  huma.Middlewares{platformhttp.RequireAuth(api, m.Auth)},
 	}, m.uploadHandler)
 }
 

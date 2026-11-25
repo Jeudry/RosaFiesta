@@ -60,6 +60,16 @@ type Store interface {
 	UpsertQuote(ctx context.Context, quote domain.Quote, now time.Time) error
 }
 
+// TransactionalSigner ejecuta la firma del contrato bajo bloqueo de fila FOR UPDATE.
+type TransactionalSigner interface {
+	SignQuoteTx(
+		ctx context.Context,
+		id string,
+		now time.Time,
+		applySign func(existing domain.Quote) (domain.Quote, error),
+	) (domain.Quote, error)
+}
+
 type CreateQuoteCommand struct {
 	EventID         string
 	EventTitle      string
@@ -74,6 +84,7 @@ type CreateQuoteCommand struct {
 	DeliveryFeeRD   int
 	DiscountRD      int
 	Notes           string
+	ContactPhone    string
 	SendImmediately bool
 }
 
@@ -475,6 +486,7 @@ func (s *Service) buildAndStoreCreatedQuote(
 		BalanceRD:      balance,
 		Status:         initialStatus,
 		Notes:          strings.TrimSpace(cmd.Notes),
+		ContactPhone:   strings.TrimSpace(cmd.ContactPhone),
 	}
 	s.quotes[id] = quote
 	s.order = append(s.order, id)
@@ -548,27 +560,92 @@ func (s *Service) SignContractForCaller(
 	if cleanSVG == "" {
 		return domain.Quote{}, domain.ErrInvalidSignature
 	}
+	now := s.clock.Now()
+	store := s.currentStore()
+	if isQuoteStoreTxEnabled(store) {
+		signer := store.(TransactionalSigner)
+		return s.signContractTransactional(ctx, signer, id, cleanSigner, signatureSVG, caller, now)
+	}
 	quote, err := s.GetQuoteForCaller(ctx, id, caller, true)
 	if err != nil {
 		return domain.Quote{}, err
 	}
+	signedQuote, err := s.applyAndProvisionQuoteSign(ctx, quote, cleanSigner, signatureSVG, caller, now)
+	if err != nil {
+		return domain.Quote{}, err
+	}
+	if err := s.persistSignedQuote(ctx, signedQuote, now); err != nil {
+		return domain.Quote{}, err
+	}
+	s.dispatchSignedQuoteNotifications(ctx, signedQuote)
+	return signedQuote, nil
+}
+
+func isQuoteStoreTxEnabled(store Store) bool {
+	if store == nil {
+		return false
+	}
+	if !store.Enabled() {
+		return false
+	}
+	_, ok := store.(TransactionalSigner)
+	return ok
+}
+
+func (s *Service) signContractTransactional(
+	ctx context.Context,
+	signer TransactionalSigner,
+	id string,
+	cleanSigner string,
+	signatureSVG string,
+	caller platformhttp.Principal,
+	now time.Time,
+) (domain.Quote, error) {
+	callerID := callerIDString(caller)
+	signedQuote, err := signer.SignQuoteTx(ctx, id, now, func(existing domain.Quote) (domain.Quote, error) {
+		if caller.IsClient() {
+			if !existing.BelongsToClient(callerID, caller.Email, caller.FullName) {
+				return domain.Quote{}, domain.ErrQuoteForbidden
+			}
+		}
+		return s.applyAndProvisionQuoteSign(ctx, existing, cleanSigner, signatureSVG, caller, now)
+	})
+	if err != nil {
+		return domain.Quote{}, err
+	}
+	s.mu.Lock()
+	s.quotes[signedQuote.ID] = signedQuote
+	s.mu.Unlock()
+	s.dispatchSignedQuoteNotifications(ctx, signedQuote)
+	return signedQuote, nil
+}
+
+func (s *Service) applyAndProvisionQuoteSign(
+	ctx context.Context,
+	quote domain.Quote,
+	cleanSigner string,
+	signatureSVG string,
+	caller platformhttp.Principal,
+	now time.Time,
+) (domain.Quote, error) {
 	if quote.Status != domain.QuoteStatusSent {
 		return domain.Quote{}, domain.ErrQuoteNotSent
 	}
 	if err := s.checkQuoteStockAvailability(ctx, quote.EventDateISO, quote.EventDateLabel, quote.EventID, quote.Lines); err != nil {
 		return domain.Quote{}, err
 	}
-	now := s.clock.Now()
 	quote.Status = domain.QuoteStatusSigned
 	quote.SignedByName = cleanSigner
+	if caller.ID != uuid.Nil {
+		quote.SignedByUserID = caller.ID.String()
+	}
 	quote.SignatureSVG = signatureSVG
 	quote.SignedAtISO = now.UTC().Format(time.RFC3339)
 	quote.ContractPDFURL = "/v1/quotes/" + quote.ID + "/contract"
+	quote.ContractHashSHA256 = domain.ComputeQuoteContractHash(quote)
 	if err := s.provisionEventForSignedQuote(ctx, &quote); err != nil {
 		return domain.Quote{}, err
 	}
-	s.persistSignedQuote(ctx, quote, now)
-	s.dispatchSignedQuoteNotifications(ctx, quote)
 	return quote, nil
 }
 
@@ -594,7 +671,9 @@ func (s *Service) DeclineQuoteForCaller(
 	s.mu.Unlock()
 	if store != nil {
 		if store.Enabled() {
-			_ = store.UpsertQuote(ctx, quote, now)
+			if err := store.UpsertQuote(ctx, quote, now); err != nil {
+				return domain.Quote{}, err
+			}
 		}
 	}
 	return quote, nil
@@ -1019,16 +1098,17 @@ func (s *Service) provisionEventForSignedQuote(ctx context.Context, quote *domai
 	return nil
 }
 
-func (s *Service) persistSignedQuote(ctx context.Context, quote domain.Quote, now time.Time) {
+func (s *Service) persistSignedQuote(ctx context.Context, quote domain.Quote, now time.Time) error {
 	s.mu.Lock()
 	s.quotes[quote.ID] = quote
 	store := s.store
 	s.mu.Unlock()
 	if store != nil {
 		if store.Enabled() {
-			_ = store.UpsertQuote(ctx, quote, now)
+			return store.UpsertQuote(ctx, quote, now)
 		}
 	}
+	return nil
 }
 
 func (s *Service) dispatchSignedQuoteNotifications(ctx context.Context, quote domain.Quote) {

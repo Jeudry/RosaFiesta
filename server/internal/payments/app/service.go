@@ -107,16 +107,18 @@ type RegisterPaymentCommand struct {
 	NCFType            string
 	ClientRNC          string
 	SecurityDepositDOP int
+	ContactPhone       string
 }
 
 // CreateCardSessionCommand solicita una sesión de pago electrónico con tarjeta.
 type CreateCardSessionCommand struct {
-	EventID    string
-	EventTitle string
-	AmountRD   int
-	Kind       string
-	NCFType    string
-	ClientRNC  string
+	EventID      string
+	EventTitle   string
+	AmountRD     int
+	Kind         string
+	NCFType      string
+	ClientRNC    string
+	ContactPhone string
 }
 
 // Service coordina pagos, emisión de NCF, pasarela de tarjetas, exporte DGII y reembolsos.
@@ -145,6 +147,7 @@ type Service struct {
 	refundOrder         []string
 	ncfSeqB01           atomic.Int64
 	ncfSeqB02           atomic.Int64
+	ncfValidUntil       map[string]string
 	nextSeq             int
 	zeroBaseline        bool
 }
@@ -694,7 +697,7 @@ func (s *Service) resolveITBISPercent(ctx context.Context) int {
 		return 18
 	}
 	rate := provider.CurrentITBISPercent(ctx)
-	if rate <= 0 {
+	if rate < 0 {
 		return 18
 	}
 	return rate
@@ -932,6 +935,9 @@ func (s *Service) ApproveRefundWithOptions(
 	refundID string,
 	opts ApproveRefundOptions,
 ) (domain.Refund, error) {
+	s.verifyMu.Lock()
+	defer s.verifyMu.Unlock()
+
 	targetID := strings.TrimSpace(refundID)
 	now := s.clock.Now()
 	approver := strings.TrimSpace(opts.ApproverName)

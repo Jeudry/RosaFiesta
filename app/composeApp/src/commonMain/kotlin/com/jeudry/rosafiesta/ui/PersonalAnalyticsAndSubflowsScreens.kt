@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -61,6 +62,14 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -132,6 +141,17 @@ private fun AnimatedCenteredDialogHost(
             modifier = Modifier
                 .fillMaxSize()
                 .background(scrimColor)
+                .onPreviewKeyEvent { keyEvent ->
+                    val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                    val isEscape = keyEvent.key == Key.Escape
+                    val shouldDismiss = if (isKeyDown) isEscape else false
+                    if (shouldDismiss) {
+                        onDismiss()
+                        true
+                    } else {
+                        false
+                    }
+                }
                 .clickable(
                     interactionSource = scrimInteractionSource,
                     indication = null,
@@ -3314,15 +3334,16 @@ internal fun RenderInventoryCalendarS63(
         selectedAvailableUnits < halfStockThreshold -> "Stock medio / alerta"
         else -> "Disponibilidad alta"
     }
+    val palette = RfThemeState.currentPalette
     val detailBannerBg = when {
-        selectedAvailableUnits <= 0 -> Color(0xFFFDE3EA)
-        selectedAvailableUnits < halfStockThreshold -> Color(0xFFFFF2C9)
-        else -> Color(0xFFEEF6D6)
+        selectedAvailableUnits <= 0 -> rfAdminDangerPillBg()
+        selectedAvailableUnits < halfStockThreshold -> rfAdminWarnPillBg()
+        else -> rfAdminSuccessPillBg()
     }
     val detailBannerTint = when {
-        selectedAvailableUnits <= 0 -> Color(0xFFB42345)
-        selectedAvailableUnits < halfStockThreshold -> Color(0xFF7A5700)
-        else -> Color(0xFF4E6A10)
+        selectedAvailableUnits <= 0 -> rfAdminDangerPillInk()
+        selectedAvailableUnits < halfStockThreshold -> rfAdminWarnPillInk()
+        else -> rfAdminSuccessPillInk()
     }
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
@@ -3337,13 +3358,13 @@ internal fun RenderInventoryCalendarS63(
                 Column(modifier = Modifier.weight(1f)) {
                     BasicText(
                         "Disponibilidad",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = palette.ink),
                     )
                     BasicText(
                         "${activeArticle.code} · Stock total: $resolvedTotalStock uds",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = Color(0xFF5F6377)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.5.sp, color = palette.muted),
                     )
                 }
             }
@@ -3378,8 +3399,8 @@ internal fun RenderInventoryCalendarS63(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
                         .clip(RoundedCornerShape(22.dp))
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, RoundedCornerShape(22.dp))
                         .padding(start = 10.dp, end = 10.dp, top = 14.dp, bottom = 12.dp),
                 ) {
                     Row(
@@ -3387,39 +3408,47 @@ internal fun RenderInventoryCalendarS63(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(
-                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable {
-                                if (calendarMonthOneBased == 1) {
-                                    calendarYear -= 1
-                                    calendarMonthOneBased = 12
-                                } else {
-                                    calendarMonthOneBased -= 1
-                                }
-                                val updatedMaxDay = computeDaysInGregorianMonth(calendarYear, calendarMonthOneBased)
-                                selectedDay63 = selectedDay63.coerceIn(1, updatedMaxDay)
-                            },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .semantics { contentDescription = "Mes anterior" }
+                                .clickable(role = Role.Button) {
+                                    if (calendarMonthOneBased == 1) {
+                                        calendarYear -= 1
+                                        calendarMonthOneBased = 12
+                                    } else {
+                                        calendarMonthOneBased -= 1
+                                    }
+                                    val updatedMaxDay = computeDaysInGregorianMonth(calendarYear, calendarMonthOneBased)
+                                    selectedDay63 = selectedDay63.coerceIn(1, updatedMaxDay)
+                                },
                             contentAlignment = Alignment.Center,
                         ) {
-                            RfIcon(kind = RfIconKind.CHEVRON_LEFT, tint = Color(0xFF151729), size = 20.dp)
+                            RfIcon(kind = RfIconKind.CHEVRON_LEFT, tint = palette.ink, size = 20.dp)
                         }
                         BasicText(
                             currentMonthLabel,
                             modifier = Modifier.weight(1f),
-                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, textAlign = TextAlign.Center, color = Color(0xFF151729)),
+                            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 19.sp, textAlign = TextAlign.Center, color = palette.ink),
                         )
                         Box(
-                            modifier = Modifier.size(40.dp).clip(CircleShape).clickable {
-                                if (calendarMonthOneBased == 12) {
-                                    calendarYear += 1
-                                    calendarMonthOneBased = 1
-                                } else {
-                                    calendarMonthOneBased += 1
-                                }
-                                val updatedMaxDay = computeDaysInGregorianMonth(calendarYear, calendarMonthOneBased)
-                                selectedDay63 = selectedDay63.coerceIn(1, updatedMaxDay)
-                            },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .semantics { contentDescription = "Mes siguiente" }
+                                .clickable(role = Role.Button) {
+                                    if (calendarMonthOneBased == 12) {
+                                        calendarYear += 1
+                                        calendarMonthOneBased = 1
+                                    } else {
+                                        calendarMonthOneBased += 1
+                                    }
+                                    val updatedMaxDay = computeDaysInGregorianMonth(calendarYear, calendarMonthOneBased)
+                                    selectedDay63 = selectedDay63.coerceIn(1, updatedMaxDay)
+                                },
                             contentAlignment = Alignment.Center,
                         ) {
-                            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF151729), size = 20.dp)
+                            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.ink, size = 20.dp)
                         }
                     }
 
@@ -3428,7 +3457,7 @@ internal fun RenderInventoryCalendarS63(
                             BasicText(
                                 dayHeader,
                                 modifier = Modifier.weight(1f),
-                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center, color = Color(0xFF5F6377)),
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center, color = palette.muted),
                             )
                         }
                     }
@@ -3487,7 +3516,7 @@ internal fun RenderInventoryCalendarS63(
                         text = "${activeArticle.name} · Día $clampedSelectedDay ($selectedTrafficStatus)",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = Color(0xFF151729)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, color = palette.ink),
                     )
                     BasicText(
                         text = "Disponibles: $selectedAvailableUnits de $resolvedTotalStock uds · Reservadas: $selectedReservedUnits uds",
@@ -3510,24 +3539,26 @@ private fun CalendarDay63(
     onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val dayBg = if (selected) rfAdminIndigoPillBg() else palette.bg
 
     Column(
         modifier = modifier
             .height(52.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) Color(0xFFECEBFF) else RfThemeState.currentPalette.bg)
+            .background(dayBg)
             .then(if (selected) Modifier.border(2.dp, Color(0xFFD63F98), RoundedCornerShape(12.dp)) else Modifier)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         BasicText(
             day.toString(),
-            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = palette.ink),
         )
         BasicText(
             availableUnits.toString(),
-            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 10.sp, color = Color(0xFF5F6377)),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 10.sp, color = palette.muted),
         )
         Spacer(Modifier.height(2.dp))
         Box(modifier = Modifier.width(18.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(status))
@@ -3537,10 +3568,11 @@ private fun CalendarDay63(
 @Composable
 private fun CalendarLegend63(label: String, color: Color) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(modifier = Modifier.width(12.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(color))
-        BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF151729)))
+        BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = palette.ink))
     }
 }
 
@@ -4061,20 +4093,21 @@ internal fun AdminModalLabeledField(
     onValueChange: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     val hasFieldError = if (isError) true else errorMessage != null
-    val borderColor = if (hasFieldError) RfColors.Error else Color(0xFFE3E3EF)
+    val borderColor = if (hasFieldError) RfColors.Error else palette.fieldBorder
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         BasicText(
             text = label,
-            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF5F6377)),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = palette.muted),
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 42.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFFF6F6FB))
+                .background(palette.chipBg)
                 .border(1.dp, borderColor, RoundedCornerShape(12.dp))
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             contentAlignment = Alignment.CenterStart,
@@ -4084,7 +4117,7 @@ internal fun AdminModalLabeledField(
                     text = placeholder,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF8C90A4)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted),
                 )
             }
             if (cursorMask != null) {
@@ -4095,8 +4128,8 @@ internal fun AdminModalLabeledField(
                     maskTransform = cursorMask,
                     singleLine = true,
                     keyboardOptions = keyboardOptions,
-                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF151729)),
-                    cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.ink),
+                    cursorBrush = SolidColor(palette.primaryAccent),
                     modifier = Modifier
                         .fillMaxWidth()
                         .rfTrackValidationFocus(focusKey = maskKey) { isFocused ->
@@ -4110,8 +4143,8 @@ internal fun AdminModalLabeledField(
                     onValueChange = onValueChange,
                     singleLine = true,
                     keyboardOptions = keyboardOptions,
-                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF151729)),
-                    cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.ink),
+                    cursorBrush = SolidColor(palette.primaryAccent),
                     modifier = Modifier
                         .fillMaxWidth()
                         .rfTrackValidationFocus(focusKey = plainKey) { isFocused ->
@@ -4131,15 +4164,17 @@ private fun LeadChip64(
     onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val unselectedBrush = Brush.linearGradient(listOf(palette.surface, palette.surface))
 
     Box(
         modifier = Modifier
             .height(38.dp)
             .shadow(if (selected) 8.dp else 0.dp, RoundedCornerShape(999.dp), spotColor = Color(0x995B6CF0))
             .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) ReportGradient else Brush.linearGradient(listOf(Color.White, Color.White)))
-            .border(1.dp, if (selected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
-            .clickable(onClick = onClick)
+            .background(if (selected) ReportGradient else unselectedBrush)
+            .border(1.dp, if (selected) Color.Transparent else palette.line, RoundedCornerShape(999.dp))
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -4150,7 +4185,7 @@ private fun LeadChip64(
                 fontFamily = typo.bodyFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = if (selected) Color.White else Color(0xFF151729),
+                color = if (selected) Color.White else palette.ink,
             ),
         )
     }
@@ -5126,6 +5161,7 @@ internal fun RenderReportsClientsS69(
             }
         }
 
+        val palette = RfThemeState.currentPalette
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(
                 modifier = Modifier
@@ -5143,12 +5179,12 @@ internal fun RenderReportsClientsS69(
                     .weight(1f)
                     .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                     .clip(RoundedCornerShape(22.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(22.dp))
                     .padding(16.dp),
             ) {
-                BasicText("Nuevos en periodo", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 13.sp))
-                BasicText("+$newClientsInPeriod", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, lineHeight = 28.sp, color = Color(0xFF4E6A10)))
+                BasicText("Nuevos en periodo", style = TextStyle(fontFamily = typo.bodyFamily, color = palette.muted, fontSize = 13.sp))
+                BasicText("+$newClientsInPeriod", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, lineHeight = 28.sp, color = rfAdminSuccessPillInk()))
             }
         }
 
@@ -5157,24 +5193,24 @@ internal fun RenderReportsClientsS69(
                 .fillMaxWidth()
                 .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                 .clip(RoundedCornerShape(22.dp))
-                .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
+                .background(palette.surface)
+                .border(1.dp, palette.line, RoundedCornerShape(22.dp)),
         ) {
             BasicText(
                 "Mejores clientes",
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp),
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
             )
             sortedTopClients.take(4).forEachIndexed { rankIndex, clientItem ->
                 val rankBg = when (rankIndex) {
-                    0 -> Color(0xFFFFF2C9)
-                    1 -> Color(0xFFEDEDF5)
-                    else -> Color(0xFFECEBFF)
+                    0 -> rfAdminWarnPillBg()
+                    1 -> palette.chipBg
+                    else -> rfAdminIndigoPillBg()
                 }
                 val rankFg = when (rankIndex) {
-                    0 -> Color(0xFF7A5700)
-                    1 -> Color(0xFF5F6377)
-                    else -> Color(0xFF4B47D6)
+                    0 -> rfAdminWarnPillInk()
+                    1 -> palette.muted
+                    else -> rfAdminIndigoPillInk()
                 }
                 val formattedLtv = RosaFiestaEngine.formatDop(clientItem.totalContractedDop)
                 TopClientRow69(
@@ -5194,7 +5230,7 @@ internal fun RenderReportsClientsS69(
         }
 
         ReportCard(contentPadding = PaddingValues(16.dp)) {
-            BasicText("Retención de cartera", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            BasicText("Retención de cartera", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink))
             Spacer(Modifier.height(12.dp))
             if (clientsList.isEmpty()) {
                 Box(
@@ -5202,7 +5238,7 @@ internal fun RenderReportsClientsS69(
                         .fillMaxWidth()
                         .height(14.dp)
                         .clip(RoundedCornerShape(7.dp))
-                        .background(Color(0xFFECECF5)),
+                        .background(palette.line),
                 )
             } else {
                 Row(
@@ -5235,12 +5271,13 @@ private fun TopClientRow69(
     onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 58.dp)
-            .clickable { onClick() }
+            .clickable(role = Role.Button) { onClick() }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -5252,21 +5289,22 @@ private fun TopClientRow69(
             BasicText(rank, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = rankColor))
         }
         Column(modifier = Modifier.weight(1f)) {
-            BasicText(name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
-            BasicText(events, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+            BasicText(name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink))
+            BasicText(events, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
         }
-        BasicText(amount, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Color(0xFF151729)))
+        BasicText(amount, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = palette.ink))
     }
 }
 
 @Composable
 private fun RetentionLegend(label: String, value: String, color: Color) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(Modifier.size(10.dp).clip(RoundedCornerShape(3.dp)).background(color))
-        BasicText(label, modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF151729)))
-        BasicText(value, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
+        BasicText(label, modifier = Modifier.weight(1f), style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.ink))
+        BasicText(value, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
     }
 }
 
@@ -5342,13 +5380,18 @@ internal fun RenderReportsInventoryS70(
             }
         }
 
+        val palette = RfThemeState.currentPalette
+        val trackCircleColor = palette.chipBg
+        val reviewTileBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFEFE8FD)
+        val reviewTileInk = if (palette.isDark) Color(0xFFC5B8FF) else Color(0xFF7A4FD8)
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                 .clip(RoundedCornerShape(22.dp))
-                .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                .background(palette.surface)
+                .border(1.dp, palette.line, RoundedCornerShape(22.dp))
                 .padding(horizontal = 18.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -5357,7 +5400,7 @@ internal fun RenderReportsInventoryS70(
                 Canvas(modifier = Modifier.size(76.dp)) {
                     val stroke = 9.dp.toPx()
                     val radius = (size.minDimension - stroke) / 2f
-                    drawCircle(Color(0xFFF3F1F6), radius = radius, style = Stroke(stroke))
+                    drawCircle(trackCircleColor, radius = radius, style = Stroke(stroke))
                     drawArc(
                         color = Color(0xFFD63F98),
                         startAngle = -90f,
@@ -5366,33 +5409,33 @@ internal fun RenderReportsInventoryS70(
                         style = Stroke(stroke, cap = StrokeCap.Round),
                     )
                 }
-                BasicText("$utilizationPercent%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF151729)))
+                BasicText("$utilizationPercent%", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = palette.ink))
             }
             Column {
                 Row {
                     BasicText(
                         "$activeReservedUnits ",
-                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, lineHeight = 24.sp, color = Color(0xFF151729)),
+                        style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 28.sp, lineHeight = 24.sp, color = palette.ink),
                         modifier = Modifier.alignByBaseline(),
                     )
                     BasicText(
                         "de $totalUnitsInWarehouse",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Color(0xFF5F6377)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = palette.muted),
                         modifier = Modifier.alignByBaseline(),
                     )
                 }
                 Spacer(Modifier.height(4.dp))
-                BasicText("unidades reservadas · $activePeriodLabel", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = Color(0xFF5F6377)))
+                BasicText("unidades reservadas · $activePeriodLabel", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted))
             }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            InventoryAlertTile70("$lowStockSkusCount", "Stock bajo", Color(0xFFFFF2C9), Color(0xFF7A5700), RfIconKind.WARNING, Modifier.weight(1f))
-            InventoryAlertTile70("$maintenanceSkusCount", "En revisión", Color(0xFFEFE8FD), Color(0xFF7A4FD8), RfIconKind.SETTINGS, Modifier.weight(1f))
+            InventoryAlertTile70("$lowStockSkusCount", "Stock bajo", rfAdminWarnPillBg(), rfAdminWarnPillInk(), RfIconKind.WARNING, Modifier.weight(1f))
+            InventoryAlertTile70("$maintenanceSkusCount", "En revisión", reviewTileBg, reviewTileInk, RfIconKind.SETTINGS, Modifier.weight(1f))
         }
 
         ReportCard(contentPadding = PaddingValues(16.dp)) {
-            BasicText("Uso por categoría (${articlesList.size} SKUs)", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            BasicText("Uso por categoría (${articlesList.size} SKUs)", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink))
             Spacer(Modifier.height(12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 categoryBreakdown.forEach { categoryRow ->
@@ -5408,9 +5451,9 @@ internal fun RenderReportsInventoryS70(
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = true)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(RfThemeState.currentPalette.surface)
-                    .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(18.dp))
-                    .clickable {
+                    .background(palette.surface)
+                    .border(1.dp, palette.line, RoundedCornerShape(18.dp))
+                    .clickable(role = Role.Button) {
                         viewModel?.selectArticle(topMaintenanceArticle.id)
                         onSelectScreenCode("s63")
                     }
@@ -5419,14 +5462,14 @@ internal fun RenderReportsInventoryS70(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Box(
-                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFEEF6D6)),
+                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(rfAdminSuccessPillBg()),
                     contentAlignment = Alignment.Center,
                 ) {
-                    RfIcon(kind = RfIconKind.CHAIR, tint = Color(0xFF4E6A10), size = 20.dp)
+                    RfIcon(kind = RfIconKind.CHAIR, tint = rfAdminSuccessPillInk(), size = 20.dp)
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    BasicText(topMaintenanceArticle.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
-                    BasicText("Ver calendario de disponibilidad · ${topMaintenanceArticle.code}", maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)))
+                    BasicText(topMaintenanceArticle.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink))
+                    BasicText("Ver calendario de disponibilidad · ${topMaintenanceArticle.code}", maxLines = 1, overflow = TextOverflow.Ellipsis, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted))
                 }
                 Box(
                     modifier = Modifier
@@ -5470,13 +5513,14 @@ private fun InventoryAlertTile70(
 @Composable
 private fun CategoryUsageRow70(label: String, fraction: Float, value: String, opacity: Float) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        BasicText(label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(96.dp), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Color(0xFF151729)))
-        Box(modifier = Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFFF3F1F6))) {
+        BasicText(label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(96.dp), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = palette.ink))
+        Box(modifier = Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(5.dp)).background(palette.chipBg)) {
             Box(Modifier.fillMaxWidth(fraction).height(10.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF5B6CF0).copy(alpha = opacity)))
         }
-        BasicText(value, modifier = Modifier.width(38.dp), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729), textAlign = TextAlign.End))
+        BasicText(value, modifier = Modifier.width(38.dp), style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink, textAlign = TextAlign.End))
     }
 }
 
@@ -5552,18 +5596,28 @@ private fun EventRingIllustration68(size: Dp) {
 }
 
 @Composable
-private fun ReportIconButton(icon: RfIconKind, onClick: () -> Unit) {
+private fun ReportIconButton(
+    icon: RfIconKind,
+    accessibilityLabel: String = when (icon) {
+        RfIconKind.BACK -> "Volver"
+        RfIconKind.DOWNLOAD -> "Exportar reporte"
+        else -> icon.name
+    },
+    onClick: () -> Unit,
+) {
+    val palette = RfThemeState.currentPalette
     Box(
         modifier = Modifier
             .size(44.dp)
             .rfIconButtonShadow(CircleShape, isAdmin = true)
             .clip(CircleShape)
-            .background(RfThemeState.currentPalette.surface)
-            .border(1.dp, Color(0xFFECECF5), CircleShape)
-            .clickable(onClick = onClick),
+            .background(palette.surface)
+            .border(1.dp, palette.line, CircleShape)
+            .semantics { contentDescription = accessibilityLabel }
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        RfIcon(kind = icon, tint = Color(0xFF151729), size = 21.dp)
+        RfIcon(kind = icon, tint = palette.ink, size = 21.dp)
     }
 }
 
@@ -5573,13 +5627,14 @@ private fun ReportCard(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val palette = RfThemeState.currentPalette
     Column(
         modifier = modifier
             .fillMaxWidth()
             .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
             .clip(RoundedCornerShape(22.dp))
-            .background(RfThemeState.currentPalette.surface)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(22.dp))
             .padding(contentPadding),
         content = content,
     )
@@ -5595,6 +5650,7 @@ private fun AdminSubScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -5608,7 +5664,7 @@ private fun AdminSubScaffold(
                 BasicText(
                     title,
                     modifier = Modifier.weight(1f),
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = palette.ink),
                 )
                 trailing()
             }
@@ -5633,6 +5689,7 @@ private fun AdminTabRow(
     initialScroll: Dp = 0.dp,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     val scrollState = rememberScrollState()
     val density = androidx.compose.ui.platform.LocalDensity.current
 
@@ -5646,7 +5703,7 @@ private fun AdminTabRow(
             .fillMaxWidth()
             .drawBehind {
                 val stroke = 1.dp.toPx()
-                drawLine(Color(0xFFE9E9F2), Offset(0f, size.height - stroke / 2f), Offset(size.width, size.height - stroke / 2f), stroke)
+                drawLine(palette.line, Offset(0f, size.height - stroke / 2f), Offset(size.width, size.height - stroke / 2f), stroke)
             },
     ) {
         Row(
@@ -5673,7 +5730,7 @@ private fun AdminTabRow(
                             fontFamily = typo.bodyFamily,
                             fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold,
                             fontSize = 15.sp,
-                            color = if (active) Color(0xFF151729) else Color(0xFF5F6377),
+                            color = if (active) palette.ink else palette.muted,
                         ),
                     )
                 }
@@ -5831,15 +5888,18 @@ private fun ReviewChip71(
     onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val unselectedBrush = Brush.linearGradient(listOf(palette.surface, palette.surface))
+    val unselectedCountBrush = Brush.linearGradient(listOf(palette.chipBg, palette.chipBg))
 
     Row(
         modifier = Modifier
             .height(38.dp)
             .shadow(if (selected) 8.dp else 0.dp, RoundedCornerShape(999.dp), spotColor = Color(0x995B6CF0))
             .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) ReportGradient else Brush.linearGradient(listOf(Color.White, Color.White)))
-            .border(1.dp, if (selected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
-            .clickable(onClick = onClick)
+            .background(if (selected) ReportGradient else unselectedBrush)
+            .border(1.dp, if (selected) Color.Transparent else palette.line, RoundedCornerShape(999.dp))
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -5851,7 +5911,7 @@ private fun ReviewChip71(
                 fontFamily = typo.bodyFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = if (selected) Color.White else Color(0xFF151729),
+                color = if (selected) Color.White else palette.ink,
             ),
         )
         if (count != null) {
@@ -5864,7 +5924,7 @@ private fun ReviewChip71(
                         if (selected) {
                             Brush.linearGradient(listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)))
                         } else {
-                            Brush.linearGradient(listOf(Color(0xFFEDEDF5), Color(0xFFEDEDF5)))
+                            unselectedCountBrush
                         },
                     )
                     .padding(horizontal = 6.dp),
@@ -5877,7 +5937,7 @@ private fun ReviewChip71(
                         fontFamily = typo.bodyFamily,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
-                        color = if (selected) Color.White else Color(0xFF5F6377),
+                        color = if (selected) Color.White else palette.muted,
                     ),
                 )
             }
@@ -5899,14 +5959,15 @@ private fun ReviewCard71(
     onReplyOrEdit: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     val clampedRating = rating.coerceIn(1, 5)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(RfThemeState.currentPalette.surface)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(22.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -5922,39 +5983,39 @@ private fun ReviewCard71(
                     name,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink),
                 )
                 BasicText(
                     event,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, lineHeight = 18.sp, color = Color(0xFF5F6377)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, lineHeight = 18.sp, color = palette.muted),
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 for (starIndex in 1..5) {
                     val isFilledStar = starIndex <= clampedRating
-                    val starColor = if (isFilledStar) Color(0xFFF7B500) else Color(0xFFD0D2E0)
+                    val starColor = if (isFilledStar) Color(0xFFF7B500) else palette.fieldBorder
                     RfIcon(kind = RfIconKind.STAR, tint = starColor, size = 15.dp, filled = isFilledStar)
                 }
             }
         }
         BasicText(
             body,
-            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, lineHeight = 22.sp, color = Color(0xFF151729)),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 15.sp, lineHeight = 22.sp, color = palette.ink),
         )
         if (verified) {
             Row(
                 modifier = Modifier
                     .height(26.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFFEEF6D6))
+                    .background(rfAdminSuccessPillBg())
                     .padding(horizontal = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RfIcon(kind = RfIconKind.CHECK, tint = Color(0xFF4E6A10), size = 13.dp)
-                BasicText("Verificada · compra confirmada", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF4E6A10)))
+                RfIcon(kind = RfIconKind.CHECK, tint = rfAdminSuccessPillInk(), size = 13.dp)
+                BasicText("Verificada · compra confirmada", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = rfAdminSuccessPillInk()))
             }
         }
         if (response != null) {
@@ -5962,20 +6023,20 @@ private fun ReviewCard71(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFFF6F6FB))
-                    .clickable(onClick = onReplyOrEdit)
+                    .background(palette.chipBg)
+                    .clickable(role = Role.Button, onClick = onReplyOrEdit)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                RfIcon(kind = RfIconKind.UNDO, tint = Color(0xFF5F6377), size = 14.dp, modifier = Modifier.padding(top = 2.dp))
+                RfIcon(kind = RfIconKind.UNDO, tint = palette.muted, size = 14.dp, modifier = Modifier.padding(top = 2.dp))
                 BasicText(
                     buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Tu respuesta: ") }
                         append(response)
                         append(" ")
-                        withStyle(SpanStyle(color = Color(0xFF4B47D6), fontWeight = FontWeight.Bold)) { append("Editar respuesta") }
+                        withStyle(SpanStyle(color = rfAdminIndigoPillInk(), fontWeight = FontWeight.Bold)) { append("Editar respuesta") }
                     },
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = palette.ink),
                 )
             }
         } else {
@@ -5986,7 +6047,7 @@ private fun ReviewCard71(
                     .shadow(8.dp, RoundedCornerShape(999.dp), spotColor = Color(0x995B6CF0))
                     .clip(RoundedCornerShape(999.dp))
                     .background(ReportGradient)
-                    .clickable(onClick = onReplyOrEdit),
+                    .clickable(role = Role.Button, onClick = onReplyOrEdit),
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
@@ -6146,19 +6207,21 @@ private fun BotFaqEditorModal(
         )
     }
 
+    val palette = RfThemeState.currentPalette
     val modalHeading = if (initialFaq == null) "Nueva pregunta frecuente" else "Editar pregunta frecuente"
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(Color.White)
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(24.dp))
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         BasicText(
             text = modalHeading,
-            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
+            style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = palette.ink),
         )
         AdminModalLabeledField(
             label = "Categoría",
@@ -6205,11 +6268,11 @@ private fun BotFaqEditorModal(
                     .weight(1f)
                     .height(44.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFFEDEDF5))
-                    .clickable(onClick = onDismiss),
+                    .background(palette.chipBg)
+                    .clickable(role = Role.Button, onClick = onDismiss),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
+                BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
             }
             Box(
                 modifier = Modifier
@@ -6268,15 +6331,20 @@ private fun AdminModalToggleRow(
     onToggle: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
-    val trackColor = if (checked) Color(0xFF5B6CF0) else Color(0xFFD5D7E5)
+    val palette = RfThemeState.currentPalette
+    val trackColor = if (checked) Color(0xFF5B6CF0) else palette.fieldBorder
     val knobAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFFF6F6FB))
-            .clickable(onClick = onToggle)
+            .background(palette.chipBg)
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = { onToggle() },
+            )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -6284,7 +6352,7 @@ private fun AdminModalToggleRow(
         BasicText(
             text = label,
             modifier = Modifier.weight(1f),
-            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Color(0xFF151729)),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = palette.ink),
         )
         Spacer(Modifier.width(10.dp))
         Box(
@@ -6604,6 +6672,7 @@ private fun BotKeywordEditorModal(
     onSaveRule: (String, String, String, Boolean) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     var keywordInput by remember(initialRule) { mutableStateOf(initialRule?.keyword.orEmpty()) }
     var autoReplyInput by remember(initialRule) { mutableStateOf(initialRule?.autoReply.orEmpty()) }
     var escalateFlag by remember(initialRule) { mutableStateOf(initialRule?.handoffToHuman ?: false) }
@@ -6687,11 +6756,11 @@ private fun BotKeywordEditorModal(
                     .weight(1f)
                     .height(44.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFFEDEDF5))
-                    .clickable(onClick = onDismiss),
+                    .background(palette.chipBg)
+                    .clickable(role = Role.Button, onClick = onDismiss),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
+                BasicText("Cancelar", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
             }
             Box(
                 modifier = Modifier
@@ -6957,6 +7026,7 @@ private fun BotConversationHandoffModal(
     onOpenWhatsApp: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     var liveReplyText by remember(threadItem.id) { mutableStateOf("") }
     val statusDescription = if (threadItem.botPaused) {
         val agentLabel = threadItem.assignedAgent.ifBlank { "María" }
@@ -6969,7 +7039,8 @@ private fun BotConversationHandoffModal(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(Color.White)
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(24.dp))
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -6983,22 +7054,23 @@ private fun BotConversationHandoffModal(
                     text = threadItem.customerName,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = palette.ink),
                 )
                 BasicText(
                     text = "${threadItem.phone} · ${threadItem.updatedAtLabel}",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF5F6377)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
                 )
             }
             Box(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFF3F3FA))
-                    .clickable(onClick = onDismiss),
+                    .background(palette.chipBg)
+                    .semantics { contentDescription = "Cerrar" }
+                    .clickable(role = Role.Button, onClick = onDismiss),
                 contentAlignment = Alignment.Center,
             ) {
-                RfIcon(kind = RfIconKind.CLOSE, tint = Color(0xFF5F6377), size = 15.dp)
+                RfIcon(kind = RfIconKind.CLOSE, tint = palette.muted, size = 15.dp)
             }
         }
 
@@ -7006,21 +7078,21 @@ private fun BotConversationHandoffModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFFF6F6FB))
+                .background(palette.chipBg)
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             BasicText(
                 text = "Último mensaje recibido",
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = Color(0xFF5F6377)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.5.sp, color = palette.muted),
             )
             BasicText(
                 text = threadItem.lastMessage,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = Color(0xFF151729)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, lineHeight = 20.sp, color = palette.ink),
             )
             BasicText(
                 text = statusDescription,
-                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF4B47D6)),
+                style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = rfAdminIndigoPillInk()),
             )
         }
 
@@ -7040,23 +7112,23 @@ private fun BotConversationHandoffModal(
                     .weight(1f)
                     .height(44.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF6F6FB))
-                    .border(1.dp, Color(0xFFE3E3EF), RoundedCornerShape(12.dp))
+                    .background(palette.chipBg)
+                    .border(1.dp, palette.fieldBorder, RoundedCornerShape(12.dp))
                     .padding(horizontal = 12.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 if (liveReplyText.isEmpty()) {
                     BasicText(
                         text = "Responder directo por WhatsApp...",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF8C90A4)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.muted),
                     )
                 }
                 BasicTextField(
                     value = liveReplyText,
                     onValueChange = { nextReply -> liveReplyText = nextReply.take(InputValidator.MAX_CHAT_MESSAGE_LENGTH) },
                     singleLine = true,
-                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = Color(0xFF151729)),
-                    cursorBrush = SolidColor(Color(0xFF5B6CF0)),
+                    textStyle = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, color = palette.ink),
+                    cursorBrush = SolidColor(palette.primaryAccent),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -7065,7 +7137,7 @@ private fun BotConversationHandoffModal(
                     .height(44.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(ReportGradient)
-                    .clickable {
+                    .clickable(role = Role.Button) {
                         onSendLiveReply(liveReplyText) {
                             liveReplyText = ""
                         }
@@ -7084,12 +7156,12 @@ private fun BotConversationHandoffModal(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFFFFEEF1))
+                    .background(rfAdminDangerPillBg())
                     .padding(10.dp),
             ) {
                 BasicText(
                     text = errorMessage,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFB42345)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = rfAdminDangerPillInk()),
                 )
             }
         }
@@ -7101,7 +7173,7 @@ private fun BotConversationHandoffModal(
                     .height(44.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .background(ReportGradient)
-                    .clickable(onClick = onOpenAdminChat),
+                    .clickable(role = Role.Button, onClick = onOpenAdminChat),
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText("Abrir chat Admin", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White))
@@ -7111,13 +7183,13 @@ private fun BotConversationHandoffModal(
                     .weight(1f)
                     .height(44.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color(0xFFEEF6D6))
-                    .clickable(onClick = onOpenWhatsApp),
+                    .background(rfAdminSuccessPillBg())
+                    .clickable(role = Role.Button, onClick = onOpenWhatsApp),
                 contentAlignment = Alignment.Center,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 16.dp)
-                    BasicText("Abrir WhatsApp", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF4E6A10)))
+                    RfIcon(kind = RfIconKind.WHATSAPP, tint = rfAdminSuccessPillInk(), size = 16.dp)
+                    BasicText("Abrir WhatsApp", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = rfAdminSuccessPillInk()))
                 }
             }
         }
@@ -7207,6 +7279,7 @@ private fun AdminPanelScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     RfRadialBackgroundBox(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -7220,11 +7293,11 @@ private fun AdminPanelScaffold(
                 BasicText(
                     "Panel",
                     modifier = Modifier.weight(1f),
-                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = palette.ink),
                 )
                 val (panelYear, panelMonth, _) = remember { DomainClockFormatter.currentCivilDateTriple() }
                 val panelPeriodLabel = "${spanishMonthName(panelMonth)} $panelYear"
-                BasicText(panelPeriodLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF5F6377)))
+                BasicText(panelPeriodLabel, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = palette.muted))
             }
             Spacer(Modifier.height(12.dp))
             AdminTabRow(
@@ -7608,15 +7681,17 @@ private fun AuditChip61(
     onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
+    val unselectedBrush = Brush.linearGradient(listOf(palette.surface, palette.surface))
 
     Box(
         modifier = Modifier
             .height(36.dp)
             .shadow(if (selected) 8.dp else 0.dp, RoundedCornerShape(999.dp), spotColor = Color(0x995B6CF0))
             .clip(RoundedCornerShape(999.dp))
-            .background(if (selected) ReportGradient else Brush.linearGradient(listOf(Color.White, Color.White)))
-            .border(1.dp, if (selected) Color.Transparent else Color(0xFFE9E9F2), RoundedCornerShape(999.dp))
-            .clickable(onClick = onClick)
+            .background(if (selected) ReportGradient else unselectedBrush)
+            .border(1.dp, if (selected) Color.Transparent else palette.line, RoundedCornerShape(999.dp))
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -7627,7 +7702,7 @@ private fun AuditChip61(
                 fontFamily = typo.bodyFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
-                color = if (selected) Color.White else Color(0xFF151729),
+                color = if (selected) Color.White else palette.ink,
             ),
         )
     }
@@ -7751,6 +7826,10 @@ internal fun RenderClientsAnalyticsS62(
     val nextClientEvent = clientEvents.firstOrNull()
     val whatsappGreeting = "Hola ${activeClient.fullName}, te escribimos de RosaFiesta"
 
+    val palette = RfThemeState.currentPalette
+    val violetTextColor = if (palette.isDark) Color(0xFFC5B8FF) else Color(0xFF7A4FD8)
+    val violetIconBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFEFE8FD)
+
     AdminPanelScaffold(activeCode = "s62", onSelectScreenCode = onSelectScreenCode, tabScroll = 56.dp) {
         Row(
             modifier = Modifier
@@ -7774,30 +7853,30 @@ internal fun RenderClientsAnalyticsS62(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                .background(palette.surface)
+                .border(1.dp, palette.line, RoundedCornerShape(22.dp))
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Box(
-                modifier = Modifier.size(56.dp).clip(CircleShape).background(Color(0xFFECEBFF)),
+                modifier = Modifier.size(56.dp).clip(CircleShape).background(rfAdminIndigoPillBg()),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText(clientInitial, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = Color(0xFF4B47D6)))
+                BasicText(clientInitial, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, color = rfAdminIndigoPillInk()))
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 BasicText(
                     activeClient.fullName,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = palette.ink),
                 )
                 BasicText(
                     activeClient.email,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = Color(0xFF5F6377)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = palette.muted),
                 )
                 val zoneVipMeta = listOf(activeClient.zone, activeClient.vipTag)
                     .filter { metaPart -> metaPart.isNotBlank() }
@@ -7807,7 +7886,7 @@ internal fun RenderClientsAnalyticsS62(
                         zoneVipMeta,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = Color(0xFF7A4FD8)),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = violetTextColor),
                     )
                 }
             }
@@ -7815,13 +7894,14 @@ internal fun RenderClientsAnalyticsS62(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFEEF6D6))
-                    .clickable {
+                    .background(rfAdminSuccessPillBg())
+                    .semantics { contentDescription = "Contactar por WhatsApp" }
+                    .clickable(role = Role.Button) {
                         viewModel?.openWhatsAppChat(activeClient.phone, whatsappGreeting)
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 20.dp)
+                RfIcon(kind = RfIconKind.WHATSAPP, tint = rfAdminSuccessPillInk(), size = 20.dp)
             }
         }
 
@@ -7833,19 +7913,19 @@ internal fun RenderClientsAnalyticsS62(
                 modifier = Modifier.weight(1f),
                 label = "LTV contratado",
                 value = formattedLtvLabel,
-                accentColor = Color(0xFF4B47D6),
+                accentColor = rfAdminIndigoPillInk(),
             )
             ClientMetricTile62(
                 modifier = Modifier.weight(1f),
                 label = "Eventos",
                 value = "$computedEventsCount",
-                accentColor = Color(0xFF7A4FD8),
+                accentColor = violetTextColor,
             )
             ClientMetricTile62(
                 modifier = Modifier.weight(1f),
                 label = "Por cobrar",
                 value = formattedPendingLabel,
-                accentColor = Color(0xFF7A5700),
+                accentColor = rfAdminWarnPillInk(),
             )
         }
 
@@ -7854,17 +7934,17 @@ internal fun RenderClientsAnalyticsS62(
                 .fillMaxWidth()
                 .height(44.dp)
                 .clip(RoundedCornerShape(999.dp))
-                .background(Color(0xFFEEF6D6))
-                .clickable {
+                .background(rfAdminSuccessPillBg())
+                .clickable(role = Role.Button) {
                     viewModel?.openWhatsAppChat(activeClient.phone, whatsappGreeting)
                 },
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                RfIcon(kind = RfIconKind.WHATSAPP, tint = Color(0xFF4E6A10), size = 18.dp)
+                RfIcon(kind = RfIconKind.WHATSAPP, tint = rfAdminSuccessPillInk(), size = 18.dp)
                 BasicText(
                     "Contactar por WhatsApp",
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF4E6A10)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = rfAdminSuccessPillInk()),
                 )
             }
         }
@@ -7872,7 +7952,7 @@ internal fun RenderClientsAnalyticsS62(
         BasicText(
             "PRÓXIMO EVENTO",
             modifier = Modifier.padding(top = 6.dp),
-            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp, color = Color(0xFF5F6377)),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp, color = palette.muted),
         )
 
         val upcomingTitle = nextClientEvent?.title ?: "Historial de ${activeClient.fullName}"
@@ -7888,8 +7968,8 @@ internal fun RenderClientsAnalyticsS62(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFFFFF2C9))
-                .clickable {
+                .background(rfAdminWarnPillBg())
+                .clickable(role = Role.Button) {
                     if (nextClientEvent != null) {
                         viewModel?.selectEvent(nextClientEvent.id)
                     }
@@ -7900,28 +7980,28 @@ internal fun RenderClientsAnalyticsS62(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Column(
-                modifier = Modifier.width(52.dp).height(56.dp).clip(RoundedCornerShape(14.dp)).background(RfThemeState.currentPalette.surface),
+                modifier = Modifier.width(52.dp).height(56.dp).clip(RoundedCornerShape(14.dp)).background(palette.surface),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                BasicText(upcomingDayDigits, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, lineHeight = 21.sp, color = Color(0xFF151729)))
-                BasicText("EVT", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.7.sp, color = Color(0xFF151729)))
+                BasicText(upcomingDayDigits, style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, lineHeight = 21.sp, color = palette.ink))
+                BasicText("EVT", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.7.sp, color = palette.ink))
             }
             Column(modifier = Modifier.weight(1f)) {
                 BasicText(
                     upcomingTitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF151729)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = palette.ink),
                 )
                 BasicText(
                     upcomingSubtitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF7A5700)),
+                    style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = rfAdminWarnPillInk()),
                 )
             }
-            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF7A5700), size = 18.dp)
+            RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = rfAdminWarnPillInk(), size = 18.dp)
         }
 
         Column(
@@ -7929,14 +8009,14 @@ internal fun RenderClientsAnalyticsS62(
                 .fillMaxWidth()
                 .padding(top = 6.dp)
                 .clip(RoundedCornerShape(22.dp))
-                .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp)),
+                .background(palette.surface)
+                .border(1.dp, palette.line, RoundedCornerShape(22.dp)),
         ) {
             ClientActionRow62(
                 label = "Eventos del cliente",
                 icon = RfIconKind.CALENDAR,
-                iconBackground = Color(0xFFEFE8FD),
-                iconTint = Color(0xFF7A4FD8),
+                iconBackground = violetIconBg,
+                iconTint = violetTextColor,
                 badge = computedEventsCount.toString(),
                 divider = false,
                 onClick = { onSelectScreenCode("A11") },
@@ -7945,8 +8025,8 @@ internal fun RenderClientsAnalyticsS62(
             ClientActionRow62(
                 label = "Pagos (${clientPayments.size})",
                 icon = RfIconKind.WALLET,
-                iconBackground = Color(0xFFEEF6D6),
-                iconTint = Color(0xFF4E6A10),
+                iconBackground = rfAdminSuccessPillBg(),
+                iconTint = rfAdminSuccessPillInk(),
                 badge = formattedPaymentsTotalLabel,
                 divider = true,
                 onClick = { onSelectScreenCode("s59") },
@@ -7954,8 +8034,8 @@ internal fun RenderClientsAnalyticsS62(
             ClientActionRow62(
                 label = "Ficha del cliente",
                 icon = RfIconKind.BELL,
-                iconBackground = Color(0xFFDDF4F3),
-                iconTint = Color(0xFF1F8A84),
+                iconBackground = rfAdminTealPillBg(),
+                iconTint = rfAdminTealPillInk(),
                 divider = true,
                 onClick = {
                     viewModel?.selectClient(activeClient.id)
@@ -7974,11 +8054,12 @@ private fun ClientMetricTile62(
     accentColor: Color,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(RfThemeState.currentPalette.surface)
-            .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(18.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(18.dp))
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -7986,7 +8067,7 @@ private fun ClientMetricTile62(
             text = label,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp, color = Color(0xFF5F6377)),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp, color = palette.muted),
         )
         BasicText(
             text = value,
@@ -8008,6 +8089,7 @@ private fun ClientActionRow62(
     onClick: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     Row(
         modifier = Modifier
@@ -8015,11 +8097,11 @@ private fun ClientActionRow62(
             .drawBehind {
                 if (divider) {
                     val stroke = 1.dp.toPx()
-                    drawLine(Color(0xFFF0F0F6), Offset(0f, stroke / 2f), Offset(size.width, stroke / 2f), stroke)
+                    drawLine(palette.line, Offset(0f, stroke / 2f), Offset(size.width, stroke / 2f), stroke)
                 }
             }
             .heightIn(min = 60.dp)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -8035,11 +8117,11 @@ private fun ClientActionRow62(
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Color(0xFF151729)),
+            style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = palette.ink),
         )
         if (badge != null) {
-            BasicText(badge, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Color(0xFF5F6377)))
+            BasicText(badge, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = palette.muted))
         }
-        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = Color(0xFF5F6377), size = 16.dp)
+        RfIcon(kind = RfIconKind.CHEVRON_RIGHT, tint = palette.muted, size = 16.dp)
     }
 }

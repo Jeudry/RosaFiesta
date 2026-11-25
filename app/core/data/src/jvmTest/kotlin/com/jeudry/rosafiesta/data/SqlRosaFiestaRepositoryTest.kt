@@ -672,4 +672,83 @@ class SqlRosaFiestaRepositoryTest {
         assertTrue(reloadedEvent.items.isNotEmpty())
         assertTrue(reloadedRepo.offlineQueue.value.any { item -> !item.synced })
     }
+
+    @Test
+    fun `persists setup photos contact phone and avatarKey in SQLite and reverts checklist on 403 rejection`() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val driver = DriverFactory().createDriver()
+
+        val mockEngine = MockEngine { request ->
+            val path = request.url.encodedPath
+            if (path.contains("/checklist/")) {
+                respond(
+                    content = """{"code":"AUTH_FORBIDDEN","message":"Checklist restringido"}""",
+                    status = HttpStatusCode.Forbidden,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            } else {
+                respond(
+                    content = """{}""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                )
+            }
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val apiClient = RosaFiestaApiClient(
+            baseUrl = "http://localhost:8788",
+            ioDispatcher = testDispatcher,
+            httpClient = httpClient,
+        )
+
+        val repo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = apiClient,
+            seedDemoData = true,
+        )
+        testScheduler.advanceUntilIdle()
+
+        val initialStep = repo.checklist.value.first { step -> step.id == "chk-5" }
+        var capturedError = ""
+        repo.toggleChecklistStepAsync("chk-5") { err -> capturedError = err }
+        testScheduler.advanceUntilIdle()
+        val afterRejected = repo.checklist.value.first { step -> step.id == "chk-5" }
+        assertEquals(initialStep.completed, afterRejected.completed)
+        assertTrue(capturedError.isNotBlank())
+        assertFalse(repo.offlineQueue.value.any { item -> item.operationType == "toggle_checklist" })
+
+        repo.createEvent(
+            title = "Aniversario Privado",
+            clientName = "Sofia Perez",
+            dateLabel = "28 Nov 2026",
+            venue = "Piantini",
+            guests = 55,
+            contactPhone = "8095559988",
+        )
+        testScheduler.advanceUntilIdle()
+        val createdEvent = repo.events.value.first { evt -> evt.title == "Aniversario Privado" }
+        assertEquals("8095559988", createdEvent.contactPhone)
+
+        repo.updateEventDetails(
+            eventId = createdEvent.id,
+            setupPhotoUrls = listOf("/v1/media/montaje-a.jpg", "/v1/media/montaje-b.jpg"),
+        )
+        testScheduler.advanceUntilIdle()
+
+        val reloadedRepo = SqlRosaFiestaRepository(
+            driver = driver,
+            ioDispatcher = testDispatcher,
+            apiClient = null,
+            seedDemoData = true,
+        )
+        testScheduler.advanceUntilIdle()
+        val reloadedEvent = reloadedRepo.events.value.first { evt -> evt.id == createdEvent.id }
+        assertEquals("8095559988", reloadedEvent.contactPhone)
+        assertEquals(listOf("/v1/media/montaje-a.jpg", "/v1/media/montaje-b.jpg"), reloadedEvent.setupPhotoUrls)
+    }
 }

@@ -1,7 +1,16 @@
 # HTTPS automático (Let's Encrypt) para API y frontends Web WasmJS de RosaFiesta.
 {$API_DOMAIN} {
-	encode zstd gzip
-	reverse_proxy api:8788
+	@sse path /v1/stream
+	handle @sse {
+		reverse_proxy api:8788 {
+			flush_interval -1
+			header_up X-Accel-Buffering no
+		}
+	}
+	handle {
+		encode zstd gzip
+		reverse_proxy api:8788
+	}
 	header {
 		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		X-Content-Type-Options "nosniff"

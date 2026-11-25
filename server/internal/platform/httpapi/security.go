@@ -227,12 +227,8 @@ func isSensitiveAuthPath(path string) bool {
 func extractClientIP(r *http.Request, trustedProxies []net.IPNet) string {
 	remoteIP := remoteAddrHost(r.RemoteAddr)
 	if isTrustedProxyIP(remoteIP, trustedProxies) {
-		if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwarded != "" {
-			first, _, _ := strings.Cut(forwarded, ",")
-			candidate := strings.TrimSpace(first)
-			if candidate != "" {
-				return candidate
-			}
+		if clientIP := parseForwardedClientIP(r.Header.Get("X-Forwarded-For"), trustedProxies); clientIP != "" {
+			return clientIP
 		}
 	}
 	if remoteIP != "" {
@@ -242,6 +238,24 @@ func extractClientIP(r *http.Request, trustedProxies []net.IPNet) string {
 		return r.RemoteAddr
 	}
 	return "unknown"
+}
+
+func parseForwardedClientIP(rawHeader string, trustedProxies []net.IPNet) string {
+	trimmed := strings.TrimSpace(rawHeader)
+	if trimmed == "" {
+		return ""
+	}
+	parts := strings.Split(trimmed, ",")
+	for idx := len(parts) - 1; idx >= 0; idx-- {
+		candidate := strings.TrimSpace(parts[idx])
+		if candidate == "" {
+			continue
+		}
+		if !isTrustedProxyIP(candidate, trustedProxies) {
+			return candidate
+		}
+	}
+	return strings.TrimSpace(parts[0])
 }
 
 func remoteAddrHost(remoteAddr string) string {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -84,12 +85,17 @@ func run() error {
 	routerOpts := httpapi.RouterOptions{
 		AllowedOrigins: cfg.CORSAllowedOrigins,
 		DisableDocs:    cfg.Env == config.EnvProduction,
+		TrustedProxies: cfg.TrustedProxies,
 	}
-	modules := app.Modules(deps)
+	modules, modErr := app.BuildModules(deps)
+	if modErr != nil {
+		return fmt.Errorf("build modules: %w", modErr)
+	}
 	handler, _ := httpapi.NewWithOptions(logger, routerOpts, modules...)
 	server := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
 		Handler:           handler,
+		BaseContext:       func(net.Listener) context.Context { return ctx },
 		ReadHeaderTimeout: readHeaderTimeout,
 		IdleTimeout:       60 * time.Second,
 	}

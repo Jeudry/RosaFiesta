@@ -42,6 +42,16 @@ func (q *Queries) DeleteDeliveryStopsByEvent(ctx context.Context, eventID string
 	return err
 }
 
+const deleteDeliveryZonesNotIn = `-- name: DeleteDeliveryZonesNotIn :exec
+DELETE FROM delivery_zones
+WHERE NOT (id = ANY($1::text[]))
+`
+
+func (q *Queries) DeleteDeliveryZonesNotIn(ctx context.Context, dollar_1 []string) error {
+	_, err := q.db.Exec(ctx, deleteDeliveryZonesNotIn, dollar_1)
+	return err
+}
+
 const deleteSupplier = `-- name: DeleteSupplier :exec
 DELETE FROM suppliers
 WHERE id = $1
@@ -54,14 +64,32 @@ func (q *Queries) DeleteSupplier(ctx context.Context, id string) error {
 
 const getBusinessSettings = `-- name: GetBusinessSettings :one
 SELECT id, company_name, rnc, address, phone, whatsapp, email,
-       instagram, facebook, business_hours, itbis_percent, deposit_percent, updated_at
+       instagram, facebook, business_hours, itbis_percent, deposit_percent,
+       whatsapp_auto_alerts_enabled, updated_at
 FROM business_settings
 WHERE id = 'default'
 `
 
-func (q *Queries) GetBusinessSettings(ctx context.Context) (BusinessSetting, error) {
+type GetBusinessSettingsRow struct {
+	ID                        string
+	CompanyName               string
+	Rnc                       string
+	Address                   string
+	Phone                     string
+	Whatsapp                  string
+	Email                     string
+	Instagram                 string
+	Facebook                  string
+	BusinessHours             string
+	ItbisPercent              int
+	DepositPercent            int
+	WhatsappAutoAlertsEnabled bool
+	UpdatedAt                 time.Time
+}
+
+func (q *Queries) GetBusinessSettings(ctx context.Context) (GetBusinessSettingsRow, error) {
 	row := q.db.QueryRow(ctx, getBusinessSettings)
-	var i BusinessSetting
+	var i GetBusinessSettingsRow
 	err := row.Scan(
 		&i.ID,
 		&i.CompanyName,
@@ -75,6 +103,7 @@ func (q *Queries) GetBusinessSettings(ctx context.Context) (BusinessSetting, err
 		&i.BusinessHours,
 		&i.ItbisPercent,
 		&i.DepositPercent,
+		&i.WhatsappAutoAlertsEnabled,
 		&i.UpdatedAt,
 	)
 	return i, err
@@ -692,20 +721,31 @@ func (q *Queries) ListOfflineMutations(ctx context.Context) ([]ListOfflineMutati
 }
 
 const listReviews = `-- name: ListReviews :many
-SELECT id, event_id, client_name, rating, comment, admin_reply, created_at
+SELECT id, event_id, client_name, rating, comment, admin_reply, verified, created_at
 FROM reviews
 ORDER BY created_at DESC, id ASC
 `
 
-func (q *Queries) ListReviews(ctx context.Context) ([]Review, error) {
+type ListReviewsRow struct {
+	ID         string
+	EventID    string
+	ClientName string
+	Rating     int
+	Comment    string
+	AdminReply string
+	Verified   bool
+	CreatedAt  time.Time
+}
+
+func (q *Queries) ListReviews(ctx context.Context) ([]ListReviewsRow, error) {
 	rows, err := q.db.Query(ctx, listReviews)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Review
+	var items []ListReviewsRow
 	for rows.Next() {
-		var i Review
+		var i ListReviewsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.EventID,
@@ -713,6 +753,7 @@ func (q *Queries) ListReviews(ctx context.Context) ([]Review, error) {
 			&i.Rating,
 			&i.Comment,
 			&i.AdminReply,
+			&i.Verified,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -932,10 +973,12 @@ func (q *Queries) UpsertBotThread(ctx context.Context, arg UpsertBotThreadParams
 const upsertBusinessSettings = `-- name: UpsertBusinessSettings :exec
 INSERT INTO business_settings (
     id, company_name, rnc, address, phone, whatsapp, email,
-    instagram, facebook, business_hours, itbis_percent, deposit_percent, updated_at
+    instagram, facebook, business_hours, itbis_percent, deposit_percent,
+    whatsapp_auto_alerts_enabled, updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7,
-    $8, $9, $10, $11, $12, $13
+    $8, $9, $10, $11, $12,
+    $13, $14
 )
 ON CONFLICT (id) DO UPDATE SET
     company_name = EXCLUDED.company_name,
@@ -949,23 +992,25 @@ ON CONFLICT (id) DO UPDATE SET
     business_hours = EXCLUDED.business_hours,
     itbis_percent = EXCLUDED.itbis_percent,
     deposit_percent = EXCLUDED.deposit_percent,
+    whatsapp_auto_alerts_enabled = EXCLUDED.whatsapp_auto_alerts_enabled,
     updated_at = EXCLUDED.updated_at
 `
 
 type UpsertBusinessSettingsParams struct {
-	ID             string
-	CompanyName    string
-	Rnc            string
-	Address        string
-	Phone          string
-	Whatsapp       string
-	Email          string
-	Instagram      string
-	Facebook       string
-	BusinessHours  string
-	ItbisPercent   int
-	DepositPercent int
-	UpdatedAt      time.Time
+	ID                        string
+	CompanyName               string
+	Rnc                       string
+	Address                   string
+	Phone                     string
+	Whatsapp                  string
+	Email                     string
+	Instagram                 string
+	Facebook                  string
+	BusinessHours             string
+	ItbisPercent              int
+	DepositPercent            int
+	WhatsappAutoAlertsEnabled bool
+	UpdatedAt                 time.Time
 }
 
 func (q *Queries) UpsertBusinessSettings(ctx context.Context, arg UpsertBusinessSettingsParams) error {
@@ -982,6 +1027,7 @@ func (q *Queries) UpsertBusinessSettings(ctx context.Context, arg UpsertBusiness
 		arg.BusinessHours,
 		arg.ItbisPercent,
 		arg.DepositPercent,
+		arg.WhatsappAutoAlertsEnabled,
 		arg.UpdatedAt,
 	)
 	return err
@@ -1332,10 +1378,11 @@ func (q *Queries) UpsertOfflineMutation(ctx context.Context, arg UpsertOfflineMu
 }
 
 const upsertReview = `-- name: UpsertReview :exec
-INSERT INTO reviews (id, event_id, client_name, rating, comment, admin_reply, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO reviews (id, event_id, client_name, rating, comment, admin_reply, verified, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (id) DO UPDATE SET
     admin_reply = EXCLUDED.admin_reply,
+    verified = EXCLUDED.verified,
     comment = EXCLUDED.comment,
     rating = EXCLUDED.rating
 `
@@ -1347,6 +1394,7 @@ type UpsertReviewParams struct {
 	Rating     int
 	Comment    string
 	AdminReply string
+	Verified   bool
 	CreatedAt  time.Time
 }
 
@@ -1358,6 +1406,7 @@ func (q *Queries) UpsertReview(ctx context.Context, arg UpsertReviewParams) erro
 		arg.Rating,
 		arg.Comment,
 		arg.AdminReply,
+		arg.Verified,
 		arg.CreatedAt,
 	)
 	return err

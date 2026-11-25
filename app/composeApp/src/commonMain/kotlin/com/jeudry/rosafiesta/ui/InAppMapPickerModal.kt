@@ -46,8 +46,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -66,8 +74,10 @@ import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.decodeEncodedImageBitmapOrNull
 import com.jeudry.rosafiesta.domain.MapPlaceSuggestion
 import com.jeudry.rosafiesta.domain.validation.InputValidator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.PI
 import kotlin.math.atan
 import kotlin.math.ceil
@@ -83,6 +93,7 @@ private const val MAP_MAX_ZOOM: Int = 18
 private const val MAP_DEFAULT_ZOOM: Int = 14
 private const val MAP_TILE_DP: Float = 256f
 private const val MAP_MAX_LATITUDE: Double = 85.0511
+private const val MAX_CACHED_MAP_TILES: Int = 48
 
 private fun longitudeToTileX(longitude: Double, zoom: Int): Double {
     val worldTileSpan = (1 shl zoom).toDouble()
@@ -162,13 +173,16 @@ internal fun RfInAppMapPickerModal(
     var isResolvingPin by remember { mutableStateOf(false) }
     var pinMoveSequence by remember { mutableStateOf(0) }
 
-    val loadedTiles = remember { mutableStateMapOf<String, ImageBitmap?>() }
-    val requestedTileKeys = remember { mutableStateMapOf<String, Boolean>() }
+    val loadedTiles = remember { mutableStateMapOf<String, ImageBitmap>() }
+    val inFlightTileKeys = remember { mutableStateMapOf<String, Boolean>() }
+    val tileOrder = remember { mutableListOf<String>() }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(mapClient) {
         onDispose {
             loadedTiles.clear()
-            requestedTileKeys.clear()
+            inFlightTileKeys.clear()
+            tileOrder.clear()
+            mapClient.close()
         }
     }
 
@@ -229,6 +243,17 @@ internal fun RfInAppMapPickerModal(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.50f))
+                .onPreviewKeyEvent { keyEvent ->
+                    val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                    val isEscape = keyEvent.key == Key.Escape
+                    val shouldDismiss = if (isKeyDown) isEscape else false
+                    if (shouldDismiss) {
+                        onDismiss()
+                        true
+                    } else {
+                        false
+                    }
+                }
                 .clickable(
                     interactionSource = backdropInteractionSource,
                     indication = null,
@@ -306,7 +331,7 @@ internal fun RfInAppMapPickerModal(
                         .weight(1f)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFFEDEAF6))
+                        .background(palette.chipBg)
                         .border(1.dp, palette.lineSoft, RoundedCornerShape(20.dp))
                         .clipToBounds(),
                 ) {
@@ -315,7 +340,8 @@ internal fun RfInAppMapPickerModal(
                         centerLongitude = centerLongitude,
                         mapZoom = mapZoom,
                         loadedTiles = loadedTiles,
-                        requestedTileKeys = requestedTileKeys,
+                        inFlightTileKeys = inFlightTileKeys,
+                        tileOrder = tileOrder,
                         mapClient = mapClient,
                         onPanByTiles = { deltaTileX, deltaTileY ->
                             val currentTileX = longitudeToTileX(centerLongitude, mapZoom)
@@ -366,13 +392,13 @@ internal fun RfInAppMapPickerModal(
                         style = TextStyle(
                             fontFamily = typo.bodyFamily,
                             fontSize = 9.sp,
-                            color = Color(0xFF514B68),
+                            color = palette.muted,
                         ),
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .padding(start = 8.dp, bottom = 6.dp)
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color.White.copy(alpha = 0.82f))
+                            .background(palette.surface.copy(alpha = 0.88f))
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                     )
 
@@ -452,7 +478,8 @@ private fun MapPickerHeaderRow(
                 .size(34.dp)
                 .clip(CircleShape)
                 .background(palette.chipBg)
-                .clickable(onClick = onDismiss),
+                .semantics { contentDescription = "Cerrar mapa" }
+                .clickable(role = Role.Button, onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
             RfIcon(kind = RfIconKind.CLOSE, tint = palette.ink, size = 16.dp)
@@ -515,7 +542,19 @@ private fun MapSearchFieldBar(
                         fontSize = 14.sp,
                         color = palette.ink,
                     ),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onPreviewKeyEvent { keyEvent ->
+                            val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                            val isEnterKey = if (keyEvent.key == Key.Enter) true else keyEvent.key == Key.NumPadEnter
+                            val shouldSubmit = if (isKeyDown) isEnterKey else false
+                            if (shouldSubmit) {
+                                onSubmitSearch()
+                                true
+                            } else {
+                                false
+                            }
+                        },
                 )
             }
             if (isSearching) {
@@ -528,11 +567,14 @@ private fun MapSearchFieldBar(
                     ),
                 )
             } else if (searchQuery.isNotEmpty()) {
+                val actionBg = if (palette.isDark) Color(0xFF2B2852) else Color(0xFFECE4FF)
+                val actionInk = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF7A4FD8)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFECE4FF))
-                        .clickable(onClick = onSubmitSearch)
+                        .background(actionBg)
+                        .semantics { contentDescription = "Buscar dirección" }
+                        .clickable(role = Role.Button, onClick = onSubmitSearch)
                         .padding(horizontal = 10.dp, vertical = 5.dp),
                 ) {
                     BasicText(
@@ -541,7 +583,7 @@ private fun MapSearchFieldBar(
                             fontFamily = typo.bodyFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
-                            color = Color(0xFF7A4FD8),
+                            color = actionInk,
                         ),
                     )
                 }
@@ -556,13 +598,15 @@ private fun InteractiveSlippyMapCanvas(
     centerLatitude: Double,
     centerLongitude: Double,
     mapZoom: Int,
-    loadedTiles: MutableMap<String, ImageBitmap?>,
-    requestedTileKeys: MutableMap<String, Boolean>,
+    loadedTiles: MutableMap<String, ImageBitmap>,
+    inFlightTileKeys: MutableMap<String, Boolean>,
+    tileOrder: MutableList<String>,
     mapClient: InteractiveMapClient,
     onPanByTiles: (Double, Double) -> Unit,
     onDragFinished: () -> Unit,
     onTapAtCoordinates: (Double, Double) -> Unit,
 ) {
+    val palette = RfThemeState.currentPalette
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -588,21 +632,38 @@ private fun InteractiveSlippyMapCanvas(
                 val wrappedTileX = wrapTileX(rawTileX, mapZoom)
                 for (tileY in minTileY..maxTileY) {
                     val cacheKey = "$mapZoom/$wrappedTileX/$tileY"
-                    val alreadyRequested = requestedTileKeys.containsKey(cacheKey)
-                    if (!alreadyRequested) {
-                        requestedTileKeys[cacheKey] = true
+                    val alreadyLoaded = loadedTiles.containsKey(cacheKey)
+                    val currentlyInFlight = inFlightTileKeys.containsKey(cacheKey)
+                    val shouldFetch = if (alreadyLoaded) false else !currentlyInFlight
+                    if (shouldFetch) {
+                        inFlightTileKeys[cacheKey] = true
                         coroutineScope.launch {
-                            val tileBytes = mapClient.fetchMapTilePng(
-                                zoom = mapZoom,
-                                tileX = wrappedTileX,
-                                tileY = tileY,
-                            )
-                            val decodedBitmap = if (tileBytes != null) {
-                                decodeEncodedImageBitmapOrNull(tileBytes)
-                            } else {
-                                null
+                            try {
+                                val tileBytes = mapClient.fetchMapTilePng(
+                                    zoom = mapZoom,
+                                    tileX = wrappedTileX,
+                                    tileY = tileY,
+                                )
+                                val decodedBitmap = if (tileBytes != null) {
+                                    withContext(Dispatchers.Default) {
+                                        decodeEncodedImageBitmapOrNull(tileBytes)
+                                    }
+                                } else {
+                                    null
+                                }
+                                if (decodedBitmap != null) {
+                                    if (!loadedTiles.containsKey(cacheKey)) {
+                                        if (tileOrder.size >= MAX_CACHED_MAP_TILES) {
+                                            val oldestKey = tileOrder.removeAt(0)
+                                            loadedTiles.remove(oldestKey)
+                                        }
+                                        tileOrder.add(cacheKey)
+                                    }
+                                    loadedTiles[cacheKey] = decodedBitmap
+                                }
+                            } finally {
+                                inFlightTileKeys.remove(cacheKey)
                             }
-                            loadedTiles[cacheKey] = decodedBitmap
                         }
                     }
                 }
@@ -656,19 +717,21 @@ private fun InteractiveSlippyMapCanvas(
                             dstSize = IntSize(tilePixelExtent, tilePixelExtent),
                         )
                     } else {
+                        val placeholderBg = if (palette.isDark) palette.chipBg else Color(0xFFE9E6F4)
+                        val placeholderGrid = if (palette.isDark) palette.line else Color(0xFFDAD5EC)
                         drawRect(
-                            color = Color(0xFFE9E6F4),
+                            color = placeholderBg,
                             topLeft = Offset(leftPx, topPx),
                             size = androidx.compose.ui.geometry.Size(tileSizePx, tileSizePx),
                         )
                         drawLine(
-                            color = Color(0xFFDAD5EC),
+                            color = placeholderGrid,
                             start = Offset(leftPx, topPx),
                             end = Offset(leftPx + tileSizePx, topPx),
                             strokeWidth = 1f,
                         )
                         drawLine(
-                            color = Color(0xFFDAD5EC),
+                            color = placeholderGrid,
                             start = Offset(leftPx, topPx),
                             end = Offset(leftPx, topPx + tileSizePx),
                             strokeWidth = 1f,
@@ -739,7 +802,8 @@ private fun MapZoomAndCenterControls(
             Box(
                 modifier = Modifier
                     .size(38.dp)
-                    .clickable(enabled = canZoomIn, onClick = onZoomIn),
+                    .semantics { contentDescription = "Acercar mapa" }
+                    .clickable(enabled = canZoomIn, role = Role.Button, onClick = onZoomIn),
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
@@ -756,7 +820,8 @@ private fun MapZoomAndCenterControls(
             Box(
                 modifier = Modifier
                     .size(38.dp)
-                    .clickable(enabled = canZoomOut, onClick = onZoomOut),
+                    .semantics { contentDescription = "Alejar mapa" }
+                    .clickable(enabled = canZoomOut, role = Role.Button, onClick = onZoomOut),
                 contentAlignment = Alignment.Center,
             ) {
                 BasicText(
@@ -777,10 +842,15 @@ private fun MapZoomAndCenterControls(
                 .clip(CircleShape)
                 .background(palette.surface.copy(alpha = 0.95f))
                 .border(1.dp, palette.lineSoft, CircleShape)
-                .clickable(onClick = onResetSantoDomingo),
+                .semantics { contentDescription = "Centrar en Santo Domingo" }
+                .clickable(role = Role.Button, onClick = onResetSantoDomingo),
             contentAlignment = Alignment.Center,
         ) {
-            RfIcon(kind = RfIconKind.LOCATION, tint = Color(0xFF7A4FD8), size = 18.dp)
+            RfIcon(
+                kind = RfIconKind.LOCATION,
+                tint = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF7A4FD8),
+                size = 18.dp,
+            )
         }
     }
 }
@@ -850,16 +920,19 @@ private fun MapSelectedAddressSummary(
     val palette = RfThemeState.currentPalette
     val typo = LocalRfTypography.current
 
+    val summaryBg = if (palette.isDark) Color(0xFF262348) else Color(0xFFF6F1FF)
+    val summaryIconTint = if (palette.isDark) Color(0xFFA7A3FF) else Color(0xFF7A4FD8)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFFF6F1FF))
+            .background(summaryBg)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        RfIcon(kind = RfIconKind.LOCATION, tint = Color(0xFF7A4FD8), size = 18.dp)
+        RfIcon(kind = RfIconKind.LOCATION, tint = summaryIconTint, size = 18.dp)
         Column(modifier = Modifier.weight(1f)) {
             BasicText(
                 text = if (isResolvingPin) "Buscando dirección exacta..." else addressLabel,

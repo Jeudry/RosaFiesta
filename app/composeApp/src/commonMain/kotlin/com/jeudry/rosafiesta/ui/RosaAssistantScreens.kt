@@ -66,6 +66,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -150,6 +155,17 @@ private fun RfCenteredAnimatedAssistantModal(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.45f))
+                .onPreviewKeyEvent { keyEvent ->
+                    val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                    val isEscape = keyEvent.key == Key.Escape
+                    val shouldDismiss = if (isKeyDown) isEscape else false
+                    if (shouldDismiss) {
+                        onDismiss()
+                        true
+                    } else {
+                        false
+                    }
+                }
                 .clickable(
                     interactionSource = backdropInteraction,
                     indication = null,
@@ -7361,7 +7377,7 @@ internal data class SketchCanvasElement(
     val points: List<Pair<Float, Float>> = emptyList(),
 )
 
-private fun isTableElementKind(kind: SketchElementKind): Boolean {
+internal fun isTableElementKind(kind: SketchElementKind): Boolean {
     if (kind == SketchElementKind.ROUND_TABLE) return true
     return kind == SketchElementKind.RECT_TABLE
 }
@@ -7714,7 +7730,7 @@ private fun parseStrokePoints(rawPoints: String): List<Pair<Float, Float>> {
     }
 }
 
-private fun serializeSketchElements(elements: List<SketchCanvasElement>): String = elements.joinToString(";") { item ->
+internal fun serializeSketchElements(elements: List<SketchCanvasElement>): String = elements.joinToString(";") { item ->
     val safeId = sanitizeSketchToken(item.id)
     val safeLabel = sanitizeSketchToken(item.label)
     val roundedX = ((item.normX * 1000f).toInt() / 1000f)
@@ -7723,7 +7739,7 @@ private fun serializeSketchElements(elements: List<SketchCanvasElement>): String
     "$safeId|${item.kind.name}|$roundedX|$roundedY|${item.colorHex}|$safeLabel|$encodedPoints"
 }
 
-private fun parseSketchElements(rawSerialized: String): List<SketchCanvasElement> {
+internal fun parseSketchElements(rawSerialized: String): List<SketchCanvasElement> {
     val trimmed = rawSerialized.trim()
     if (trimmed.isEmpty()) {
         return emptyList()
@@ -7836,7 +7852,7 @@ private fun syncSketchElementsIdempotently(
     viewModel?.saveSketchLayoutJson(serialized)
 }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSingleSketchElement(
+internal fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSingleSketchElement(
     element: SketchCanvasElement,
     isThreeDimensionalPreview: Boolean,
     isSelected: Boolean = false,

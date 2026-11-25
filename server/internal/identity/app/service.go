@@ -145,7 +145,7 @@ type Service struct {
 	customNotifierProvided bool
 	users                  map[uuid.UUID]domain.User
 	sessionHashes          map[string]sessionEntry
-	revokedHashes          map[string]struct{}
+	revokedHashes          map[string]time.Time
 	refreshTokens          map[string]domain.RefreshTokenRecord
 	otps                   map[string]domain.OTPRecord
 	oauthStates            map[string]oauthStateEntry
@@ -212,7 +212,7 @@ func (s *Service) Reset(ctx context.Context) {
 	s.mu.Lock()
 	s.users = users
 	s.sessionHashes = sessions
-	s.revokedHashes = make(map[string]struct{})
+	s.revokedHashes = make(map[string]time.Time)
 	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
 	s.otps = make(map[string]domain.OTPRecord)
 	s.oauthStates = make(map[string]oauthStateEntry)
@@ -227,7 +227,7 @@ func (s *Service) ResetEmpty(_ context.Context) {
 	s.mu.Lock()
 	s.users = make(map[uuid.UUID]domain.User)
 	s.sessionHashes = make(map[string]sessionEntry)
-	s.revokedHashes = make(map[string]struct{})
+	s.revokedHashes = make(map[string]time.Time)
 	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
 	s.otps = make(map[string]domain.OTPRecord)
 	s.oauthStates = make(map[string]oauthStateEntry)
@@ -249,7 +249,7 @@ func (s *Service) ResetAdminOnly(ctx context.Context) {
 	s.mu.Lock()
 	s.users = users
 	s.sessionHashes = sessions
-	s.revokedHashes = make(map[string]struct{})
+	s.revokedHashes = make(map[string]time.Time)
 	s.refreshTokens = make(map[string]domain.RefreshTokenRecord)
 	s.otps = make(map[string]domain.OTPRecord)
 	s.oauthStates = make(map[string]oauthStateEntry)
@@ -277,11 +277,15 @@ func (s *Service) Authenticate(ctx context.Context, accessToken string) (uuid.UU
 	}
 	now := s.clock.Now()
 	s.mu.RLock()
-	_, isRevoked := s.revokedHashes[tokenHash]
+	revokedExp, hasRevokedEntry := s.revokedHashes[tokenHash]
 	store := s.store
 	entry, inMem := s.sessionHashes[tokenHash]
 	userMem, userExists := s.users[entry.UserID]
 	s.mu.RUnlock()
+	isRevoked := hasRevokedEntry
+	if isRevoked {
+		isRevoked = now.Before(revokedExp)
+	}
 	if isRevoked {
 		return uuid.Nil, domain.ErrInvalidCredentials
 	}
@@ -447,7 +451,7 @@ func (s *Service) Logout(ctx context.Context, rawToken string) error {
 	expiresAt := s.clock.Now().Add(defaultAccessTokenTTL)
 	s.mu.Lock()
 	delete(s.sessionHashes, tokenHash)
-	s.revokedHashes[tokenHash] = struct{}{}
+	s.recordRevokedHashLocked(tokenHash, expiresAt, s.clock.Now())
 	store := s.store
 	s.mu.Unlock()
 	storeEnabled := store != nil

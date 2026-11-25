@@ -49,6 +49,7 @@ UPDATE ncf_sequences
 SET last_number = last_number + 1
 WHERE ncf_type = $1
   AND last_number < max_number
+  AND (valid_until_iso = '' OR valid_until_iso >= $2)
 RETURNING prefix, last_number;
 
 -- name: UpsertRefund :exec

@@ -12,7 +12,10 @@ import (
 //
 // Se guarda en `api/openapi.json` y el CI verifica que coincida con el código.
 func OpenAPISpec() ([]byte, error) {
-	mods, _, _ := coreModules(Dependencies{})
+	mods, _, _, err := coreModules(Dependencies{})
+	if err != nil {
+		return nil, err
+	}
 	_, api := httpapi.New(slog.New(slog.DiscardHandler), mods...)
 	spec, err := json.MarshalIndent(api.OpenAPI(), "", "  ")
 	if err != nil {

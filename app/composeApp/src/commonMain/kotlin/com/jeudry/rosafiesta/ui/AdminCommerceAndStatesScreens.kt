@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -71,7 +72,16 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -4067,8 +4077,11 @@ internal fun RenderAdminEntryChoiceA30(
     onSwitchAppMode: () -> Unit = {},
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
     var onboardingStep by remember { mutableStateOf(0) }
-    var rememberChoice by remember { mutableStateOf(true) }
+    var previewRememberChoice by remember { mutableStateOf(true) }
+    val vmRememberChoice = viewModel?.rememberEntryChoice?.collectAsState()?.value
+    val rememberChoice = vmRememberChoice ?: previewRememberChoice
     val isInTourSlides = onboardingStep < 4
 
     val onboardingSummary = remember(viewModel) {
@@ -4090,10 +4103,14 @@ internal fun RenderAdminEntryChoiceA30(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F5FC)),
+            .background(palette.bg),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            drawAdminOnboardingBackground(step = onboardingStep)
+            drawAdminOnboardingBackground(
+                step = onboardingStep,
+                isDark = palette.isDark,
+                baseBg = palette.bg,
+            )
         }
 
         Row(
@@ -4139,15 +4156,16 @@ internal fun RenderAdminEntryChoiceA30(
                     modifier = Modifier
                         .height(38.dp)
                         .clip(AdminPillShape)
-                        .background(RfThemeState.currentPalette.surface.copy(alpha = 0.88f))
-                        .border(1.dp, Color(0xFFE0E2F2), AdminPillShape)
+                        .background(palette.surface.copy(alpha = 0.88f))
+                        .border(1.dp, palette.line, AdminPillShape)
+                        .semantics { role = Role.Button }
                         .clickable { onboardingStep = 4 }
                         .padding(horizontal = 15.dp)
                         .testTag("admin-onboarding-skip"),
                 ) {
                     BasicText(
                         text = "Omitir",
-                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.muted),
+                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = palette.muted),
                     )
                 }
             } else {
@@ -4157,18 +4175,23 @@ internal fun RenderAdminEntryChoiceA30(
                         .size(44.dp)
                         .rfIconButtonShadow(CircleShape, isAdmin = true)
                         .clip(CircleShape)
-                        .background(RfThemeState.currentPalette.surface)
-                        .border(1.dp, Color(0xFFE2E4F3), CircleShape)
+                        .background(palette.surface)
+                        .border(1.dp, palette.line, CircleShape)
+                        .semantics {
+                            contentDescription = "Volver"
+                            role = Role.Button
+                        }
                         .clickable { onboardingStep = 3 },
                 ) {
-                    RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 21.dp)
+                    RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 21.dp)
                 }
 
                 Box(
                     modifier = Modifier
                         .clip(AdminPillShape)
-                        .background(RfThemeState.currentPalette.surface.copy(alpha = 0.88f))
-                        .border(1.dp, Color(0xFFE2E4F3), AdminPillShape)
+                        .background(palette.surface.copy(alpha = 0.88f))
+                        .border(1.dp, palette.line, AdminPillShape)
+                        .semantics { role = Role.Button }
                         .clickable { onboardingStep = 0 }
                         .padding(horizontal = 12.dp, vertical = 7.dp),
                 ) {
@@ -4207,6 +4230,7 @@ internal fun RenderAdminEntryChoiceA30(
                         if (viewModel == null) {
                             onSelectScreenCode("A01")
                         } else {
+                            viewModel.saveRememberedEntryChoice(rememberChoice)
                             val hasSession = viewModel.hasValidAuthenticatedSession()
                             val isAdminOrStaff = viewModel.isCurrentSessionAdminOrStaff()
                             val canEnterImmediately = bothTrue(hasSession, isAdminOrStaff)
@@ -4223,10 +4247,18 @@ internal fun RenderAdminEntryChoiceA30(
                         }
                     },
                     onClientModeClick = {
+                        viewModel?.saveRememberedEntryChoice(rememberChoice)
                         viewModel?.switchRole("client")
                         onSwitchAppMode()
                     },
-                    onToggleRemember = { rememberChoice = !rememberChoice },
+                    onToggleRemember = {
+                        val nextRemember = !rememberChoice
+                        if (viewModel != null) {
+                            viewModel.saveRememberedEntryChoice(nextRemember)
+                        } else {
+                            previewRememberChoice = nextRemember
+                        }
+                    },
                 )
             }
         }
@@ -4293,11 +4325,15 @@ internal fun RenderAdminEntryChoiceA30(
                                 .size(54.dp)
                                 .rfIconButtonShadow(CircleShape, isAdmin = true)
                                 .clip(CircleShape)
-                                .background(RfThemeState.currentPalette.surface)
-                                .border(1.dp, Color(0xFFE2E4F3), CircleShape)
+                                .background(palette.surface)
+                                .border(1.dp, palette.line, CircleShape)
+                                .semantics {
+                                    contentDescription = "Paso anterior"
+                                    role = Role.Button
+                                }
                                 .clickable { onboardingStep = (onboardingStep - 1).coerceAtLeast(0) },
                         ) {
-                            RfIcon(kind = RfIconKind.BACK, tint = RfThemeState.currentPalette.ink, size = 21.dp)
+                            RfIcon(kind = RfIconKind.BACK, tint = palette.ink, size = 21.dp)
                         }
                     }
 
@@ -4308,6 +4344,10 @@ internal fun RenderAdminEntryChoiceA30(
                             .clip(CircleShape)
                             .background(AdminHeroGradient)
                             .shadow(elevation = 12.dp, shape = CircleShape, spotColor = Color(0x995B6CF0))
+                            .semantics {
+                                contentDescription = "Siguiente"
+                                role = Role.Button
+                            }
                             .clickable { onboardingStep = (onboardingStep + 1).coerceAtMost(4) }
                             .testTag("admin-onboarding-next"),
                     ) {
@@ -4324,8 +4364,12 @@ internal fun RenderAdminEntryChoiceA30(
     }
 }
 
-private fun DrawScope.drawAdminOnboardingBackground(step: Int) {
-    drawRect(Color(0xFFF6F5FC))
+private fun DrawScope.drawAdminOnboardingBackground(
+    step: Int,
+    isDark: Boolean,
+    baseBg: Color,
+) {
+    drawRect(baseBg)
     val primaryGlow = when (step) {
         0 -> Color(0xFFE7E4FF)
         1 -> Color(0xFFF2E2FA)
@@ -4339,24 +4383,26 @@ private fun DrawScope.drawAdminOnboardingBackground(step: Int) {
         2 -> rfAdminSuccessPillBg()
         else -> Color(0xFFDDF3FA)
     }
+    val glowAlpha = if (isDark) 0.16f else 1f
+    val ringAlpha = if (isDark) 0.22f else 1f
     drawRect(
         Brush.radialGradient(
-            listOf(primaryGlow, primaryGlow.copy(alpha = 0f)),
+            listOf(primaryGlow.copy(alpha = glowAlpha), primaryGlow.copy(alpha = 0f)),
             center = Offset(size.width * 0.15f, size.height * 0.08f),
             radius = size.width * 1.05f,
         ),
     )
     drawRect(
         Brush.radialGradient(
-            listOf(secondaryGlow, secondaryGlow.copy(alpha = 0f)),
+            listOf(secondaryGlow.copy(alpha = glowAlpha), secondaryGlow.copy(alpha = 0f)),
             center = Offset(size.width * 0.92f, size.height * 0.42f),
             radius = size.width * 0.9f,
         ),
     )
     val scaleFactor = size.width / 390f
     scale(scaleFactor, scaleFactor, Offset.Zero) {
-        drawCircle(color = Color(0xFFD5D7F7), radius = 22f, center = Offset(34f, 750f), style = Stroke(width = 2f))
-        drawCircle(color = Color(0xFFCDEEEB), radius = 30f, center = Offset(352f, 695f), style = Stroke(width = 1.6f))
+        drawCircle(color = Color(0xFFD5D7F7).copy(alpha = ringAlpha), radius = 22f, center = Offset(34f, 750f), style = Stroke(width = 2f))
+        drawCircle(color = Color(0xFFCDEEEB).copy(alpha = ringAlpha), radius = 30f, center = Offset(352f, 695f), style = Stroke(width = 1.6f))
         val diamond = Path().apply {
             moveTo(334f, 452f)
             lineTo(342f, 466f)
@@ -4364,7 +4410,7 @@ private fun DrawScope.drawAdminOnboardingBackground(step: Int) {
             lineTo(326f, 466f)
             close()
         }
-        drawPath(diamond, color = Color(0xFFA7D9DF), style = Stroke(width = 1.6f))
+        drawPath(diamond, color = Color(0xFFA7D9DF).copy(alpha = ringAlpha), style = Stroke(width = 1.6f))
         drawAdminSparkleStar(center = Offset(58f, 488f), radius = 9f, color = RfColors.IndigoBrand)
         drawAdminSparkleStar(center = Offset(302f, 790f), radius = 10f, color = Color(0xFFF5B53B))
     }
@@ -5215,7 +5261,11 @@ private fun AdminOnboardingEntryStage(
 
         Row(
             modifier = Modifier
-                .clickable(onClick = onToggleRemember)
+                .toggleable(
+                    value = rememberChoice,
+                    role = Role.Checkbox,
+                    onValueChange = { onToggleRemember() },
+                )
                 .padding(top = 4.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -5387,7 +5437,13 @@ internal fun RenderAdminSettingsA31(
     var depositPercent by remember(settings.depositPercent) { mutableStateOf(settings.depositPercent.coerceIn(10, 90)) }
     var itbisPercent by remember(settings.itbisPercent) { mutableStateOf(settings.itbisPercent.coerceIn(0, 30)) }
     var draftZones by remember(settings.zones) {
-        mutableStateOf(settings.zones.ifEmpty { defaultDeliveryZones() })
+        mutableStateOf(
+            if (viewModel != null) {
+                settings.zones
+            } else {
+                settings.zones.ifEmpty { defaultDeliveryZones() }
+            },
+        )
     }
 
     var saveAttempted by remember { mutableStateOf(false) }
@@ -5743,6 +5799,13 @@ internal fun RenderAdminSettingsA31(
                                 .border(1.dp, RfThemeState.currentPalette.line, AdminCardShape20),
                         ) {
                             Column {
+                                if (draftZones.isEmpty()) {
+                                    BasicText(
+                                        text = "Sin zonas de entrega configuradas.",
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+                                        style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, color = RfThemeState.currentPalette.muted),
+                                    )
+                                }
                                 draftZones.forEachIndexed { zoneIndex, zoneItem ->
                                     if (zoneIndex > 0) {
                                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.line))
@@ -5860,6 +5923,23 @@ internal fun RenderAdminSettingsA31(
                                             ) {
                                                 BasicText("+", style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF5B6CF0)))
                                             }
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(rfAdminDangerPillBg())
+                                                .semantics {
+                                                    contentDescription = "Eliminar zona ${zoneItem.name}"
+                                                    role = Role.Button
+                                                }
+                                                .clickable {
+                                                    draftZones = draftZones.filterNot { candidate -> candidate.id == zoneItem.id }
+                                                },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            RfIcon(kind = RfIconKind.CLOSE, tint = rfAdminDangerPillInk(), size = 14.dp)
                                         }
                                     }
                                 }
@@ -6006,7 +6086,7 @@ internal fun RenderAdminSettingsA31(
 
                     AdminSettingsSection.SECURITY_PREFS -> {
                         val adminPushEnabled = viewModel?.pushNotificationsEnabled?.collectAsState()?.value ?: true
-                        val adminWhatsappEnabled = viewModel?.whatsappAlertsEnabled?.collectAsState()?.value ?: true
+                        val adminWhatsappEnabled = settings.whatsappAutoAlertsEnabled
                         val adminBiometricEnabled = viewModel?.biometricLockEnabled?.collectAsState()?.value ?: false
                         val adminWifiOnlySync = viewModel?.autoSyncWifiOnly?.collectAsState()?.value ?: false
                         val adminOnWifi = viewModel?.isOnWifiConnection() ?: true
@@ -6030,7 +6110,7 @@ internal fun RenderAdminSettingsA31(
                                 title = "Alertas por WhatsApp",
                                 subtitle = "Seguimiento automático a clientes y recordatorios",
                                 checked = adminWhatsappEnabled,
-                                onToggle = { viewModel?.toggleWhatsappAlerts() },
+                                onToggle = { viewModel?.toggleBusinessWhatsappAutoAlerts() },
                             )
                             Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(RfThemeState.currentPalette.line))
                             AdminPrefToggleRowA31(
@@ -6159,6 +6239,17 @@ internal fun RenderAdminSettingsA31(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0x73141632))
+                    .onPreviewKeyEvent { keyEvent ->
+                        val isKeyDown = keyEvent.type == KeyEventType.KeyDown
+                        val isEscape = keyEvent.key == Key.Escape
+                        val shouldDismiss = if (isKeyDown) isEscape else false
+                        if (shouldDismiss) {
+                            showAddZoneModal = false
+                            true
+                        } else {
+                            false
+                        }
+                    }
                     .clickable(
                         interactionSource = scrimInteraction,
                         indication = null,
@@ -7390,7 +7481,11 @@ internal fun RenderAdminReplyReviewA34(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { publishAndVerify = !publishAndVerify }
+                        .toggleable(
+                            value = publishAndVerify,
+                            role = Role.Switch,
+                            onValueChange = { nextChecked -> publishAndVerify = nextChecked },
+                        )
                         .padding(horizontal = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -7451,11 +7546,12 @@ internal fun RenderAdminReplyReviewA34(
                             if (replyValidation != null) {
                                 localReplyError = replyValidation
                                 viewModel?.postError(replyValidation)
-                            } else if (!publishAndVerify) {
-                                localReplyError = "Activa «Publicar y verificar la reseña» para enviar la respuesta."
                             } else {
                                 val trimmedReply = replyText.trim()
-                                val publishedOk = viewModel?.replyToSelectedReview(trimmedReply) ?: true
+                                val publishedOk = viewModel?.replyToSelectedReview(
+                                    replyText = trimmedReply,
+                                    verified = publishAndVerify,
+                                ) ?: true
                                 if (publishedOk) {
                                     localReplyError = null
                                     viewModel?.clearFormError()
@@ -8516,7 +8612,11 @@ private fun AdminPrefToggleRowA31(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggle() }
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = { onToggle() },
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -8536,6 +8636,7 @@ private fun AdminPrefToggleRowA31(
         RfSwitch(
             checked = checked,
             onCheckedChange = { onToggle() },
+            accessibilityLabel = title,
         )
     }
 }

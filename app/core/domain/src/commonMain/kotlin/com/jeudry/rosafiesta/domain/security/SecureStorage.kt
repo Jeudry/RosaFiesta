@@ -49,6 +49,7 @@ public interface SecureStorage {
         public const val KEY_AUDIO_INTERACTION: String = "rf_audio_interaction"
         public const val KEY_AUDIO_ROSA: String = "rf_audio_rosa"
         public const val KEY_AUDIO_ALERTS: String = "rf_audio_alerts"
+        public const val KEY_REMEMBER_ENTRY_CHOICE: String = "rf_remember_entry_choice"
     }
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -43,11 +44,23 @@ func (r *Repository) AllocateNextNCF(ctx context.Context, ncfType string) (strin
 	if normalized != "B01" {
 		normalized = "B02"
 	}
-	row, err := r.queries.AllocateNextNCF(ctx, normalized)
+	todayAST := time.Now().In(santoDomingoLocation()).Format("2006-01-02")
+	row, err := r.queries.AllocateNextNCF(ctx, sqlcgen.AllocateNextNCFParams{
+		NcfType:       normalized,
+		ValidUntilIso: todayAST,
+	})
 	if err != nil {
 		return "", err
 	}
 	return domain.FormatNCFNumber(row.Prefix, row.LastNumber), nil
+}
+
+func santoDomingoLocation() *time.Location {
+	loc, err := time.LoadLocation("America/Santo_Domingo")
+	if err == nil {
+		return loc
+	}
+	return time.FixedZone("America/Santo_Domingo", -4*3600)
 }
 
 // UpsertPayment inserta o actualiza un registro de pago con su desglose fiscal y estado.

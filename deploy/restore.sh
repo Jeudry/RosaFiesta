@@ -4,13 +4,19 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 FILE="${1:?Indica el archivo de respaldo (.sql.gz)}"
+[ -f "$FILE" ] || { echo "Archivo no encontrado: $FILE"; exit 1; }
+[ -f ./.env ] || { echo "Falta deploy/.env"; exit 1; }
+gunzip -t "$FILE"
 set -a; source ./.env; set +a
 
 read -r -p "Esto reemplaza TODOS los datos de ${POSTGRES_DB}. Escribe 'restaurar' para seguir: " answer
 [ "$answer" = "restaurar" ] || { echo "Cancelado."; exit 1; }
 
+trap 'docker compose start api >/dev/null 2>&1 || true' ERR
 docker compose stop api
-docker compose exec -T db psql -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE IF EXISTS ${POSTGRES_DB};" -c "CREATE DATABASE ${POSTGRES_DB};"
+docker compose exec -T db psql -U "$POSTGRES_USER" -d postgres \
+  -c "DROP DATABASE IF EXISTS \"${POSTGRES_DB}\" WITH (FORCE);" \
+  -c "CREATE DATABASE \"${POSTGRES_DB}\";"
 gunzip -c "$FILE" | docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1
 docker compose start api
 echo "Restaurado desde $FILE"

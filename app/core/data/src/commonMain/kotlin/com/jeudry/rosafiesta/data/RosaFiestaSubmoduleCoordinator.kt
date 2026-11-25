@@ -249,6 +249,24 @@ internal class RosaFiestaSubmoduleCoordinator(
         }
     }
 
+    private class OfflineSyncAbortException(cause: Throwable) : RuntimeException(cause)
+
+    private suspend inline fun runSyncStep(block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: RosaFiestaApiException) {
+            // Backend returned a structured HTTP status; continue syncing remaining endpoints.
+        } catch (_: io.ktor.serialization.ContentConvertException) {
+            // Unexpected payload shape on one endpoint must not abort syncing remaining endpoints.
+        } catch (_: kotlinx.serialization.SerializationException) {
+            // Unexpected payload shape on one endpoint must not abort syncing remaining endpoints.
+        } catch (transportError: Throwable) {
+            throw OfflineSyncAbortException(transportError)
+        }
+    }
+
     suspend fun syncFromBackendAsync(): Boolean = withContext(ioDispatcher) {
         val client = apiClient ?: return@withContext false
         runCatching { onReplayPendingOutbox() }
@@ -256,384 +274,390 @@ internal class RosaFiestaSubmoduleCoordinator(
         var coreUpdated = false
         var submodulesUpdated = false
 
-        runCatching {
-            val response = client.listCategories()
-            val remoteCategories = response.categories
-            if (remoteCategories != null) {
-                _catalogCategories.value = remoteCategories.map { dto ->
-                    RosaFiestaBackendMappers.toCatalogCategory(dto)
-                }
-                anySucceeded = true
-            }
-        }
-
-        runCatching {
-            val response = client.listArticles()
-            val remoteArticles = response.articles
-            if (remoteArticles != null) {
-                val fallbackById = articlesFlow.value.associateBy { article -> article.id }
-                val activeCategories = _catalogCategories.value
-                val rentalDtos = remoteArticles.filter { dto -> dto.isDirectSale != true }
-                articlesFlow.value = rentalDtos.mapIndexed { index, dto ->
-                    RosaFiestaBackendMappers.toCatalogArticle(dto, index, fallbackById, activeCategories)
-                }
-                coreUpdated = true
-                anySucceeded = true
-            }
-        }
-
-        runCatching {
-            val response = client.listCatalogTrends(includeInactive = true)
-            val remoteTrends = response.trends
-            if (remoteTrends != null) {
-                _catalogTrends.value = remoteTrends.map { dto ->
-                    RosaFiestaBackendMappers.toCatalogTrend(dto)
-                }
-                anySucceeded = true
-            }
-        }
-
-        runCatching {
-            val response = client.getSeasonBanner()
-            _seasonBanner.value = RosaFiestaBackendMappers.toSeasonBanner(response.banner)
-            anySucceeded = true
-        }
-
-        runCatching {
-            val response = client.listBalloonProducts()
-            val remoteBalloons = response.articles
-            if (remoteBalloons != null) {
-                val fallbackById = _balloonProducts.value.associateBy { product -> product.id }
-                _balloonProducts.value = remoteBalloons.mapIndexed { index, dto ->
-                    RosaFiestaBackendMappers.toBalloonProduct(dto, index, fallbackById)
-                }
-                anySucceeded = true
-            }
-        }
-
-        runCatching {
-            val roleLower = activeRoleFlow.value.trim().lowercase()
-            val includeHiddenPackages = if (roleLower == "admin") true else roleLower.startsWith("staff")
-            val response = client.listPackages(includeHidden = includeHiddenPackages)
-            val remotePackages = response.packages
-            if (remotePackages != null) {
-                val fallbackById = _packages.value.associateBy { bundle -> bundle.id }
-                _packages.value = remotePackages.map { dto ->
-                    RosaFiestaBackendMappers.toEventPackage(dto, fallbackById)
-                }
-                anySucceeded = true
-            }
-        }
-
-        runCatching {
-            val response = client.listEventTemplates()
-            val remoteTemplates = response.templates
-            if (remoteTemplates != null) {
-                _templates.value = remoteTemplates.map { dto ->
-                    RosaFiestaBackendMappers.toEventTemplate(dto)
-                }
-                anySucceeded = true
-            }
-        }
-
-        runCatching {
-            val response = client.getPublicSettings()
-            _businessSettings.value = RosaFiestaBackendMappers.fromPublicSettings(
-                dto = response.settings,
-                fallback = _businessSettings.value,
-            )
-            anySucceeded = true
-        }
-
-        runCatching {
-            val response = client.listReviews()
-            val remoteReviews = response.reviews
-            if (remoteReviews != null) {
-                val eventsById = eventsFlow.value.associateBy { event -> event.id }
-                val fallbackById = _reviews.value.associateBy { review -> review.id }
-                _reviews.value = remoteReviews.map { dto ->
-                    RosaFiestaBackendMappers.toReviewRecord(dto, eventsById, fallbackById)
-                }
-                anySucceeded = true
-            }
-        }
-
-        if (hasRealServerToken(client)) {
-            runCatching {
-                val meOutput = client.fetchCurrentUser()
-                val current = currentAuthenticatedUserFlow.value
-                if (current != null) {
-                    val syncedPrefs = RosaFiestaBackendMappers.toUserPreferences(meOutput.user.preferences)
-                    val refreshed = current.copy(
-                        fullName = meOutput.user.fullName.ifBlank { current.fullName },
-                        phone = meOutput.user.phone.ifBlank { current.phone },
-                        birthDate = meOutput.user.birthDate.ifBlank { current.birthDate },
-                        role = meOutput.user.role.ifBlank { current.role },
-                        preferences = syncedPrefs,
-                    )
-                    upsertAccountInMemory(refreshed)
-                    currentAuthenticatedUserFlow.value = refreshed
-                    activeRoleFlow.value = refreshed.role
-                    currentUserEmailFlow.value = refreshed.email
+        try {
+            runSyncStep {
+                val response = client.listCategories()
+                val remoteCategories = response.categories
+                if (remoteCategories != null) {
+                    _catalogCategories.value = remoteCategories.map { dto ->
+                        RosaFiestaBackendMappers.toCatalogCategory(dto)
+                    }
                     anySucceeded = true
                 }
             }
 
-            if (favoritesFlow != null) {
-                runCatching {
-                    val favResponse = client.listFavorites()
-                    val remoteFavs = favResponse.favorites
-                    if (remoteFavs != null) {
-                        favoritesFlow.value = remoteFavs.toSet()
-                        anySucceeded = true
-                    }
-                }
-            }
-
-            runCatching {
-                val response = client.listEvents()
-                val remoteEvents = response.events
-                if (remoteEvents != null) {
-                    val fallbackById = eventsFlow.value.associateBy { event -> event.id }
-                    eventsFlow.value = remoteEvents.map { dto ->
-                        RosaFiestaBackendMappers.toClientEvent(dto, fallbackById)
+            runSyncStep {
+                val response = client.listArticles()
+                val remoteArticles = response.articles
+                if (remoteArticles != null) {
+                    val fallbackById = articlesFlow.value.associateBy { article -> article.id }
+                    val activeCategories = _catalogCategories.value
+                    val rentalDtos = remoteArticles.filter { dto -> dto.isDirectSale != true }
+                    articlesFlow.value = rentalDtos.mapIndexed { index, dto ->
+                        RosaFiestaBackendMappers.toCatalogArticle(dto, index, fallbackById, activeCategories)
                     }
                     coreUpdated = true
                     anySucceeded = true
                 }
             }
 
-            syncEventGuestsAndSchedule(client)
-
-            runCatching {
-                val response = client.listQuotes()
-                val remoteQuotes = response.quotes
-                if (remoteQuotes != null) {
-                    _quotes.value = remoteQuotes.map { dto ->
-                        RosaFiestaBackendMappers.toQuoteRecord(dto)
+            runSyncStep {
+                val response = client.listCatalogTrends(includeInactive = true)
+                val remoteTrends = response.trends
+                if (remoteTrends != null) {
+                    _catalogTrends.value = remoteTrends.map { dto ->
+                        RosaFiestaBackendMappers.toCatalogTrend(dto)
                     }
                     anySucceeded = true
                 }
             }
 
-            runCatching {
-                val response = client.listPayments()
-                val remotePayments = response.payments
-                if (remotePayments != null) {
-                    paymentsFlow.value = remotePayments.map { dto ->
-                        RosaFiestaBackendMappers.toPaymentRecord(dto)
-                    }
-                    coreUpdated = true
-                    anySucceeded = true
-                }
+            runSyncStep {
+                val response = client.getSeasonBanner()
+                _seasonBanner.value = RosaFiestaBackendMappers.toSeasonBanner(response.banner)
+                anySucceeded = true
             }
 
-            runCatching {
-                val response = client.listChatThreads()
-                val remoteThreads = response.threads
-                if (remoteThreads != null) {
-                    _chatThreads.value = remoteThreads.map { dto ->
-                        RosaFiestaBackendMappers.toChatThread(dto)
+            runSyncStep {
+                val response = client.listBalloonProducts()
+                val remoteBalloons = response.articles
+                if (remoteBalloons != null) {
+                    val fallbackById = _balloonProducts.value.associateBy { product -> product.id }
+                    _balloonProducts.value = remoteBalloons.mapIndexed { index, dto ->
+                        RosaFiestaBackendMappers.toBalloonProduct(dto, index, fallbackById)
                     }
                     anySucceeded = true
                 }
             }
 
-            syncThreadMessagesFromBackend(client)
-
-            runCatching {
-                val response = client.listNotifications()
-                val remoteNotifications = response.notifications
-                if (remoteNotifications != null) {
-                    _notifications.value = remoteNotifications.map { dto ->
-                        RosaFiestaBackendMappers.toNotificationRecord(dto)
+            runSyncStep {
+                val roleLower = activeRoleFlow.value.trim().lowercase()
+                val includeHiddenPackages = if (roleLower == "admin") true else roleLower.startsWith("staff")
+                val response = client.listPackages(includeHidden = includeHiddenPackages)
+                val remotePackages = response.packages
+                if (remotePackages != null) {
+                    val fallbackById = _packages.value.associateBy { bundle -> bundle.id }
+                    _packages.value = remotePackages.map { dto ->
+                        RosaFiestaBackendMappers.toEventPackage(dto, fallbackById)
                     }
                     anySucceeded = true
                 }
             }
 
-            val role = activeRoleFlow.value.trim().lowercase()
-            val isAdmin = role == "admin"
-            val isStaff = role.startsWith("staff")
-            val canViewOperations = if (isAdmin) true else isStaff
-            val isRestrictedYuli = role == "staff_yuli"
-            val yuliHasPaymentOverride = staffFlow.value.any { member ->
-                val isYuli = member.name.equals("Yuli", ignoreCase = true)
-                if (isYuli) member.canViewPayments else false
-            }
-            val canViewFinance = when {
-                isAdmin -> true
-                !isStaff -> false
-                !isRestrictedYuli -> true
-                else -> yuliHasPaymentOverride
-            }
-
-            var syncedRemoteSummary = false
-            if (canViewFinance) {
-                runCatching {
-                    val summaryOutput = client.getFinanceSummary()
-                    metricsFlow.value = RosaFiestaBackendMappers.toBusinessMetrics(
-                        summary = summaryOutput.summary,
-                        occupancyRatePercent = metricsFlow.value.occupancyRatePercent,
-                    )
-                    syncedRemoteSummary = true
+            runSyncStep {
+                val response = client.listEventTemplates()
+                val remoteTemplates = response.templates
+                if (remoteTemplates != null) {
+                    _templates.value = remoteTemplates.map { dto ->
+                        RosaFiestaBackendMappers.toEventTemplate(dto)
+                    }
                     anySucceeded = true
                 }
-                runCatching {
-                    val refundsOutput = client.listRefunds()
-                    val remoteRefunds = refundsOutput.refunds
-                    if (remoteRefunds != null) {
-                        val fallbackById = _refundRequests.value.associateBy { request -> request.id }
-                        _refundRequests.value = remoteRefunds.map { dto ->
-                            RosaFiestaBackendMappers.toRefundRequest(dto, fallbackById)
-                        }
+            }
+
+            runSyncStep {
+                val response = client.getPublicSettings()
+                _businessSettings.value = RosaFiestaBackendMappers.fromPublicSettings(
+                    dto = response.settings,
+                    fallback = _businessSettings.value,
+                )
+                anySucceeded = true
+            }
+
+            runSyncStep {
+                val response = client.listReviews()
+                val remoteReviews = response.reviews
+                if (remoteReviews != null) {
+                    val eventsById = eventsFlow.value.associateBy { event -> event.id }
+                    val fallbackById = _reviews.value.associateBy { review -> review.id }
+                    _reviews.value = remoteReviews.map { dto ->
+                        RosaFiestaBackendMappers.toReviewRecord(dto, eventsById, fallbackById)
+                    }
+                    anySucceeded = true
+                }
+            }
+
+            if (hasRealServerToken(client)) {
+                runSyncStep {
+                    val meOutput = client.fetchCurrentUser()
+                    val current = currentAuthenticatedUserFlow.value
+                    if (current != null) {
+                        val syncedPrefs = RosaFiestaBackendMappers.toUserPreferences(meOutput.user.preferences)
+                        val remoteAvatar = meOutput.user.avatarKey?.trim().orEmpty()
+                        val refreshed = current.copy(
+                            fullName = meOutput.user.fullName.ifBlank { current.fullName },
+                            phone = meOutput.user.phone.ifBlank { current.phone },
+                            birthDate = meOutput.user.birthDate.ifBlank { current.birthDate },
+                            role = meOutput.user.role.ifBlank { current.role },
+                            avatarKey = remoteAvatar.ifBlank { current.avatarKey },
+                            preferences = syncedPrefs,
+                        )
+                        upsertAccountInMemory(refreshed)
+                        currentAuthenticatedUserFlow.value = refreshed
+                        activeRoleFlow.value = refreshed.role
+                        currentUserEmailFlow.value = refreshed.email
                         anySucceeded = true
                     }
                 }
-            }
 
-            if (canViewOperations) {
-                runCatching {
-                    val clientsOutput = client.listClients()
-                    val remoteClients = clientsOutput.clients
-                    if (remoteClients != null) {
-                        val fallbackById = _clients.value.associateBy { profile -> profile.id }
-                        _clients.value = remoteClients.map { dto ->
-                            RosaFiestaBackendMappers.toClientProfile(dto, fallbackById)
+                if (favoritesFlow != null) {
+                    runSyncStep {
+                        val favResponse = client.listFavorites()
+                        val remoteFavs = favResponse.favorites
+                        if (remoteFavs != null) {
+                            favoritesFlow.value = remoteFavs.toSet()
+                            anySucceeded = true
                         }
-                        anySucceeded = true
                     }
                 }
-                runCatching {
-                    val staffOutput = client.listStaff()
-                    val remoteStaff = staffOutput.staff
-                    if (remoteStaff != null) {
-                        staffFlow.value = remoteStaff.map { dto ->
-                            RosaFiestaBackendMappers.toStaffProfile(dto, eventsFlow.value)
+
+                runSyncStep {
+                    val response = client.listEvents()
+                    val remoteEvents = response.events
+                    if (remoteEvents != null) {
+                        val fallbackById = eventsFlow.value.associateBy { event -> event.id }
+                        eventsFlow.value = remoteEvents.map { dto ->
+                            RosaFiestaBackendMappers.toClientEvent(dto, fallbackById)
                         }
                         coreUpdated = true
                         anySucceeded = true
                     }
                 }
-                runCatching {
-                    val routesOutput = client.listTodayRoutes()
-                    val remoteStops = routesOutput.stops
-                    if (remoteStops != null) {
-                        _deliveryStops.value = remoteStops.map { dto ->
-                            RosaFiestaBackendMappers.toDeliveryStop(dto)
+
+                syncEventGuestsAndSchedule(client)
+
+                runSyncStep {
+                    val response = client.listQuotes()
+                    val remoteQuotes = response.quotes
+                    if (remoteQuotes != null) {
+                        _quotes.value = remoteQuotes.map { dto ->
+                            RosaFiestaBackendMappers.toQuoteRecord(dto)
                         }
                         anySucceeded = true
                     }
                 }
-                runCatching {
-                    val queueOutput = client.listOfflineQueue()
-                    val remoteQueue = queueOutput.queue
-                    if (remoteQueue != null) {
-                        val localPending = offlineQueueFlow.value.filter { item -> !item.synced }
-                        val localKeys = localPending.map { item -> item.idempotencyKey }.filter { key -> key.isNotBlank() }.toSet()
-                        val remoteMapped = remoteQueue
-                            .map { dto -> RosaFiestaBackendMappers.toOfflineQueueItem(dto) }
-                            .filterNot { item ->
-                                val hasKey = item.idempotencyKey.isNotBlank()
-                                if (hasKey) item.idempotencyKey in localKeys else false
+
+                runSyncStep {
+                    val response = client.listPayments()
+                    val remotePayments = response.payments
+                    if (remotePayments != null) {
+                        paymentsFlow.value = remotePayments.map { dto ->
+                            RosaFiestaBackendMappers.toPaymentRecord(dto)
+                        }
+                        coreUpdated = true
+                        anySucceeded = true
+                    }
+                }
+
+                runSyncStep {
+                    val response = client.listChatThreads()
+                    val remoteThreads = response.threads
+                    if (remoteThreads != null) {
+                        _chatThreads.value = remoteThreads.map { dto ->
+                            RosaFiestaBackendMappers.toChatThread(dto)
+                        }
+                        anySucceeded = true
+                    }
+                }
+
+                syncThreadMessagesFromBackend(client)
+
+                runSyncStep {
+                    val response = client.listNotifications()
+                    val remoteNotifications = response.notifications
+                    if (remoteNotifications != null) {
+                        _notifications.value = remoteNotifications.map { dto ->
+                            RosaFiestaBackendMappers.toNotificationRecord(dto)
+                        }
+                        anySucceeded = true
+                    }
+                }
+
+                val role = activeRoleFlow.value.trim().lowercase()
+                val isAdmin = role == "admin"
+                val isStaff = role.startsWith("staff")
+                val canViewOperations = if (isAdmin) true else isStaff
+                val isRestrictedYuli = role == "staff_yuli"
+                val yuliHasPaymentOverride = staffFlow.value.any { member ->
+                    val isYuli = member.name.equals("Yuli", ignoreCase = true)
+                    if (isYuli) member.canViewPayments else false
+                }
+                val canViewFinance = when {
+                    isAdmin -> true
+                    !isStaff -> false
+                    !isRestrictedYuli -> true
+                    else -> yuliHasPaymentOverride
+                }
+
+                var syncedRemoteSummary = false
+                if (canViewFinance) {
+                    runSyncStep {
+                        val summaryOutput = client.getFinanceSummary()
+                        metricsFlow.value = RosaFiestaBackendMappers.toBusinessMetrics(
+                            summary = summaryOutput.summary,
+                            occupancyRatePercent = metricsFlow.value.occupancyRatePercent,
+                        )
+                        syncedRemoteSummary = true
+                        anySucceeded = true
+                    }
+                    runSyncStep {
+                        val refundsOutput = client.listRefunds()
+                        val remoteRefunds = refundsOutput.refunds
+                        if (remoteRefunds != null) {
+                            val fallbackById = _refundRequests.value.associateBy { request -> request.id }
+                            _refundRequests.value = remoteRefunds.map { dto ->
+                                RosaFiestaBackendMappers.toRefundRequest(dto, fallbackById)
                             }
-                        offlineQueueFlow.value = localPending + remoteMapped
-                        coreUpdated = true
+                            anySucceeded = true
+                        }
+                    }
+                }
+
+                if (canViewOperations) {
+                    runSyncStep {
+                        val clientsOutput = client.listClients()
+                        val remoteClients = clientsOutput.clients
+                        if (remoteClients != null) {
+                            val fallbackById = _clients.value.associateBy { profile -> profile.id }
+                            _clients.value = remoteClients.map { dto ->
+                                RosaFiestaBackendMappers.toClientProfile(dto, fallbackById)
+                            }
+                            anySucceeded = true
+                        }
+                    }
+                    runSyncStep {
+                        val staffOutput = client.listStaff()
+                        val remoteStaff = staffOutput.staff
+                        if (remoteStaff != null) {
+                            staffFlow.value = remoteStaff.map { dto ->
+                                RosaFiestaBackendMappers.toStaffProfile(dto, eventsFlow.value)
+                            }
+                            coreUpdated = true
+                            anySucceeded = true
+                        }
+                    }
+                    runSyncStep {
+                        val routesOutput = client.listTodayRoutes()
+                        val remoteStops = routesOutput.stops
+                        if (remoteStops != null) {
+                            _deliveryStops.value = remoteStops.map { dto ->
+                                RosaFiestaBackendMappers.toDeliveryStop(dto)
+                            }
+                            anySucceeded = true
+                        }
+                    }
+                    runSyncStep {
+                        val queueOutput = client.listOfflineQueue()
+                        val remoteQueue = queueOutput.queue
+                        if (remoteQueue != null) {
+                            val localPending = offlineQueueFlow.value.filter { item -> !item.synced }
+                            val localKeys = localPending.map { item -> item.idempotencyKey }.filter { key -> key.isNotBlank() }.toSet()
+                            val remoteMapped = remoteQueue
+                                .map { dto -> RosaFiestaBackendMappers.toOfflineQueueItem(dto) }
+                                .filterNot { item ->
+                                    val hasKey = item.idempotencyKey.isNotBlank()
+                                    if (hasKey) item.idempotencyKey in localKeys else false
+                                }
+                            offlineQueueFlow.value = localPending + remoteMapped
+                            coreUpdated = true
+                            anySucceeded = true
+                        }
+                    }
+                    runSyncStep {
+                        val damagesOutput = client.listDamages()
+                        val remoteDamages = damagesOutput.damages
+                        if (remoteDamages != null) {
+                            val eventsById = eventsFlow.value.associateBy { event -> event.id }
+                            _damageIncidents.value = remoteDamages.map { dto ->
+                                RosaFiestaBackendMappers.toDamageIncident(dto, eventsById)
+                            }
+                            anySucceeded = true
+                        }
+                    }
+                }
+
+                if (isAdmin) {
+                    runSyncStep {
+                        val adminSettings = client.getAdminSettings()
+                        _businessSettings.value = RosaFiestaBackendMappers.fromAdminSettings(
+                            output = adminSettings,
+                            fallback = _businessSettings.value,
+                        )
                         anySucceeded = true
                     }
-                }
-                runCatching {
-                    val damagesOutput = client.listDamages()
-                    val remoteDamages = damagesOutput.damages
-                    if (remoteDamages != null) {
-                        val eventsById = eventsFlow.value.associateBy { event -> event.id }
-                        _damageIncidents.value = remoteDamages.map { dto ->
-                            RosaFiestaBackendMappers.toDamageIncident(dto, eventsById)
+                    runSyncStep {
+                        val suppliersOutput = client.listSuppliers()
+                        val remoteSuppliers = suppliersOutput.suppliers
+                        if (remoteSuppliers != null) {
+                            _suppliers.value = remoteSuppliers.map { dto ->
+                                RosaFiestaBackendMappers.toSupplierRecord(dto)
+                            }
                         }
-                        anySucceeded = true
+                    }
+                    runSyncStep {
+                        val leadsOutput = client.listLeads()
+                        val remoteLeads = leadsOutput.leads
+                        if (remoteLeads != null) {
+                            _leads.value = remoteLeads.map { dto ->
+                                RosaFiestaBackendMappers.toLeadRecord(dto)
+                            }
+                        }
+                    }
+                    runSyncStep {
+                        val insuranceOutput = client.listInsurancePolicies()
+                        val remotePolicies = insuranceOutput.policies
+                        if (remotePolicies != null) {
+                            _insurancePolicies.value = remotePolicies.map { dto ->
+                                RosaFiestaBackendMappers.toInsurancePolicyRecord(dto)
+                            }
+                        }
+                    }
+                    runSyncStep {
+                        val logsOutput = client.listAuditLogs()
+                        val remoteLogs = logsOutput.logs
+                        if (remoteLogs != null) {
+                            _auditLogs.value = remoteLogs.map { dto ->
+                                RosaFiestaBackendMappers.toAuditLogRecord(dto)
+                            }
+                        }
+                    }
+                    runSyncStep {
+                        val faqsOutput = client.listBotFaqs()
+                        val remoteFaqs = faqsOutput.faqs
+                        if (remoteFaqs != null) {
+                            _botFaqs.value = remoteFaqs.map { dto ->
+                                RosaFiestaBackendMappers.toBotFaqRecord(dto)
+                            }
+                        }
+                    }
+                    runSyncStep {
+                        val keywordsOutput = client.listBotKeywords()
+                        val remoteKeywords = keywordsOutput.keywords
+                        if (remoteKeywords != null) {
+                            _botKeywords.value = remoteKeywords.map { dto ->
+                                RosaFiestaBackendMappers.toBotKeywordRecord(dto)
+                            }
+                        }
+                    }
+                    runSyncStep {
+                        val botThreadsOutput = client.listBotThreads()
+                        val remoteBotThreads = botThreadsOutput.threads
+                        if (remoteBotThreads != null) {
+                            _botThreads.value = remoteBotThreads.map { dto ->
+                                RosaFiestaBackendMappers.toBotThreadRecord(dto)
+                            }
+                        }
                     }
                 }
-            }
 
-            if (isAdmin) {
-                runCatching {
-                    val adminSettings = client.getAdminSettings()
-                    _businessSettings.value = RosaFiestaBackendMappers.fromAdminSettings(
-                        output = adminSettings,
-                        fallback = _businessSettings.value,
-                    )
-                    anySucceeded = true
-                }
-                runCatching {
-                    val suppliersOutput = client.listSuppliers()
-                    val remoteSuppliers = suppliersOutput.suppliers
-                    if (remoteSuppliers != null) {
-                        _suppliers.value = remoteSuppliers.map { dto ->
-                            RosaFiestaBackendMappers.toSupplierRecord(dto)
-                        }
-                    }
-                }
-                runCatching {
-                    val leadsOutput = client.listLeads()
-                    val remoteLeads = leadsOutput.leads
-                    if (remoteLeads != null) {
-                        _leads.value = remoteLeads.map { dto ->
-                            RosaFiestaBackendMappers.toLeadRecord(dto)
-                        }
-                    }
-                }
-                runCatching {
-                    val insuranceOutput = client.listInsurancePolicies()
-                    val remotePolicies = insuranceOutput.policies
-                    if (remotePolicies != null) {
-                        _insurancePolicies.value = remotePolicies.map { dto ->
-                            RosaFiestaBackendMappers.toInsurancePolicyRecord(dto)
-                        }
-                    }
-                }
-                runCatching {
-                    val logsOutput = client.listAuditLogs()
-                    val remoteLogs = logsOutput.logs
-                    if (remoteLogs != null) {
-                        _auditLogs.value = remoteLogs.map { dto ->
-                            RosaFiestaBackendMappers.toAuditLogRecord(dto)
-                        }
-                    }
-                }
-                runCatching {
-                    val faqsOutput = client.listBotFaqs()
-                    val remoteFaqs = faqsOutput.faqs
-                    if (remoteFaqs != null) {
-                        _botFaqs.value = remoteFaqs.map { dto ->
-                            RosaFiestaBackendMappers.toBotFaqRecord(dto)
-                        }
-                    }
-                }
-                runCatching {
-                    val keywordsOutput = client.listBotKeywords()
-                    val remoteKeywords = keywordsOutput.keywords
-                    if (remoteKeywords != null) {
-                        _botKeywords.value = remoteKeywords.map { dto ->
-                            RosaFiestaBackendMappers.toBotKeywordRecord(dto)
-                        }
-                    }
-                }
-                runCatching {
-                    val botThreadsOutput = client.listBotThreads()
-                    val remoteBotThreads = botThreadsOutput.threads
-                    if (remoteBotThreads != null) {
-                        _botThreads.value = remoteBotThreads.map { dto ->
-                            RosaFiestaBackendMappers.toBotThreadRecord(dto)
-                        }
+                if (!syncedRemoteSummary) {
+                    if (coreUpdated) {
+                        recomputeHonestMetrics()
                     }
                 }
             }
-
-            if (!syncedRemoteSummary) {
-                if (coreUpdated) {
-                    recomputeHonestMetrics()
-                }
-            }
+        } catch (_: OfflineSyncAbortException) {
+            // Short-circuit immediately when offline or transport times out.
         }
 
         if (anySucceeded) {
@@ -668,14 +692,14 @@ internal class RosaFiestaSubmoduleCoordinator(
         var anyGuestsCallSucceeded = false
         var anyScheduleCallSucceeded = false
         currentEvents.forEach { eventItem ->
-            runCatching {
+            runSyncStep {
                 val guestsResp = client.listEventGuests(eventItem.id)
                 anyGuestsCallSucceeded = true
                 guestsResp.guests?.forEach { dto ->
                     syncedGuests.add(RosaFiestaBackendMappers.toEventGuest(dto))
                 }
             }
-            runCatching {
+            runSyncStep {
                 val scheduleResp = client.listEventSchedule(eventItem.id)
                 anyScheduleCallSucceeded = true
                 scheduleResp.blocks?.forEach { dto ->
@@ -696,7 +720,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         if (currentThreads.isEmpty()) return
         val syncedMessages = mutableListOf<ChatMessageRecord>()
         currentThreads.forEach { thread ->
-            runCatching {
+            runSyncStep {
                 val resp = client.listThreadMessages(thread.id)
                 resp.messages?.forEach { dto ->
                     syncedMessages.add(
@@ -771,6 +795,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             birthDate = remoteUser.birthDate,
             phone = remoteUser.phone,
             role = remoteUser.role.ifBlank { "client" },
+            avatarKey = remoteUser.avatarKey?.trim().orEmpty(),
             preferences = RosaFiestaBackendMappers.toUserPreferences(remoteUser.preferences),
         )
         upsertAccountInMemory(syncedAccount)
@@ -857,6 +882,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             birthDate = remoteUser.birthDate.ifBlank { cleanBirthDate },
             phone = remoteUser.phone.ifBlank { cleanPhone },
             role = remoteUser.role.ifBlank { "client" },
+            avatarKey = remoteUser.avatarKey?.trim().orEmpty(),
             preferences = RosaFiestaBackendMappers.toUserPreferences(remoteUser.preferences),
         )
         upsertAccountInMemory(syncedAccount)
@@ -1019,6 +1045,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             birthDate = user.birthDate,
             phone = user.phone,
             role = user.role.ifBlank { "client" },
+            avatarKey = user.avatarKey?.trim().orEmpty(),
             preferences = RosaFiestaBackendMappers.toUserPreferences(user.preferences),
         )
         upsertAccountInMemory(updated)
@@ -1077,6 +1104,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             birthDate = user.birthDate,
             phone = user.phone,
             role = user.role.ifBlank { "client" },
+            avatarKey = user.avatarKey?.trim().orEmpty(),
             preferences = RosaFiestaBackendMappers.toUserPreferences(user.preferences),
         )
         upsertAccountInMemory(account)
@@ -1138,6 +1166,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             birthDate = user.birthDate,
             phone = user.phone,
             role = user.role.ifBlank { "client" },
+            avatarKey = user.avatarKey?.trim().orEmpty(),
             preferences = RosaFiestaBackendMappers.toUserPreferences(user.preferences),
         )
         upsertAccountInMemory(account)
@@ -1177,6 +1206,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             birthDate = user.birthDate,
             phone = user.phone,
             role = user.role.ifBlank { "client" },
+            avatarKey = user.avatarKey?.trim().orEmpty(),
             preferences = RosaFiestaBackendMappers.toUserPreferences(user.preferences),
         )
         upsertAccountInMemory(account)
@@ -1376,6 +1406,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         eventId: String,
         notes: String = "",
         sendImmediately: Boolean = false,
+        contactPhone: String = "",
     ): QuoteRecord {
         val nextNumber = 1200 + _quotes.value.size + 1
         val subtotal = lines.sumOf { line -> line.subtotalDop }
@@ -1383,6 +1414,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         val depositPercent = _businessSettings.value.depositPercent
         val deposit = (total * depositPercent) / 100
         val cleanNotes = notes.trim()
+        val cleanContactPhone = contactPhone.trim()
         val created = QuoteRecord(
             id = "quo-$nextNumber",
             code = "COT-2026-$nextNumber",
@@ -1401,6 +1433,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             depositPercent = depositPercent,
             depositDop = deposit,
             notes = cleanNotes,
+            contactPhone = cleanContactPhone,
         )
         _quotes.update { existing -> listOf(created) + existing }
         recomputeHonestMetrics()
@@ -1427,6 +1460,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 eventId = created.eventId.ifBlank { null },
                 notes = cleanNotes.ifBlank { null },
                 sendImmediately = if (sendImmediately) true else null,
+                contactPhone = cleanContactPhone.ifBlank { null },
             )
             val remoteAttempt = runCatching {
                 apiClient?.createQuote(payloadDto)
@@ -1873,14 +1907,18 @@ internal class RosaFiestaSubmoduleCoordinator(
         return created
     }
 
-    fun replyToReview(reviewId: String, adminReply: String): ReviewRecord? {
+    fun replyToReview(
+        reviewId: String,
+        adminReply: String,
+        verified: Boolean = true,
+    ): ReviewRecord? {
         val targetId = reviewId.trim()
         val cleanReply = adminReply.trim()
         var updatedReview: ReviewRecord? = null
         _reviews.update { list ->
             list.map { review ->
                 if (review.id == targetId) {
-                    val next = review.copy(adminReply = cleanReply, verified = true)
+                    val next = review.copy(adminReply = cleanReply, verified = verified)
                     updatedReview = next
                     next
                 } else {
@@ -1892,7 +1930,7 @@ internal class RosaFiestaSubmoduleCoordinator(
             scope.launch {
                 onPersistCoreSync()
                 runCatching {
-                    apiClient?.replyToReview(targetId, cleanReply)
+                    apiClient?.replyToReview(targetId, cleanReply, verified)
                 }
             }
         }
@@ -2123,6 +2161,7 @@ internal class RosaFiestaSubmoduleCoordinator(
         status: EventStatus?,
         leadStaffName: String?,
         sketchJson: String?,
+        setupPhotoUrls: List<String>? = null,
     ): ClientEvent? {
         val targetId = eventId.trim()
         var updatedEvent: ClientEvent? = null
@@ -2137,6 +2176,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                         status = status ?: event.status,
                         leadStaffName = leadStaffName?.trim() ?: event.leadStaffName,
                         sketchJson = sketchJson ?: event.sketchJson,
+                        setupPhotoUrls = setupPhotoUrls ?: event.setupPhotoUrls,
                     )
                     updatedEvent = next
                     next
@@ -2160,12 +2200,54 @@ internal class RosaFiestaSubmoduleCoordinator(
                             status = status?.name,
                             assignedLead = leadStaffName?.trim(),
                             sketchJson = sketchJson,
+                            setupPhotoUrls = setupPhotoUrls,
                         ),
                     )
                 }
             }
         }
         return updatedEvent
+    }
+
+    suspend fun updateEventSetupPhotos(
+        eventId: String,
+        setupPhotoUrls: List<String>,
+    ): Result<ClientEvent> = withContext(ioDispatcher) {
+        val targetId = eventId.trim()
+        val cleanUrls = setupPhotoUrls.map { url -> url.trim() }.filter { url -> url.isNotBlank() }.distinct()
+        val currentEvent = eventsFlow.value.firstOrNull { event -> event.id == targetId }
+            ?: return@withContext Result.failure(IllegalArgumentException("EVENT_NOT_FOUND"))
+        val client = apiClient
+        val shouldPersistRemote = if (client != null) hasRealServerToken(client) else false
+        if (!shouldPersistRemote) {
+            val localUpdated = currentEvent.copy(setupPhotoUrls = cleanUrls)
+            eventsFlow.update { list ->
+                list.map { event -> if (event.id == targetId) localUpdated else event }
+            }
+            onPersistCoreSync()
+            return@withContext Result.success(localUpdated)
+        }
+        val remoteResult = executeRemoteCall(missingApiCode = "EVENT_UPDATE_UNAVAILABLE") { activeClient ->
+            val fallbackMap = eventsFlow.value.associateBy { event -> event.id }
+            val output = activeClient.updateRemoteEvent(
+                eventId = targetId,
+                input = UpdateEventInputDto(setupPhotoUrls = cleanUrls),
+            )
+            RosaFiestaBackendMappers.toClientEvent(output.event, fallbackMap)
+        }
+        val mapped = remoteResult.getOrNull() ?: return@withContext remoteResult
+        val remoteHasNoPhotos = mapped.setupPhotoUrls.isEmpty()
+        val hasLocalUrls = cleanUrls.isNotEmpty()
+        val resolved = if (remoteHasNoPhotos) {
+            if (hasLocalUrls) mapped.copy(setupPhotoUrls = cleanUrls) else mapped
+        } else {
+            mapped
+        }
+        eventsFlow.update { list ->
+            list.map { event -> if (event.id == targetId) resolved else event }
+        }
+        onPersistCoreSync()
+        Result.success(resolved)
     }
 
     fun duplicateEvent(eventId: String): ClientEvent? {
@@ -2584,16 +2666,53 @@ internal class RosaFiestaSubmoduleCoordinator(
     }
 
     fun saveBusinessSettings(updated: BusinessSettings): BusinessSettings {
+        val previous = _businessSettings.value
         _businessSettings.value = updated
         scope.launch {
             onPersistCoreSync()
-            runCatching {
+            val remoteResult = runCatching {
                 apiClient?.updateAdminSettings(
                     RosaFiestaBackendMappers.toUpdateSettingsInputDto(updated),
                 )
             }
+            val output = remoteResult.getOrNull()
+            if (output != null) {
+                _businessSettings.value = RosaFiestaBackendMappers.fromAdminSettings(output, updated)
+                onPersistCoreSync()
+            } else {
+                val err = remoteResult.exceptionOrNull()
+                if (err is RosaFiestaApiException) {
+                    _businessSettings.value = previous
+                    onPersistCoreSync()
+                }
+            }
         }
         return updated
+    }
+
+    suspend fun saveBusinessSettingsOnline(updated: BusinessSettings): Result<BusinessSettings> = withContext(ioDispatcher) {
+        val previous = _businessSettings.value
+        val client = apiClient
+        val shouldSyncRemote = if (client != null) hasRealServerToken(client) else false
+        if (!shouldSyncRemote) {
+            _businessSettings.value = updated
+            onPersistCoreSync()
+            return@withContext Result.success(updated)
+        }
+        val remoteResult = executeRemoteCall(missingApiCode = "SETTINGS_UPDATE_UNAVAILABLE") { activeClient ->
+            val output = activeClient.updateAdminSettings(
+                RosaFiestaBackendMappers.toUpdateSettingsInputDto(updated),
+            )
+            RosaFiestaBackendMappers.fromAdminSettings(output, updated)
+        }
+        val mapped = remoteResult.getOrNull()
+        if (mapped != null) {
+            _businessSettings.value = mapped
+            onPersistCoreSync()
+            return@withContext Result.success(mapped)
+        }
+        _businessSettings.value = previous
+        Result.failure(remoteResult.exceptionOrNull() ?: IllegalStateException("SETTINGS_UPDATE_FAILED"))
     }
 
     fun inviteStaffMember(
@@ -3876,9 +3995,11 @@ internal class RosaFiestaSubmoduleCoordinator(
         amountDop: Int,
         ncfType: String = "B02",
         clientRnc: String = "",
+        contactPhone: String = "",
     ): Result<CardSessionResult> = withContext(ioDispatcher) {
         val cleanEventId = eventId.trim()
         val eventTitle = eventsFlow.value.firstOrNull { event -> event.id == cleanEventId }?.title.orEmpty()
+        val cleanPhone = contactPhone.trim()
         executeRemoteCall(missingApiCode = "CARD_GATEWAY_NOT_CONFIGURED") { client ->
             val output = client.createCardSession(
                 CreateCardSessionInputDto(
@@ -3887,6 +4008,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                     amountRD = amountDop.toLong(),
                     ncfType = ncfType.trim().ifEmpty { "B02" },
                     clientRnc = clientRnc.trim(),
+                    contactPhone = cleanPhone.ifBlank { null },
                 ),
             )
             RosaFiestaBackendMappers.toCardSessionResult(output.session)
@@ -4166,11 +4288,69 @@ internal class RosaFiestaSubmoduleCoordinator(
             )
             optimistic.copy(preferences = RosaFiestaBackendMappers.toUserPreferences(output.user.preferences))
         }
-        val synced = remoteResult.getOrNull() ?: return@withContext remoteResult
+        val synced = remoteResult.getOrNull()
+        if (synced == null) {
+            upsertAccountInMemory(current)
+            currentAuthenticatedUserFlow.value = current
+            onPersistAccountAndSession(current, activeToken)
+            return@withContext remoteResult
+        }
         upsertAccountInMemory(synced)
         currentAuthenticatedUserFlow.value = synced
         onPersistAccountAndSession(synced, activeToken)
         Result.success(synced)
+    }
+
+    suspend fun updateUserAvatarOnline(avatarKey: String?): AuthOutcome = withContext(ioDispatcher) {
+        val current = currentAuthenticatedUserFlow.value
+            ?: return@withContext AuthOutcome.failure(
+                errorCode = "AUTH_UNAUTHORIZED",
+                errorMessage = SensitiveDataRedactor.translateBusinessError("AUTH_UNAUTHORIZED", null),
+            )
+        val cleanKey = avatarKey?.trim().orEmpty()
+        val optimistic = current.copy(avatarKey = cleanKey)
+        val activeToken = currentSessionJwtFlow.value.orEmpty()
+        upsertAccountInMemory(optimistic)
+        currentAuthenticatedUserFlow.value = optimistic
+        onPersistAccountAndSession(optimistic, activeToken)
+
+        val client = apiClient
+        val shouldSyncRemote = if (client != null) hasRealServerToken(client) else false
+        if (!shouldSyncRemote) {
+            return@withContext AuthOutcome.authenticated(accessToken = activeToken, account = optimistic)
+        }
+        val remoteResult = executeRemoteCall(missingApiCode = "AVATAR_UPDATE_UNAVAILABLE") { activeClient ->
+            val output = activeClient.updateMyProfile(
+                UpdateProfileInputDto(avatarKey = cleanKey),
+            )
+            val confirmedKey = output.user.avatarKey?.trim().orEmpty()
+            val hasCleanKey = cleanKey.isNotEmpty()
+            val isConfirmedBlank = confirmedKey.isEmpty()
+            val shouldFallbackCleanKey = if (hasCleanKey) isConfirmedBlank else false
+            val resolvedKey = if (shouldFallbackCleanKey) cleanKey else confirmedKey
+            optimistic.copy(avatarKey = resolvedKey)
+        }
+        val synced = remoteResult.getOrNull()
+        if (synced == null) {
+            upsertAccountInMemory(current)
+            currentAuthenticatedUserFlow.value = current
+            onPersistAccountAndSession(current, activeToken)
+            val err = remoteResult.exceptionOrNull()
+            if (err is RosaFiestaApiException) {
+                return@withContext AuthOutcome.failure(
+                    errorCode = err.errorCode,
+                    errorMessage = SensitiveDataRedactor.translateBusinessError(err.errorCode, err.message),
+                )
+            }
+            return@withContext AuthOutcome.failure(
+                errorCode = "AVATAR_SYNC_FAILED",
+                errorMessage = "No se pudo guardar la foto de perfil en el servidor.",
+            )
+        }
+        upsertAccountInMemory(synced)
+        currentAuthenticatedUserFlow.value = synced
+        onPersistAccountAndSession(synced, activeToken)
+        AuthOutcome.authenticated(accessToken = activeToken, account = synced)
     }
 
     suspend fun sendEventPaymentReminder(
@@ -4553,6 +4733,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                     clientName = rev.authorName,
                     rating = rev.rating.toLong(),
                     comment = rev.comment,
+                    verified = rev.verified,
                     adminReply = rev.adminReply.ifBlank { null },
                     createdAtLabel = rev.dateLabel.ifBlank { null },
                 )
@@ -4683,6 +4864,7 @@ internal class RosaFiestaSubmoduleCoordinator(
                 facebook = _businessSettings.value.facebookUrl,
                 depositPercent = _businessSettings.value.depositPercent.toLong(),
                 itbisPercent = _businessSettings.value.itbisPercent.toLong(),
+                whatsappAutoAlertsEnabled = _businessSettings.value.whatsappAutoAlertsEnabled,
             ),
             deliveryZones = _businessSettings.value.zones.map { zone ->
                 DeliveryZoneDto(
@@ -4781,7 +4963,8 @@ internal class RosaFiestaSubmoduleCoordinator(
                 facebookUrl = settingsDto.facebook,
                 depositPercent = settingsDto.depositPercent.toInt(),
                 itbisPercent = settingsDto.itbisPercent.toInt(),
-                zones = mappedZones.ifEmpty { _businessSettings.value.zones },
+                whatsappAutoAlertsEnabled = settingsDto.whatsappAutoAlertsEnabled,
+                zones = mappedZones,
             )
         }
     }

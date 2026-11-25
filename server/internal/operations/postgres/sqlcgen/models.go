@@ -91,19 +91,20 @@ type BotThread struct {
 }
 
 type BusinessSetting struct {
-	ID             string
-	CompanyName    string
-	Rnc            string
-	Address        string
-	Phone          string
-	Whatsapp       string
-	Email          string
-	Instagram      string
-	Facebook       string
-	BusinessHours  string
-	ItbisPercent   int
-	DepositPercent int
-	UpdatedAt      time.Time
+	ID                        string
+	CompanyName               string
+	Rnc                       string
+	Address                   string
+	Phone                     string
+	Whatsapp                  string
+	Email                     string
+	Instagram                 string
+	Facebook                  string
+	BusinessHours             string
+	ItbisPercent              int
+	DepositPercent            int
+	UpdatedAt                 time.Time
+	WhatsappAutoAlertsEnabled bool
 }
 
 type CatalogTrend struct {
@@ -221,6 +222,8 @@ type Event struct {
 	CloseoutNotes              string
 	LastPaymentReminderAt      string
 	LastPaymentReminderChannel string
+	SetupPhotoUrls             []string
+	ContactPhone               string
 }
 
 type EventGuest struct {
@@ -404,34 +407,37 @@ type Payment struct {
 }
 
 type Quote struct {
-	ID              string
-	EventID         string
-	ClientName      string
-	EventTitle      string
-	TotalDop        int
-	DepositDop      int
-	BalanceDop      int
-	Status          string
-	Version         int
-	Notes           string
-	CreatedAt       time.Time
-	Code            string
-	ClientID        string
-	ClientEmail     string
-	EventDateLabel  string
-	Venue           string
-	Guests          int
-	LinesJson       []byte
-	DeliveryFeeDop  int
-	DiscountDop     int
-	SignatureSvg    string
-	SignedByName    string
-	RejectionReason string
-	EventDateIso    string
-	PackageID       string
-	ContractPdfUrl  string
-	SignedAtIso     string
-	DepositPercent  int
+	ID                 string
+	EventID            string
+	ClientName         string
+	EventTitle         string
+	TotalDop           int
+	DepositDop         int
+	BalanceDop         int
+	Status             string
+	Version            int
+	Notes              string
+	CreatedAt          time.Time
+	Code               string
+	ClientID           string
+	ClientEmail        string
+	EventDateLabel     string
+	Venue              string
+	Guests             int
+	LinesJson          []byte
+	DeliveryFeeDop     int
+	DiscountDop        int
+	SignatureSvg       string
+	SignedByName       string
+	RejectionReason    string
+	EventDateIso       string
+	PackageID          string
+	ContractPdfUrl     string
+	SignedAtIso        string
+	DepositPercent     int
+	SignedByUserID     string
+	ContractHashSha256 string
+	ContactPhone       string
 }
 
 type RefreshToken struct {
@@ -471,6 +477,7 @@ type Review struct {
 	Comment    string
 	AdminReply string
 	CreatedAt  time.Time
+	Verified   bool
 }
 
 type RevokedToken struct {

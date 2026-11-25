@@ -50,6 +50,7 @@ type CreateQuoteInput struct {
 		DeliveryFeeRD   int                `json:"deliveryFeeRD" minimum:"0"`
 		DiscountRD      int                `json:"discountRD" minimum:"0"`
 		Notes           string             `json:"notes,omitempty"`
+		ContactPhone    string             `json:"contactPhone,omitempty"`
 		SendImmediately bool               `json:"sendImmediately,omitempty"`
 	}
 }
@@ -69,6 +70,7 @@ func (in *CreateQuoteInput) ToCommand() app.CreateQuoteCommand {
 		DeliveryFeeRD:   in.Body.DeliveryFeeRD,
 		DiscountRD:      in.Body.DiscountRD,
 		Notes:           in.Body.Notes,
+		ContactPhone:    in.Body.ContactPhone,
 		SendImmediately: in.Body.SendImmediately,
 	}
 }

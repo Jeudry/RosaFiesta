@@ -64,6 +64,7 @@ type RegisterPaymentInput struct {
 		NCFType            string `json:"ncfType,omitempty"`
 		ClientRNC          string `json:"clientRnc,omitempty"`
 		SecurityDepositDOP int    `json:"securityDepositDop,omitempty" minimum:"0"`
+		ContactPhone       string `json:"contactPhone,omitempty"`
 	}
 }
 
@@ -84,6 +85,7 @@ func (in *RegisterPaymentInput) ToCommand() app.RegisterPaymentCommand {
 		NCFType:            in.Body.NCFType,
 		ClientRNC:          in.Body.ClientRNC,
 		SecurityDepositDOP: in.Body.SecurityDepositDOP,
+		ContactPhone:       in.Body.ContactPhone,
 	}
 }
 
@@ -134,24 +136,26 @@ func (in *RejectPaymentInput) Reason() string {
 // CreateCardSessionInput solicita una sesión de checkout de tarjeta.
 type CreateCardSessionInput struct {
 	Body struct {
-		EventID    string `json:"eventId" minLength:"2"`
-		EventTitle string `json:"eventTitle,omitempty"`
-		AmountRD   int    `json:"amountRD" minimum:"1"`
-		Kind       string `json:"kind,omitempty"`
-		NCFType    string `json:"ncfType,omitempty"`
-		ClientRNC  string `json:"clientRnc,omitempty"`
+		EventID      string `json:"eventId" minLength:"2"`
+		EventTitle   string `json:"eventTitle,omitempty"`
+		AmountRD     int    `json:"amountRD" minimum:"1"`
+		Kind         string `json:"kind,omitempty"`
+		NCFType      string `json:"ncfType,omitempty"`
+		ClientRNC    string `json:"clientRnc,omitempty"`
+		ContactPhone string `json:"contactPhone,omitempty"`
 	}
 }
 
 // ToCommand convierte la solicitud HTTP en un comando CreateCardSessionCommand.
 func (in *CreateCardSessionInput) ToCommand() app.CreateCardSessionCommand {
 	return app.CreateCardSessionCommand{
-		EventID:    in.Body.EventID,
-		EventTitle: in.Body.EventTitle,
-		AmountRD:   in.Body.AmountRD,
-		Kind:       in.Body.Kind,
-		NCFType:    in.Body.NCFType,
-		ClientRNC:  in.Body.ClientRNC,
+		EventID:      in.Body.EventID,
+		EventTitle:   in.Body.EventTitle,
+		AmountRD:     in.Body.AmountRD,
+		Kind:         in.Body.Kind,
+		NCFType:      in.Body.NCFType,
+		ClientRNC:    in.Body.ClientRNC,
+		ContactPhone: in.Body.ContactPhone,
 	}
 }
 
@@ -249,6 +253,8 @@ var paymentErrorSpecs = []paymentErrorSpec{
 	{domain.ErrRefundAlreadyApproved, http.StatusConflict, "REFUND_ALREADY_APPROVED", "RefundIdempotentApprovalGuard"},
 	{domain.ErrCardCheckoutRequired, http.StatusForbidden, "CARD_CHECKOUT_REQUIRED", "RequireStripeCheckoutForClientCard"},
 	{domain.ErrClientCashRestricted, http.StatusForbidden, "CLIENT_CASH_PAYMENT_RESTRICTED", "RequireAdminForDirectCash"},
+	{domain.ErrInvalidPaymentCurrency, http.StatusBadRequest, "INVALID_PAYMENT_CURRENCY", "RequireDOPCurrency"},
+	{domain.ErrNCFSequenceExpired, http.StatusConflict, "NCF_SEQUENCE_EXPIRED", "ValidNCFSequenceRequired"},
 }
 
 func mapPaymentError(err error, endpoint, defaultCode, policy string, defaultStatus int) *platformhttp.APIError {

@@ -26,6 +26,7 @@ type stripeSessionPayload struct {
 	ID            string            `json:"id"`
 	PaymentIntent string            `json:"payment_intent"`
 	PaymentStatus string            `json:"payment_status"`
+	Currency      string            `json:"currency"`
 	AmountTotal   int64             `json:"amount_total"`
 	CustomerEmail string            `json:"customer_email"`
 	Metadata      map[string]string `json:"metadata"`
@@ -257,7 +258,10 @@ func (s *Service) recordVerifiedStripeSession(
 	session stripeSessionPayload,
 	caller platformhttp.Principal,
 ) (domain.Payment, error) {
-	amountRD := int(session.AmountTotal / 100)
+	if !strings.EqualFold(strings.TrimSpace(session.Currency), "dop") {
+		return domain.Payment{}, domain.ErrInvalidPaymentCurrency
+	}
+	amountRD := int((session.AmountTotal + 50) / 100)
 	if amountRD <= 0 {
 		return domain.Payment{}, domain.ErrInvalidPaymentAmount
 	}

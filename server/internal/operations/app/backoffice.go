@@ -50,18 +50,20 @@ type UpdateLeadCommand struct {
 }
 
 type UpdateSettingsCommand struct {
-	CompanyName    string
-	RNC            string
-	Address        string
-	Phone          string
-	WhatsApp       string
-	Email          string
-	Instagram      string
-	Facebook       string
-	BusinessHours  string
-	ItbisPercent   int
-	DepositPercent int
-	DeliveryZones  []domain.DeliveryZone
+	CompanyName               string
+	RNC                       string
+	Address                   string
+	Phone                     string
+	WhatsApp                  string
+	Email                     string
+	Instagram                 string
+	Facebook                  string
+	BusinessHours             string
+	ItbisPercent              *int
+	DepositPercent            int
+	WhatsAppAutoAlertsEnabled *bool
+	DeliveryZones             []domain.DeliveryZone
+	HasDeliveryZones          bool
 }
 
 type UpsertBotFAQCommand struct {
@@ -171,6 +173,17 @@ func (s *Service) ReplyReview(
 	reply string,
 	caller platformhttp.Principal,
 ) (domain.Review, error) {
+	return s.ReplyReviewWithVerification(ctx, reviewID, reply, nil, caller)
+}
+
+// ReplyReviewWithVerification guarda la respuesta del administrador y el estado de verificación de la reseña.
+func (s *Service) ReplyReviewWithVerification(
+	ctx context.Context,
+	reviewID string,
+	reply string,
+	verified *bool,
+	caller platformhttp.Principal,
+) (domain.Review, error) {
 	cleanReply := strings.TrimSpace(reply)
 	if cleanReply == "" {
 		return domain.Review{}, domain.ErrInvalidOperationsInput
@@ -192,6 +205,9 @@ func (s *Service) ReplyReview(
 		return domain.Review{}, domain.ErrReviewNotFound
 	}
 	s.reviews[idx].AdminReply = cleanReply
+	if verified != nil {
+		s.reviews[idx].Verified = *verified
+	}
 	updated := s.reviews[idx]
 	s.mu.Unlock()
 
@@ -482,10 +498,18 @@ func (s *Service) UpdateSettings(
 	caller platformhttp.Principal,
 ) (domain.BusinessSettings, []domain.DeliveryZone, error) {
 	current, currentZones := s.GetSettings(ctx)
-	updated := mergeSettingsFields(current, cmd)
+	updated, err := mergeSettingsFields(current, cmd)
+	if err != nil {
+		return domain.BusinessSettings{}, nil, err
+	}
 	zones := currentZones
-	if len(cmd.DeliveryZones) > 0 {
-		zones = cmd.DeliveryZones
+	shouldReplaceZones := cmd.HasDeliveryZones
+	if !shouldReplaceZones {
+		shouldReplaceZones = len(cmd.DeliveryZones) > 0
+	}
+	if shouldReplaceZones {
+		zones = make([]domain.DeliveryZone, len(cmd.DeliveryZones))
+		copy(zones, cmd.DeliveryZones)
 	}
 	now := s.clock.Now()
 	s.mu.Lock()
@@ -497,17 +521,34 @@ func (s *Service) UpdateSettings(
 		if err := store.UpsertBusinessSettings(ctx, updated, now); err != nil {
 			return domain.BusinessSettings{}, nil, err
 		}
-		for _, zone := range zones {
-			if err := store.UpsertDeliveryZone(ctx, zone); err != nil {
-				return domain.BusinessSettings{}, nil, err
-			}
+		if err := persistDeliveryZones(ctx, store, zones, shouldReplaceZones); err != nil {
+			return domain.BusinessSettings{}, nil, err
 		}
 	}
 	s.recordAudit(ctx, caller, "UPDATE_SETTINGS", "business_settings", "default", "Actualizó configuración fiscal y operativa")
 	return updated, zones, nil
 }
 
-func mergeSettingsFields(base domain.BusinessSettings, cmd UpdateSettingsCommand) domain.BusinessSettings {
+func persistDeliveryZones(
+	ctx context.Context,
+	store Store,
+	zones []domain.DeliveryZone,
+	replaced bool,
+) error {
+	if replaced {
+		if replacer, ok := store.(DeliveryZoneReplacer); ok {
+			return replacer.ReplaceDeliveryZones(ctx, zones)
+		}
+	}
+	for _, zone := range zones {
+		if err := store.UpsertDeliveryZone(ctx, zone); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func mergeSettingsFields(base domain.BusinessSettings, cmd UpdateSettingsCommand) (domain.BusinessSettings, error) {
 	base.CompanyName = nonEmptyOr(cmd.CompanyName, base.CompanyName)
 	base.RNC = nonEmptyOr(cmd.RNC, base.RNC)
 	base.Address = nonEmptyOr(cmd.Address, base.Address)
@@ -517,13 +558,22 @@ func mergeSettingsFields(base domain.BusinessSettings, cmd UpdateSettingsCommand
 	base.Instagram = nonEmptyOr(cmd.Instagram, base.Instagram)
 	base.Facebook = nonEmptyOr(cmd.Facebook, base.Facebook)
 	base.BusinessHours = nonEmptyOr(cmd.BusinessHours, base.BusinessHours)
-	if cmd.ItbisPercent > 0 {
-		base.ItbisPercent = cmd.ItbisPercent
+	if cmd.ItbisPercent != nil {
+		if *cmd.ItbisPercent < 0 {
+			return domain.BusinessSettings{}, domain.ErrInvalidOperationsInput
+		}
+		if *cmd.ItbisPercent > 100 {
+			return domain.BusinessSettings{}, domain.ErrInvalidOperationsInput
+		}
+		base.ItbisPercent = *cmd.ItbisPercent
 	}
 	if cmd.DepositPercent > 0 {
 		base.DepositPercent = cmd.DepositPercent
 	}
-	return base
+	if cmd.WhatsAppAutoAlertsEnabled != nil {
+		base.WhatsAppAutoAlertsEnabled = *cmd.WhatsAppAutoAlertsEnabled
+	}
+	return base, nil
 }
 
 func nonEmptyOr(candidate, fallback string) string {

@@ -61,6 +61,8 @@ type CreateEventInput struct {
 		BalanceDueDate string             `json:"balanceDueDate,omitempty"`
 		AssignedLead   string             `json:"assignedLead,omitempty"`
 		SketchJSON     string             `json:"sketchJson,omitempty"`
+		SetupPhotoUrls []string           `json:"setupPhotoUrls,omitempty"`
+		ContactPhone   string             `json:"contactPhone,omitempty"`
 		Items          []domain.EventItem `json:"items,omitempty"`
 	}
 }
@@ -82,6 +84,8 @@ func (in *CreateEventInput) ToCommand() app.CreateEventCommand {
 		BalanceDueDate: in.Body.BalanceDueDate,
 		AssignedLead:   in.Body.AssignedLead,
 		SketchJSON:     in.Body.SketchJSON,
+		SetupPhotoUrls: in.Body.SetupPhotoUrls,
+		ContactPhone:   in.Body.ContactPhone,
 		Items:          in.Body.Items,
 	}
 }
@@ -99,6 +103,8 @@ type UpdateEventInput struct {
 		Status         *string             `json:"status,omitempty"`
 		AssignedLead   *string             `json:"assignedLead,omitempty"`
 		SketchJSON     *string             `json:"sketchJson,omitempty"`
+		SetupPhotoUrls *[]string           `json:"setupPhotoUrls,omitempty"`
+		ContactPhone   *string             `json:"contactPhone,omitempty"`
 		Items          *[]domain.EventItem `json:"items,omitempty"`
 	}
 }
@@ -115,6 +121,8 @@ func (in *UpdateEventInput) ToCommand() app.UpdateEventCommand {
 		Status:         in.Body.Status,
 		AssignedLead:   in.Body.AssignedLead,
 		SketchJSON:     in.Body.SketchJSON,
+		SetupPhotoUrls: in.Body.SetupPhotoUrls,
+		ContactPhone:   in.Body.ContactPhone,
 		Items:          in.Body.Items,
 	}
 }

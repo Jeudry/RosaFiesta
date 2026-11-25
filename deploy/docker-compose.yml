@@ -9,10 +9,14 @@ services:
       APP_ENV: production
       PORT: "8788"
       ROSAFIESTA_SEED_MODE: ${ROSAFIESTA_SEED_MODE:-admin_only}
-      PUBLIC_APP_BASE_URL: ${PUBLIC_APP_BASE_URL:-https://api.rosafiesta.do}
+      PUBLIC_APP_BASE_URL: ${PUBLIC_APP_BASE_URL:-https://app.rosafiesta.do}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
       JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://app.rosafiesta.do,https://admin.rosafiesta.do}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-172.16.0.0/12,10.0.0.0/8,127.0.0.1/32}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_FROM: ${SMTP_FROM:-no-reply@rosafiesta.do}
@@ -34,7 +38,7 @@ services:
       STT_API_KEY: ${STT_API_KEY:-}
       MEDIA_STORAGE_BACKEND: ${MEDIA_STORAGE_BACKEND:-local}
       MEDIA_STORAGE_DIR: /var/lib/rosafiesta/media
-      MEDIA_MAX_BYTES: ${MEDIA_MAX_BYTES:-10485760}
+      MEDIA_MAX_BYTES: ${MEDIA_MAX_BYTES:-16777216}
       S3_ENDPOINT: ${S3_ENDPOINT:-}
       S3_BUCKET: ${S3_BUCKET:-}
       S3_REGION: ${S3_REGION:-auto}

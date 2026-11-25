@@ -244,14 +244,23 @@ public class DefaultRosaFiestaRepository(
     }
 
     override fun toggleChecklistStep(stepId: String) {
+        toggleChecklistStep(stepId = stepId, onError = {})
+    }
+
+    override fun toggleChecklistStep(
+        stepId: String,
+        onError: (String) -> Unit,
+    ) {
         val cleanStepId = stepId.trim()
         val nowHm = DomainClockFormatter.currentTimeHmLabel()
+        var previousStep: ChecklistStep? = null
         var targetEventId = ""
         var staffName = ""
         var nextCompleted = false
         _checklist.update { list ->
             list.map { step ->
                 if (step.id == cleanStepId) {
+                    previousStep = step
                     nextCompleted = !step.completed
                     targetEventId = step.eventId
                     staffName = step.completedBy
@@ -267,10 +276,12 @@ public class DefaultRosaFiestaRepository(
         val resolvedEventId = targetEventId.ifBlank {
             _events.value.firstOrNull()?.id.orEmpty()
         }
-        if (resolvedEventId.isNotEmpty()) {
+        val activeClient = apiClient
+        val canSyncRemote = if (activeClient != null) resolvedEventId.isNotEmpty() else false
+        if (canSyncRemote) {
             scope.launch {
-                runCatching {
-                    apiClient?.toggleChecklistItem(
+                val remoteResult = try {
+                    activeClient!!.toggleChecklistItem(
                         eventId = resolvedEventId,
                         itemId = cleanStepId,
                         input = ToggleChecklistInputDto(
@@ -278,6 +289,25 @@ public class DefaultRosaFiestaRepository(
                             staffName = staffName,
                         ),
                     )
+                    null
+                } catch (cancelled: kotlin.coroutines.cancellation.CancellationException) {
+                    throw cancelled
+                } catch (error: Throwable) {
+                    error
+                }
+                if (remoteResult != null) {
+                    val savedPrevious = previousStep
+                    if (savedPrevious != null) {
+                        _checklist.update { list ->
+                            list.map { step -> if (step.id == cleanStepId) savedPrevious else step }
+                        }
+                    }
+                    val message = if (remoteResult is RosaFiestaApiException) {
+                        SensitiveDataRedactor.translateBusinessError(remoteResult.errorCode, remoteResult.message)
+                    } else {
+                        "No se pudo actualizar el checklist en el servidor. Intenta de nuevo."
+                    }
+                    onError(message)
                 }
             }
         }
@@ -606,6 +636,7 @@ public class DefaultRosaFiestaRepository(
         phone: String,
         birthDate: String,
         username: String,
+        avatarKey: String?,
     ): AuthOutcome {
         val cleanName = fullName.trim()
         val cleanEmail = email.trim().lowercase()
@@ -667,12 +698,14 @@ public class DefaultRosaFiestaRepository(
             )
         }
 
+        val resolvedAvatarKey = avatarKey?.trim() ?: currentAccount.avatarKey
         val updatedAccount = currentAccount.copy(
             fullName = cleanName,
             email = cleanEmail,
             phone = cleanPhone,
             birthDate = cleanBirthDate,
             username = cleanUsername,
+            avatarKey = resolvedAvatarKey,
         )
         userAccountsState.update { accounts ->
             accounts.map { account ->
@@ -693,6 +726,7 @@ public class DefaultRosaFiestaRepository(
             runCatching {
                 apiClient?.updateMyProfile(
                     UpdateProfileInputDto(
+                        avatarKey = avatarKey?.trim(),
                         fullName = cleanName,
                         email = cleanEmail,
                         phone = cleanPhone,
@@ -708,6 +742,8 @@ public class DefaultRosaFiestaRepository(
             refreshToken = preservedRefresh,
         )
     }
+
+    override suspend fun updateUserAvatarOnline(avatarKey: String?): AuthOutcome = submodules.updateUserAvatarOnline(avatarKey)
 
     override suspend fun requestPasswordOtp(email: String): OtpChallengeOutcome = submodules.requestPasswordOtp(email)
 
@@ -1093,10 +1129,29 @@ public class DefaultRosaFiestaRepository(
         venue: String,
         guests: Int,
     ) {
+        createEvent(
+            title = title,
+            clientName = clientName,
+            dateLabel = dateLabel,
+            venue = venue,
+            guests = guests,
+            contactPhone = "",
+        )
+    }
+
+    override fun createEvent(
+        title: String,
+        clientName: String,
+        dateLabel: String,
+        venue: String,
+        guests: Int,
+        contactPhone: String,
+    ) {
         val cleanTitle = title.trim()
         val cleanClient = clientName.trim()
         val cleanDate = dateLabel.trim()
         val cleanVenue = venue.trim()
+        val cleanContactPhone = contactPhone.trim()
         if (cleanTitle.isEmpty()) return
         if (cleanClient.isEmpty()) return
         if (cleanDate.isEmpty()) return
@@ -1141,6 +1196,7 @@ public class DefaultRosaFiestaRepository(
             leadStaffName = assignedLead,
             photo = PhotoAsset.BODA,
             items = lines,
+            contactPhone = cleanContactPhone,
         )
         _events.update { existing -> existing + newEvent }
         submodules.recomputeHonestMetrics()
@@ -1166,6 +1222,7 @@ public class DefaultRosaFiestaRepository(
                         assignedLead = assignedLead,
                         totalRD = consistentTotalDop.toLong(),
                         items = eventItems,
+                        contactPhone = cleanContactPhone.ifBlank { null },
                     ),
                 )
                 if (response != null) {
@@ -1274,12 +1331,14 @@ public class DefaultRosaFiestaRepository(
         clientRnc: String,
         bankName: String,
         kindLabel: String,
+        contactPhone: String,
     ): PaymentRecord? {
         val cleanMethod = methodLabel.trim()
         val cleanRef = referenceCode.trim().ifEmpty { "REF-2026" }
         val cleanVoucher = voucherUrl.trim()
         val cleanNcfType = ncfType.trim().ifEmpty { "B02" }.uppercase()
         val cleanRnc = clientRnc.trim()
+        val cleanContactPhone = contactPhone.trim()
         if (amountDop <= 0) return null
         if (cleanMethod.isEmpty()) return null
 
@@ -1360,6 +1419,7 @@ public class DefaultRosaFiestaRepository(
                         ncfType = cleanNcfType,
                         clientRnc = cleanRnc.ifBlank { null },
                         referenceNumber = cleanRef,
+                        contactPhone = cleanContactPhone.ifBlank { null },
                     ),
                 )
                 if (response != null) {
@@ -1387,6 +1447,7 @@ public class DefaultRosaFiestaRepository(
         eventId: String,
         notes: String,
         sendImmediately: Boolean,
+        contactPhone: String,
     ): QuoteRecord = submodules.createQuote(
         eventTitle = eventTitle,
         clientName = clientName,
@@ -1400,6 +1461,7 @@ public class DefaultRosaFiestaRepository(
         eventId = eventId,
         notes = notes,
         sendImmediately = sendImmediately,
+        contactPhone = contactPhone,
     )
 
     override fun sendQuote(
@@ -1449,7 +1511,11 @@ public class DefaultRosaFiestaRepository(
         comment: String,
     ): ReviewRecord = submodules.createReview(eventId, authorName, rating, comment)
 
-    override fun replyToReview(reviewId: String, adminReply: String): ReviewRecord? = submodules.replyToReview(reviewId, adminReply)
+    override fun replyToReview(
+        reviewId: String,
+        adminReply: String,
+        verified: Boolean,
+    ): ReviewRecord? = submodules.replyToReview(reviewId, adminReply, verified)
 
     override fun createSupplier(
         name: String,
@@ -1501,6 +1567,7 @@ public class DefaultRosaFiestaRepository(
         status: EventStatus?,
         leadStaffName: String?,
         sketchJson: String?,
+        setupPhotoUrls: List<String>?,
     ): ClientEvent? = submodules.updateEventDetails(
         eventId = eventId,
         title = title,
@@ -1510,7 +1577,13 @@ public class DefaultRosaFiestaRepository(
         status = status,
         leadStaffName = leadStaffName,
         sketchJson = sketchJson,
+        setupPhotoUrls = setupPhotoUrls,
     )
+
+    override suspend fun updateEventSetupPhotos(
+        eventId: String,
+        setupPhotoUrls: List<String>,
+    ): Result<ClientEvent> = submodules.updateEventSetupPhotos(eventId, setupPhotoUrls)
 
     override fun duplicateEvent(eventId: String): ClientEvent? = submodules.duplicateEvent(eventId)
 
@@ -1549,6 +1622,8 @@ public class DefaultRosaFiestaRepository(
     ): ChatMessageRecord = submodules.sendThreadMessage(threadId, senderName, body, attachmentName)
 
     override fun saveBusinessSettings(updated: BusinessSettings): BusinessSettings = submodules.saveBusinessSettings(updated)
+
+    override suspend fun saveBusinessSettingsOnline(updated: BusinessSettings): Result<BusinessSettings> = submodules.saveBusinessSettingsOnline(updated)
 
     override fun inviteStaffMember(
         fullName: String,
@@ -1734,7 +1809,8 @@ public class DefaultRosaFiestaRepository(
         amountDop: Int,
         ncfType: String,
         clientRnc: String,
-    ): Result<CardSessionResult> = submodules.createCardPaymentSession(eventId, amountDop, ncfType, clientRnc)
+        contactPhone: String,
+    ): Result<CardSessionResult> = submodules.createCardPaymentSession(eventId, amountDop, ncfType, clientRnc, contactPhone)
 
     override suspend fun completeEventCloseout(
         eventId: String,
