@@ -444,6 +444,7 @@ internal fun RenderOnboardingScreen(
     onSelectScreenCode: (String) -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
     val step = when (spec.code) {
         "s03" -> 1
         "s04" -> 2
@@ -470,11 +471,24 @@ internal fun RenderOnboardingScreen(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             if (step == 1) {
+                val step1Colors = if (palette.isDark) {
+                    listOf(
+                        Color(0xFF1A1429),
+                        Color(0xFF130F1F),
+                        Color(0xFF100E1B),
+                    )
+                } else {
+                    listOf(
+                        Color(0xFFF8EBF4),
+                        Color(0xFFF6EFF8),
+                        Color(0xFFF3F1FA),
+                    )
+                }
                 drawRect(
                     Brush.verticalGradient(
-                        0.0f to Color(0xFFF8EBF4),
-                        0.5f to Color(0xFFF6EFF8),
-                        1.0f to Color(0xFFF3F1FA),
+                        0.0f to step1Colors[0],
+                        0.5f to step1Colors[1],
+                        1.0f to step1Colors[2],
                     ),
                 )
                 val canvasScale = size.width / 390f
@@ -527,8 +541,8 @@ internal fun RenderOnboardingScreen(
                 modifier = Modifier
                     .height(40.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.7f))
-                    .border(1.dp, Color(0xFFE9DDEB), RoundedCornerShape(999.dp))
+                    .background(palette.surface.copy(alpha = 0.82f))
+                    .border(1.dp, palette.line, RoundedCornerShape(999.dp))
                     .clickable { onSelectScreenCode("s06") }
                     .padding(horizontal = 16.dp),
             ) {
@@ -537,7 +551,7 @@ internal fun RenderOnboardingScreen(
                     style = typo.body.copy(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = RfThemeState.currentPalette.muted,
+                        color = palette.muted,
                     ),
                 )
             }
@@ -627,7 +641,7 @@ internal fun RenderOnboardingScreen(
                         style = typo.heroTitle.copy(
                             fontSize = 24.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF151729),
+                            color = palette.ink,
                             lineHeight = 26.sp,
                         ),
                     )
@@ -638,7 +652,7 @@ internal fun RenderOnboardingScreen(
                         text = stepSubtitle,
                         style = typo.body.copy(
                             fontSize = 16.sp,
-                            color = RfThemeState.currentPalette.muted,
+                            color = palette.muted,
                             lineHeight = 24.sp,
                         ),
                     )
@@ -875,7 +889,8 @@ private fun Modifier.personalTopBarBackground(isStep1: Boolean = false): Modifie
         val activePalette = RfThemeState.currentPalette
         drawRect(activePalette.bg)
         if (isStep1) {
-            val stepOneGlow = if (activePalette.isAdmin) activePalette.radialPrimary else Color(0xFFFADEEB)
+            val usePaletteRadial = if (activePalette.isAdmin) true else activePalette.isDark
+            val stepOneGlow = if (usePaletteRadial) activePalette.radialPrimary else Color(0xFFFADEEB)
             drawRect(
                 brush = Brush.radialGradient(
                     colors = listOf(stepOneGlow, stepOneGlow.copy(alpha = 0f)),

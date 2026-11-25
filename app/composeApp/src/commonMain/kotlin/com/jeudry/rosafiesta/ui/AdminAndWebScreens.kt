@@ -1644,7 +1644,6 @@ private fun AdminUpcomingEventsTable(
                 Box(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                     AdminUpcomingEventsTableBody(
                         filteredRows = filteredRows,
-                        searchQuery = searchQuery,
                         onEventClick = onEventClick,
                         modifier = Modifier.width(620.dp),
                     )
@@ -1652,9 +1651,25 @@ private fun AdminUpcomingEventsTable(
             } else {
                 AdminUpcomingEventsTableBody(
                     filteredRows = filteredRows,
-                    searchQuery = searchQuery,
                     onEventClick = onEventClick,
                     modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+
+        if (filteredRows.isEmpty()) {
+            val emptyTableText = if (searchQuery.isBlank()) {
+                "Aún no tienes eventos próximos."
+            } else {
+                "Sin eventos coincidentes con \"${searchQuery.trim()}\"."
+            }
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxWidth().padding(24.dp),
+            ) {
+                BasicText(
+                    text = emptyTableText,
+                    style = typo.secondary.copy(fontSize = 13.5.sp, color = Color(0xFF5F6377)),
                 )
             }
         }
@@ -1664,7 +1679,6 @@ private fun AdminUpcomingEventsTable(
 @Composable
 private fun AdminUpcomingEventsTableBody(
     filteredRows: List<AdminDesktopEventRowSpec>,
-    searchQuery: String,
     onEventClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1687,35 +1701,18 @@ private fun AdminUpcomingEventsTableBody(
             BasicText("ESTADO", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1.25f), style = headerStyle)
         }
 
-        if (filteredRows.isEmpty()) {
-            val emptyTableText = if (searchQuery.isBlank()) {
-                "Aún no tienes eventos próximos."
-            } else {
-                "Sin eventos coincidentes con \"${searchQuery.trim()}\"."
-            }
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxWidth().padding(24.dp),
-            ) {
-                BasicText(
-                    text = emptyTableText,
-                    style = typo.secondary.copy(fontSize = 13.5.sp, color = Color(0xFF5F6377)),
-                )
-            }
-        } else {
-            filteredRows.forEach { rowSpec ->
-                AdminEventRow(
-                    photoKey = rowSpec.photoKey,
-                    title = rowSpec.title,
-                    date = rowSpec.date,
-                    client = rowSpec.client,
-                    total = rowSpec.total,
-                    percent = rowSpec.percent,
-                    statusLabel = rowSpec.statusLabel,
-                    statusTone = rowSpec.statusTone,
-                    onClick = { onEventClick(rowSpec.eventId) },
-                )
-            }
+        filteredRows.forEach { rowSpec ->
+            AdminEventRow(
+                photoKey = rowSpec.photoKey,
+                title = rowSpec.title,
+                date = rowSpec.date,
+                client = rowSpec.client,
+                total = rowSpec.total,
+                percent = rowSpec.percent,
+                statusLabel = rowSpec.statusLabel,
+                statusTone = rowSpec.statusTone,
+                onClick = { onEventClick(rowSpec.eventId) },
+            )
         }
     }
 }

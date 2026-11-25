@@ -17,16 +17,27 @@ public actual class DriverFactory(
 }
 
 internal fun isRunningInAutomatedTest(): Boolean {
+    val gradleWorkerProp = System.getProperty("org.gradle.test.worker").orEmpty()
+    if (gradleWorkerProp.isNotBlank()) {
+        return true
+    }
+    val javaCommand = System.getProperty("sun.java.command").orEmpty()
+    if (javaCommand.contains("GradleWorkerMain")) {
+        return true
+    }
+    if (javaCommand.contains("junit", ignoreCase = true)) {
+        return true
+    }
     val stackFrames = Thread.currentThread().stackTrace
     return stackFrames.any { frame ->
         val className = frame.className
-        val isJunitFrame = className.startsWith("org.junit.")
-        val isGradleTestWorker = className.startsWith("org.gradle.api.internal.tasks.testing.")
-        if (isJunitFrame) {
-            true
-        } else {
-            isGradleTestWorker
-        }
+        val isTestFrameworkFrame = listOf(
+            "org.junit.",
+            "org.gradle.api.internal.tasks.testing.",
+            "androidx.compose.ui.test.",
+            "kotlinx.coroutines.test.",
+        ).any { prefix -> className.startsWith(prefix) }
+        isTestFrameworkFrame
     }
 }
 

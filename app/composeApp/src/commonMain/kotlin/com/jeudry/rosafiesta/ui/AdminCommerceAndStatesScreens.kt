@@ -4541,7 +4541,7 @@ private fun AdminOnboardingStageOps(summary: AdminOnboardingSummary) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(232.dp),
+            .height(256.dp),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawAdminStageBlob(
@@ -4587,7 +4587,7 @@ private fun AdminOnboardingStageOps(summary: AdminOnboardingSummary) {
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .offset(x = 8.dp, y = 42.dp)
+                .offset(x = 8.dp, y = 26.dp)
                 .size(width = 236.dp, height = 164.dp)
                 .rotate(-3f)
                 .shadow(18.dp, RoundedCornerShape(24.dp), spotColor = Color(0x455B6CF0))
@@ -4641,13 +4641,13 @@ private fun AdminOnboardingStageOps(summary: AdminOnboardingSummary) {
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .offset(x = (-6).dp, y = (-16).dp)
+                .offset(x = (-6).dp, y = (-2).dp)
                 .width(232.dp)
                 .rotate(2f)
                 .shadow(16.dp, RoundedCornerShape(20.dp), spotColor = Color(0x385B6CF0))
                 .clip(RoundedCornerShape(20.dp))
                 .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, Color(0xFFE3E5F5), RoundedCornerShape(20.dp))
+                .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
                 .padding(12.dp),
         ) {
             Row(
@@ -4696,7 +4696,7 @@ private fun AdminOnboardingStageRosa(summary: AdminOnboardingSummary) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(232.dp),
+            .height(256.dp),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawAdminStageBlob(
@@ -4796,7 +4796,7 @@ private fun AdminOnboardingStageInventory(summary: AdminOnboardingSummary) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(232.dp),
+            .height(256.dp),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawAdminStageBlob(
@@ -4945,7 +4945,7 @@ private fun AdminOnboardingStageFinance(summary: AdminOnboardingSummary) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(232.dp),
+            .height(256.dp),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawAdminStageBlob(

@@ -20,6 +20,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -31,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -224,6 +226,10 @@ public fun RosaFiestaApp(
     } else {
         false
     }
+    val isSystemDark = isSystemInDarkTheme()
+    LaunchedEffect(isSystemDark) {
+        activeViewModel.syncSystemDarkTheme(isSystemDark)
+    }
     val isDarkThemeEnabled by activeViewModel.isDarkTheme.collectAsState()
     val useAdminDark = if (shouldUseAdminTheme) isDarkThemeEnabled else false
     val usePersonalDark = if (isDarkThemeEnabled) {
@@ -271,6 +277,7 @@ public fun RosaFiestaApp(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color(0xFF151729))
+                            .windowInsetsPadding(WindowInsets.statusBars)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                     ) {
                         BasicText(
@@ -415,11 +422,36 @@ public fun RosaFiestaApp(
                     lastPersistentHeaderCode = baseSpec.code
                 }
 
+                val isPersonalSplash = spec.code == "p00"
+                val isAdminSplash = spec.code == "A00"
+                val isSplashScreen = if (isPersonalSplash) true else isAdminSplash
+                val needsTopStatusBarInset = listOf(
+                    !showDevHeader,
+                    !shouldShowReturnBanner,
+                    !isSplashScreen,
+                ).all { flag -> flag }
+                val needsBottomNavBarInset = !isSplashScreen
+                val topInsetModifier = if (needsTopStatusBarInset) {
+                    Modifier.windowInsetsPadding(WindowInsets.statusBars)
+                } else {
+                    Modifier
+                }
+                val contentInsetModifier = if (needsBottomNavBarInset) {
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .then(topInsetModifier)
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                } else {
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .then(topInsetModifier)
+                }
+
                 BoxWithConstraints(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                    modifier = contentInsetModifier,
                 ) {
                     val isPersonalViewActive = navigator.activeView == AppView.PERSONAL
                     val isWideDesktopWidth = maxWidth >= 840.dp

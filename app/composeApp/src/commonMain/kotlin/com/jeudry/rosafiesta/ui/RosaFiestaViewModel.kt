@@ -493,6 +493,7 @@ public class RosaFiestaViewModel(
 
     private val _isDarkTheme = MutableStateFlow(false)
     public val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
+    private var hasExplicitDarkThemePreference: Boolean = false
 
     private val _preferredLanguage = MutableStateFlow("Español")
     public val preferredLanguage: StateFlow<String> = _preferredLanguage.asStateFlow()
@@ -1234,6 +1235,7 @@ public class RosaFiestaViewModel(
             val savedDark = secureStorage.get(SecureStorage.KEY_DARK_THEME)
             if (savedDark != null) {
                 val darkEnabled = savedDark == "true"
+                hasExplicitDarkThemePreference = true
                 _isDarkTheme.value = darkEnabled
                 com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = darkEnabled
             }
@@ -1720,6 +1722,7 @@ public class RosaFiestaViewModel(
             _preferredLanguage.value = displayLang
         }
         if (SecureStorage.KEY_DARK_THEME !in mutatedPreferenceKeys) {
+            hasExplicitDarkThemePreference = true
             _isDarkTheme.value = prefs.darkThemeEnabled
             com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = prefs.darkThemeEnabled
         }
@@ -4232,6 +4235,7 @@ public class RosaFiestaViewModel(
 
     public fun setDarkTheme(enabled: Boolean) {
         soundPlayer.playTap()
+        hasExplicitDarkThemePreference = true
         _isDarkTheme.value = enabled
         com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = enabled
         mutatedPreferenceKeys = mutatedPreferenceKeys + SecureStorage.KEY_DARK_THEME
@@ -4245,6 +4249,13 @@ public class RosaFiestaViewModel(
 
     public fun toggleDarkTheme() {
         setDarkTheme(!_isDarkTheme.value)
+    }
+
+    public fun syncSystemDarkTheme(systemDark: Boolean) {
+        if (!hasExplicitDarkThemePreference) {
+            _isDarkTheme.value = systemDark
+            com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = systemDark
+        }
     }
 
     public fun setPreferredLanguage(language: String) {
