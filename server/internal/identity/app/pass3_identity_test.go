@@ -113,3 +113,48 @@ func TestCleanupEvictsExpiredInMemorySecurityState(t *testing.T) {
 		t.Fatal("expected active oauth state retained")
 	}
 }
+
+func TestChangePasswordAndImmediateReloginWithinSameSecondSucceeds(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	base := time.Date(2026, time.November, 25, 16, 9, 26, 0, time.UTC)
+	svc := NewServiceWithOptions(stubClock{now: base}, nil, Options{
+		Env:       config.EnvProduction,
+		JWTSecret: "9f8e7d6c5b4a392817161514131211109f8e7d6c5b4a3928",
+	})
+	svc.ResetEmpty(ctx)
+
+	registeredUser, initialToken, regErr := svc.Register(ctx, RegisterCommand{
+		Username: "same_sec_client",
+		FullName: "Same Second Client",
+		Email:    "samesec@rosafiesta.do",
+		Password: "Password123!",
+		Phone:    "809-555-0101",
+	})
+	if regErr != nil {
+		t.Fatalf("Register failed: %v", regErr)
+	}
+
+	if err := svc.ChangePassword(ctx, registeredUser.ID, "Password123!", "Password999!"); err != nil {
+		t.Fatalf("ChangePassword failed: %v", err)
+	}
+	if _, authOldErr := svc.Authenticate(ctx, initialToken); authOldErr == nil {
+		t.Fatal("expected initial access token to be revoked immediately after password change")
+	}
+
+	_, newToken, loginErr := svc.Login(ctx, "samesec@rosafiesta.do", "Password999!")
+	if loginErr != nil {
+		t.Fatalf("Login after password change failed: %v", loginErr)
+	}
+	if newToken == initialToken {
+		t.Fatal("expected new login within the same Unix second to issue a distinct JWT")
+	}
+
+	authenticatedUserID, authNewErr := svc.Authenticate(ctx, newToken)
+	if authNewErr != nil {
+		t.Fatalf("expected relogin token within same second to authenticate, got %v", authNewErr)
+	}
+	if authenticatedUserID != registeredUser.ID {
+		t.Fatalf("expected user ID %s, got %s", registeredUser.ID, authenticatedUserID)
+	}
+}

@@ -13,9 +13,11 @@ import (
 const (
 	defaultJWTTTLHours   = 24 * 7
 	ephemeralKeyByteSize = 32
+	jwtIDByteSize        = 16
 )
 
 type jwtClaimsPayload struct {
+	TokenID   string `json:"jti,omitempty"`
 	SubjectID string `json:"sub"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
@@ -53,6 +55,7 @@ func (tm TokenManager) IssueWithTTL(user User, issuedAt time.Time, ttl time.Dura
 		username = parts[0]
 	}
 	payload := jwtClaimsPayload{
+		TokenID:   newTokenID(),
 		SubjectID: user.ID.String(),
 		Username:  username,
 		Email:     user.Email,
@@ -112,4 +115,10 @@ func (tm TokenManager) computeHMAC(message string) string {
 	_, _ = mac.Write([]byte(message))
 	sum := mac.Sum(nil)
 	return base64.RawURLEncoding.EncodeToString(sum)
+}
+
+func newTokenID() string {
+	buf := make([]byte, jwtIDByteSize)
+	_, _ = rand.Read(buf)
+	return base64.RawURLEncoding.EncodeToString(buf)
 }

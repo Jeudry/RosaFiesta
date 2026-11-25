@@ -328,6 +328,46 @@ type offlineDispatcherAdapter struct {
 	payments   *paymentsapp.Service
 }
 
+func (a offlineDispatcherAdapter) AuthorizeMutation(
+	_ context.Context,
+	opType string,
+	caller platformhttp.Principal,
+) error {
+	trimmedType := strings.ToLower(strings.TrimSpace(opType))
+	if trimmedType == "" {
+		return nil
+	}
+	switch trimmedType {
+	case "checklist.toggle", "toggle_checklist":
+		if !callerHasAnyOfflinePermission(caller, "tareas", "eventos", "decoracion") {
+			return operationsdomain.ErrOfflineActionForbidden
+		}
+		return nil
+	case "damage.report":
+		if !callerHasAnyOfflinePermission(caller, "inventario", "eventos", "decoracion") {
+			return operationsdomain.ErrOfflineActionForbidden
+		}
+		return nil
+	case "chat.send":
+		if !caller.IsAdminOrStaff() {
+			return operationsdomain.ErrOfflineActionForbidden
+		}
+		return nil
+	case "guest.add", "cancel_event":
+		if !callerHasAnyOfflinePermission(caller, "eventos", "decoracion") {
+			return operationsdomain.ErrOfflineActionForbidden
+		}
+		return nil
+	case "payment.register", "register_payment", "payment.verify", "payment_verify", "verify_payment":
+		if !callerHasAnyOfflinePermission(caller, "pagos", "finanzas") {
+			return operationsdomain.ErrOfflineActionForbidden
+		}
+		return nil
+	default:
+		return operationsdomain.ErrOfflineActionForbidden
+	}
+}
+
 func (a offlineDispatcherAdapter) DispatchMutation(
 	ctx context.Context,
 	opType string,
@@ -338,8 +378,11 @@ func (a offlineDispatcherAdapter) DispatchMutation(
 	if trimmedType == "" {
 		return nil
 	}
+	if err := a.AuthorizeMutation(ctx, trimmedType, caller); err != nil {
+		return err
+	}
 	switch trimmedType {
-	case "checklist.toggle":
+	case "checklist.toggle", "toggle_checklist":
 		return a.dispatchChecklistToggle(ctx, payloadJSON, caller)
 	case "damage.report":
 		return a.dispatchDamageReport(ctx, payloadJSON, caller)
@@ -347,10 +390,14 @@ func (a offlineDispatcherAdapter) DispatchMutation(
 		return a.dispatchChatMessage(ctx, payloadJSON, caller)
 	case "guest.add":
 		return a.dispatchGuestAdd(ctx, payloadJSON, caller)
-	case "payment.register":
+	case "cancel_event":
+		return a.dispatchCancelEvent(ctx, payloadJSON, caller)
+	case "payment.register", "register_payment":
 		return a.dispatchPaymentRegister(ctx, payloadJSON, caller)
+	case "payment.verify", "payment_verify", "verify_payment":
+		return a.dispatchPaymentVerify(ctx, payloadJSON, caller)
 	default:
-		return nil
+		return operationsdomain.ErrOfflineActionForbidden
 	}
 }
 
@@ -467,11 +514,34 @@ func (a offlineDispatcherAdapter) dispatchGuestAdd(
 	return err
 }
 
+func (a offlineDispatcherAdapter) dispatchCancelEvent(
+	ctx context.Context,
+	payloadJSON string,
+	caller platformhttp.Principal,
+) error {
+	var body struct {
+		EventID string `json:"eventId"`
+		Reason  string `json:"reason"`
+	}
+	if err := json.Unmarshal([]byte(payloadJSON), &body); err != nil {
+		return fmt.Errorf("decode cancel event offline payload: %w", err)
+	}
+	cleanID := strings.TrimSpace(body.EventID)
+	if cleanID == "" {
+		return nil
+	}
+	_, _, err := a.events.CancelEventForCaller(ctx, cleanID, body.Reason, caller)
+	return err
+}
+
 func (a offlineDispatcherAdapter) dispatchPaymentRegister(
 	ctx context.Context,
 	payloadJSON string,
 	caller platformhttp.Principal,
 ) error {
+	if !callerHasAnyOfflinePermission(caller, "pagos", "finanzas") {
+		return operationsdomain.ErrOfflineActionForbidden
+	}
 	var cmd paymentsapp.RegisterPaymentCommand
 	if err := json.Unmarshal([]byte(payloadJSON), &cmd); err != nil {
 		return fmt.Errorf("decode payment offline payload: %w", err)
@@ -480,6 +550,29 @@ func (a offlineDispatcherAdapter) dispatchPaymentRegister(
 		return nil
 	}
 	_, err := a.payments.RegisterPaymentForCaller(ctx, cmd, caller)
+	return err
+}
+
+func (a offlineDispatcherAdapter) dispatchPaymentVerify(
+	ctx context.Context,
+	payloadJSON string,
+	caller platformhttp.Principal,
+) error {
+	if !callerHasAnyOfflinePermission(caller, "pagos", "finanzas") {
+		return operationsdomain.ErrOfflineActionForbidden
+	}
+	var body struct {
+		PaymentID string `json:"paymentId"`
+		Notes     string `json:"notes"`
+	}
+	if err := json.Unmarshal([]byte(payloadJSON), &body); err != nil {
+		return fmt.Errorf("decode verify payment offline payload: %w", err)
+	}
+	cleanID := strings.TrimSpace(body.PaymentID)
+	if cleanID == "" {
+		return operationsdomain.ErrInvalidOperationsInput
+	}
+	_, err := a.payments.VerifyPaymentForCaller(ctx, cleanID, body.Notes, caller)
 	return err
 }
 

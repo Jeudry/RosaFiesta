@@ -13,6 +13,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -886,236 +887,347 @@ private fun AdminDesktopTopBar(
         "Panel administrativo web · RosaFiesta"
     }
 
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            BasicText(
-                text = subtitleText,
-                style = typo.secondary.copy(fontSize = 14.sp, color = palette.muted),
-            )
-            Spacer(Modifier.height(2.dp))
-            BasicText(
-                text = headingText,
-                style = typo.rootTabTitle.copy(fontSize = 28.sp, fontWeight = FontWeight.ExtraBold),
-            )
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .width(340.dp)
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(palette.surface)
-                    .border(1.dp, palette.fieldBorder, RoundedCornerShape(14.dp))
-                    .padding(horizontal = 14.dp),
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val isCompactTopBar = maxWidth < 760.dp
+        if (isCompactTopBar) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
-                    RfIcon(
-                        kind = RfIconKind.SEARCH,
-                        tint = palette.muted,
-                        size = 18.dp,
-                    )
-                    BasicTextField(
-                        value = searchQuery,
-                        onValueChange = { updatedQuery ->
-                            onSearchChange(updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH))
-                        },
-                        singleLine = true,
-                        textStyle = typo.body.copy(fontSize = 14.sp, color = palette.ink),
-                        cursorBrush = SolidColor(palette.primaryAccent),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(searchFocusRequester),
-                        decorationBox = { innerTextField ->
-                            if (searchQuery.isEmpty()) {
-                                BasicText(
-                                    text = "Buscar eventos, clientes, artículos",
-                                    style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
-                                    maxLines = 1,
-                                )
-                            }
-                            innerTextField()
-                        },
-                    )
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    if (searchQuery.isNotEmpty()) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(palette.chipBg)
-                                .clickable { onSearchChange("") }
-                                .padding(horizontal = 6.dp, vertical = 3.dp),
-                        ) {
-                            BasicText(
-                                text = "✕",
-                                style = typo.caption.copy(
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = palette.muted,
-                                ),
-                            )
-                        }
-                    }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(palette.chipBg)
-                            .clickable(onClick = onFocusSearch)
-                            .padding(horizontal = 7.dp, vertical = 3.dp),
-                    ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                         BasicText(
-                            text = "⌘K",
-                            style = typo.caption.copy(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = palette.muted,
-                            ),
+                            text = subtitleText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = typo.secondary.copy(fontSize = 14.sp, color = palette.muted),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        BasicText(
+                            text = headingText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = typo.rootTabTitle.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold),
                         )
                     }
+                    AdminA39NotificationButton(
+                        bellBadgeCount = bellBadgeCount,
+                        onOpenNotifications = onOpenNotifications,
+                    )
+                }
+                AdminA39SearchBox(
+                    searchQuery = searchQuery,
+                    searchFocusRequester = searchFocusRequester,
+                    onSearchChange = onSearchChange,
+                    onFocusSearch = onFocusSearch,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                AdminA39ActionsRow(
+                    activeSection = activeSection,
+                    fillAvailable = fillAvailable,
+                    onOpenRosaAi = onOpenRosaAi,
+                    onOpenNewEvent = onOpenNewEvent,
+                    onExportActiveReport = onExportActiveReport,
+                    onSwitchAppMode = onSwitchAppMode,
+                )
+            }
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                    BasicText(
+                        text = subtitleText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = typo.secondary.copy(fontSize = 14.sp, color = palette.muted),
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    BasicText(
+                        text = headingText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = typo.rootTabTitle.copy(fontSize = 28.sp, fontWeight = FontWeight.ExtraBold),
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    AdminA39SearchBox(
+                        searchQuery = searchQuery,
+                        searchFocusRequester = searchFocusRequester,
+                        onSearchChange = onSearchChange,
+                        onFocusSearch = onFocusSearch,
+                        modifier = Modifier.width(340.dp),
+                    )
+                    AdminA39NotificationButton(
+                        bellBadgeCount = bellBadgeCount,
+                        onOpenNotifications = onOpenNotifications,
+                    )
+                    AdminA39ActionsRow(
+                        activeSection = activeSection,
+                        fillAvailable = fillAvailable,
+                        onOpenRosaAi = onOpenRosaAi,
+                        onOpenNewEvent = onOpenNewEvent,
+                        onExportActiveReport = onExportActiveReport,
+                        onSwitchAppMode = onSwitchAppMode,
+                    )
                 }
             }
+        }
+    }
+}
 
+@Composable
+private fun AdminA39SearchBox(
+    searchQuery: String,
+    searchFocusRequester: FocusRequester,
+    onSearchChange: (String) -> Unit,
+    onFocusSearch: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalRfPalette.current
+    val typo = LocalRfTypography.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier
+            .height(46.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.fieldBorder, RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.weight(1f),
+        ) {
+            RfIcon(
+                kind = RfIconKind.SEARCH,
+                tint = palette.muted,
+                size = 18.dp,
+            )
+            BasicTextField(
+                value = searchQuery,
+                onValueChange = { updatedQuery ->
+                    onSearchChange(updatedQuery.take(InputValidator.MAX_SEARCH_QUERY_LENGTH))
+                },
+                singleLine = true,
+                textStyle = typo.body.copy(fontSize = 14.sp, color = palette.ink),
+                cursorBrush = SolidColor(palette.primaryAccent),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(searchFocusRequester),
+                decorationBox = { innerTextField ->
+                    if (searchQuery.isEmpty()) {
+                        BasicText(
+                            text = "Buscar eventos, clientes, artículos",
+                            style = typo.body.copy(fontSize = 14.sp, color = palette.muted),
+                            maxLines = 1,
+                        )
+                    }
+                    innerTextField()
+                },
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (searchQuery.isNotEmpty()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(palette.chipBg)
+                        .clickable { onSearchChange("") }
+                        .padding(horizontal = 6.dp, vertical = 3.dp),
+                ) {
+                    BasicText(
+                        text = "✕",
+                        style = typo.caption.copy(
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = palette.muted,
+                        ),
+                    )
+                }
+            }
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(44.dp)
-                    .rfIconButtonShadow(CircleShape, isAdmin = true)
-                    .clip(CircleShape)
-                    .background(palette.surface)
-                    .border(1.dp, palette.line, CircleShape)
-                    .clickable(onClick = onOpenNotifications),
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(palette.chipBg)
+                    .clickable(onClick = onFocusSearch)
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
             ) {
-                RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 20.dp)
-                if (bellBadgeCount > 0) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFFFD45C)),
-                    ) {
-                        BasicText(
-                            text = bellBadgeCount.toString(),
-                            style = typo.tagLabel.copy(
-                                color = Color(0xFF2E1A47),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                            ),
-                        )
-                    }
-                }
+                BasicText(
+                    text = "⌘K",
+                    style = typo.caption.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = palette.muted,
+                    ),
+                )
             }
+        }
+    }
+}
 
+@Composable
+private fun AdminA39NotificationButton(
+    bellBadgeCount: Int,
+    onOpenNotifications: () -> Unit,
+) {
+    val palette = LocalRfPalette.current
+    val typo = LocalRfTypography.current
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(44.dp)
+            .rfIconButtonShadow(CircleShape, isAdmin = true)
+            .clip(CircleShape)
+            .background(palette.surface)
+            .border(1.dp, palette.line, CircleShape)
+            .clickable(onClick = onOpenNotifications),
+    ) {
+        RfIcon(kind = RfIconKind.BELL, tint = palette.ink, size = 20.dp)
+        if (bellBadgeCount > 0) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFFD45C)),
+            ) {
+                BasicText(
+                    text = bellBadgeCount.toString(),
+                    style = typo.tagLabel.copy(
+                        color = Color(0xFF2E1A47),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                    ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminA39ActionsRow(
+    activeSection: A39DesktopSection,
+    fillAvailable: Boolean,
+    onOpenRosaAi: () -> Unit,
+    onOpenNewEvent: () -> Unit,
+    onExportActiveReport: () -> Unit,
+    onSwitchAppMode: () -> Unit,
+) {
+    val palette = LocalRfPalette.current
+    val typo = LocalRfTypography.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .height(46.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(palette.surface)
+                .border(1.dp, palette.fieldBorder, RoundedCornerShape(16.dp))
+                .clickable(onClick = onOpenRosaAi)
+                .padding(horizontal = 16.dp),
+        ) {
+            RosaAvatar(size = RosaAvatarSize.MINI, forceAdminPalette = true)
+            BasicText(
+                text = "Crear con Rosa",
+                style = typo.buttonLabel.copy(
+                    color = palette.ink,
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+        }
+
+        if (activeSection == A39DesktopSection.REPORTES) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .height(46.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(palette.surface)
-                    .border(1.dp, palette.fieldBorder, RoundedCornerShape(16.dp))
-                    .clickable(onClick = onOpenRosaAi)
-                    .padding(horizontal = 16.dp),
+                    .background(
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)),
+                        ),
+                    )
+                    .clickable(onClick = onExportActiveReport)
+                    .padding(horizontal = 18.dp),
             ) {
-                RosaAvatar(size = RosaAvatarSize.MINI, forceAdminPalette = true)
+                RfIcon(kind = RfIconKind.RECEIPT, tint = Color.White, size = 18.dp)
                 BasicText(
-                    text = "Crear con Rosa",
+                    text = "Exportar",
                     style = typo.buttonLabel.copy(
-                        color = palette.ink,
+                        color = Color.White,
                         fontSize = 14.5.sp,
                         fontWeight = FontWeight.Bold,
                     ),
                 )
             }
-
-            if (activeSection == A39DesktopSection.REPORTES) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .height(46.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)),
-                            ),
-                        )
-                        .clickable(onClick = onExportActiveReport)
-                        .padding(horizontal = 18.dp),
-                ) {
-                    RfIcon(kind = RfIconKind.RECEIPT, tint = Color.White, size = 18.dp)
-                    BasicText(
-                        text = "Exportar",
-                        style = typo.buttonLabel.copy(
-                            color = Color.White,
-                            fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Bold,
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .height(46.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)),
                         ),
                     )
-                }
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .height(46.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                listOf(Color(0xFF7C5CF0), Color(0xFF5B6CF0)),
-                            ),
-                        )
-                        .clickable(onClick = onOpenNewEvent)
-                        .padding(horizontal = 18.dp),
-                ) {
-                    RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
-                    BasicText(
-                        text = "Nuevo evento",
-                        style = typo.buttonLabel.copy(
-                            color = Color.White,
-                            fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    )
-                }
+                    .clickable(onClick = onOpenNewEvent)
+                    .padding(horizontal = 18.dp),
+            ) {
+                RfIcon(kind = RfIconKind.PLUS, tint = Color.White, size = 18.dp)
+                BasicText(
+                    text = "Nuevo evento",
+                    style = typo.buttonLabel.copy(
+                        color = Color.White,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
             }
+        }
 
-            if (fillAvailable) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier
-                        .height(46.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(RfColors.RosaBrand)
-                        .clickable(onClick = onSwitchAppMode)
-                        .padding(horizontal = 14.dp),
-                ) {
-                    BasicText(
-                        text = "🌸 App Personal",
-                        style = typo.buttonLabel.copy(color = Color.White, fontSize = 13.5.sp),
-                    )
-                }
+        if (fillAvailable) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .height(46.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(RfColors.RosaBrand)
+                    .clickable(onClick = onSwitchAppMode)
+                    .padding(horizontal = 14.dp),
+            ) {
+                BasicText(
+                    text = "🌸 App Personal",
+                    style = typo.buttonLabel.copy(color = Color.White, fontSize = 13.5.sp),
+                )
             }
         }
     }

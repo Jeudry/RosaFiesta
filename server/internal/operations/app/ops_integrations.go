@@ -463,16 +463,20 @@ func (s *Service) SyncOfflineMutations(
 	incoming []EnqueueOfflineMutationCommand,
 	caller platformhttp.Principal,
 ) ([]domain.OfflineMutation, error) {
+	s.mu.RLock()
+	dispatcher := s.offlineDispatcher
+	store := s.store
+	s.mu.RUnlock()
+
+	if err := authorizeIncomingOfflineMutations(ctx, incoming, dispatcher, caller); err != nil {
+		return nil, err
+	}
 	for _, cmd := range incoming {
 		if _, err := s.EnqueueOfflineMutation(ctx, cmd); err != nil {
 			return nil, err
 		}
 	}
 	queue := s.ListOfflineQueue(ctx)
-	s.mu.RLock()
-	dispatcher := s.offlineDispatcher
-	store := s.store
-	s.mu.RUnlock()
 
 	for idx := range queue {
 		if err := s.syncSingleMutation(ctx, &queue[idx], dispatcher, store, caller); err != nil {
@@ -483,6 +487,24 @@ func (s *Service) SyncOfflineMutations(
 	s.offlineQueue = queue
 	s.mu.Unlock()
 	return queue, nil
+}
+
+func authorizeIncomingOfflineMutations(
+	ctx context.Context,
+	incoming []EnqueueOfflineMutationCommand,
+	dispatcher OfflineMutationDispatcher,
+	caller platformhttp.Principal,
+) error {
+	authorizer, ok := dispatcher.(OfflineMutationAuthorizer)
+	if !ok {
+		return nil
+	}
+	for _, cmd := range incoming {
+		if err := authorizer.AuthorizeMutation(ctx, cmd.OperationType, caller); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Service) syncSingleMutation(

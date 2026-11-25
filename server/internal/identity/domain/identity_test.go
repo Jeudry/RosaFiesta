@@ -120,3 +120,36 @@ func TestTokenManagerValidatesSignatureAndExpiration(t *testing.T) {
 		t.Fatalf("expected ErrInvalidCredentials with wrong signing key, got %v", err)
 	}
 }
+
+func TestTokenManagerIssuesUniqueTokensAtSameTimestamp(t *testing.T) {
+	now := time.Date(2026, time.November, 25, 16, 9, 26, 0, time.UTC)
+	tm := domain.NewTokenManager("test-signing-key-with-at-least-32-bytes!!")
+	user := domain.User{
+		ID:       uuid.New(),
+		Username: "camila",
+		FullName: "Camila Rodríguez",
+		Email:    "camila@rosafiesta.do",
+		Role:     domain.RoleClient,
+	}
+
+	tokenA := tm.IssueWithTTL(user, now, time.Hour)
+	tokenB := tm.IssueWithTTL(user, now, time.Hour)
+	if tokenA == tokenB {
+		t.Fatalf("expected distinct JWTs at identical timestamp %s, got identical tokens", now)
+	}
+
+	subjectA, errA := tm.Verify(tokenA, now)
+	if errA != nil {
+		t.Fatalf("expected first token to verify cleanly, got %v", errA)
+	}
+	subjectB, errB := tm.Verify(tokenB, now)
+	if errB != nil {
+		t.Fatalf("expected second token to verify cleanly, got %v", errB)
+	}
+	if subjectA != user.ID.String() {
+		t.Fatalf("expected subject %s on tokenA, got %s", user.ID, subjectA)
+	}
+	if subjectB != user.ID.String() {
+		t.Fatalf("expected subject %s on tokenB, got %s", user.ID, subjectB)
+	}
+}

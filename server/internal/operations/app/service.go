@@ -32,6 +32,11 @@ type OfflineMutationDispatcher interface {
 	DispatchMutation(ctx context.Context, opType string, payloadJSON string, caller platformhttp.Principal) error
 }
 
+// OfflineMutationAuthorizer valida los permisos del operador antes de encolar o sincronizar mutaciones offline.
+type OfflineMutationAuthorizer interface {
+	AuthorizeMutation(ctx context.Context, opType string, caller platformhttp.Principal) error
+}
+
 // ReportSnapshotProvider calcula métricas reales mensuales desde módulos vecinos para reportes.
 type ReportSnapshotProvider interface {
 	BuildReportSnapshot(ctx context.Context, months int, now time.Time) (domain.ReportSnapshot, error)

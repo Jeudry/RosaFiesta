@@ -115,6 +115,43 @@ func TestPaymentReminderRespectsEventRemindersPreference(t *testing.T) {
 	}
 }
 
+func TestOfflineQueueSyncRejectsUnauthorizedStaffAndUnknownOps(t *testing.T) {
+	t.Parallel()
+	handler, _ := httpapi.New(slog.New(slog.DiscardHandler), app.Modules(app.Dependencies{
+		Config: config.Config{MediaStorageDir: filepath.Join(t.TempDir(), "media")},
+	})...)
+
+	// Yuli has only decoracion + tareas -> must be rejected (403) before persisting VERIFY_PAYMENT or register_payment.
+	mustJSONRequest(t, handler, http.MethodPost, "/v1/operations/offline-queue/sync", "rf-token-yuli", `{
+		"mutations": [{
+			"actionLabel": "Escalate verify",
+			"entityCode": "pay-1",
+			"operationType": "VERIFY_PAYMENT",
+			"payloadJson": "{\"paymentId\":\"pay-1\"}",
+			"idempotencyKey": "idem-unauth-verify"
+		}]
+	}`, http.StatusForbidden)
+
+	mustJSONRequest(t, handler, http.MethodPost, "/v1/operations/offline-queue/sync", "rf-token-yuli", `{
+		"mutations": [{
+			"actionLabel": "Escalate register payment",
+			"entityCode": "evt-boda-real",
+			"operationType": "register_payment",
+			"payloadJson": "{\"eventId\":\"evt-boda-real\",\"amountRD\":500}",
+			"idempotencyKey": "idem-unauth-regpay"
+		}]
+	}`, http.StatusForbidden)
+
+	// Rejected incoming mutations must NOT remain queued for Maria when she syncs the offline queue.
+	queueBody := mustJSONRequest(t, handler, http.MethodGet, "/v1/operations/offline-queue", "rf-token-maria", "", http.StatusOK)
+	if strings.Contains(string(queueBody), "idem-unauth-verify") {
+		t.Fatalf("unauthorized VERIFY_PAYMENT leaked into offline queue: %s", string(queueBody))
+	}
+	if strings.Contains(string(queueBody), "idem-unauth-regpay") {
+		t.Fatalf("unauthorized register_payment leaked into offline queue: %s", string(queueBody))
+	}
+}
+
 func mustJSONRequest(
 	t *testing.T,
 	handler http.Handler,
