@@ -128,6 +128,17 @@ type quoteLifecycleAdapter struct {
 	pushSender push.Sender
 }
 
+type eventLogisticsAdapter struct {
+	operations *operationsapp.Service
+}
+
+func (a eventLogisticsAdapter) EnsureDraftEventLogistics(ctx context.Context, evt eventsdomain.Event) error {
+	if a.operations == nil {
+		return nil
+	}
+	return a.operations.EnsureDraftLogistics(ctx, evt.ID, evt.Title, evt.Venue, evt.Zone, evt.DateLabel)
+}
+
 func (a quoteLifecycleAdapter) ProvisionEventFromQuote(ctx context.Context, quote quotesdomain.Quote) (string, error) {
 	clientUUID := parseOptionalUUID(quote.ClientID)
 	items := make([]eventsdomain.EventItem, 0, len(quote.Lines))
@@ -518,8 +529,12 @@ func (a userPreferencesAdapter) DispatchPaymentReminder(
 	}
 	prefs := a.identity.PreferencesForAccount(ctx, event.ClientID, event.ClientEmail)
 	dispatched := a.sendReminderByChannel(ctx, event, channel, bodyText, prefs.EmailReceiptsEnabled, prefs.WhatsAppAlertsEnabled)
+	canDispatchReminderPush := prefs.PushNotificationsEnabled
+	if canDispatchReminderPush {
+		canDispatchReminderPush = prefs.EventRemindersEnabled
+	}
 	if a.operations != nil {
-		if prefs.PushNotificationsEnabled {
+		if canDispatchReminderPush {
 			title := "Recordatorio de saldo · " + event.Title
 			clientID := ""
 			if event.ClientID != uuid.Nil {
@@ -529,13 +544,13 @@ func (a userPreferencesAdapter) DispatchPaymentReminder(
 				ctx,
 				title,
 				bodyText,
-				"pagos",
+				"recordatorios",
 				"client",
 				clientID,
 			)
 			if a.identity != nil {
 				tokens := a.identity.ActivePushTokensForUser(ctx, event.ClientID)
-				if dispatchRemotePush(ctx, a.pushSender, tokens, title, bodyText, "pagos") {
+				if dispatchRemotePush(ctx, a.pushSender, tokens, title, bodyText, "recordatorios") {
 					dispatched = true
 				}
 			}

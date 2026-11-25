@@ -255,6 +255,7 @@ var paymentErrorSpecs = []paymentErrorSpec{
 	{domain.ErrClientCashRestricted, http.StatusForbidden, "CLIENT_CASH_PAYMENT_RESTRICTED", "RequireAdminForDirectCash"},
 	{domain.ErrInvalidPaymentCurrency, http.StatusBadRequest, "INVALID_PAYMENT_CURRENCY", "RequireDOPCurrency"},
 	{domain.ErrNCFSequenceExpired, http.StatusConflict, "NCF_SEQUENCE_EXPIRED", "ValidNCFSequenceRequired"},
+	{domain.ErrInvalidRejectionReason, http.StatusBadRequest, "INVALID_REJECTION_REASON", "RequirePaymentRejectionReason"},
 }
 
 func mapPaymentError(err error, endpoint, defaultCode, policy string, defaultStatus int) *platformhttp.APIError {

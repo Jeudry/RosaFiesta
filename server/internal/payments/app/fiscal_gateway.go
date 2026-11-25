@@ -75,8 +75,8 @@ func (s *Service) RejectPaymentForCaller(
 	}
 	targetID := strings.TrimSpace(paymentID)
 	cleanReason := strings.TrimSpace(reason)
-	if cleanReason == "" {
-		cleanReason = "Comprobante rechazado por finanzas"
+	if len([]rune(cleanReason)) < 4 {
+		return domain.Payment{}, domain.ErrInvalidRejectionReason
 	}
 
 	now := s.clock.Now()

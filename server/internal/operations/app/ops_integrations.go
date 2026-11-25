@@ -23,8 +23,8 @@ import (
 	realtimedomain "github.com/Jeudry/rosafiesta/server/internal/realtime/domain"
 )
 
-// EnsureLogisticsForConfirmedEvent crea de forma idempotente logística, checklist y paradas para un evento confirmado.
-func (s *Service) EnsureLogisticsForConfirmedEvent(
+// EnsureDraftLogistics inicializa idempotentemente la ficha logística y checklist por defecto de un evento recién creado sin generar paradas de ruta.
+func (s *Service) EnsureDraftLogistics(
 	ctx context.Context,
 	eventID string,
 	title string,
@@ -39,6 +39,51 @@ func (s *Service) EnsureLogisticsForConfirmedEvent(
 	store, hasStore := s.storeEnabled()
 	if s.logisticsAlreadyExists(ctx, cleanID, store, hasStore) {
 		return nil
+	}
+	effectiveVenue := resolveVenueText(venue, zone)
+	logi := domain.EventLogistics{ //nolint:gosec // Metadatos logísticos del evento, sin credenciales
+		EventID:        cleanID,
+		EventTitle:     strings.TrimSpace(title),
+		DateLabel:      strings.TrimSpace(dateLabel),
+		SetupWindow:    "09:00 AM – 12:00 PM",
+		TeardownWindow: "11:00 PM – 01:00 AM",
+		Venue:          effectiveVenue,
+		Checklist:      buildDefaultEventChecklist(cleanID),
+	}
+	s.mu.Lock()
+	s.logistics[cleanID] = logi
+	s.mu.Unlock()
+	if !hasStore {
+		return nil
+	}
+	if err := store.UpsertEventLogistics(ctx, logi, zone, "planificada", logi.DateLabel); err != nil {
+		return err
+	}
+	for _, item := range logi.Checklist {
+		if err := store.UpsertChecklistItem(ctx, logi.EventID, item); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// EnsureLogisticsForConfirmedEvent crea de forma idempotente logística, checklist y paradas para un evento confirmado.
+func (s *Service) EnsureLogisticsForConfirmedEvent(
+	ctx context.Context,
+	eventID string,
+	title string,
+	venue string,
+	zone string,
+	dateLabel string,
+) error {
+	cleanID := strings.TrimSpace(eventID)
+	if cleanID == "" {
+		return domain.ErrInvalidOperationsInput
+	}
+	store, hasStore := s.storeEnabled()
+	alreadyHasLogi := s.logisticsAlreadyExists(ctx, cleanID, store, hasStore)
+	if alreadyHasLogi {
+		return s.ensureConfirmedStopsOnly(ctx, cleanID, title, venue, zone, store, hasStore)
 	}
 
 	effectiveVenue := resolveVenueText(venue, zone)
@@ -67,6 +112,65 @@ func (s *Service) EnsureLogisticsForConfirmedEvent(
 		"stops":   len(stops),
 	})
 	return nil
+}
+
+func (s *Service) ensureConfirmedStopsOnly(
+	ctx context.Context,
+	eventID string,
+	title string,
+	venue string,
+	zone string,
+	store Store,
+	hasStore bool,
+) error {
+	if s.routeStopsExistForEvent(ctx, eventID, store, hasStore) {
+		return nil
+	}
+	effectiveVenue := resolveVenueText(venue, zone)
+	cleanTitle := strings.TrimSpace(title)
+	s.mu.Lock()
+	nextOrder := len(s.routeStops) + 1
+	stops := buildConfirmedRouteStops(eventID, cleanTitle, effectiveVenue, nextOrder)
+	s.routeStops = append(s.routeStops, stops...)
+	logi := s.logistics[eventID]
+	s.mu.Unlock()
+	if hasStore {
+		if logi.EventID != "" {
+			_ = store.UpsertEventLogistics(ctx, logi, zone, "programada", logi.DateLabel)
+		}
+		if err := store.ReplaceDeliveryStops(ctx, eventID, stops); err != nil {
+			return err
+		}
+	}
+	s.publishOpsEvent(realtimedomain.EventLogisticsUpdated, eventID, "Paradas de ruta creadas para "+cleanTitle, map[string]any{
+		"eventId": eventID,
+		"stops":   len(stops),
+	})
+	return nil
+}
+
+func (s *Service) routeStopsExistForEvent(ctx context.Context, eventID string, store Store, hasStore bool) bool {
+	s.mu.RLock()
+	for _, stop := range s.routeStops {
+		if stop.EventID == eventID {
+			s.mu.RUnlock()
+			return true
+		}
+	}
+	s.mu.RUnlock()
+	if !hasStore {
+		return false
+	}
+	rows, err := store.ListDeliveryStops(ctx)
+	if err != nil {
+		return false
+	}
+	for _, stop := range rows {
+		if stop.EventID == eventID {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) logisticsAlreadyExists(ctx context.Context, eventID string, store Store, hasStore bool) bool {

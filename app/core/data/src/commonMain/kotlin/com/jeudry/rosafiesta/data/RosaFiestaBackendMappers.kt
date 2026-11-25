@@ -60,6 +60,8 @@ import com.jeudry.rosafiesta.domain.StaffProfile
 import com.jeudry.rosafiesta.domain.SupplierRecord
 import com.jeudry.rosafiesta.domain.VoiceTranscriptionOutcome
 import com.jeudry.rosafiesta.domain.security.UserPreferences
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 internal data class NormalizedPaymentMethod(
     val canonicalMethod: String,
@@ -555,7 +557,7 @@ internal object RosaFiestaBackendMappers {
             instagramUrl = dto.instagram.ifBlank { fallback.instagramUrl },
             facebookUrl = dto.facebook.ifBlank { fallback.facebookUrl },
             depositPercent = dto.depositPercent.toInt(),
-            itbisPercent = fallback.itbisPercent,
+            itbisPercent = dto.itbisPercent.toInt().coerceIn(0, 100),
             whatsappAutoAlertsEnabled = fallback.whatsappAutoAlertsEnabled,
             zones = mappedZones,
         )
@@ -1046,14 +1048,18 @@ internal object RosaFiestaBackendMappers {
         dto: RealtimeEventDto,
         fallbackType: String = "",
         resolvedSeq: Long = dto.seq,
-    ): RealtimeStreamEvent = RealtimeStreamEvent(
-        seq = resolvedSeq,
-        type = dto.type.ifBlank { fallbackType },
-        entityId = dto.entityId,
-        clientId = dto.clientId,
-        audience = dto.audience.ifBlank { "all" },
-        summary = dto.summary,
-    )
+    ): RealtimeStreamEvent {
+        val rawCategory = dto.payload?.get("category")?.jsonPrimitive?.contentOrNull.orEmpty()
+        return RealtimeStreamEvent(
+            seq = resolvedSeq,
+            type = dto.type.ifBlank { fallbackType },
+            entityId = dto.entityId,
+            clientId = dto.clientId,
+            audience = dto.audience.ifBlank { "all" },
+            summary = dto.summary,
+            category = rawCategory.trim(),
+        )
+    }
 
     fun toUserPreferences(dto: UserPreferencesDto?): UserPreferences {
         if (dto == null) return UserPreferences()

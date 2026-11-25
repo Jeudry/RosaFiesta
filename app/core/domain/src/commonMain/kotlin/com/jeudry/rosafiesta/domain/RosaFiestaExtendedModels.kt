@@ -424,6 +424,7 @@ public data class RealtimeStreamEvent(
     public val clientId: String = "",
     public val audience: String = "all",
     public val summary: String = "",
+    public val category: String = "",
 )
 
 /**

@@ -557,7 +557,11 @@ func connectCrossModuleBridges(
 	refundAdapter := refundApprovedAdapter{events: eventsSvc, catalog: catalogSvc, operations: operationsSvc, identity: identitySvc, pushSender: pushSender}
 	reportAdapter := reportSnapshotAdapter{payments: paymentsSvc, events: eventsSvc, catalog: catalogSvc, identity: identitySvc}
 
-	eventsSvc.WithStockManager(stockAdapter).WithRefundRecorder(paymentsSvc).WithPaymentReminderDispatcher(prefAdapter)
+	eventsSvc.
+		WithStockManager(stockAdapter).
+		WithRefundRecorder(paymentsSvc).
+		WithPaymentReminderDispatcher(prefAdapter).
+		WithLogisticsProvisioner(eventLogisticsAdapter{operations: operationsSvc})
 	quotesSvc.
 		WithEventProvisioner(quoteAdapter).
 		WithAdminNotifier(quoteAdapter).

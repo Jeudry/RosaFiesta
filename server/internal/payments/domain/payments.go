@@ -41,6 +41,8 @@ var (
 	ErrInvalidPaymentCurrency = errors.New("stripe checkout currency must be DOP")
 	// ErrNCFSequenceExpired indica que la secuencia NCF configurada está vencida o agotada.
 	ErrNCFSequenceExpired = errors.New("ncf sequence is expired or exhausted")
+	// ErrInvalidRejectionReason indica que el rechazo de pago requiere un motivo descriptivo.
+	ErrInvalidRejectionReason = errors.New("rejection reason is required (minimum 4 characters)")
 )
 
 // PaymentMethod representa el medio utilizado para efectuar el pago.

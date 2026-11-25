@@ -9,6 +9,7 @@ import (
 
 	"github.com/Jeudry/rosafiesta/server/internal/operations/domain"
 	platformhttp "github.com/Jeudry/rosafiesta/server/internal/platform/httpapi"
+	realtimedomain "github.com/Jeudry/rosafiesta/server/internal/realtime/domain"
 )
 
 type CreateReviewCommand struct {
@@ -164,6 +165,11 @@ func (s *Service) CreateReview(
 			return domain.Review{}, err
 		}
 	}
+	s.publishOpsEvent(realtimedomain.EventEventUpdated, review.EventID, "Nueva reseña recibida de "+review.ClientName, map[string]any{
+		"kind":     "review.created",
+		"reviewId": review.ID,
+		"eventId":  review.EventID,
+	})
 	return review, nil
 }
 
@@ -217,6 +223,11 @@ func (s *Service) ReplyReviewWithVerification(
 		}
 	}
 	s.recordAudit(ctx, caller, "REPLY_REVIEW", "review", updated.ID, "Respuesta publicada en reseña")
+	s.publishCatalogOrSettingsEvent(realtimedomain.EventCatalogUpdated, updated.EventID, "Respuesta publicada en reseña", map[string]any{
+		"kind":     "review.replied",
+		"reviewId": updated.ID,
+		"verified": updated.Verified,
+	})
 	return updated, nil
 }
 
@@ -526,7 +537,33 @@ func (s *Service) UpdateSettings(
 		}
 	}
 	s.recordAudit(ctx, caller, "UPDATE_SETTINGS", "business_settings", "default", "Actualizó configuración fiscal y operativa")
+	s.publishCatalogOrSettingsEvent(realtimedomain.EventCatalogUpdated, "settings", "Configuración comercial actualizada", map[string]any{
+		"kind":           "settings.updated",
+		"itbisPercent":   updated.ItbisPercent,
+		"depositPercent": updated.DepositPercent,
+	})
 	return updated, zones, nil
+}
+
+func (s *Service) publishCatalogOrSettingsEvent(
+	eventType realtimedomain.EventType,
+	entityID string,
+	summary string,
+	payload map[string]any,
+) {
+	s.mu.RLock()
+	pub := s.realtimePub
+	s.mu.RUnlock()
+	if pub == nil {
+		return
+	}
+	pub.Publish(realtimedomain.RealtimeEvent{
+		Type:     eventType,
+		Audience: realtimedomain.AudienceAll,
+		EntityID: entityID,
+		Summary:  summary,
+		Payload:  payload,
+	})
 }
 
 func persistDeliveryZones(

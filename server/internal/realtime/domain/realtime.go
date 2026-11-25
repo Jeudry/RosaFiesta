@@ -13,6 +13,7 @@ const (
 	EventQuoteCreated        EventType = "quote.created"
 	EventQuoteSent           EventType = "quote.sent"
 	EventQuoteSigned         EventType = "quote.signed"
+	EventQuoteDeclined       EventType = "quote.declined"
 	EventEventUpdated        EventType = "event.updated"
 	EventPaymentPending      EventType = "payment.pending_verification"
 	EventPaymentVerified     EventType = "payment.verified"

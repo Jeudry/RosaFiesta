@@ -62,7 +62,7 @@ func (m Module) registerLogisticsAndDamageRoutes(api huma.API) {
 		Summary:     "Get event logistics, crew, and setup checklist",
 		Tags:        []string{"Operations"},
 		Security:    platformhttp.Secured(),
-		Middlewares: fieldMW,
+		Middlewares: authMW,
 	}, m.handleGetEventLogistics)
 
 	huma.Register(api, huma.Operation{
@@ -468,7 +468,8 @@ func (m Module) registerWhatsAppWebhookRoutes(api huma.API) {
 }
 
 func (m Module) handleGetEventLogistics(ctx context.Context, in *EventLogisticsInput) (*EventLogisticsOutput, error) {
-	logi, err := m.Service.GetEventLogistics(ctx, in.EventID)
+	caller, _ := platformhttp.CurrentPrincipal(ctx)
+	logi, err := m.Service.GetEventLogisticsForCaller(ctx, in.EventID, caller)
 	if err != nil {
 		return nil, mapOperationsError(err, "GET /v1/operations/events/"+in.EventID, "LOGISTICS_NOT_FOUND", "EventLogisticsMustExist", http.StatusNotFound)
 	}

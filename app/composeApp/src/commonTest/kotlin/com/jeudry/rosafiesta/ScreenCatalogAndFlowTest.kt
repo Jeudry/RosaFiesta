@@ -22,6 +22,7 @@ import com.jeudry.rosafiesta.designsystem.AdminTab
 import com.jeudry.rosafiesta.designsystem.PersonalTab
 import com.jeudry.rosafiesta.designsystem.RfThemeState
 import com.jeudry.rosafiesta.designsystem.RfThemeVariant
+import com.jeudry.rosafiesta.domain.RealtimeStreamEvent
 import com.jeudry.rosafiesta.domain.RosaFiestaRepository
 import com.jeudry.rosafiesta.domain.platform.NoOpPlatformActions
 import com.jeudry.rosafiesta.domain.platform.OAuthBrowserOutcome
@@ -3095,5 +3096,60 @@ class ScreenCatalogAndFlowTest {
             withTimeout(2_000L) { deleteDeferred.await() }
         }
         assertTrue(deleteResult)
+    }
+
+    @Test
+    fun `realtime stream handles chat message quote events and reminder category gate`() = runTest {
+        val repo = com.jeudry.rosafiesta.data.DefaultRosaFiestaRepository(seedDemoData = true)
+        val vm = RosaFiestaViewModel(
+            repository = repo,
+            secureStorage = InMemorySecureStorage(),
+            soundPlayer = NoOpSoundPlayer(),
+            platformActions = NoOpPlatformActions(),
+        )
+
+        vm.handleRealtimeStreamEvent(
+            RealtimeStreamEvent(
+                seq = 10L,
+                type = "chat.message",
+                entityId = "evt-1",
+                summary = "Nuevo mensaje del asesor",
+            ),
+        )
+        assertEquals("Nuevo mensaje del asesor", vm.formFeedback.value)
+
+        vm.handleRealtimeStreamEvent(
+            RealtimeStreamEvent(
+                seq = 11L,
+                type = "quote.sent",
+                entityId = "cot-1",
+                summary = "Cotización lista para firma",
+            ),
+        )
+        assertEquals("Cotización lista para firma", vm.formFeedback.value)
+
+        vm.setRemindersEnabled(false)
+        vm.clearFormFeedback()
+        vm.handleRealtimeStreamEvent(
+            RealtimeStreamEvent(
+                seq = 12L,
+                type = "notification.created",
+                entityId = "ntf-1",
+                summary = "Recordatorio automático de saldo",
+                category = "recordatorios",
+            ),
+        )
+        assertEquals(null, vm.formFeedback.value)
+
+        vm.handleRealtimeStreamEvent(
+            RealtimeStreamEvent(
+                seq = 13L,
+                type = "notification.created",
+                entityId = "ntf-2",
+                summary = "Pago confirmado con NCF",
+                category = "pagos",
+            ),
+        )
+        assertEquals("Pago confirmado con NCF", vm.formFeedback.value)
     }
 }

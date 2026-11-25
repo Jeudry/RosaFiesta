@@ -17,6 +17,8 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -657,5 +659,37 @@ class DefaultRosaFiestaRepositoryTest {
         assertEquals(listOf("/v1/media/setup-1"), updatedEvent.setupPhotoUrls)
         assertEquals("{\"tables\":4}", updatedEvent.sketchJson)
         assertTrue(lastEventPatchBody.isNotEmpty())
+    }
+
+    @Test
+    fun `public settings mapper preserves 0 percent ITBIS and realtime mapper parses category`() {
+        val publicDto = PublicBusinessSettingsDto(
+            companyName = "Rosa Fiesta",
+            rnc = "131",
+            address = "Av 27",
+            phone = "8095550101",
+            whatsapp = "8095550101",
+            email = "info@rosafiesta.do",
+            businessHours = "9-6",
+            instagram = "@rf",
+            facebook = "rf",
+            depositPercent = 30L,
+            itbisPercent = 0L,
+            deliveryZones = emptyList(),
+        )
+        val mappedSettings = RosaFiestaBackendMappers.fromPublicSettings(publicDto, CanonicalSampleData.businessSettings)
+        assertEquals(0, mappedSettings.itbisPercent)
+
+        val eventDto = RealtimeEventDto(
+            seq = 42L,
+            id = "rt-42",
+            type = "notification.created",
+            entityId = "ntf-42",
+            audience = "client",
+            summary = "Recordatorio pendiente",
+            payload = buildJsonObject { put("category", "recordatorios") },
+        )
+        val streamEvent = eventDto.toDomain()
+        assertEquals("recordatorios", streamEvent.category)
     }
 }

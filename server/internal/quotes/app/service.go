@@ -383,7 +383,23 @@ func (s *Service) CreateQuoteForCaller(
 			}
 		}
 	}
+	s.publishAfterCreateQuote(ctx, quote)
 	return quote, nil
+}
+
+func (s *Service) publishAfterCreateQuote(ctx context.Context, quote domain.Quote) {
+	s.mu.RLock()
+	pub := s.realtimePub
+	sentNotif := s.quoteSentNotif
+	s.mu.RUnlock()
+	if quote.Status == domain.QuoteStatusSent {
+		if sentNotif != nil {
+			sentNotif.NotifyQuoteSent(ctx, quote)
+		}
+		publishQuoteSentEvent(pub, quote)
+		return
+	}
+	publishQuoteCreatedEvent(pub, quote)
 }
 
 func (s *Service) normalizeQuoteInputsForCaller(
@@ -668,6 +684,7 @@ func (s *Service) DeclineQuoteForCaller(
 	s.mu.Lock()
 	s.quotes[id] = quote
 	store := s.store
+	pub := s.realtimePub
 	s.mu.Unlock()
 	if store != nil {
 		if store.Enabled() {
@@ -676,6 +693,7 @@ func (s *Service) DeclineQuoteForCaller(
 			}
 		}
 	}
+	publishQuoteDeclinedEvent(pub, quote)
 	return quote, nil
 }
 
@@ -1171,6 +1189,42 @@ func publishQuoteSentEvent(pub realtimedomain.Publisher, quote domain.Quote) {
 			"quoteId": quote.ID,
 			"eventId": quote.EventID,
 			"totalRD": quote.TotalRD,
+		},
+	})
+}
+
+func publishQuoteCreatedEvent(pub realtimedomain.Publisher, quote domain.Quote) {
+	if pub == nil {
+		return
+	}
+	pub.Publish(realtimedomain.RealtimeEvent{
+		Type:     realtimedomain.EventQuoteCreated,
+		Audience: realtimedomain.AudienceAdmin,
+		ClientID: quote.ClientID,
+		EntityID: quote.ID,
+		Summary:  "Nueva cotización solicitada: " + quote.EventTitle,
+		Payload: map[string]any{
+			"quoteId": quote.ID,
+			"eventId": quote.EventID,
+			"totalRD": quote.TotalRD,
+		},
+	})
+}
+
+func publishQuoteDeclinedEvent(pub realtimedomain.Publisher, quote domain.Quote) {
+	if pub == nil {
+		return
+	}
+	pub.Publish(realtimedomain.RealtimeEvent{
+		Type:     realtimedomain.EventQuoteDeclined,
+		Audience: realtimedomain.AudienceAdmin,
+		ClientID: quote.ClientID,
+		EntityID: quote.ID,
+		Summary:  "Cotización rechazada por el cliente: " + quote.EventTitle,
+		Payload: map[string]any{
+			"quoteId": quote.ID,
+			"eventId": quote.EventID,
+			"reason":  quote.RejectionReason,
 		},
 	})
 }

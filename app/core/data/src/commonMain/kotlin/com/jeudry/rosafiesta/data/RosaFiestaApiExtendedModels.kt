@@ -2,6 +2,7 @@ package com.jeudry.rosafiesta.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 public typealias AdminClientDto = ClientSummaryDto
 public typealias StaffRecordDto = StaffMemberDto
@@ -663,6 +664,7 @@ public data class PublicBusinessSettingsDto(
     public val instagram: String,
     public val facebook: String,
     public val depositPercent: Long,
+    public val itbisPercent: Long = 18L,
     public val deliveryZones: List<DeliveryZoneDto>? = null,
 )
 
@@ -978,6 +980,7 @@ public data class RealtimeEventDto(
     @SerialName("client_id") public val clientId: String = "",
     public val audience: String = "",
     public val summary: String = "",
+    public val payload: JsonObject? = null,
     @SerialName("created_at") public val createdAt: String = "",
 )
 

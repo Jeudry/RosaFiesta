@@ -227,14 +227,22 @@ func assertSignedQuoteSideEffects(
 	if mailer.sentTo[0] != "camila@rosafiesta.do" {
 		t.Fatalf("unexpected email recipient: %q", mailer.sentTo[0])
 	}
-	if len(pub.events) != 2 {
-		t.Fatalf("expected 2 SSE events (quote.sent + quote.signed), got %d", len(pub.events))
+	assertQuoteSSESequence(t, pub.events, []realtimedomain.EventType{
+		realtimedomain.EventQuoteCreated,
+		realtimedomain.EventQuoteSent,
+		realtimedomain.EventQuoteSigned,
+	})
+}
+
+func assertQuoteSSESequence(t *testing.T, events []realtimedomain.RealtimeEvent, expected []realtimedomain.EventType) {
+	t.Helper()
+	if len(events) != len(expected) {
+		t.Fatalf("expected %d SSE events %v, got %d (%+v)", len(expected), expected, len(events), events)
 	}
-	if pub.events[0].Type != realtimedomain.EventQuoteSent {
-		t.Fatalf("expected first SSE event quote.sent, got %+v", pub.events)
-	}
-	if pub.events[1].Type != realtimedomain.EventQuoteSigned {
-		t.Fatalf("expected second SSE event quote.signed, got %+v", pub.events)
+	for idx, want := range expected {
+		if events[idx].Type != want {
+			t.Fatalf("expected SSE[%d]=%s, got %s (%+v)", idx, want, events[idx].Type, events)
+		}
 	}
 }
 

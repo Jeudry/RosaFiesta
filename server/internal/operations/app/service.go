@@ -350,6 +350,18 @@ func (s *Service) storeEnabled() (Store, bool) {
 	return store, store.Enabled()
 }
 
+// GetEventLogisticsForCaller valida acceso del equipo autorizado o cliente dueño y devuelve la logística y checklist del evento.
+func (s *Service) GetEventLogisticsForCaller(
+	ctx context.Context,
+	eventID string,
+	caller platformhttp.Principal,
+) (domain.EventLogistics, error) {
+	if err := s.authorizeChecklistCaller(ctx, eventID, caller); err != nil {
+		return domain.EventLogistics{}, err
+	}
+	return s.GetEventLogistics(ctx, eventID)
+}
+
 // GetEventLogistics recupera la ficha logística, checklist e incidencias de un evento.
 func (s *Service) GetEventLogistics(ctx context.Context, eventID string) (domain.EventLogistics, error) {
 	s.mu.Lock()
@@ -530,6 +542,11 @@ func (s *Service) toggleChecklistItemAuthorized(
 			}
 		}
 	}
+	s.publishCatalogOrSettingsEvent(realtimedomain.EventLogisticsUpdated, eventID, "Checklist del evento actualizado", map[string]any{
+		"eventId":   eventID,
+		"itemId":    updatedItem.ID,
+		"completed": updatedItem.Completed,
+	})
 	return logi, nil
 }
 

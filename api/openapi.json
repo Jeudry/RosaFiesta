@@ -4334,6 +4334,10 @@
           "instagram": {
             "type": "string"
           },
+          "itbisPercent": {
+            "format": "int64",
+            "type": "integer"
+          },
           "phone": {
             "type": "string"
           },
@@ -4354,6 +4358,7 @@
           "instagram",
           "facebook",
           "businessHours",
+          "itbisPercent",
           "depositPercent",
           "deliveryZones"
         ],

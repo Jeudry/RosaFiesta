@@ -23,6 +23,11 @@ type StockReservationManager interface {
 	TransitionEventStock(ctx context.Context, eventID, status string) error
 }
 
+// LogisticsProvisioner crea la ficha logística y el checklist por defecto al registrar un evento nuevo.
+type LogisticsProvisioner interface {
+	EnsureDraftEventLogistics(ctx context.Context, event domain.Event) error
+}
+
 // PaymentReminderDispatcher envía recordatorios de pago por los canales habilitados y registra notificación.
 type PaymentReminderDispatcher interface {
 	DispatchPaymentReminder(ctx context.Context, event domain.Event, channel, message string) (bool, error)
@@ -117,20 +122,21 @@ type ProvisionFromQuoteCommand struct {
 }
 
 type Service struct {
-	mu                 sync.RWMutex
-	clock              clock.Clock
-	store              Store
-	refundRecorder     RefundRecorder
-	stockManager       StockReservationManager
-	reminderDispatcher PaymentReminderDispatcher
-	realtimePub        realtimedomain.Publisher
-	templates          []domain.EventTemplate
-	events             map[string]domain.Event
-	order              []string
-	guests             map[string][]domain.EventGuest
-	tasks              map[string][]domain.EventTask
-	schedules          map[string][]domain.ScheduleBlock
-	messages           []domain.ChatMessage
+	mu                   sync.RWMutex
+	clock                clock.Clock
+	store                Store
+	refundRecorder       RefundRecorder
+	stockManager         StockReservationManager
+	logisticsProvisioner LogisticsProvisioner
+	reminderDispatcher   PaymentReminderDispatcher
+	realtimePub          realtimedomain.Publisher
+	templates            []domain.EventTemplate
+	events               map[string]domain.Event
+	order                []string
+	guests               map[string][]domain.EventGuest
+	tasks                map[string][]domain.EventTask
+	schedules            map[string][]domain.ScheduleBlock
+	messages             []domain.ChatMessage
 }
 
 func NewService() *Service {
@@ -159,6 +165,14 @@ func (s *Service) WithRefundRecorder(recorder RefundRecorder) *Service {
 func (s *Service) WithStockManager(mgr StockReservationManager) *Service {
 	s.mu.Lock()
 	s.stockManager = mgr
+	s.mu.Unlock()
+	return s
+}
+
+// WithLogisticsProvisioner configura el aprovisionamiento inicial de logística y checklist de eventos nuevos.
+func (s *Service) WithLogisticsProvisioner(provisioner LogisticsProvisioner) *Service {
+	s.mu.Lock()
+	s.logisticsProvisioner = provisioner
 	s.mu.Unlock()
 	return s
 }
@@ -404,7 +418,18 @@ func (s *Service) CreateEventForCaller(
 	if err := s.saveAndPublishEvent(ctx, newEvt, now, true); err != nil {
 		return domain.Event{}, err
 	}
+	s.ensureDraftLogistics(ctx, newEvt)
 	return newEvt, nil
+}
+
+func (s *Service) ensureDraftLogistics(ctx context.Context, evt domain.Event) {
+	s.mu.RLock()
+	provisioner := s.logisticsProvisioner
+	s.mu.RUnlock()
+	if provisioner == nil {
+		return
+	}
+	_ = provisioner.EnsureDraftEventLogistics(ctx, evt)
 }
 
 func (s *Service) UpdateEvent(

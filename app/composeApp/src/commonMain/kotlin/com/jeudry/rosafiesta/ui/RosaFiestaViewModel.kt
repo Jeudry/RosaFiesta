@@ -1046,22 +1046,72 @@ public class RosaFiestaViewModel(
         }
     }
 
-    private suspend fun handleRealtimeStreamEvent(streamEvent: RealtimeStreamEvent) {
+    internal suspend fun handleRealtimeStreamEvent(streamEvent: RealtimeStreamEvent) {
         if (!isWifiSyncPermitted()) {
             _wifiSyncBlockedNotice.value = "Sincronización en segundo plano pausada: solo por Wi‑Fi activado."
             return
         }
         _wifiSyncBlockedNotice.value = null
         repository.syncFromBackendAsync()
-        val isReminderEvent = streamEvent.type.contains("reminder", ignoreCase = true)
-        val readableNotice = when (streamEvent.type) {
+        val isReminderType = streamEvent.type.contains("reminder", ignoreCase = true)
+        val isReminderNotification = isReminderNotificationCategory(streamEvent)
+        val isReminderEvent = if (isReminderType) true else isReminderNotification
+        val readableNotice = resolveReadableRealtimeNotice(streamEvent)
+        val canNotifyReminder = if (isReminderEvent) _remindersEnabled.value else true
+        val hasReadableNotice = if (readableNotice.isNotEmpty()) canNotifyReminder else false
+        if (hasReadableNotice) {
+            _formFeedback.value = readableNotice
+            if (_pushNotificationsEnabled.value) {
+                platformActions.showLocalNotification("RosaFiesta", readableNotice)
+            }
+        }
+    }
+
+    private fun isReminderNotificationCategory(streamEvent: RealtimeStreamEvent): Boolean {
+        if (streamEvent.type != "notification.created") return false
+        val normalized = streamEvent.category.trim().lowercase()
+        return when (normalized) {
+            "reminder", "reminders", "recordatorio", "recordatorios" -> true
+            else -> false
+        }
+    }
+
+    private fun resolveReadableRealtimeNotice(streamEvent: RealtimeStreamEvent): String {
+        val role = activeRole.value.trim().lowercase()
+        val isAdminView = when (role) {
+            "admin", "staff", "manager", "supervisor" -> true
+            else -> false
+        }
+        return when (streamEvent.type) {
             "payment.verified" -> "Pago verificado en tiempo real."
 
             "payment.rejected" -> "Transferencia marcada como rechazada."
 
+            "payment.pending_verification" -> {
+                if (isAdminView) streamEvent.summary.ifBlank { "Nuevo comprobante de pago pendiente de revisión." } else ""
+            }
+
+            "quote.created" -> {
+                if (isAdminView) streamEvent.summary.ifBlank { "Nueva cotización solicitada por un cliente." } else ""
+            }
+
+            "quote.sent" -> {
+                if (isAdminView) "" else streamEvent.summary.ifBlank { "Tienes una nueva cotización lista para revisar." }
+            }
+
+            "quote.declined" -> {
+                if (isAdminView) streamEvent.summary.ifBlank { "El cliente solicitó cambios en la cotización." } else ""
+            }
+
             "quote.signed" -> "Cotización firmada y reservación actualizada."
 
-            "whatsapp.message" -> "Nuevo mensaje de WhatsApp sincronizado."
+            "chat.message", "whatsapp.message" -> streamEvent.summary.ifBlank { "Nuevo mensaje sincronizado en tiempo real." }
+
+            "logistics.updated" -> streamEvent.summary.ifBlank { "Checklist o logística del evento actualizada." }
+
+            "damage.reported" -> {
+                if (isAdminView) streamEvent.summary.ifBlank { "Nueva incidencia de daño reportada." } else ""
+            }
 
             "notification.created" -> streamEvent.summary.ifBlank { "Tienes una nueva notificación." }
 
@@ -1070,14 +1120,6 @@ public class RosaFiestaViewModel(
             }
 
             else -> ""
-        }
-        val canNotifyReminder = if (isReminderEvent) _remindersEnabled.value else true
-        val hasReadableNotice = if (readableNotice.isNotEmpty()) canNotifyReminder else false
-        if (hasReadableNotice) {
-            _formFeedback.value = readableNotice
-            if (_pushNotificationsEnabled.value) {
-                platformActions.showLocalNotification("RosaFiesta", readableNotice)
-            }
         }
     }
 

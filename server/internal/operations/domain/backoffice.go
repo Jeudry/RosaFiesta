@@ -78,6 +78,7 @@ type PublicBusinessSettings struct {
 	Instagram      string         `json:"instagram"`
 	Facebook       string         `json:"facebook"`
 	BusinessHours  string         `json:"businessHours"`
+	ItbisPercent   int            `json:"itbisPercent"`
 	DepositPercent int            `json:"depositPercent"`
 	DeliveryZones  []DeliveryZone `json:"deliveryZones"`
 }
@@ -93,6 +94,7 @@ func (b BusinessSettings) ToPublic(zones []DeliveryZone) PublicBusinessSettings 
 		Instagram:      b.Instagram,
 		Facebook:       b.Facebook,
 		BusinessHours:  b.BusinessHours,
+		ItbisPercent:   b.ItbisPercent,
 		DepositPercent: b.DepositPercent,
 		DeliveryZones:  zones,
 	}
