@@ -1353,58 +1353,87 @@ private fun AdminDesktopInicioContent(
         )
     }
 
+    val kpiCards = listOf(
+        AdminA39KpiCardSpec(
+            label = "Ingresos de ${metrics.monthLabel.lowercase()}",
+            value = formatDesktopDop(metrics.octoberRevenueDop),
+            subtext = revenueSubtext,
+            subtextColor = statCardColors[0],
+            iconKind = RfIconKind.ORDERS,
+            tileBg = statCardColors[1],
+            tileTint = statCardColors[2],
+            onClick = { onNavigateSection(A39DesktopSection.REPORTES) },
+        ),
+        AdminA39KpiCardSpec(
+            label = "Por cobrar",
+            value = formatDesktopDop(metrics.accountsReceivableDop),
+            subtext = pendingReceivableLabel,
+            subtextColor = statCardColors[3],
+            iconKind = RfIconKind.WALLET,
+            tileBg = statCardColors[4],
+            tileTint = statCardColors[5],
+            onClick = { onNavigateSection(A39DesktopSection.PAGOS) },
+        ),
+        AdminA39KpiCardSpec(
+            label = "Eventos activos",
+            value = activeEventsCount.toString(),
+            subtext = nextEventSubtext,
+            subtextColor = statCardColors[6],
+            iconKind = RfIconKind.CALENDAR,
+            tileBg = statCardColors[7],
+            tileTint = statCardColors[8],
+            onClick = { onNavigateSection(A39DesktopSection.EVENTOS) },
+        ),
+        AdminA39KpiCardSpec(
+            label = "Solicitudes nuevas",
+            value = requestsCount.toString(),
+            subtext = requestsSubtext,
+            subtextColor = statCardColors[9],
+            iconKind = RfIconKind.ORDERS,
+            tileBg = statCardColors[10],
+            tileTint = statCardColors[11],
+            onClick = { onNavigateSection(A39DesktopSection.SOLICITUDES) },
+        ),
+    )
+
     Column(
         verticalArrangement = Arrangement.spacedBy(20.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            AdminStatCard(
-                label = "Ingresos de ${metrics.monthLabel.lowercase()}",
-                value = formatDesktopDop(metrics.octoberRevenueDop),
-                subtext = revenueSubtext,
-                subtextColor = statCardColors[0],
-                iconKind = RfIconKind.ORDERS,
-                tileBg = statCardColors[1],
-                tileTint = statCardColors[2],
-                onClick = { onNavigateSection(A39DesktopSection.REPORTES) },
-                modifier = Modifier.weight(1f),
-            )
-            AdminStatCard(
-                label = "Por cobrar",
-                value = formatDesktopDop(metrics.accountsReceivableDop),
-                subtext = pendingReceivableLabel,
-                subtextColor = statCardColors[3],
-                iconKind = RfIconKind.WALLET,
-                tileBg = statCardColors[4],
-                tileTint = statCardColors[5],
-                onClick = { onNavigateSection(A39DesktopSection.PAGOS) },
-                modifier = Modifier.weight(1f),
-            )
-            AdminStatCard(
-                label = "Eventos activos",
-                value = activeEventsCount.toString(),
-                subtext = nextEventSubtext,
-                subtextColor = statCardColors[6],
-                iconKind = RfIconKind.CALENDAR,
-                tileBg = statCardColors[7],
-                tileTint = statCardColors[8],
-                onClick = { onNavigateSection(A39DesktopSection.EVENTOS) },
-                modifier = Modifier.weight(1f),
-            )
-            AdminStatCard(
-                label = "Solicitudes nuevas",
-                value = requestsCount.toString(),
-                subtext = requestsSubtext,
-                subtextColor = statCardColors[9],
-                iconKind = RfIconKind.ORDERS,
-                tileBg = statCardColors[10],
-                tileTint = statCardColors[11],
-                onClick = { onNavigateSection(A39DesktopSection.SOLICITUDES) },
-                modifier = Modifier.weight(1f),
-            )
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val isCompactKpiGrid = maxWidth < 820.dp
+            if (isCompactKpiGrid) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    kpiCards.chunked(2).forEach { pair ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            pair.forEach { card ->
+                                AdminStatCard(
+                                    spec = card,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    kpiCards.forEach { card ->
+                        AdminStatCard(
+                            spec = card,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
         }
 
         Row(
@@ -1490,16 +1519,20 @@ private fun AdminDesktopInicioContent(
     }
 }
 
+private data class AdminA39KpiCardSpec(
+    val label: String,
+    val value: String,
+    val subtext: String,
+    val subtextColor: Color,
+    val iconKind: RfIconKind,
+    val tileBg: Color,
+    val tileTint: Color,
+    val onClick: () -> Unit,
+)
+
 @Composable
 private fun AdminStatCard(
-    label: String,
-    value: String,
-    subtext: String,
-    subtextColor: Color,
-    iconKind: RfIconKind,
-    tileBg: Color,
-    tileTint: Color,
-    onClick: () -> Unit = {},
+    spec: AdminA39KpiCardSpec,
     modifier: Modifier = Modifier,
 ) {
     val typo = LocalRfTypography.current
@@ -1511,35 +1544,38 @@ private fun AdminStatCard(
             .clip(RoundedCornerShape(20.dp))
             .background(palette.surface)
             .border(1.dp, palette.line, RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
+            .clickable(onClick = spec.onClick)
             .padding(horizontal = 20.dp, vertical = 18.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
             BasicText(
-                text = label,
+                text = spec.label,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
                 style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = palette.muted),
+                modifier = Modifier.weight(1f),
             )
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(tileBg),
+                    .background(spec.tileBg),
             ) {
-                RfIcon(kind = iconKind, tint = tileTint, size = 18.dp)
+                RfIcon(kind = spec.iconKind, tint = spec.tileTint, size = 18.dp)
             }
         }
         BasicText(
-            text = value,
+            text = spec.value,
             style = typo.webKpi.copy(fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = palette.ink),
         )
         BasicText(
-            text = subtext,
-            style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = subtextColor),
+            text = spec.subtext,
+            style = typo.caption.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = spec.subtextColor),
         )
     }
 }
@@ -1602,6 +1638,40 @@ private fun AdminUpcomingEventsTable(
             )
         }
 
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val isCompactTable = maxWidth < 580.dp
+            if (isCompactTable) {
+                Box(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    AdminUpcomingEventsTableBody(
+                        filteredRows = filteredRows,
+                        searchQuery = searchQuery,
+                        onEventClick = onEventClick,
+                        modifier = Modifier.width(620.dp),
+                    )
+                }
+            } else {
+                AdminUpcomingEventsTableBody(
+                    filteredRows = filteredRows,
+                    searchQuery = searchQuery,
+                    onEventClick = onEventClick,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminUpcomingEventsTableBody(
+    filteredRows: List<AdminDesktopEventRowSpec>,
+    searchQuery: String,
+    onEventClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val typo = LocalRfTypography.current
+    val palette = LocalRfPalette.current
+    val headerStyle = typo.sectionCap.copy(fontSize = 11.sp)
+    Column(modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -1609,12 +1679,12 @@ private fun AdminUpcomingEventsTable(
                 .background(palette.chipBg)
                 .padding(horizontal = 20.dp, vertical = 8.dp),
         ) {
-            BasicText("EVENTO", modifier = Modifier.weight(3.0f), style = typo.sectionCap.copy(fontSize = 11.sp))
-            BasicText("FECHA", modifier = Modifier.weight(0.85f), style = typo.sectionCap.copy(fontSize = 11.sp))
-            BasicText("CLIENTE", modifier = Modifier.weight(0.95f), style = typo.sectionCap.copy(fontSize = 11.sp))
-            BasicText("TOTAL", modifier = Modifier.weight(0.85f), style = typo.sectionCap.copy(fontSize = 11.sp))
-            BasicText("PAGADO", modifier = Modifier.weight(1.1f), style = typo.sectionCap.copy(fontSize = 11.sp))
-            BasicText("ESTADO", modifier = Modifier.weight(1.25f), style = typo.sectionCap.copy(fontSize = 11.sp))
+            BasicText("EVENTO", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(3.0f), style = headerStyle)
+            BasicText("FECHA", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(0.85f), style = headerStyle)
+            BasicText("CLIENTE", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(0.95f), style = headerStyle)
+            BasicText("TOTAL", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(0.85f), style = headerStyle)
+            BasicText("PAGADO", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1.1f), style = headerStyle)
+            BasicText("ESTADO", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1.25f), style = headerStyle)
         }
 
         if (filteredRows.isEmpty()) {
