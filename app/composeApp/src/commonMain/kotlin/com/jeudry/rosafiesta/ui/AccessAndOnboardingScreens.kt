@@ -943,10 +943,16 @@ private fun DrawScope.drawPersonalAtmosphereBackground() {
 
 @Composable
 private fun OnboardingIllustrationStep1() {
+    val palette = LocalRfPalette.current
+    val blobColors = if (palette.isDark) {
+        listOf(Color(0xFF34213F), Color(0xFF281F44))
+    } else {
+        listOf(Color(0xFFF9D3EA), Color(0xFFE4D6FB))
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(244.dp),
+            .height(328.dp),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val sX = size.width / 350f
@@ -964,7 +970,7 @@ private fun OnboardingIllustrationStep1() {
                 drawPath(
                     blobPath,
                     brush = Brush.linearGradient(
-                        listOf(Color(0xFFF9D3EA), Color(0xFFE4D6FB)),
+                        blobColors,
                         start = Offset(0f, 0f),
                         end = Offset(350f, 340f),
                     ),
@@ -1329,6 +1335,7 @@ private fun FlowerVaseIllustration(modifier: Modifier = Modifier) {
 
 @Composable
 private fun OnboardingIllustrationStep2() {
+    val step2BlobColor = if (RfThemeState.currentPalette.isDark) Color(0xFF281E42) else Color(0xFFEFE8FD)
     Box(
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -1344,7 +1351,7 @@ private fun OnboardingIllustrationStep2() {
                     cubicTo(18f, 52f, 84f, 18f, 180f, 14f)
                     close()
                 }
-                drawPath(blobPath, color = Color(0xFFEFE8FD), style = Fill)
+                drawPath(blobPath, color = step2BlobColor, style = Fill)
 
                 val star1 = Path().apply {
                     moveTo(250f, 40f)
@@ -1462,6 +1469,7 @@ private fun OnboardingIllustrationStep2() {
 private fun OnboardingIllustrationStep3(
     onSendWhatsApp: () -> Unit = {},
 ) {
+    val step3BlobColor = if (RfThemeState.currentPalette.isDark) Color(0xFF232C20) else Color(0xFFEEF6D6)
     Box(
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -1477,7 +1485,7 @@ private fun OnboardingIllustrationStep3(
                     cubicTo(24f, 46f, 74f, 18f, 168f, 12f)
                     close()
                 }
-                drawPath(blobPath, color = Color(0xFFEEF6D6), style = Fill)
+                drawPath(blobPath, color = step3BlobColor, style = Fill)
 
                 drawCircle(Color(0xFFF7B500), radius = 5f, center = Offset(306f, 60f))
 

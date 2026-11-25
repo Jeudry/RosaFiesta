@@ -1193,7 +1193,7 @@ internal fun RenderAdminHomeA01(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(104.dp)
+                .heightIn(min = 114.dp)
                 .rfHeroBannerShadow(RoundedCornerShape(24.dp), isAdmin = true)
                 .clip(RoundedCornerShape(24.dp))
                 .background(
@@ -1365,16 +1365,26 @@ internal fun RenderAdminHomeA01(
                         .background(rosaCreateGradient)
                         .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(20.dp))
                         .clickable { onSelectScreenCode("A08") }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 10.dp, vertical = 10.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 36.dp, forceAdminPalette = true)
+                        RosaAvatar(size = RosaAvatarSize.MEDIUM, customSize = 32.dp, forceAdminPalette = true)
                         Column(modifier = Modifier.weight(1f)) {
-                            BasicText("Crear con Rosa IA", maxLines = 1, softWrap = false, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink))
-                            BasicText("Arma el borrador", maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = RfThemeState.currentPalette.muted))
+                            BasicText(
+                                "Crear con Rosa IA",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = RfThemeState.currentPalette.ink),
+                            )
+                            BasicText(
+                                "Arma el borrador",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal, color = RfThemeState.currentPalette.muted),
+                            )
                         }
                     }
                 }

@@ -5086,12 +5086,18 @@ internal fun RenderChecklistScreenS46(
                 )
             }
 
+            val isDarkMode = RfThemeState.currentPalette.isDark
+            val checklistHeaderBg = if (isDarkMode) Color(0xFF2D1D37) else Color(0xFFFDE6F2)
+            val checklistHeaderThumbBg = if (isDarkMode) Color(0xFF3A2746) else Color(0xFFF3EEF6)
+            val checklistHeaderSubtitleColor = if (isDarkMode) Color(0xFFF38CC8) else Color(0xFFC2338F)
+            val checklistTrackBg = if (isDarkMode) Color(0x33FFFFFF) else Color(0xCCFFFFFF)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = false)
                     .clip(RoundedCornerShape(22.dp))
-                    .background(Color(0xFFFDE6F2))
+                    .background(checklistHeaderBg)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(22.dp))
                     .clickable { onSelectScreenCode("s40") }
                     .padding(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -5101,7 +5107,7 @@ internal fun RenderChecklistScreenS46(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFF3EEF6)),
+                        .background(checklistHeaderThumbBg),
                 ) {
                     RfPhoto(photoKey = eventPhotoKey, contentDescription = event.title)
                 }
@@ -5126,7 +5132,7 @@ internal fun RenderChecklistScreenS46(
                             fontFamily = typo.bodyFamily,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 13.sp,
-                            color = Color(0xFFC2338F),
+                            color = checklistHeaderSubtitleColor,
                         ),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -5139,7 +5145,7 @@ internal fun RenderChecklistScreenS46(
                                 .weight(1f)
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp))
-                                .background(Color(0xCCFFFFFF)),
+                                .background(checklistTrackBg),
                         ) {
                             if (completedCount > 0) {
                                 Box(
@@ -5233,14 +5239,33 @@ internal fun RenderChecklistScreenS46(
                 }
 
                 val isBalanceSettled = remainingDop <= 0
+                val isDarkSettled = if (isDarkMode) isBalanceSettled else false
+                val balanceCardBg = when {
+                    isDarkSettled -> Color(0xFF1F2B1D)
+                    isDarkMode -> Color(0xFF2E2517)
+                    isBalanceSettled -> Color(0xFFEEF6D6)
+                    else -> Color(0xFFFFF2C9)
+                }
+                val balanceCardBorder = when {
+                    isDarkSettled -> Color(0xFF3E5933)
+                    isDarkMode -> Color(0xFF5E4A24)
+                    isBalanceSettled -> Color(0xFFCDE298)
+                    else -> Color(0xFFF0D58A)
+                }
+                val balanceCardAccent = when {
+                    isDarkSettled -> Color(0xFFB5E072)
+                    isDarkMode -> Color(0xFFFAD06E)
+                    isBalanceSettled -> Color(0xFF4E6A10)
+                    else -> Color(0xFF7A5700)
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
-                        .background(if (isBalanceSettled) Color(0xFFEEF6D6) else Color(0xFFFFF2C9))
+                        .background(balanceCardBg)
                         .border(
                             1.dp,
-                            if (isBalanceSettled) Color(0xFFCDE298) else Color(0xFFF0D58A),
+                            balanceCardBorder,
                             RoundedCornerShape(20.dp),
                         )
                         .padding(horizontal = 14.dp, vertical = 14.dp),
@@ -5256,7 +5281,7 @@ internal fun RenderChecklistScreenS46(
                     ) {
                         RfIcon(
                             kind = RfIconKind.WALLET,
-                            tint = if (isBalanceSettled) Color(0xFF4E6A10) else Color(0xFF7A5700),
+                            tint = balanceCardAccent,
                             size = 20.dp,
                         )
                     }
@@ -5277,7 +5302,7 @@ internal fun RenderChecklistScreenS46(
                                 fontFamily = typo.bodyFamily,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
-                                color = if (isBalanceSettled) Color(0xFF4E6A10) else Color(0xFF7A5700),
+                                color = balanceCardAccent,
                             ),
                         )
                     }

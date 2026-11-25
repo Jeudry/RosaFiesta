@@ -488,22 +488,31 @@ internal fun RenderPersonalCatalogS18(
                 }
             }
 
+            val rosaHelperGradient = if (RfThemeState.currentPalette.isDark) {
+                Brush.horizontalGradient(listOf(Color(0xFF2C1E3A), Color(0xFF241D3C)))
+            } else {
+                Brush.horizontalGradient(listOf(Color(0xFFFCE6F3), Color(0xFFECE4FD)))
+            }
+            val helperTitleColor = if (RfThemeState.currentPalette.isDark) RfThemeState.currentPalette.ink else Color(0xFF2E324A)
+            val helperSubtitleColor = if (RfThemeState.currentPalette.isDark) RfThemeState.currentPalette.muted else Color(0xFF5F6377)
+            val helperChevronColor = if (RfThemeState.currentPalette.isDark) Color(0xFFB799FF) else Color(0xFF865DEC)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .rfCardShadow(RoundedCornerShape(18.dp), isAdmin = false)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFFFCE6F3), Color(0xFFECE4FD))))
+                    .background(rosaHelperGradient)
+                    .border(1.dp, RfThemeState.currentPalette.line, RoundedCornerShape(18.dp))
                     .clickable { onSelectScreenCode("s26") }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     RosaAvatar(size = RosaAvatarSize.MEDIUM)
                     Column(modifier = Modifier.weight(1f)) {
-                        BasicText("¿No sabes por dónde empezar?", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E324A)))
-                        BasicText("Rosa arma tu lista en 2 minutos.", style = typo.secondary.copy(fontSize = 13.sp, color = Color(0xFF5F6377)))
+                        BasicText("¿No sabes por dónde empezar?", style = typo.body.copy(fontSize = 14.sp, fontWeight = FontWeight.Bold, color = helperTitleColor))
+                        BasicText("Rosa arma tu lista en 2 minutos.", style = typo.secondary.copy(fontSize = 13.sp, color = helperSubtitleColor))
                     }
-                    RfIcon(kind = RfIconKind.BACK, tint = Color(0xFF865DEC), size = 18.dp, modifier = Modifier.rotate(180f))
+                    RfIcon(kind = RfIconKind.BACK, tint = helperChevronColor, size = 18.dp, modifier = Modifier.rotate(180f))
                 }
             }
             if (filteredArticles.isEmpty()) {

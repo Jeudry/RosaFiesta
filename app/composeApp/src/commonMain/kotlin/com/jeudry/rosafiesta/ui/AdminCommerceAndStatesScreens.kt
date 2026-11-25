@@ -8189,12 +8189,13 @@ internal fun RenderAdminErrorStateA37(
     val queueItems = vmQueue ?: fallbackOfflineQueueItems()
     val pendingChangesCount = queueItems.count { queueItem -> !queueItem.synced }
 
+    val offlineBannerBg = if (RfThemeState.currentPalette.isDark) Color(0xFF261F38) else RfThemeState.currentPalette.ink
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(92.dp)
-                .background(RfThemeState.currentPalette.ink)
+                .background(offlineBannerBg)
                 .padding(start = 20.dp, end = 20.dp, bottom = 12.dp),
             contentAlignment = Alignment.BottomStart,
         ) {

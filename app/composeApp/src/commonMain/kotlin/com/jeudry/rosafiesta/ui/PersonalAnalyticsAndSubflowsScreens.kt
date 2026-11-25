@@ -4786,20 +4786,21 @@ private fun PeriodSelector67(
     onClick: () -> Unit,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     Row(
         modifier = Modifier
             .height(44.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(RfThemeState.currentPalette.surface)
-            .border(1.dp, Color(0xFFE9E9F2), RoundedCornerShape(14.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.line, RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(horizontal = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        BasicText(label, maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color(0xFF151729)))
-        RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = Color(0xFF151729), size = 15.dp)
+        BasicText(label, maxLines = 1, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = palette.ink))
+        RfIcon(kind = RfIconKind.CHEVRON_DOWN, tint = palette.ink, size = 15.dp)
     }
 }
 
@@ -4911,13 +4912,14 @@ private fun IncomeChart67(
 @Composable
 private fun BreakdownBar(label: String, value: String, fraction: Float, color: Color) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF151729), fontSize = 14.sp))
-            BasicText(value, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = Color(0xFF151729), fontSize = 14.sp))
+            BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, color = palette.ink, fontSize = 14.sp))
+            BasicText(value, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, color = palette.ink, fontSize = 14.sp))
         }
-        Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFFF3F1F6))) {
+        Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(palette.chipBg)) {
             if (fraction > 0f) {
                 Box(Modifier.fillMaxWidth(fraction).height(8.dp).clip(RoundedCornerShape(4.dp)).background(color))
             }
@@ -5008,32 +5010,43 @@ internal fun RenderReportsEventsS68(
             }
         }
 
+        val palette = RfThemeState.currentPalette
+        val isDarkMode = palette.isDark
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .rfCardShadow(RoundedCornerShape(22.dp), isAdmin = true)
                 .clip(RoundedCornerShape(22.dp))
-                .background(RfThemeState.currentPalette.surface)
-                .border(1.dp, Color(0xFFECECF5), RoundedCornerShape(22.dp))
+                .background(palette.surface)
+                .border(1.dp, palette.line, RoundedCornerShape(22.dp))
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column {
-                BasicText("Eventos · $activePeriodLabel", style = TextStyle(fontFamily = typo.bodyFamily, color = Color(0xFF5F6377), fontSize = 13.sp))
-                BasicText("$totalCount", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp, lineHeight = 32.sp, color = Color(0xFF151729)))
+                BasicText("Eventos · $activePeriodLabel", style = TextStyle(fontFamily = typo.bodyFamily, color = palette.muted, fontSize = 13.sp))
+                BasicText("$totalCount", style = TextStyle(fontFamily = typo.displayFamily, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp, lineHeight = 32.sp, color = palette.ink))
             }
             EventRingIllustration68(size = 96.dp)
         }
 
+        val doneTileBg = if (isDarkMode) Color(0xFF1F2B1D) else Color(0xFFEEF6D6)
+        val doneTileInk = if (isDarkMode) Color(0xFFB5E072) else Color(0xFF3F560C)
+        val doneTileLabel = if (isDarkMode) Color(0xFFC8E893) else Color(0xFF4E6A10)
+        val progressTileBg = if (isDarkMode) Color(0xFF2D2416) else Color(0xFFFFF2C9)
+        val progressTileInk = if (isDarkMode) Color(0xFFFAD06E) else Color(0xFF6E4300)
+        val progressTileLabel = if (isDarkMode) Color(0xFFFFDF94) else Color(0xFF7A5700)
+        val cancelledTileBg = if (isDarkMode) Color(0xFF311B24) else Color(0xFFFDE3EA)
+        val cancelledTileInk = if (isDarkMode) Color(0xFFFF9DB4) else Color(0xFF8E1A35)
+        val cancelledTileLabel = if (isDarkMode) Color(0xFFFFB5C7) else Color(0xFFB42345)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatTile68("$completadosCount", "Completados", Color(0xFFEEF6D6), Color(0xFF3F560C), Color(0xFF4E6A10), Modifier.weight(1f))
-            StatTile68("$enProcesoCount", "En proceso", Color(0xFFFFF2C9), Color(0xFF6E4300), Color(0xFF7A5700), Modifier.weight(1f))
-            StatTile68("$canceladosCount", "Cancelados", Color(0xFFFDE3EA), Color(0xFF8E1A35), Color(0xFFB42345), Modifier.weight(1f))
+            StatTile68("$completadosCount", "Completados", doneTileBg, doneTileInk, doneTileLabel, Modifier.weight(1f))
+            StatTile68("$enProcesoCount", "En proceso", progressTileBg, progressTileInk, progressTileLabel, Modifier.weight(1f))
+            StatTile68("$canceladosCount", "Cancelados", cancelledTileBg, cancelledTileInk, cancelledTileLabel, Modifier.weight(1f))
         }
 
         ReportCard(contentPadding = PaddingValues(16.dp)) {
-            BasicText("Por tipo de evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF151729)))
+            BasicText("Por tipo de evento", style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = palette.ink))
             Spacer(Modifier.height(14.dp))
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 EventTypeRow68("Bodas", "$weddingsCount", "${(weddingsFraction * 100f).roundToInt()}%", weddingsFraction, Color(0xFFD63F98), RfIconKind.RING, Color(0xFFECEBFF), Color(0xFF4B47D6))
@@ -5079,6 +5092,7 @@ private fun EventTypeRow68(
     iconTint: Color,
 ) {
     val typo = LocalRfTypography.current
+    val palette = RfThemeState.currentPalette
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(
@@ -5089,13 +5103,13 @@ private fun EventTypeRow68(
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Color(0xFF151729)))
+                BasicText(label, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = palette.ink))
                 Row {
-                    BasicText(count, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF151729)))
-                    BasicText(" · $percent", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = Color(0xFF5F6377)))
+                    BasicText(count, style = TextStyle(fontFamily = typo.bodyFamily, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = palette.ink))
+                    BasicText(" · $percent", style = TextStyle(fontFamily = typo.bodyFamily, fontSize = 14.sp, color = palette.muted))
                 }
             }
-            Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFFF3F1F6))) {
+            Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(palette.chipBg)) {
                 if (fraction > 0f) {
                     Box(Modifier.fillMaxWidth(fraction).height(8.dp).clip(RoundedCornerShape(4.dp)).background(barColor))
                 }

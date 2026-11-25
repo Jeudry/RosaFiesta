@@ -1721,7 +1721,10 @@ public class RosaFiestaViewModel(
             val displayLang = if (prefs.preferredLanguage.equals("en", ignoreCase = true)) "English" else "Español"
             _preferredLanguage.value = displayLang
         }
-        if (SecureStorage.KEY_DARK_THEME !in mutatedPreferenceKeys) {
+        val isRemoteDarkUnmutated = SecureStorage.KEY_DARK_THEME !in mutatedPreferenceKeys
+        val shouldOverrideSystemDarkTheme = if (hasExplicitDarkThemePreference) true else prefs.darkThemeEnabled
+        val shouldApplyDarkThemePref = if (isRemoteDarkUnmutated) shouldOverrideSystemDarkTheme else false
+        if (shouldApplyDarkThemePref) {
             hasExplicitDarkThemePreference = true
             _isDarkTheme.value = prefs.darkThemeEnabled
             com.jeudry.rosafiesta.designsystem.RfThemeState.isPersonalDark = prefs.darkThemeEnabled
@@ -1746,7 +1749,9 @@ public class RosaFiestaViewModel(
                 secureStorage.put("rf_pref_auto_sync_wifi", prefs.autoSyncWifiOnly.toString())
                 secureStorage.put(SecureStorage.KEY_REMINDERS, prefs.eventRemindersEnabled.toString())
                 secureStorage.put(SecureStorage.KEY_LANGUAGE, displayLang)
-                secureStorage.put(SecureStorage.KEY_DARK_THEME, prefs.darkThemeEnabled.toString())
+                if (shouldApplyDarkThemePref) {
+                    secureStorage.put(SecureStorage.KEY_DARK_THEME, prefs.darkThemeEnabled.toString())
+                }
                 secureStorage.put(SecureStorage.KEY_PAYMENT_METHOD, prefs.savedPaymentMethod)
                 secureStorage.put("rf_pref_zone", prefs.profileZone)
             }

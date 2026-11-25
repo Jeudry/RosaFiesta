@@ -1,61 +1,15 @@
 package com.jeudry.rosafiesta.data
 
+import app.cash.sqldelight.db.QueryResult
 import app.cash.sqldelight.db.SqlDriver
 
 /**
  * Applies additive schema statements for pre-existing local SQLite caches created before v2 columns and tables.
  */
 internal object RosaFiestaSchemaUpgrade {
-    private val statements: List<String> = listOf(
-        "ALTER TABLE LocalArticleEntity ADD COLUMN photoUrl TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE LocalArticleEntity ADD COLUMN damagedStock INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE LocalArticleEntity ADD COLUMN variantsJson TEXT NOT NULL DEFAULT '[]'",
-        "ALTER TABLE LocalArticleEntity ADD COLUMN dimensions TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE LocalArticleEntity ADD COLUMN material TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE LocalArticleEntity ADD COLUMN visibleInCatalog INTEGER NOT NULL DEFAULT 1",
-        "ALTER TABLE LocalChecklistStepEntity ADD COLUMN eventId TEXT NOT NULL DEFAULT 'evt-boda-real'",
-        "ALTER TABLE LocalOfflineMutationEntity ADD COLUMN operationType TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE LocalOfflineMutationEntity ADD COLUMN payloadJson TEXT NOT NULL DEFAULT '{}'",
-        "ALTER TABLE LocalOfflineMutationEntity ADD COLUMN idempotencyKey TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN eventDateIso TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN pickupDateIso TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN returnDateIso TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN quoteId TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN closeoutCompleted INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE eventEntity ADD COLUMN closeoutNotes TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN sketchJson TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN lastPaymentReminderAt TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN lastPaymentReminderChannel TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN itemsJson TEXT NOT NULL DEFAULT '[]'",
-        "ALTER TABLE eventEntity ADD COLUMN clientEmail TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN cancellationReason TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE eventEntity ADD COLUMN setupPhotoUrlsJson TEXT NOT NULL DEFAULT '[]'",
-        "ALTER TABLE eventEntity ADD COLUMN contactPhone TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE quoteEntity ADD COLUMN contactPhone TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE quoteEntity ADD COLUMN signedByUserId TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE quoteEntity ADD COLUMN contractHashSha256 TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE staffPermissionEntity ADD COLUMN email TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE staffPermissionEntity ADD COLUMN phone TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE staffPermissionEntity ADD COLUMN active INTEGER NOT NULL DEFAULT 1",
-        "ALTER TABLE userAccountEntity ADD COLUMN pushNotificationsEnabled INTEGER NOT NULL DEFAULT 1",
-        "ALTER TABLE userAccountEntity ADD COLUMN whatsappAlertsEnabled INTEGER NOT NULL DEFAULT 1",
-        "ALTER TABLE userAccountEntity ADD COLUMN emailReceiptsEnabled INTEGER NOT NULL DEFAULT 1",
-        "ALTER TABLE userAccountEntity ADD COLUMN biometricLockEnabled INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE userAccountEntity ADD COLUMN autoSyncWifiOnly INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE userAccountEntity ADD COLUMN eventRemindersEnabled INTEGER NOT NULL DEFAULT 1",
-        "ALTER TABLE userAccountEntity ADD COLUMN preferredLanguage TEXT NOT NULL DEFAULT 'es'",
-        "ALTER TABLE userAccountEntity ADD COLUMN darkThemeEnabled INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE userAccountEntity ADD COLUMN savedPaymentMethod TEXT NOT NULL DEFAULT 'Transferencia'",
-        "ALTER TABLE userAccountEntity ADD COLUMN profileZone TEXT NOT NULL DEFAULT 'Distrito Nacional'",
-        "ALTER TABLE userAccountEntity ADD COLUMN avatarKey TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE paymentEntity ADD COLUMN voucherUrl TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE paymentEntity ADD COLUMN ncfType TEXT NOT NULL DEFAULT 'B02'",
-        "ALTER TABLE paymentEntity ADD COLUMN ncfNumber TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE paymentEntity ADD COLUMN clientRnc TEXT NOT NULL DEFAULT ''",
-        "ALTER TABLE paymentEntity ADD COLUMN subtotalDop INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE paymentEntity ADD COLUMN itbisDop INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE paymentEntity ADD COLUMN securityDepositDop INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE paymentEntity ADD COLUMN rejectionReason TEXT NOT NULL DEFAULT ''",
+    private const val SCHEMA_UPGRADE_VERSION: Long = 2L
+
+    private val tableStatements: List<String> = listOf(
         """
         CREATE TABLE IF NOT EXISTS quoteEntity (
             id TEXT NOT NULL PRIMARY KEY,
@@ -139,11 +93,145 @@ internal object RosaFiestaSchemaUpgrade {
         """.trimIndent(),
     )
 
+    private val columnUpgradesByTable: Map<String, List<Pair<String, String>>> = mapOf(
+        "LocalArticleEntity" to listOf(
+            "photoUrl" to "TEXT NOT NULL DEFAULT ''",
+            "damagedStock" to "INTEGER NOT NULL DEFAULT 0",
+            "variantsJson" to "TEXT NOT NULL DEFAULT '[]'",
+            "dimensions" to "TEXT NOT NULL DEFAULT ''",
+            "material" to "TEXT NOT NULL DEFAULT ''",
+            "visibleInCatalog" to "INTEGER NOT NULL DEFAULT 1",
+        ),
+        "LocalChecklistStepEntity" to listOf(
+            "eventId" to "TEXT NOT NULL DEFAULT 'evt-boda-real'",
+        ),
+        "LocalOfflineMutationEntity" to listOf(
+            "operationType" to "TEXT NOT NULL DEFAULT ''",
+            "payloadJson" to "TEXT NOT NULL DEFAULT '{}'",
+            "idempotencyKey" to "TEXT NOT NULL DEFAULT ''",
+        ),
+        "eventEntity" to listOf(
+            "eventDateIso" to "TEXT NOT NULL DEFAULT ''",
+            "pickupDateIso" to "TEXT NOT NULL DEFAULT ''",
+            "returnDateIso" to "TEXT NOT NULL DEFAULT ''",
+            "quoteId" to "TEXT NOT NULL DEFAULT ''",
+            "closeoutCompleted" to "INTEGER NOT NULL DEFAULT 0",
+            "closeoutNotes" to "TEXT NOT NULL DEFAULT ''",
+            "sketchJson" to "TEXT NOT NULL DEFAULT ''",
+            "lastPaymentReminderAt" to "TEXT NOT NULL DEFAULT ''",
+            "lastPaymentReminderChannel" to "TEXT NOT NULL DEFAULT ''",
+            "itemsJson" to "TEXT NOT NULL DEFAULT '[]'",
+            "clientEmail" to "TEXT NOT NULL DEFAULT ''",
+            "cancellationReason" to "TEXT NOT NULL DEFAULT ''",
+            "setupPhotoUrlsJson" to "TEXT NOT NULL DEFAULT '[]'",
+            "contactPhone" to "TEXT NOT NULL DEFAULT ''",
+        ),
+        "quoteEntity" to listOf(
+            "contactPhone" to "TEXT NOT NULL DEFAULT ''",
+            "signedByUserId" to "TEXT NOT NULL DEFAULT ''",
+            "contractHashSha256" to "TEXT NOT NULL DEFAULT ''",
+        ),
+        "staffPermissionEntity" to listOf(
+            "email" to "TEXT NOT NULL DEFAULT ''",
+            "phone" to "TEXT NOT NULL DEFAULT ''",
+            "active" to "INTEGER NOT NULL DEFAULT 1",
+        ),
+        "userAccountEntity" to listOf(
+            "pushNotificationsEnabled" to "INTEGER NOT NULL DEFAULT 1",
+            "whatsappAlertsEnabled" to "INTEGER NOT NULL DEFAULT 1",
+            "emailReceiptsEnabled" to "INTEGER NOT NULL DEFAULT 1",
+            "biometricLockEnabled" to "INTEGER NOT NULL DEFAULT 0",
+            "autoSyncWifiOnly" to "INTEGER NOT NULL DEFAULT 0",
+            "eventRemindersEnabled" to "INTEGER NOT NULL DEFAULT 1",
+            "preferredLanguage" to "TEXT NOT NULL DEFAULT 'es'",
+            "darkThemeEnabled" to "INTEGER NOT NULL DEFAULT 0",
+            "savedPaymentMethod" to "TEXT NOT NULL DEFAULT 'Transferencia'",
+            "profileZone" to "TEXT NOT NULL DEFAULT 'Distrito Nacional'",
+            "avatarKey" to "TEXT NOT NULL DEFAULT ''",
+        ),
+        "paymentEntity" to listOf(
+            "voucherUrl" to "TEXT NOT NULL DEFAULT ''",
+            "ncfType" to "TEXT NOT NULL DEFAULT 'B02'",
+            "ncfNumber" to "TEXT NOT NULL DEFAULT ''",
+            "clientRnc" to "TEXT NOT NULL DEFAULT ''",
+            "subtotalDop" to "INTEGER NOT NULL DEFAULT 0",
+            "itbisDop" to "INTEGER NOT NULL DEFAULT 0",
+            "securityDepositDop" to "INTEGER NOT NULL DEFAULT 0",
+            "rejectionReason" to "TEXT NOT NULL DEFAULT ''",
+        ),
+    )
+
+    private const val UPGRADE_META_TABLE_SQL: String =
+        "CREATE TABLE IF NOT EXISTS _rf_schema_upgrade (id INTEGER NOT NULL PRIMARY KEY, version INTEGER NOT NULL)"
+
     internal fun applySafeColumnUpgrades(driver: SqlDriver) {
-        statements.forEach { sql ->
+        val currentVersion = readUpgradeVersion(driver)
+        if (currentVersion >= SCHEMA_UPGRADE_VERSION) {
+            return
+        }
+        tableStatements.forEach { sql ->
             runCatching {
                 driver.execute(identifier = null, sql = sql, parameters = 0)
             }
         }
+        columnUpgradesByTable.forEach { (tableName, columnSpecs) ->
+            val existingColumns = readExistingColumnNames(driver, tableName)
+            columnSpecs.forEach { (columnName, columnDef) ->
+                val isColumnMissing = columnName !in existingColumns
+                if (isColumnMissing) {
+                    runCatching {
+                        driver.execute(
+                            identifier = null,
+                            sql = "ALTER TABLE $tableName ADD COLUMN $columnName $columnDef",
+                            parameters = 0,
+                        )
+                    }
+                }
+            }
+        }
+        runCatching {
+            driver.execute(identifier = null, sql = UPGRADE_META_TABLE_SQL, parameters = 0)
+            driver.execute(
+                identifier = null,
+                sql = "INSERT OR REPLACE INTO _rf_schema_upgrade(id, version) VALUES (1, $SCHEMA_UPGRADE_VERSION)",
+                parameters = 0,
+            )
+        }
     }
+
+    private fun readUpgradeVersion(driver: SqlDriver): Long = runCatching {
+        driver.execute(identifier = null, sql = UPGRADE_META_TABLE_SQL, parameters = 0)
+        driver.executeQuery(
+            identifier = null,
+            sql = "SELECT version FROM _rf_schema_upgrade WHERE id = 1",
+            mapper = { cursor ->
+                val version = if (cursor.next().value) {
+                    cursor.getLong(0) ?: 0L
+                } else {
+                    0L
+                }
+                QueryResult.Value(version)
+            },
+            parameters = 0,
+        ).value
+    }.getOrDefault(0L)
+
+    private fun readExistingColumnNames(driver: SqlDriver, tableName: String): Set<String> = runCatching {
+        driver.executeQuery(
+            identifier = null,
+            sql = "PRAGMA table_info('$tableName')",
+            mapper = { cursor ->
+                val names = mutableSetOf<String>()
+                for (rowIndex in 0 until 256) {
+                    if (!cursor.next().value) break
+                    val colName = cursor.getString(1)
+                    if (!colName.isNullOrBlank()) {
+                        names += colName
+                    }
+                }
+                QueryResult.Value(names.toSet())
+            },
+            parameters = 0,
+        ).value
+    }.getOrDefault(emptySet())
 }
