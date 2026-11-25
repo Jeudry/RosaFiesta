@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; base-uri 'self'; form-action 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'self'; form-action 'self';" />
   <title>RosaFiesta - Autenticación</title>
   <style>
     body {
@@ -35,32 +35,6 @@
     <h1>Completando inicio de sesión</h1>
     <p>Puedes cerrar esta ventana si no se cierra automáticamente.</p>
   </main>
-  <script>
-    (function () {
-      var params = new URLSearchParams(window.location.search || "");
-      var payload = {
-        type: "rosafiesta-oauth-callback",
-        code: params.get("code") || "",
-        state: params.get("state") || "",
-        error: params.get("error") || "",
-        errorDescription: params.get("error_description") || ""
-      };
-      if (window.opener && !window.opener.closed) {
-        try {
-          window.opener.postMessage(payload, window.location.origin);
-        } catch (err) {}
-        window.setTimeout(function () {
-          window.close();
-        }, 150);
-        return;
-      }
-      if (window.name !== "rosafiesta_oauth") {
-        try {
-          window.sessionStorage.setItem("rosafiesta_pending_oauth", JSON.stringify(payload));
-        } catch (storageErr) {}
-        window.location.replace("./");
-      }
-    })();
-  </script>
+  <script type="application/javascript" src="oauth-callback.js"></script>
 </body>
 </html>

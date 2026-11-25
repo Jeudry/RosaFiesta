@@ -2,12 +2,28 @@
 # Restaura un respaldo creado por backup.sh en la base actual de RosaFiesta.
 set -euo pipefail
 
-cd "$(dirname "$0")"
 FILE="${1:?Indica el archivo de respaldo (.sql.gz)}"
+case "$FILE" in
+  /*) ;;
+  *) FILE="$(pwd -P)/$FILE" ;;
+esac
+cd "$(dirname "$0")"
 [ -f "$FILE" ] || { echo "Archivo no encontrado: $FILE"; exit 1; }
 [ -f ./.env ] || { echo "Falta deploy/.env"; exit 1; }
 gunzip -t "$FILE"
-set -a; source ./.env; set +a
+read_env_value() {
+  local key="$1"
+  local raw
+  raw="$(grep -E "^${key}=" ./.env | tail -n 1 | cut -d '=' -f 2-)"
+  raw="${raw%\"}"
+  raw="${raw#\"}"
+  raw="${raw%\'}"
+  raw="${raw#\'}"
+  printf '%s' "$raw"
+}
+POSTGRES_USER="$(read_env_value POSTGRES_USER)"
+POSTGRES_DB="$(read_env_value POSTGRES_DB)"
+[ -n "$POSTGRES_USER" ] && [ -n "$POSTGRES_DB" ] || { echo "Faltan POSTGRES_USER o POSTGRES_DB en deploy/.env"; exit 1; }
 
 read -r -p "Esto reemplaza TODOS los datos de ${POSTGRES_DB}. Escribe 'restaurar' para seguir: " answer
 [ "$answer" = "restaurar" ] || { echo "Cancelado."; exit 1; }

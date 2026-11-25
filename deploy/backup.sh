@@ -2,11 +2,27 @@
 # Respaldo de PostgreSQL de RosaFiesta: volcado comprimido con fecha y limpieza de copias antiguas.
 set -euo pipefail
 
-cd "$(dirname "$0")"
 DEST="${1:-/var/backups/rosafiesta}"
+case "$DEST" in
+  /*) ;;
+  *) DEST="$(pwd -P)/$DEST" ;;
+esac
+cd "$(dirname "$0")"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 [ -f ./.env ] || { echo "Falta deploy/.env"; exit 1; }
-set -a; source ./.env; set +a
+read_env_value() {
+  local key="$1"
+  local raw
+  raw="$(grep -E "^${key}=" ./.env | tail -n 1 | cut -d '=' -f 2-)"
+  raw="${raw%\"}"
+  raw="${raw#\"}"
+  raw="${raw%\'}"
+  raw="${raw#\'}"
+  printf '%s' "$raw"
+}
+POSTGRES_USER="$(read_env_value POSTGRES_USER)"
+POSTGRES_DB="$(read_env_value POSTGRES_DB)"
+[ -n "$POSTGRES_USER" ] && [ -n "$POSTGRES_DB" ] || { echo "Faltan POSTGRES_USER o POSTGRES_DB en deploy/.env"; exit 1; }
 
 mkdir -p "$DEST"
 FILE="$DEST/rosafiesta-$(date +%Y%m%d-%H%M%S).sql.gz"
